@@ -2,7 +2,6 @@ import * as React from "react"
 import { Clapperboard, Loader2 } from "lucide-react"
 import { adminApi, ApiError, apiUrl } from "@/api/client"
 import type { ReelsSongDetail } from "@/api/types"
-import type { MvFrame } from "@reels/types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { LoadingState } from "@/components/StateViews"
@@ -18,6 +17,7 @@ import {
   DEFAULT_HEADLINE_FONT_SIZE,
   DEFAULT_LYRIC_SCALE,
   defaultCaption,
+  EMPTY_MV_TRACK,
   emptyEditor,
   frameToMs,
   setEnd,
@@ -29,6 +29,7 @@ import {
   toggleLine,
   toggleToken,
   validate,
+  type MvTrack,
   type ReelCaption,
 } from "./reelEditor"
 
@@ -47,10 +48,11 @@ export function ReelsFactoryPage() {
   const [mvUrl, setMvUrl] = React.useState<string | null>(null)
   const [mvDurationMs, setMvDurationMs] = React.useState<number | null>(null)
   const [mvAspect, setMvAspect] = React.useState<number | null>(null)
-  /** 릴스 전체에 고정되는 MV 배치. null 이면 꽉 채움(cover). 줄을 비워도 유지하고 곡을 바꾸면 되돌린다. */
-  const [mvFrame, setMvFrame] = React.useState<MvFrame | null>(null)
+  /** MV 배치와 키프레임. 줄을 비워도 유지하고 곡을 바꾸면 되돌린다. */
+  const [mvTrack, setMvTrack] = React.useState<MvTrack>(EMPTY_MV_TRACK)
   /** 상단 헤드라인 글자 크기(px). 가사 배율처럼 릴스 전체에 고정이고 곡을 바꾸면 되돌린다. */
   const [headlineFontSize, setHeadlineFontSize] = React.useState(DEFAULT_HEADLINE_FONT_SIZE)
+  const [headlineOffsetY, setHeadlineOffsetY] = React.useState(0)
   /** 가사 원문 글자 배율. MV 배치처럼 릴스 전체에 고정이고 곡을 바꾸면 되돌린다. */
   const [lyricScale, setLyricScale] = React.useState(DEFAULT_LYRIC_SCALE)
   const [lyricOffsetY, setLyricOffsetY] = React.useState(0)
@@ -77,10 +79,11 @@ export function ReelsFactoryPage() {
     setMvUrl(null)
     setMvDurationMs(null)
     setMvAspect(null)
-    setMvFrame(null)
+    setMvTrack(EMPTY_MV_TRACK)
     setLyricScale(DEFAULT_LYRIC_SCALE)
     setLyricOffsetY(0)
     setHeadlineFontSize(DEFAULT_HEADLINE_FONT_SIZE)
+    setHeadlineOffsetY(0)
     setMode("source")
     setPlayheadMs(0)
     setError(null)
@@ -107,9 +110,9 @@ export function ReelsFactoryPage() {
   const data = React.useMemo(
     () =>
       detail && editor.lines.length > 0
-        ? buildPromoData(detail, editor, mvUrl ?? "", caption, mvFrame, lyricScale, headlineFontSize, lyricOffsetY)
+        ? buildPromoData(detail, editor, mvUrl ?? "", caption, mvTrack, lyricScale, headlineFontSize, lyricOffsetY, headlineOffsetY)
         : null,
-    [caption, detail, editor, headlineFontSize, lyricOffsetY, lyricScale, mvFrame, mvUrl],
+    [caption, detail, editor, headlineFontSize, headlineOffsetY, lyricOffsetY, lyricScale, mvTrack, mvUrl],
   )
   const fps = detail?.fps ?? 30
   const inputReady = Boolean(detail?.song.renderEligible) && errors.length === 0
@@ -315,12 +318,14 @@ export function ReelsFactoryPage() {
               onChangeHeadlineFontSize={setHeadlineFontSize}
               onChangeLyricScale={setLyricScale}
               onChangeLyricOffsetY={setLyricOffsetY}
-              onChangeMvFrame={setMvFrame}
+              onChangeMvTrack={setMvTrack}
+              onChangeHeadlineOffsetY={setHeadlineOffsetY}
               headlineFontSize={headlineFontSize}
+              headlineOffsetY={headlineOffsetY}
               lyricScale={lyricScale}
               lyricOffsetY={lyricOffsetY}
               mvAspect={mvAspect}
-              mvFrame={mvFrame}
+              mvTrack={mvTrack}
               playheadMs={playheadMs}
               selectedIndex={selectedIndex}
               onSeekReel={seekReel}

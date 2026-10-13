@@ -2,8 +2,11 @@ import { describe, expect, test } from "vitest"
 import { parseHeadline } from "@reels/headline"
 import type { ReelsLyricLine, ReelsSongDetail } from "@/api/types"
 import {
+  activeMvKeyframe,
+  addMvKeyframe,
   buildPromoData,
   clampHeadlineFontSize,
+  clampHeadlineOffsetY,
   clampLyricOffsetY,
   clampLyricScale,
   clampMvFrame,
@@ -12,19 +15,25 @@ import {
   DEFAULT_HEADLINE_FONT_SIZE,
   DEFAULT_LINE_GAP_MS,
   DEFAULT_TAIL_MS,
+  EMPTY_MV_TRACK,
   emptyEditor,
   formatMs,
   HEADLINE_FONT_SIZE_MAX,
   HEADLINE_FONT_SIZE_MIN,
+  HEADLINE_OFFSET_Y_MAX,
+  HEADLINE_OFFSET_Y_MIN,
   LYRIC_OFFSET_Y_MAX,
   LYRIC_OFFSET_Y_MIN,
   LYRIC_SCALE_MAX,
   LYRIC_SCALE_MIN,
   MIN_GAP_MS,
+  mvFrameAt,
   parseTimecode,
+  removeMvKeyframe,
   setEnd,
   setLineStart,
   setLinesIncluded,
+  setMvFrameAt,
   setSourceStart,
   setTokenMeaning,
   shiftAll,
@@ -294,13 +303,24 @@ describe("headline font size", () => {
 
   test("defaults to the design size and carries the admin value into the props", () => {
     expect(buildPromoData(synced, state, "http://mv").headlineFontSize).toBe(DEFAULT_HEADLINE_FONT_SIZE)
-    expect(buildPromoData(synced, state, "http://mv", undefined, null, 1, 92).headlineFontSize).toBe(92)
+    expect(buildPromoData(synced, state, "http://mv", undefined, EMPTY_MV_TRACK, 1, 92).headlineFontSize).toBe(92)
   })
 
   test("clamps out-of-range values", () => {
-    expect(buildPromoData(synced, state, "http://mv", undefined, null, 1, 400).headlineFontSize).toBe(HEADLINE_FONT_SIZE_MAX)
+    expect(buildPromoData(synced, state, "http://mv", undefined, EMPTY_MV_TRACK, 1, 400).headlineFontSize).toBe(HEADLINE_FONT_SIZE_MAX)
     expect(clampHeadlineFontSize(10)).toBe(HEADLINE_FONT_SIZE_MIN)
     expect(clampHeadlineFontSize(76.6)).toBe(77)
+  })
+})
+
+describe("headline offset", () => {
+  const state = [0, 1, 2, 3].reduce((current, index) => toggleLine(current, synced, index), emptyEditor())
+
+  test("carries the headline offset and clamps it to the server range", () => {
+    expect(buildPromoData(synced, state, "http://mv").headlineOffsetY).toBe(0)
+    expect(buildPromoData(synced, state, "http://mv", undefined, EMPTY_MV_TRACK, 1, undefined, 0, 80.6).headlineOffsetY).toBe(81)
+    expect(clampHeadlineOffsetY(-9_999)).toBe(HEADLINE_OFFSET_Y_MIN)
+    expect(clampHeadlineOffsetY(9_999)).toBe(HEADLINE_OFFSET_Y_MAX)
   })
 })
 
@@ -309,18 +329,18 @@ describe("lyric scale", () => {
 
   test("defaults to the base size and carries the admin value into the props", () => {
     expect(buildPromoData(synced, state, "http://mv").lyricScale).toBe(1)
-    expect(buildPromoData(synced, state, "http://mv", undefined, null, 1.25).lyricScale).toBe(1.25)
+    expect(buildPromoData(synced, state, "http://mv", undefined, EMPTY_MV_TRACK, 1.25).lyricScale).toBe(1.25)
   })
 
   test("clamps out-of-range values", () => {
-    expect(buildPromoData(synced, state, "http://mv", undefined, null, 9).lyricScale).toBe(LYRIC_SCALE_MAX)
+    expect(buildPromoData(synced, state, "http://mv", undefined, EMPTY_MV_TRACK, 9).lyricScale).toBe(LYRIC_SCALE_MAX)
     expect(clampLyricScale(0.1)).toBe(LYRIC_SCALE_MIN)
     expect(clampLyricScale(1.234)).toBe(1.23)
   })
 
   test("carries the lyric offset and clamps it to the server range", () => {
     expect(buildPromoData(synced, state, "http://mv").lyricOffsetY).toBe(0)
-    expect(buildPromoData(synced, state, "http://mv", undefined, null, 1, undefined, -120.4).lyricOffsetY).toBe(-120)
+    expect(buildPromoData(synced, state, "http://mv", undefined, EMPTY_MV_TRACK, 1, undefined, -120.4).lyricOffsetY).toBe(-120)
     expect(clampLyricOffsetY(-9_999)).toBe(LYRIC_OFFSET_Y_MIN)
     expect(clampLyricOffsetY(9_999)).toBe(LYRIC_OFFSET_Y_MAX)
   })
@@ -331,7 +351,42 @@ describe("mv frame", () => {
     const state = [0, 1, 2, 3].reduce((current, index) => toggleLine(current, synced, index), emptyEditor())
     expect(buildPromoData(synced, state, "http://mv").mvFrame).toBeNull()
     const frame = { scale: 1, x: -120, y: 300 }
-    expect(buildPromoData(synced, state, "http://mv", undefined, frame).mvFrame).toEqual(frame)
+    expect(buildPromoData(synced, state, "http://mv", undefined, { base: frame, keyframes: [] }).mvFrame).toEqual(frame)
+  })
+
+  test("keyframes copy the current frame and edits go to the one at the playhead", () => {
+    const base = { scale: 1, x: 0, y: 0 }
+    const zoomed = { scale: 2, x: 40, y: -80 }
+    let track = addMvKeyframe({ base, keyframes: [] }, 14_000)
+    expect(track.keyframes).toEqual([{ atMs: 14_000, frame: base }])
+    expect(addMvKeyframe(track, 14_000)).toBe(track)
+    track = setMvFrameAt(track, 15_000, zoomed)
+    expect(track.base).toEqual(base)
+    expect(mvFrameAt(track, 13_999)).toEqual(base)
+    expect(mvFrameAt(track, 14_000)).toEqual(zoomed)
+    track = addMvKeyframe(track, 12_000)
+    expect(track.keyframes.map((keyframe) => keyframe.atMs)).toEqual([12_000, 14_000])
+    expect(activeMvKeyframe(track, 12_500)).toBe(0)
+    expect(removeMvKeyframe(track, 1).keyframes).toEqual([{ atMs: 12_000, frame: base }])
+  })
+
+  test("keyframes become reel frames; ones before the clip set the first frame, ones after the reel are dropped", () => {
+    const state = [0, 1, 2, 3].reduce((current, index) => toggleLine(current, synced, index), emptyEditor())
+    const a = { scale: 1, x: 0, y: 0 }
+    const b = { scale: 2, x: 0, y: 0 }
+    const c = { scale: 0.5, x: 0, y: 0 }
+    // 클립 10s~18s + 엔드카드 7s → 25s 에서 릴스가 끝난다
+    const data = buildPromoData(synced, state, "http://mv", undefined, {
+      base: null,
+      keyframes: [
+        { atMs: 9_000, frame: a },
+        { atMs: 12_000, frame: b },
+        { atMs: 12_010, frame: c },
+        { atMs: 25_000, frame: b },
+      ],
+    })
+    expect(data.mvFrame).toEqual(a)
+    expect(data.mvKeyframes).toEqual([{ startFrame: 60, mvFrame: c }])
   })
 
   test("computes the cover scale from the MV aspect", () => {

@@ -12,6 +12,7 @@ import com.japanese.vocabulary.admin.reels.AdminReelsSourceProperties
 import com.japanese.vocabulary.admin.reels.FileAdminReelsSourceCache
 import com.japanese.vocabulary.admin.reels.model.AdminReelsMvCrop
 import com.japanese.vocabulary.admin.reels.model.AdminReelsMvFrame
+import com.japanese.vocabulary.admin.reels.model.AdminReelsMvKeyframe
 import com.japanese.vocabulary.admin.reels.model.AdminReelsPromoData
 import com.japanese.vocabulary.admin.reels.model.AdminReelsPromoLine
 import com.japanese.vocabulary.admin.reels.model.AdminReelsPromoSong
@@ -130,6 +131,11 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
             lyricScale = 1.2,
             lyricOffsetY = -150,
             headlineFontSize = 92,
+            headlineOffsetY = 60,
+            mvKeyframes = listOf(
+                AdminReelsMvKeyframe(startFrame = 200, mvFrame = AdminReelsMvFrame(scale = 2.0, x = 0.0, y = -80.0)),
+                AdminReelsMvKeyframe(startFrame = 600, mvFrame = null),
+            ),
         )
         val jobId = mockMvc.post("/admin/api/reels-factory/render") {
             header("Authorization", "Bearer $token")
@@ -177,6 +183,9 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         assertThat(rendered.lyricOffsetY).isEqualTo(-150)
         // 헤드라인 글자 크기도 어드민이 정한 값을 쓴다
         assertThat(rendered.headlineFontSize).isEqualTo(92)
+        assertThat(rendered.headlineOffsetY).isEqualTo(60)
+        // MV 배치 키프레임도 그대로 간다 — 엔드카드 구간(520~730) 안의 키프레임도 받는다
+        assertThat(rendered.mvKeyframes).isEqualTo(data.mvKeyframes)
         // 클라이언트의 스트리밍 URL 은 버리고 렌더 스크립트가 mvAsset 을 채운다
         assertThat(rendered.song.mvAsset).isEmpty()
     }
@@ -262,6 +271,23 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         // 가사 위치 범위 밖
         renderExpectingBadRequest(token, song.id!!, valid.copy(lyricOffsetY = -700))
         renderExpectingBadRequest(token, song.id!!, valid.copy(lyricOffsetY = 400))
+        // MV 키프레임: 0 프레임, 릴스 끝 이후, 순서 어김, 배치 범위 밖
+        val zoom = AdminReelsMvFrame(scale = 2.0, x = 0.0, y = 0.0)
+        renderExpectingBadRequest(token, song.id!!, valid.copy(mvKeyframes = listOf(AdminReelsMvKeyframe(startFrame = 0, mvFrame = zoom))))
+        renderExpectingBadRequest(token, song.id!!, valid.copy(mvKeyframes = listOf(AdminReelsMvKeyframe(startFrame = valid.lyricsEndFrame + 210, mvFrame = zoom))))
+        renderExpectingBadRequest(
+            token,
+            song.id!!,
+            valid.copy(mvKeyframes = listOf(AdminReelsMvKeyframe(startFrame = 100, mvFrame = zoom), AdminReelsMvKeyframe(startFrame = 100, mvFrame = null))),
+        )
+        renderExpectingBadRequest(
+            token,
+            song.id!!,
+            valid.copy(mvKeyframes = listOf(AdminReelsMvKeyframe(startFrame = 100, mvFrame = zoom.copy(scale = 9.0)))),
+        )
+        // 헤드라인 위치 범위 밖
+        renderExpectingBadRequest(token, song.id!!, valid.copy(headlineOffsetY = -400))
+        renderExpectingBadRequest(token, song.id!!, valid.copy(headlineOffsetY = 400))
         // 헤드라인 글자 크기 범위 밖
         renderExpectingBadRequest(token, song.id!!, valid.copy(headlineFontSize = 20))
         renderExpectingBadRequest(token, song.id!!, valid.copy(headlineFontSize = 200))

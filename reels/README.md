@@ -29,7 +29,7 @@ npm run render:request -- --input /tmp/render-input.json --output /tmp/reel.mp4
 - `PromoReel.tsx` 는 `remotion` 과 `react` 외의 의존성을 추가하면 안 됩니다. `../../app-rn/src/utils/readingConverter` 처럼 import 가 없는 순수 TS 파일만 가져오세요.
 - 릴스 폰트는 에스코어 드림(`src/fonts/SCDream{4..8}.woff2`, weight 400~800)이다. `src/fonts/scoreDream.ts` 가 `FontFace` 로 등록하고 `delayRender` 로 로드를 기다린다 — Remotion 번들러와 Vite 둘 다 `.woff2` import 를 URL 로 내보내서 렌더와 어드민 미리보기가 같은 파일을 쓴다. 에스코어 드림에 없는 일본어는 뒤의 Noto CJK 로 떨어지고, 엔드카드의 앱 목업(`styles.phone`)만 실제 앱과 같은 Noto 스택을 유지한다.
 - `song.mvAsset` / `song.artworkAsset` 은 `public/` 파일명 또는 URL(`http…`, `/…`) 둘 다 받습니다. 렌더는 파일명, 미리보기는 admin-api 스트리밍 URL 을 넘깁니다.
-- MV 는 맨 위 헤드라인 띠(`HEADLINE_BAND_HEIGHT` 580px) 아래에만 보인다. 기본 자리는 띠 아래부터 `MV_AREA_BOTTOM`(1560)까지로, 그 아래 인스타 프로필·캡션 자리는 비워 둔다. 어드민이 `mvFrame` 으로 키우거나 옮기면 캔버스 끝까지 보인다. `mvFrame`(`{scale, x, y, crop?}`, 없으면 그 영역 cover)이 있으면 MV 를 `crop`(각 변 비율, CSS `object-view-box` — Chromium 전용)만큼 잘라낸 뒤 폭 `1080 × scale` 로 줄이거나 키워 영역 가운데에서 `x/y` px 옮기고, 빈 곳은 검게 남는다. 릴스 전체에 고정된 값이다. 띠 높이나 영역 바닥을 바꾸면 `admin-web` `reelEditor.ts` 의 `MV_AREA_HEIGHT` 도 같이 바꾼다.
+- MV 는 맨 위 헤드라인 띠(`HEADLINE_BAND_HEIGHT` 580px) 아래에만 보인다. 기본 자리는 띠 아래부터 `MV_AREA_BOTTOM`(1560)까지로, 그 아래 인스타 프로필·캡션 자리는 비워 둔다. 어드민이 `mvFrame` 으로 키우거나 옮기면 캔버스 끝까지 보인다. `mvFrame`(`{scale, x, y, crop?}`, 없으면 그 영역 cover)이 있으면 MV 를 `crop`(각 변 비율, CSS `object-view-box` — Chromium 전용)만큼 잘라낸 뒤 폭 `1080 × scale` 로 줄이거나 키워 영역 가운데에서 `x/y` px 옮기고, 빈 곳은 검게 남는다. `mvKeyframes`(`[{startFrame, mvFrame}]`, `mvFrame` null 은 cover)가 있으면 각 키프레임 프레임부터 그 배치로 전환 없이 바뀐다 — `mvFrame` 은 첫 키프레임 전까지의 배치다. GPU 합성(`scripts/lib/gpu-composite.mjs`)은 배치가 같은 구간마다 MV 를 따로 열어 이어 붙인다. 띠 높이나 영역 바닥을 바꾸면 `admin-web` `reelEditor.ts` 의 `MV_AREA_HEIGHT` 도 같이 바꾼다.
 - props 는 어드민 에디터가 브라우저에서 만들고(`admin-web/src/pages/reels-factory/reelEditor.ts`) 렌더 요청에 그대로 실립니다. 첫 줄 `startFrame` 이 0 보다 크면 그 앞은 가사 없이 MV 만 흐릅니다.
 - 가사 화면은 그 줄의 원문(작게, 반투명 흰색)을 **전부** 펼친 뒤 한국어 번역(크게, 흰색, `skewX(-8deg)` 로 기울임 — 에스코어 드림엔 이탤릭이 없다)을 붙인다. 어드민이 그 줄에 강조 단어(최대 1개)를 짚었으면 원문의 그 토큰을 품사색으로 칠하고 바로 위에 뜻을 같은 색으로 얹는다 — 단어를 따로 목록으로 빼지 않아 문장을 읽는 시선 안에서 읽힌다. 단어는 어드민이 짚은 줄에만 뜨고, 새 줄은 단어 없이 시작한다. 행은 폭(760)이 넘칠 때만 접힌다 — 원문 공백은 행을 끊지 않고 칸 사이 여백(`SPACE_GAP`)으로만 남는다. 그래서 `lyricScale` 을 낮추면 접히는 자리가 실제로 바뀐다. 줄 전체의 한글 독음은 가사 화면에서 빠졌고(엔드카드 목업에만 남는다), 토큰마다 붙던 품사 바도 없다 — 뜻은 강조 단어 위에만 얹힌다. 그래서 화면에 뜻을 내는 건 `vocabulary` 이고 `tokens[].koreanText` 는 엔드카드 목업에만 쓰인다.
 
@@ -55,9 +55,11 @@ Remotion 컴포지션은 `PromoReelData` 하나를 받습니다. `lyricLines`가
 - `song`: 제목, 아티스트, 발매연도, 커버, MV asset 이름
 - `headline`: 화면 맨 위 띠에 찍히는 헤드라인. 어드민이 직접 쓴다 — 줄바꿈이 줄을 나누고 `<b>…</b>` 로 감싼 구간에만 형광 초록 배경(`#1FF2A4`)이 깔린다
 - `headlineFontSize`: 헤드라인 글자 크기(px, 기본 76, 어드민이 48~110 으로 정한다). 엔드카드 헤드라인은 고정 문구라 늘 기본 크기다
+- `headlineOffsetY`: 계정명·헤드라인을 기본 자리에서 위아래로 옮기는 px(+ 가 아래, 기본 0, 어드민이 −300~300 으로 정한다). 글자만 옮기고 띠 높이는 그대로다
 - `instagramHandle`: 헤드라인 띠의 헤드라인 바로 위, 엔드카드 오른쪽 위에 찍히는 계정명
 - `catchphrase`: 엔드카드 카피
 - `sourceStartFrame`: 원본 MV/음원을 어느 프레임부터 재생할지
+- `mvFrame` / `mvKeyframes`: MV 배치와 그 배치를 바꾸는 키프레임(위 어드민 미리보기 항목 참고)
 - `lyricScale`: 가사 원문 글자 배율(기본 1, 어드민이 0.6~1.4 로 정한다). 자동 축소 위에 곱해진다
 - `lyricOffsetY`: 가사 블록 전체를 기본 자리에서 위아래로 옮기는 px(+ 가 아래, 기본 0, 어드민이 −600~300 으로 정한다)
 - `lyricsEndFrame`: 마지막 줄이 끝나는 프레임. 여기서부터 엔드카드(210f, 7초)가 붙고, 컴포지션 길이는 `calculateMetadata` 가 `lyricsEndFrame + 210` 으로 정한다

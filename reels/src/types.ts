@@ -51,7 +51,7 @@ export type PromoLine = {
 };
 
 /**
- * 릴스 전체에 고정되는 MV 배치. 1080×1920 캔버스 기준이다.
+ * MV 배치. 1080×1920 캔버스 기준이다.
  * scale 은 (잘라낸) MV 폭 ÷ 릴스 폭(1 = 폭에 딱 맞음, 높이는 MV 비율대로), x/y 는 캔버스 가운데에서 MV 중심을 옮기는 px 이다.
  * MV 가 캔버스를 다 덮지 못하면 빈 곳은 같은 MV 를 블러해서 채운다.
  */
@@ -61,6 +61,13 @@ export type MvFrame = {
   y: number;
   /** MV 원본에서 잘라낼 비율(0..1, 각 변 기준). MV 에 박힌 검은 여백을 떼는 용도. scale·x·y 는 잘라낸 뒤 영역 기준이다. */
   crop?: MvCrop | null;
+};
+
+/** 이 프레임(릴스 기준)부터 `mvFrame` 배치로 바꾼다. 전환 없이 그 프레임에 바로 바뀐다. */
+export type MvKeyframe = {
+  startFrame: number;
+  /** null 이면 꽉 채움(cover). */
+  mvFrame: MvFrame | null;
 };
 
 export type MvCrop = {
@@ -86,13 +93,17 @@ export type PromoReelData = {
   instagramHandle: string;
   catchphrase: string;
   sourceStartFrame: number;
-  /** 없으면 캔버스를 꽉 채운다(cover). */
+  /** 첫 키프레임 전까지의 MV 배치. 없으면 캔버스를 꽉 채운다(cover). */
   mvFrame?: MvFrame | null;
+  /** startFrame 오름차순(0 보다 큼). 각 키프레임부터 다음 키프레임 전까지 그 배치를 쓴다. */
+  mvKeyframes?: MvKeyframe[] | null;
   /**
    * 헤드라인 글자 크기(px). 없으면 기본 크기다.
    * 상단 헤드라인에만 적용된다 — 엔드카드 헤드라인은 고정 문구라 기본 크기를 쓴다.
    */
   headlineFontSize?: number | null;
+  /** 계정명·헤드라인을 기본 자리에서 위아래로 옮기는 px(+ 가 아래). 띠는 그대로다. 없으면 0. */
+  headlineOffsetY?: number | null;
   /**
    * 가사 원문 글자 배율. 1 이 기본이고 없으면 1 이다.
    * 긴 줄을 화면에 맞추는 자동 축소 위에 곱해지므로, 키워도 줄이 넘치지는 않는다.

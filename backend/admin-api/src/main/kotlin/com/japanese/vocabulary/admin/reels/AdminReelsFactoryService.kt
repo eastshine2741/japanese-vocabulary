@@ -10,6 +10,7 @@ import com.japanese.vocabulary.admin.dto.reels.AdminReelsSourceResponse
 import com.japanese.vocabulary.admin.auth.AdminTokenService
 import com.japanese.vocabulary.admin.repository.AdminLyricRepository
 import com.japanese.vocabulary.admin.repository.AdminSongRepository
+import com.japanese.vocabulary.admin.reels.model.AdminReelsMvFrame
 import com.japanese.vocabulary.admin.reels.model.AdminReelsPromoData
 import com.japanese.vocabulary.admin.reels.model.AdminReelsRenderInput
 import com.japanese.vocabulary.admin.reels.model.AdminReelsRenderSource
@@ -129,22 +130,24 @@ class AdminReelsFactoryService(
         if (data.sourceStartFrame < 0) {
             throw IllegalArgumentException("sourceStartFrame must not be negative")
         }
-        data.mvFrame?.let { frame ->
-            if (frame.scale !in MV_SCALE_RANGE) {
-                throw IllegalArgumentException("mvFrame.scale must be within $MV_SCALE_RANGE")
+        data.mvFrame?.let(::validateMvFrame)
+        data.mvKeyframes.orEmpty().let { keyframes ->
+            if (keyframes.any { it.startFrame <= 0 || it.startFrame >= data.lyricsEndFrame + END_CARD_FRAMES }) {
+                throw IllegalArgumentException("mvKeyframes must start inside the reel")
             }
-            if (abs(frame.x) > MV_OFFSET_X_MAX || abs(frame.y) > MV_OFFSET_Y_MAX) {
-                throw IllegalArgumentException("mvFrame offset is out of range")
+            if (keyframes.zipWithNext().any { (previous, next) -> next.startFrame <= previous.startFrame }) {
+                throw IllegalArgumentException("mvKeyframes start frames must strictly increase")
             }
-            frame.crop?.let { crop ->
-                if (listOf(crop.top, crop.right, crop.bottom, crop.left).any { it !in MV_CROP_RANGE }) {
-                    throw IllegalArgumentException("mvFrame.crop sides must be within $MV_CROP_RANGE")
-                }
-            }
+            keyframes.forEach { keyframe -> keyframe.mvFrame?.let(::validateMvFrame) }
         }
         data.headlineFontSize?.let { size ->
             if (size !in HEADLINE_FONT_SIZE_RANGE) {
                 throw IllegalArgumentException("headlineFontSize must be within $HEADLINE_FONT_SIZE_RANGE")
+            }
+        }
+        data.headlineOffsetY?.let { offset ->
+            if (offset !in HEADLINE_OFFSET_Y_RANGE) {
+                throw IllegalArgumentException("headlineOffsetY must be within $HEADLINE_OFFSET_Y_RANGE")
             }
         }
         data.lyricScale?.let { scale ->
@@ -180,6 +183,20 @@ class AdminReelsFactoryService(
             }
             if (line.vocabulary.any { it.japanese.isBlank() || it.korean.isBlank() }) {
                 throw IllegalArgumentException("line ${line.lineNumber} has a word without text or meaning")
+            }
+        }
+    }
+
+    private fun validateMvFrame(frame: AdminReelsMvFrame) {
+        if (frame.scale !in MV_SCALE_RANGE) {
+            throw IllegalArgumentException("mvFrame.scale must be within $MV_SCALE_RANGE")
+        }
+        if (abs(frame.x) > MV_OFFSET_X_MAX || abs(frame.y) > MV_OFFSET_Y_MAX) {
+            throw IllegalArgumentException("mvFrame offset is out of range")
+        }
+        frame.crop?.let { crop ->
+            if (listOf(crop.top, crop.right, crop.bottom, crop.left).any { it !in MV_CROP_RANGE }) {
+                throw IllegalArgumentException("mvFrame.crop sides must be within $MV_CROP_RANGE")
             }
         }
     }
@@ -253,6 +270,10 @@ class AdminReelsFactoryService(
         val LYRIC_SCALE_RANGE = 0.6..1.4
         val LYRIC_OFFSET_Y_RANGE = -600..300
         val HEADLINE_FONT_SIZE_RANGE = 48..110
+        /** admin-web reelEditor.ts 의 HEADLINE_OFFSET_Y_MIN/MAX 와 같다. */
+        val HEADLINE_OFFSET_Y_RANGE = -300..300
+        /** PromoReel END_CARD_DURATION_IN_FRAMES. 마지막 줄 뒤에 붙는 엔드카드 길이다. */
+        const val END_CARD_FRAMES = 210
         const val INSTAGRAM_HANDLE = "@kotonoha.app"
 
         /**

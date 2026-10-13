@@ -13,7 +13,7 @@ import type {CSSProperties} from 'react';
 import {convertLineReading, convertReading, katakanaToHiragana} from '../../app-rn/src/utils/readingConverter';
 import {SCORE_DREAM_FAMILY, useScoreDream} from './fonts/scoreDream';
 import {parseHeadline} from './headline';
-import type {LyricToken, MvCrop, MvFrame, PartOfSpeech, PromoLine, PromoReelData, VocabularyWord} from './types';
+import type {LyricToken, MvCrop, MvFrame, MvKeyframe, PartOfSpeech, PromoLine, PromoReelData, VocabularyWord} from './types';
 
 export const PROMO_FPS = 30;
 // 엔드카드 7초. 앱 목업이 시트 → 단어 탭 → 복습 → rating → 다음 단어까지 흐르고, 스토어 검색 큐를 읽을 시간이다.
@@ -168,7 +168,7 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
   const entry = (delay: number) => linear(localFrame - delay, 0, ENTRY_FRAMES);
   const lyricEntry = entry(0);
   const meaningEntry = entry(2);
-  const mvFrame = data.mvFrame ?? null;
+  const mvFrame = activeMvFrame(data.mvFrame ?? null, data.mvKeyframes ?? [], frame);
   const overlay = data.renderLayer === 'overlay';
 
   return (
@@ -213,6 +213,10 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
   );
 };
 
+/** 이 프레임에 시작해 있는 마지막 키프레임의 배치. 키프레임 전이면 기본 배치다. */
+export const activeMvFrame = (base: MvFrame | null, keyframes: MvKeyframe[], frame: number): MvFrame | null =>
+  keyframes.reduce((found, keyframe) => (keyframe.startFrame <= frame ? keyframe.mvFrame : found), base);
+
 // 폭만 정하고 높이는 MV 원래 비율을 따른다. objectFit 로 캔버스에 맞춰 자르지 않아야 MV 전체를 줄여 담을 수 있다.
 const framedVideoStyle = ({scale, x, y, crop}: MvFrame): CSSProperties => ({
   ...cropStyle(crop),
@@ -250,10 +254,13 @@ const entryStyle = (progress: number, skew = 0): CSSProperties => ({
 });
 
 // 화면 맨 위 띠. 계정명과 어드민이 쓴 헤드라인이 MV 와 겹치지 않는 바탕 위에 앉는다.
+// 어드민이 옮기는 건 글자뿐이라 띠 높이는 그대로다.
 const HeadlineBlock = ({data}: {data: PromoReelData}) => (
   <div style={styles.headlineBlock}>
-    <div style={styles.watermark}>{data.instagramHandle}</div>
-    <Headline text={data.headline} fontSize={data.headlineFontSize ?? DEFAULT_HEADLINE_FONT_SIZE} onBand />
+    <div style={{...styles.headlineGroup, transform: `translateY(${data.headlineOffsetY ?? 0}px)`}}>
+      <div style={styles.watermark}>{data.instagramHandle}</div>
+      <Headline text={data.headline} fontSize={data.headlineFontSize ?? DEFAULT_HEADLINE_FONT_SIZE} onBand />
+    </div>
   </div>
 );
 
@@ -1240,12 +1247,10 @@ const styles = {
   },
   // 헤드라인이 길면 띠가 아래로 늘어나 MV 윗부분을 덮는다.
   headlineBlock: {
-    alignItems: 'center',
     backgroundColor: bandInk,
     boxSizing: 'border-box',
     display: 'flex',
     flexDirection: 'column',
-    gap: 22,
     justifyContent: 'flex-end',
     left: 0,
     minHeight: HEADLINE_BAND_HEIGHT,
@@ -1254,6 +1259,12 @@ const styles = {
     right: 0,
     top: 0,
     zIndex: 4,
+  },
+  headlineGroup: {
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 22,
   },
   watermark: {
     color: ink,
