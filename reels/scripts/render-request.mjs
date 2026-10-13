@@ -8,7 +8,6 @@ import {exitCodeFor, parseArgs, run} from './lib/process.mjs';
 import {gpuCompositeFfmpegArgs, probeVideo} from './lib/gpu-composite.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const publicRenderDir = resolve(root, 'public', 'admin-render');
 // x264 는 스레드를 호스트 코어 수(×1.5)로 잡고 스레드마다 프레임을 들고 있어서 컨테이너 한도를 넘긴다.
 // Remotion 쪽 인코딩은 remotion.config.ts 의 overrideFfmpegCommand 가 같은 값을 넣는다.
 const FFMPEG_THREADS = 4;
@@ -25,7 +24,8 @@ if (!args.input || !args.output) {
 const inputPath = resolve(args.input);
 const outputPath = resolve(args.output);
 const rawOutputPath = outputPath.replace(/\.mp4$/i, '-raw.mp4');
-const publicMvPath = resolve(publicRenderDir, 'mv.mp4');
+// 렌더가 동시에 돌므로 MV 를 담는 public 폴더도 출력 옆에 렌더마다 따로 둔다.
+const publicDir = outputPath.replace(/\.mp4$/i, '-public');
 const framesDir = outputPath.replace(/\.mp4$/i, '-frames');
 
 try {
@@ -35,26 +35,18 @@ try {
     throw new Error('Missing source.localPath');
   }
 
-  await mkdir(publicRenderDir, {recursive: true});
-  await copyFile(request.source.localPath, publicMvPath);
-
-  const data = {
-    ...request.data,
-    song: {
-      ...request.data.song,
-      mvAsset: 'admin-render/mv.mp4',
-    },
-  };
-
+  await mkdir(publicDir, {recursive: true});
   if (GPU) {
-    await renderWithGpuComposite(data, request.source.localPath);
+    // overlay 렌더는 MV 를 그리지 않는다. ffmpeg 이 원본을 직접 읽는다.
+    await renderWithGpuComposite({...request.data, song: {...request.data.song, mvAsset: ''}}, request.source.localPath);
   } else {
-    await renderWithX264(data);
+    await copyFile(request.source.localPath, resolve(publicDir, 'mv.mp4'));
+    await renderWithX264({...request.data, song: {...request.data.song, mvAsset: 'mv.mp4'}});
   }
 } catch (error) {
   process.exit(exitCodeFor(error));
 } finally {
-  await rm(publicRenderDir, {recursive: true, force: true}).catch(() => {});
+  await rm(publicDir, {recursive: true, force: true}).catch(() => {});
   await rm(framesDir, {recursive: true, force: true}).catch(() => {});
 }
 
@@ -69,6 +61,7 @@ async function renderWithX264(data) {
     '--ipv4',
     '--concurrency=1',
     '--disallow-parallel-encoding',
+    `--public-dir=${publicDir}`,
     ...offthreadVideoCacheArgs(),
     `--props=${JSON.stringify({data})}`,
   ], {cwd: root});
@@ -123,6 +116,7 @@ async function renderWithGpuComposite(data, mvPath) {
     '--image-format=png',
     '--ipv4',
     '--concurrency=1',
+    `--public-dir=${publicDir}`,
     `--props=${JSON.stringify({data: {...data, renderLayer: 'overlay'}})}`,
   ], {cwd: root}));
 

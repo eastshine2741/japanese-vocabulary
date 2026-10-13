@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Download, Loader2 } from "lucide-react"
+import { Clapperboard, Loader2 } from "lucide-react"
 import { adminApi, ApiError, apiUrl } from "@/api/client"
 import type { ReelsSongDetail } from "@/api/types"
 import type { MvFrame } from "@reels/types"
@@ -10,6 +10,7 @@ import { useAuth } from "@/features/auth"
 import { LineBin } from "./LineBin"
 import { LineInspector } from "./LineInspector"
 import { ReelMonitor, type MonitorHandle, type MonitorMode } from "./ReelMonitor"
+import { RenderJobList, useRenderJobs } from "./RenderJobs"
 import { ReelTimeline } from "./ReelTimeline"
 import { SongPicker } from "./SongPicker"
 import {
@@ -55,8 +56,10 @@ export function ReelsFactoryPage() {
   const [lyricOffsetY, setLyricOffsetY] = React.useState(0)
   /** 업로드 진행률 0..1. 올리는 중이 아니면 null. */
   const [uploadProgress, setUploadProgress] = React.useState<number | null>(null)
-  const [rendering, setRendering] = React.useState(false)
+  /** 렌더를 서버 줄에 세우는 요청 중. 렌더 자체는 뒤에서 돌아 여러 개를 이어 맡길 수 있다. */
+  const [submitting, setSubmitting] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const renderJobs = useRenderJobs(token, setError)
   const [mode, setMode] = React.useState<MonitorMode>("source")
   const [playheadMs, setPlayheadMs] = React.useState(0)
   // 키 핸들러가 재생 중 프레임마다 다시 붙지 않도록 플레이헤드는 ref 로 읽는다.
@@ -111,7 +114,7 @@ export function ReelsFactoryPage() {
   const fps = detail?.fps ?? 30
   const inputReady = Boolean(detail?.song.renderEligible) && errors.length === 0
   // 서버는 올려 둔 MV 로만 렌더한다.
-  const canRender = inputReady && mvUrl != null && !rendering
+  const canRender = inputReady && mvUrl != null && !submitting
 
   const handleToggleLine = React.useCallback(
     (index: number) => {
@@ -231,20 +234,20 @@ export function ReelsFactoryPage() {
 
   async function renderReel() {
     if (!token || !detail || !data) return
-    setRendering(true)
+    setSubmitting(true)
     setError(null)
     monitorRef.current?.pause()
     try {
-      const blob = await adminApi.renderReel(token, {
+      const job = await adminApi.renderReel(token, {
         songId: detail.song.id,
         data: { ...data, song: { ...data.song, mvAsset: "" } },
         acknowledgeSourceRightsAndPlatformRisk: true,
       })
-      downloadBlob(blob, `${data.song.artist}-${data.song.title}-kotonoha-reel.mp4`)
+      renderJobs.add(job)
     } catch (cause) {
       setError(errorLabel(cause))
     } finally {
-      setRendering(false)
+      setSubmitting(false)
     }
   }
 
@@ -263,11 +266,13 @@ export function ReelsFactoryPage() {
         ) : null}
         <div className="ml-auto flex items-center gap-3">
           <Button disabled={!canRender} onClick={renderReel} type="button">
-            {rendering ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            {rendering ? "Rendering..." : "Render and download MP4"}
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Clapperboard className="h-4 w-4" />}
+            Render MP4
           </Button>
         </div>
       </div>
+
+      <RenderJobList jobs={renderJobs.jobs} onDownload={renderJobs.download} />
 
       {error ? <div className="rounded-md border border-[#fecaca] bg-[#fff1f2] px-3 py-2 text-sm text-[#991b1b]">{error}</div> : null}
 
@@ -356,15 +361,4 @@ export function ReelsFactoryPage() {
 function errorLabel(cause: unknown) {
   if (cause instanceof ApiError) return `${cause.status}: ${cause.message}`
   return cause instanceof Error ? cause.message : "Request failed"
-}
-
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob)
-  const anchor = document.createElement("a")
-  anchor.href = url
-  anchor.download = filename
-  document.body.appendChild(anchor)
-  anchor.click()
-  anchor.remove()
-  URL.revokeObjectURL(url)
 }

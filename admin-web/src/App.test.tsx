@@ -26,7 +26,10 @@ function mockFetch() {
       const body = JSON.parse(String(init?.body))
       return json(body.password === "secret" ? { token: "admin-token", expiresAt: "2026-01-01T01:00:00Z" } : {}, body.password === "secret" ? 200 : 401)
     }
-    if (url.includes("/reels-factory/render")) return new Response(new Blob(["mp4"], { type: "video/mp4" }), { status: 200 })
+    if (url.endsWith("/reels-factory/render-jobs")) return json([])
+    if (url.endsWith("/reels-factory/render") && init?.method === "POST") {
+      return json({ id: "job-1", songId: 1, title: "레몬", artist: "米津玄師", status: "QUEUED", error: null, createdAt: "2026-01-01T00:00:00Z", finishedAt: null }, 202)
+    }
     // 이전에 올려 둔 MV 가 서버 캐시에 남아 있는 상황
     if (url.endsWith("/reels-factory/songs/1/source")) return json({ mvPath: "/reels-factory/songs/1/mv?token=media" })
     if (url.includes("/reels-factory/songs/1")) return json(reelsSongDetail)
@@ -305,7 +308,7 @@ describe("admin web", () => {
 
     expect(await screen.findByRole("heading", { name: "Reels Factory" })).toBeInTheDocument()
     expect(await screen.findByText("歌詞0")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeDisabled()
+    expect(screen.getByRole("button", { name: /Render MP4/ })).toBeDisabled()
 
     // 줄 목록이 첫 번째. 인스펙터·타임라인에도 같은 가사가 뜬다.
     const row = (index: number) => screen.getAllByText(`歌詞${index}`)[0]
@@ -326,7 +329,7 @@ describe("admin web", () => {
     expect(screen.getByLabelText("Toggle word 溶けてゆく")).toHaveAttribute("aria-pressed", "true")
     await user.click(screen.getByLabelText("Toggle word 溶けてゆく"))
 
-    expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeEnabled()
+    expect(screen.getByRole("button", { name: /Render MP4/ })).toBeEnabled()
 
     // 뜻은 분석 결과가 기본이고 어드민이 그 자리에서 고쳐 쓴다. 되돌리기는 분석 결과로 돌아간다.
     expect(screen.getByLabelText("Meaning for 沈む")).toHaveValue("가라앉다")
@@ -352,17 +355,23 @@ describe("admin web", () => {
     expect(screen.getByLabelText("Song artist")).toHaveValue(reelsSongCandidate.artist)
     await user.clear(screen.getByLabelText("Song title"))
     expect(screen.getByText("곡 제목을 입력해야 합니다")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeDisabled()
+    expect(screen.getByRole("button", { name: /Render MP4/ })).toBeDisabled()
     await user.type(screen.getByLabelText("Song title"), "레몬")
-    expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeEnabled()
+    expect(screen.getByRole("button", { name: /Render MP4/ })).toBeEnabled()
 
     // 헤드라인도 서버 기본값으로 채워지고 어드민이 고쳐 쓴다. <b> 로 감싼 자리에 초록 배경이 깔린다.
     expect(screen.getByLabelText("Headline")).toHaveValue(reelsSongDetail.headline)
     await user.clear(screen.getByLabelText("Headline"))
     expect(screen.getByText("헤드라인을 입력해야 합니다")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeDisabled()
+    expect(screen.getByRole("button", { name: /Render MP4/ })).toBeDisabled()
     await user.type(screen.getByLabelText("Headline"), "가사 한 줄에 <b>단어 6개</b>")
-    expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeEnabled()
+    expect(screen.getByRole("button", { name: /Render MP4/ })).toBeEnabled()
+
+    // 렌더는 서버 줄에 서고 목록에 뜬다. 버튼은 바로 풀려 다음 렌더를 맡길 수 있다.
+    await user.click(screen.getByRole("button", { name: /Render MP4/ }))
+    const jobs = await screen.findByRole("list", { name: "Render jobs" })
+    expect(jobs).toHaveTextContent("QUEUED")
+    expect(screen.getByRole("button", { name: /Render MP4/ })).toBeEnabled()
 
     // 든 줄에서 끌기 시작하면 빼기, 체크 한 번은 그 줄만 토글, Shift+클릭은 마지막 줄부터 범위
     await user.pointer([{ keys: "[MouseLeft>]", target: row(2) }, { target: row(3) }, { keys: "[/MouseLeft]" }])
@@ -378,6 +387,6 @@ describe("admin web", () => {
       expect(screen.getByLabelText(`Select lyric line ${index}`)).toHaveAttribute("aria-pressed", "true")
     }
     await user.click(screen.getByLabelText("Clear selected lines"))
-    expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeDisabled()
+    expect(screen.getByRole("button", { name: /Render MP4/ })).toBeDisabled()
   })
 })

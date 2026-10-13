@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.admin
 
+import com.fasterxml.jackson.databind.JsonNode
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsRenderRequest
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsVocabularyResponse
 import com.japanese.vocabulary.admin.reels.AdminReelsRenderFailedException
@@ -130,22 +131,37 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
             lyricOffsetY = -150,
             headlineFontSize = 92,
         )
-        mockMvc.post("/admin/api/reels-factory/render") {
+        val jobId = mockMvc.post("/admin/api/reels-factory/render") {
             header("Authorization", "Bearer $token")
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(
                 AdminReelsRenderRequest(songId = song.id!!, data = data, acknowledgeSourceRightsAndPlatformRisk = true),
             )
         }.andExpect {
-            status { isOk() }
-            header { string("Content-Type", "video/mp4") }
-            header { string("Content-Disposition", "attachment; filename=\"kotonoha-reel-${song.id}.mp4\"") }
+            status { isAccepted() }
+            jsonPath("$.songId") { value(song.id!!) }
+            jsonPath("$.title") { value("레몬 (Lemon)") }
+        }.andReturn().response.contentAsString.let { objectMapper.readTree(it)["id"].asText() }
+
+        // 요청은 바로 돌아오고 렌더는 뒤에서 끝난다. 결과는 몇 번이고 다시 받을 수 있다
+        val job = awaitJob(token, jobId)
+        assertThat(job["status"].asText()).isEqualTo("SUCCEEDED")
+        repeat(2) {
+            mockMvc.get("/admin/api/reels-factory/render-jobs/$jobId/output") {
+                header("Authorization", "Bearer $token")
+            }.andExpect {
+                status { isOk() }
+                header { string("Content-Type", "video/mp4") }
+                content { bytes("fake mp4".toByteArray()) }
+            }
         }
 
-        // 어드민이 올려 둔 파일을 렌더 스크립트에 그대로 넘긴다
-        // 본 렌더는 미리보기 사본이 아니라 올린 원본을 받는다
+        // 본 렌더는 미리보기 사본이 아니라 올린 원본을 받는다. 줄 서는 동안 캐시가 바뀌어도 되게 작업 몫으로 잡아 둔 파일이다
         assertThat(fakeRenderer.lastInput?.source?.localPath)
-            .isEqualTo(requireNotNull(sourceCache.cached(song.id!!)).source.toString())
+            .isNotEqualTo(requireNotNull(sourceCache.cached(song.id!!)).source.toString())
+        assertThat(fakeRenderer.lastSourceBytes).isEqualTo(FAKE_MP4)
+        // 렌더가 끝나면 잡아 둔 파일은 지운다
+        assertThat(Path.of(requireNotNull(fakeRenderer.lastInput).source.localPath)).doesNotExist()
         val rendered = requireNotNull(fakeRenderer.lastInput?.data)
         assertThat(rendered.sourceStartFrame).isEqualTo(900)
         assertThat(rendered.lyricLines.map { it.startFrame }).containsExactly(45, 90, 200, 260, 400)
@@ -166,7 +182,7 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
     }
 
     @Test
-    fun `reels factory render failure returns json for mp4 accept header`() {
+    fun `reels factory render failure is reported on the job`() {
         val song = TestSongBuilder(entityManager)
             .withTitle("Lemon")
             .withArtist("米津玄師")
@@ -177,9 +193,8 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         uploadSource(token, song.id!!)
         fakeRenderer.failWith = AdminReelsRenderFailedException("boom")
 
-        mockMvc.post("/admin/api/reels-factory/render") {
+        val jobId = mockMvc.post("/admin/api/reels-factory/render") {
             header("Authorization", "Bearer $token")
-            accept(MediaType.parseMediaType("video/mp4"))
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(
                 AdminReelsRenderRequest(
@@ -189,9 +204,16 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
                 ),
             )
         }.andExpect {
-            status { isInternalServerError() }
-            content { contentType(MediaType.APPLICATION_JSON) }
-            jsonPath("$.error") { value("render_failed") }
+            status { isAccepted() }
+        }.andReturn().response.contentAsString.let { objectMapper.readTree(it)["id"].asText() }
+
+        val job = awaitJob(token, jobId)
+        assertThat(job["status"].asText()).isEqualTo("FAILED")
+        assertThat(job["error"].asText()).isEqualTo("render_failed")
+        mockMvc.get("/admin/api/reels-factory/render-jobs/$jobId/output") {
+            header("Authorization", "Bearer $token")
+        }.andExpect {
+            status { isNotFound() }
         }
     }
 
@@ -465,6 +487,19 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         return lyric
     }
 
+    private fun awaitJob(token: String, jobId: String): JsonNode {
+        val deadline = System.nanoTime() + 5_000_000_000
+        while (true) {
+            val jobs = mockMvc.get("/admin/api/reels-factory/render-jobs") {
+                header("Authorization", "Bearer $token")
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString
+            val job = objectMapper.readTree(jobs).first { it["id"].asText() == jobId }
+            if (job["status"].asText() in setOf("SUCCEEDED", "FAILED")) return job
+            check(System.nanoTime() < deadline) { "render job $jobId did not finish" }
+            Thread.sleep(20)
+        }
+    }
+
     @TestConfiguration
     class ReelsFactoryTestConfig {
         @Bean
@@ -505,11 +540,14 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
     }
 
     class FakeReelsRenderService : AdminReelsRenderService {
-        var lastInput: AdminReelsRenderInput? = null
-        var failWith: RuntimeException? = null
+        // 렌더는 작업 스레드에서 돈다.
+        @Volatile var lastInput: AdminReelsRenderInput? = null
+        @Volatile var failWith: RuntimeException? = null
+        @Volatile var lastSourceBytes: ByteArray? = null
 
         override fun render(input: AdminReelsRenderInput): Path {
             lastInput = input
+            lastSourceBytes = Files.readAllBytes(Path.of(input.source.localPath))
             failWith?.let { exception ->
                 failWith = null
                 throw exception

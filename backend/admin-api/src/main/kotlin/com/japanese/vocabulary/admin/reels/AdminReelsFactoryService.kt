@@ -2,6 +2,7 @@ package com.japanese.vocabulary.admin.reels
 
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsLyricLineResponse
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsLyricTokenResponse
+import com.japanese.vocabulary.admin.dto.reels.AdminReelsRenderJobResponse
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsRenderRequest
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsSongCandidateResponse
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsSongDetailResponse
@@ -27,7 +28,7 @@ import kotlin.math.abs
 class AdminReelsFactoryService(
     private val songRepository: AdminSongRepository,
     private val lyricRepository: AdminLyricRepository,
-    private val renderService: AdminReelsRenderService,
+    private val renderJobs: AdminReelsRenderJobService,
     private val sourceCache: AdminReelsSourceCache,
     private val tokenService: AdminTokenService,
 ) {
@@ -76,8 +77,9 @@ class AdminReelsFactoryService(
         return sourceCache.cached(songId)?.preview ?: throw NoSuchElementException("Source is not cached")
     }
 
+    /** 검증만 하고 렌더는 줄에 세운다. 결과는 [renderJobs] 에서 찾는다. */
     @Transactional(readOnly = true)
-    fun render(request: AdminReelsRenderRequest): Path {
+    fun render(request: AdminReelsRenderRequest): AdminReelsRenderJobResponse {
         requireAcknowledgement(request.acknowledgeSourceRightsAndPlatformRisk)
         requireEligible(request.songId)
         validateRenderData(request.data)
@@ -88,8 +90,12 @@ class AdminReelsFactoryService(
             // 렌더 스크립트가 mvAsset 을 채운다. 클라이언트가 넣은 스트리밍 URL 은 버린다.
             data = request.data.copy(song = request.data.song.copy(mvAsset = "")),
         )
-        return renderService.render(input)
+        return renderJobs.submit(request.songId, input)
     }
+
+    fun renderJobs(): List<AdminReelsRenderJobResponse> = renderJobs.list()
+
+    fun renderOutput(jobId: String): Path = renderJobs.output(jobId)
 
     private fun requireAcknowledgement(acknowledged: Boolean) {
         if (!acknowledged) {
