@@ -111,6 +111,7 @@ class RewardCardQueryService(
         now: Instant,
     ): SongCardResponse {
         val tiers = tierCards?.tiers?.values?.map { tier -> tier.map { it.second } }.orEmpty()
+        val lyric = SongCardFace.lyric(lines, card.lyricLineIndexes)
         return SongCardResponse(
             id = card.id,
             songId = card.songId,
@@ -121,8 +122,8 @@ class RewardCardQueryService(
             grade = card.grade,
             acquiredSeq = card.acquiredSeq,
             lyricLineIndexes = card.lyricLineIndexes,
-            lyric = SongCardFace.lyric(lines, card.lyricLineIndexes),
-            words = tierCards?.let { SongCardFace.words(it.words.words) }.orEmpty(),
+            lyric = lyric,
+            words = tierCards?.let { SongCardFace.words(it.words.words, lyric.map { line -> line.index }) }.orEmpty(),
             recall = SongCardFace.recall(tiers, card.createdAt, now),
             nextGoal = SongCardFace.nextGoal(topGrade, tiers),
             signature = card.signature,

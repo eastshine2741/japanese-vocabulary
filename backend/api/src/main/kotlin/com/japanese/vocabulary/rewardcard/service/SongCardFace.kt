@@ -28,8 +28,9 @@ object SongCardFace {
     fun lyric(lines: List<SongLyricLineDto>, picked: List<Int>): List<SongLyricLineDto> =
         if (picked.isEmpty()) defaultLyric(lines) else lines.filter { it.index in picked }
 
-    fun words(words: List<WordInSongItemDto>): List<RewardCardWordResponse> =
-        words.filter { !it.koreanText.isNullOrBlank() }
+    /** 카드에 실린 가사 줄에 나오는 단어 중 중요한 것부터. */
+    fun words(words: List<WordInSongItemDto>, lineIndexes: Collection<Int>): List<RewardCardWordResponse> =
+        words.filter { !it.koreanText.isNullOrBlank() && it.lineIndexes.any(lineIndexes::contains) }
             .sortedByDescending { it.importanceScore }
             .take(WORD_COUNT)
             .map { RewardCardWordResponse(japanese = it.japanese, reading = it.reading.orEmpty(), meaning = it.senses.firstOrNull()?.meaning ?: it.koreanText!!) }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { SongLyricLineDto, Token } from '../../types/song';
-import { pickSampleLyric } from './songCardSample';
+import { pickLineWords, pickSampleLyric } from './songCardSample';
 
 function token(surface: string, charStart: number, reading: string | null): Token {
   return {
@@ -32,5 +32,15 @@ describe('pickSampleLyric', () => {
 
   it('번역이 없는 줄은 고르지 않는다', () => {
     expect(pickSampleLyric([line(0, '夜', [token('夜', 0, 'ヨル')], null)])).toEqual([]);
+  });
+});
+
+describe('pickLineWords', () => {
+  const word = (japanese: string, importanceScore: number, lineIndexes: number[], koreanText: string | null = '뜻') =>
+    ({ japanese, reading: null, koreanText, importanceScore, lineIndexes });
+
+  it('카드에 실린 줄에 나오는 단어만 중요한 순서로 고른다', () => {
+    const words = [word('雨', 1, [0]), word('空', 9, [3]), word('風', 3, [2, 5]), word('夜', 2, [0, 2]), word('星', 5, [2], null)];
+    expect(pickLineWords(words, [0, 2]).map(w => w.japanese)).toEqual(['風', '夜', '雨']);
   });
 });

@@ -5,7 +5,7 @@ import { katakanaToHiragana } from '../../utils/readingConverter';
 import { buildTokenCells } from './songLyricsDial';
 import type { SongDetailWordItem } from './types';
 
-const SAMPLE_WORD_COUNT = 5;
+const CARD_WORD_COUNT = 5;
 
 export function toCardLine(line: SongLyricLineDto): CardLyricLine {
   return {
@@ -31,13 +31,15 @@ export function pickSampleLyric(lines: readonly SongLyricLineDto[]): CardLyricLi
   return picked.map(toCardLine);
 }
 
-/** 견본 카드 뒷면 단어. 곡에서 중요한 단어부터. */
-export function pickSampleWords(words: readonly SongDetailWordItem[]): CardWord[] {
+export type LineWord = Pick<SongDetailWordItem, 'japanese' | 'reading' | 'koreanText' | 'senses' | 'importanceScore' | 'lineIndexes'>;
+
+/** 카드 뒷면 단어. 카드에 실린 가사 줄에 나오는 단어 중 중요한 것부터. */
+export function pickLineWords(words: readonly LineWord[], lineIndexes: readonly number[]): CardWord[] {
   return words
-    .filter(word => word.koreanText)
+    .filter(word => word.koreanText && word.lineIndexes.some(index => lineIndexes.includes(index)))
     .slice()
     .sort((a, b) => b.importanceScore - a.importanceScore)
-    .slice(0, SAMPLE_WORD_COUNT)
+    .slice(0, CARD_WORD_COUNT)
     .map(word => ({
       japanese: word.japanese,
       reading: katakanaToHiragana(word.reading ?? ''),

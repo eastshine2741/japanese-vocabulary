@@ -7,7 +7,7 @@ import { paintFromArt } from '../components/rewardCards/artColors';
 import { serverTargetId, toArtistCard, toRevealTarget, toSongCard } from '../components/rewardCards/serverRewardCards';
 import { CardSignature } from '../components/rewardCards/signature';
 import { ArtistRewardCard, CardLyricLine, SongRewardCard } from '../components/rewardCards/types';
-import { toCardLine } from '../components/songDetail/songCardSample';
+import { type LineWord, pickLineWords, toCardLine } from '../components/songDetail/songCardSample';
 import { preferenceStorage } from '../utils/preferenceStorage';
 import type { RewardCardRevealDto, SongGradeRuleDto } from '../types/rewardCard';
 
@@ -37,6 +37,8 @@ interface RewardCardState extends CardSet {
   serverStatus: 'idle' | 'loading' | 'ready' | 'error';
   /** 가사 고르기에 쓰는 곡 전체 가사. 카드 id 로 찾는다. */
   lyricLines: Record<string, CardLyricLine[]>;
+  /** 고른 줄에서 뒷면 단어를 다시 뽑을 곡 단어. 서버 카드만 있다. */
+  lyricWords: Record<string, LineWord[]>;
   /** 띄울 연출 차례. 한 번에 하나만 열고, 닫히면 다음을 연다. */
   queue: RewardCardRevealTarget[];
   /** 지금 열려 있는 연출. */
@@ -84,6 +86,7 @@ const initial = {
   server: EMPTY,
   serverStatus: 'idle' as const,
   lyricLines: {},
+  lyricWords: {},
   queue: [],
   active: null,
   pendingChecked: false,
@@ -183,19 +186,23 @@ export const useRewardCardStore = create<RewardCardState>((set, get) => {
       if (get().lyricLines[cardId]) return;
       const songId = findSong(cardId)?.songId ?? null;
       const id = serverTargetId(cardId);
-      let lines: CardLyricLine[];
       if (id == null || songId == null) {
-        lines = findDummyLyrics(cardId);
-      } else {
-        try {
-          lines = (await songApi.getLyrics(songId)).lines
-            .filter((line) => line.originalText.trim() !== '' && (line.tokens?.length ?? 0) > 0)
-            .map(toCardLine);
-        } catch {
-          return;
-        }
+        const lines = findDummyLyrics(cardId);
+        set((state) => ({ lyricLines: { ...state.lyricLines, [cardId]: lines } }));
+        return;
       }
-      set((state) => ({ lyricLines: { ...state.lyricLines, [cardId]: lines } }));
+      try {
+        const [lyrics, words] = await Promise.all([songApi.getLyrics(songId), songApi.getWords(songId)]);
+        const lines = lyrics.lines
+          .filter((line) => line.originalText.trim() !== '' && (line.tokens?.length ?? 0) > 0)
+          .map(toCardLine);
+        set((state) => ({
+          lyricLines: { ...state.lyricLines, [cardId]: lines },
+          lyricWords: { ...state.lyricWords, [cardId]: words.words },
+        }));
+      } catch {
+        return;
+      }
     },
 
     setLyric: (cardId, picked) => {
@@ -203,8 +210,14 @@ export const useRewardCardStore = create<RewardCardState>((set, get) => {
       const card = findSong(cardId);
       if (!card) return;
       const lines = get().lyricLines[cardId] ?? findDummyLyrics(cardId);
+      const pool = get().lyricWords[cardId];
       patch((cards) => ({
-        songCards: mapCards(cards.songCards, cardId, (c) => ({ ...c, lyric: pickLines(lines, picked), picked })),
+        songCards: mapCards(cards.songCards, cardId, (c) => ({
+          ...c,
+          lyric: pickLines(lines, picked),
+          words: pool ? pickLineWords(pool, picked) : c.words,
+          picked,
+        })),
       }));
       // 연출 중인 발급 전 카드는 서명할 때 함께 보낸다. 연출 없이 채운 카드는 서명이 비어도 발급된 카드다.
       const id = serverTargetId(cardId);
