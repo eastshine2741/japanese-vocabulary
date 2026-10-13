@@ -15,6 +15,7 @@ import {
   sortArtistCards,
 } from '../components/rewardCards/artistGrade';
 import { useCardFonts } from '../components/rewardCards/cardTheme';
+import { artistCardStacks } from '../components/rewardCards/cardKinds';
 import { ArtistRewardCard } from '../components/rewardCards/types';
 import { useRewardCardStore } from '../stores/rewardCardStore';
 
@@ -30,7 +31,10 @@ export default function ArtistCardListScreen({ navigation, route }: Props) {
   const [sort, setSort] = useState<ArtistCardSort>('level');
   const artistCards = useRewardCardStore((s) => s.artistCards);
   const loading = useRewardCardStore((s) => s.source === 'server' && (s.serverStatus === 'idle' || s.serverStatus === 'loading'));
-  const cards = useMemo(() => sortArtistCards(artistCards, sort), [artistCards, sort]);
+  // 재질마다 카드가 따로라 아티스트마다 가장 높은 재질 카드 한 장으로 묶는다.
+  const stacks = useMemo(() => artistCardStacks(artistCards), [artistCards]);
+  const stackedIds = useMemo(() => new Set(stacks.filter((stack) => stack.count > 1).map((stack) => stack.top.id)), [stacks]);
+  const cards = useMemo(() => sortArtistCards(stacks.map((stack) => stack.top), sort), [stacks, sort]);
   const cardWidth = screenWidth - SIDE_PADDING * 2;
 
   const handleSort = useCallback(() => {
@@ -43,9 +47,9 @@ export default function ArtistCardListScreen({ navigation, route }: Props) {
 
   const renderItem = useCallback(
     ({ item }: { item: ArtistRewardCard }) => (
-      <ArtistCardThumb card={item} width={cardWidth} fonts={fonts} onPress={handlePressCard} />
+      <ArtistCardThumb card={item} width={cardWidth} fonts={fonts} stacked={stackedIds.has(item.id)} onPress={handlePressCard} />
     ),
-    [cardWidth, fonts, handlePressCard],
+    [cardWidth, fonts, stackedIds, handlePressCard],
   );
 
   return (
@@ -88,7 +92,7 @@ function CardGap() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Colors.surface },
-  listHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  listHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
   count: { fontSize: 14, fontWeight: '500', color: Colors.textMuted, fontVariant: ['tabular-nums'] },
   sortChip: {
     flexDirection: 'row',
@@ -102,6 +106,6 @@ const styles = StyleSheet.create({
   sortLabel: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary },
   pressed: { opacity: 0.6 },
   list: { paddingHorizontal: SIDE_PADDING, paddingTop: 8 },
-  cardGap: { height: 20 },
+  cardGap: { height: 24 },
   loading: { paddingVertical: 24 },
 });

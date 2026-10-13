@@ -75,3 +75,28 @@ export function artistCardOfStep(cards: readonly ArtistRewardCard[], step: Artis
 export function artistCardSample(card: ArtistRewardCard, step: ArtistGradeStep): ArtistRewardCard {
   return { ...card, masteredCount: step.from, sample: true };
 }
+
+/** 보관함 한 칸. 같은 곡(아티스트)의 카드들을 가장 높은 등급 카드 한 장으로 묶는다. */
+export interface CardStack<T> {
+  top: T;
+  count: number;
+}
+
+function stackBy<T>(cards: readonly T[], keyOf: (card: T) => string, rungOf: (card: T) => number): CardStack<T>[] {
+  const stacks = new Map<string, CardStack<T>>();
+  for (const card of cards) {
+    const key = keyOf(card);
+    const stack = stacks.get(key);
+    if (stack == null) stacks.set(key, { top: card, count: 1 });
+    else stacks.set(key, { top: rungOf(card) > rungOf(stack.top) ? card : stack.top, count: stack.count + 1 });
+  }
+  return [...stacks.values()];
+}
+
+export function songCardStacks(cards: readonly SongRewardCard[]): CardStack<SongRewardCard>[] {
+  return stackBy(cards, (card) => (card.songId != null ? `id:${card.songId}` : `title:${card.title}`), songRung);
+}
+
+export function artistCardStacks(cards: readonly ArtistRewardCard[]): CardStack<ArtistRewardCard>[] {
+  return stackBy(cards, (card) => (card.artistId != null ? `id:${card.artistId}` : `name:${card.name}`), artistRung);
+}

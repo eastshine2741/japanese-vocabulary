@@ -8,7 +8,7 @@ import type { ArtistRewardCard, CardLevel, SongRewardCard } from './types';
 const SONG_GRADES = ['BASIC', 'BRONZE', 'SILVER', 'GOLD'] as const;
 const ARTIST_GRADES = ['BASIC', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND'] as const;
 
-// 아트에서 색을 뽑으려면 네이티브 모듈이 필요해, 아직은 카드 id 로 고정 팔레트에서 고른다.
+// 아트 색(artColors)을 못 뽑았을 때 쓰는 색. 곡·아티스트 id 로 고른다.
 const PALETTE: readonly { accent: string; ink: string }[] = [
   { accent: '#E8C547', ink: '#1C1A12' },
   { accent: '#5EC4C0', ink: '#08191B' },

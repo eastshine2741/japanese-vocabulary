@@ -6,6 +6,7 @@ import type { SharedRewardCardDto } from '../../types/rewardCard';
 import ArtistCardShowcase from './ArtistCardShowcase';
 import SongCardShowcase from './SongCardShowcase';
 import { SHOWROOM, useCardFonts } from './cardTheme';
+import { useArtColors } from './artColors';
 import { toArtistCard, toSongCard } from './serverRewardCards';
 import { useCardTilt } from './useCardTilt';
 
@@ -18,8 +19,10 @@ interface Props {
 function SharedCardStage({ shared, width }: Props) {
   const fonts = useCardFonts();
   const tilt = useCardTilt();
-  const songCard = useMemo(() => (shared.songCard ? toSongCard(shared.songCard) : null), [shared.songCard]);
-  const artistCard = useMemo(() => (shared.artistCard ? toArtistCard(shared.artistCard) : null), [shared.artistCard]);
+  const baseSong = useMemo(() => (shared.songCard ? toSongCard(shared.songCard) : null), [shared.songCard]);
+  const baseArtist = useMemo(() => (shared.artistCard ? toArtistCard(shared.artistCard) : null), [shared.artistCard]);
+  const songCard = useArtColors(baseSong, baseSong?.artworkUrl);
+  const artistCard = useArtColors(baseArtist, baseArtist?.imageUrl);
   const { name, profileImageUrl } = shared.owner;
 
   return (

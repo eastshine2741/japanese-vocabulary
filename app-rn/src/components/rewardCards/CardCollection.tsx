@@ -8,6 +8,7 @@ import { ArtistCardSlot, SongCardSlots } from './EmptyCardSlot';
 import { CARD_SORT_LABEL, CARD_SORT_ORDER, CardSort, sortCards } from './cardWear';
 import { sortArtistCards } from './artistGrade';
 import { CardFonts, useCardFonts } from './cardTheme';
+import { artistCardStacks, songCardStacks } from './cardKinds';
 import { ArtistRewardCard, SongRewardCard } from './types';
 
 interface Props {
@@ -31,6 +32,14 @@ const COLUMNS = 3;
 const ARTIST_CARD_WIDTH = 240;
 const ARTIST_PREVIEW_COUNT = 5;
 
+// 등급마다 카드가 따로라 한 곡(아티스트)을 가장 높은 등급 카드 한 칸으로 묶는다.
+function stackTops<T extends { id: string }>(stacks: { top: T; count: number }[]) {
+  return {
+    tops: stacks.map((stack) => stack.top),
+    stackedIds: new Set(stacks.filter((stack) => stack.count > 1).map((stack) => stack.top.id)),
+  };
+}
+
 // 곡 카드 한 장이 상세와 같은 앞면(낡음·포일·마스터 셰이더)을 그려서, 수십 장이 되면 화면 밖 카드를 그리지 않게 가상화한다.
 function CardCollection({
   songCards,
@@ -46,29 +55,39 @@ function CardCollection({
   onOpenArtistCards,
 }: Props) {
   const fonts = useCardFonts();
-  const [sort, setSort] = useState<CardSort>('level');
+  const [sort, setSort] = useState<CardSort>('recent');
   const handleSort = useCallback(() => {
     setSort((prev) => CARD_SORT_ORDER[(CARD_SORT_ORDER.indexOf(prev) + 1) % CARD_SORT_ORDER.length]);
   }, []);
 
-  const sortedSongs = useMemo(() => sortCards(songCards, sort), [songCards, sort]);
-  const artistPreview = useMemo(() => sortArtistCards(artistCards).slice(0, ARTIST_PREVIEW_COUNT), [artistCards]);
+  const songStacks = useMemo(() => stackTops(songCardStacks(songCards)), [songCards]);
+  const artistStacks = useMemo(() => stackTops(artistCardStacks(artistCards)), [artistCards]);
+  const sortedSongs = useMemo(() => sortCards(songStacks.tops, sort), [songStacks, sort]);
+  const artistPreview = useMemo(() => sortArtistCards(artistStacks.tops).slice(0, ARTIST_PREVIEW_COUNT), [artistStacks]);
   const thumbWidth = (contentWidth - GRID_GAP * (COLUMNS - 1)) / COLUMNS;
 
   const renderItem = useCallback(
     ({ item }: { item: SongRewardCard }) => (
-      <SongCardThumb card={item} width={thumbWidth} fonts={fonts} onPress={onPressCard} onLongPress={onLongPressCard} />
+      <SongCardThumb
+        card={item}
+        width={thumbWidth}
+        fonts={fonts}
+        stacked={songStacks.stackedIds.has(item.id)}
+        onPress={onPressCard}
+        onLongPress={onLongPressCard}
+      />
     ),
-    [thumbWidth, fonts, onPressCard, onLongPressCard],
+    [thumbWidth, fonts, songStacks, onPressCard, onLongPressCard],
   );
 
   const songEmpty = loading ? <Loading /> : <SongCardSlots width={thumbWidth} gap={GRID_GAP} />;
 
   const header = (
     <CollectionHeader
-      artistCount={artistCards.length}
+      artistCount={artistStacks.tops.length}
       artistPreview={artistPreview}
-      songCount={songCards.length}
+      artistStackedIds={artistStacks.stackedIds}
+      songCount={songStacks.tops.length}
       loading={loading}
       sort={sort}
       sidePadding={sidePadding}
@@ -116,6 +135,7 @@ function Loading() {
 const CollectionHeader = React.memo(function CollectionHeader({
   artistCount,
   artistPreview,
+  artistStackedIds,
   songCount,
   loading,
   sort,
@@ -128,6 +148,7 @@ const CollectionHeader = React.memo(function CollectionHeader({
 }: {
   artistCount: number;
   artistPreview: ArtistRewardCard[];
+  artistStackedIds: ReadonlySet<string>;
   songCount: number;
   loading: boolean;
   sort: CardSort;
@@ -161,6 +182,7 @@ const CollectionHeader = React.memo(function CollectionHeader({
               card={card}
               width={ARTIST_CARD_WIDTH}
               fonts={fonts}
+              stacked={artistStackedIds.has(card.id)}
               onPress={onPressArtistCard}
               onLongPress={onLongPressArtistCard}
             />
@@ -209,7 +231,8 @@ const styles = StyleSheet.create({
   },
   sortLabel: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary },
   pressed: { opacity: 0.6 },
-  artistRow: { gap: 12 },
+  // 겹친 카드 모서리가 위로 삐져나와 잘리지 않게 둔다.
+  artistRow: { gap: 12, paddingTop: 16 },
   seeAll: { width: 72, alignItems: 'center', justifyContent: 'center', gap: 8 },
   seeAllIcon: {
     width: 44,

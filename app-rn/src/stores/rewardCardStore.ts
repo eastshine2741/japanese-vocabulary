@@ -3,6 +3,7 @@ import { rewardCardApi } from '../api/rewardCardApi';
 import { songApi } from '../api/songApi';
 import { DUMMY_ARTIST_CARDS, DUMMY_SONG_CARDS, findDummyLyrics } from '../components/rewardCards/dummyRewardCards';
 import { pickLines } from '../components/rewardCards/cardLyric';
+import { paintFromArt } from '../components/rewardCards/artColors';
 import { serverTargetId, toArtistCard, toRevealTarget, toSongCard } from '../components/rewardCards/serverRewardCards';
 import { CardSignature } from '../components/rewardCards/signature';
 import { ArtistRewardCard, CardLyricLine, SongRewardCard } from '../components/rewardCards/types';
@@ -110,7 +111,11 @@ export const useRewardCardStore = create<RewardCardState>((set, get) => {
       set({ serverStatus: 'loading' });
       try {
         const res = await rewardCardApi.getCards();
-        const server = { songCards: res.songCards.map(toSongCard), artistCards: res.artistCards.map(toArtistCard) };
+        const [songCards, artistCards] = await Promise.all([
+          Promise.all(res.songCards.map(toSongCard).map((card) => paintFromArt(card, card.artworkUrl))),
+          Promise.all(res.artistCards.map(toArtistCard).map((card) => paintFromArt(card, card.imageUrl))),
+        ]);
+        const server = { songCards, artistCards };
         set((state) => ({ server, serverStatus: 'ready', ...(state.source === 'server' ? server : {}) }));
       } catch {
         set({ serverStatus: 'error' });
