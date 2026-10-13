@@ -319,8 +319,8 @@ const ProfileCue = () => (
   </div>
 );
 
-// 한 줄 전체를 토큰 단위로 펼친다. 개행은 폭(760)이 넘칠 때만 생긴다 — 원문 공백은 칸 사이 여백으로만 남으므로
-// 어드민이 글자 크기를 줄이면 접히는 자리가 실제로 바뀐다. 아래에 그 줄의 번역을 붙인다(가사보다 4프레임 늦게 들어온다).
+// 한 줄 전체를 토큰 단위로 펼친다. 행은 폭이 넘칠 때 어절(원문 공백) 사이에서만 꺾이고, 가장 긴 어절이 한 행에
+// 들어가도록 글자를 줄인다. 아래에 그 줄의 번역을 붙인다(가사보다 4프레임 늦게 들어온다).
 // 강조 단어 칸은 뜻을 위에 얹은 세로 칸이 되고, 행이 아래(flex-end)로 맞춰져 있어 원문 글자 높이는 그대로다.
 const LyricBlockView = ({
   line,
@@ -334,8 +334,8 @@ const LyricBlockView = ({
   /** 어드민이 정한 가사 배율. 자동 축소 위에 곱해진다. */
   userScale: number;
 }) => {
-  const tokens = buildLyricTokens(line);
-  const scale = lyricScale(tokens, userScale);
+  const phrases = groupByPhrase(buildLyricTokens(line));
+  const scale = lyricScale(phrases, userScale);
   return (
     <div style={styles.lyricBlock}>
       <div
@@ -346,25 +346,36 @@ const LyricBlockView = ({
           ...entryStyle(lyricEntry),
         }}
       >
-        {tokens.map((token) => {
-          const text = (
-            <span style={{...styles.token, color: token.spotlight?.color ?? softInk, fontSize: TOKEN_FONT_SIZE * scale}}>
-              {token.text}
-            </span>
-          );
-          const marginLeft = token.spaceBefore ? SPACE_GAP * scale : 0;
-          if (!token.spotlight) return <span key={token.key} style={{marginLeft}}>{text}</span>;
-          return (
-            <span key={token.key} style={{...styles.glossCell, gap: GLOSS_GAP * scale, marginLeft}}>
-              <span style={styles.glossTrack}>
-                <span style={{...styles.gloss, color: token.spotlight.color, fontSize: GLOSS_FONT_SIZE * scale}}>
-                  {token.spotlight.gloss}
+        {phrases.map((phrase) => (
+          <span
+            key={phrase[0].key}
+            style={{
+              ...styles.lyricPhrase,
+              columnGap: TOKEN_GAP * scale,
+              rowGap: TOKEN_ROW_GAP * scale,
+              marginLeft: phrase[0].spaceBefore ? SPACE_GAP * scale : 0,
+            }}
+          >
+            {phrase.map((token) => {
+              const text = (
+                <span style={{...styles.token, color: token.spotlight?.color ?? softInk, fontSize: TOKEN_FONT_SIZE * scale}}>
+                  {token.text}
                 </span>
-              </span>
-              {text}
-            </span>
-          );
-        })}
+              );
+              if (!token.spotlight) return <span key={token.key}>{text}</span>;
+              return (
+                <span key={token.key} style={{...styles.glossCell, gap: GLOSS_GAP * scale}}>
+                  <span style={styles.glossTrack}>
+                    <span style={{...styles.gloss, color: token.spotlight.color, fontSize: GLOSS_FONT_SIZE * scale}}>
+                      {token.spotlight.gloss}
+                    </span>
+                  </span>
+                  {text}
+                </span>
+              );
+            })}
+          </span>
+        ))}
       </div>
       {line.koreanLyrics !== '' && (
         <p style={{...styles.korean, ...entryStyle(meaningEntry, KOREAN_SKEW)}}>{line.koreanLyrics}</p>
@@ -1094,27 +1105,56 @@ const GLOSS_ROW_HEIGHT = 36;
 // 기본 크기로 세 행과 뜻 한 줄까지. 넘치면 위로 자라는데, 띠 아래 곡 표기(≈560)까지는 여유가 있다.
 const LYRIC_HEIGHT_BUDGET = 171;
 
-// 어드민 배율을 먼저 곱하고, 그래도 높이 예산을 넘으면 자동 축소 단계를 한 칸씩 내린다.
-const lyricScale = (tokens: LyricRowToken[], userScale = 1) => {
-  const step =
-    TOKEN_SCALES.find((scale) => lyricRowHeight(tokens, scale * userScale) <= LYRIC_HEIGHT_BUDGET) ??
-    TOKEN_SCALES[TOKEN_SCALES.length - 1];
+// 원문 공백으로 나뉜 어절. 행은 어절 사이에서만 꺾인다.
+const groupByPhrase = (tokens: LyricRowToken[]) =>
+  tokens.reduce<LyricRowToken[][]>((phrases, token) => {
+    if (token.spaceBefore || phrases.length === 0) phrases.push([token]);
+    else phrases[phrases.length - 1].push(token);
+    return phrases;
+  }, []);
+
+// 어드민 배율을 먼저 곱하고, 높이 예산을 넘거나 가장 긴 어절이 한 행에 안 들어가면 자동 축소 단계를 한 칸씩 내린다.
+const lyricScale = (phrases: LyricRowToken[][], userScale = 1) => {
+  const fits = (scale: number) =>
+    lyricRowHeight(phrases, scale) <= LYRIC_HEIGHT_BUDGET &&
+    phrases.every((phrase) => phraseWidth(phrase, scale) <= LYRIC_WIDTH);
+  const step = TOKEN_SCALES.find((scale) => fits(scale * userScale)) ?? TOKEN_SCALES[TOKEN_SCALES.length - 1];
   return step * userScale;
 };
 
-const lyricRowHeight = (tokens: LyricRowToken[], scale: number) => {
-  const count = Math.max(1, Math.ceil(rowWidth(tokens, scale) / LYRIC_WIDTH));
-  const gloss = tokens.some((token) => token.spotlight) ? GLOSS_ROW_HEIGHT : 0;
+const lyricRowHeight = (phrases: LyricRowToken[][], scale: number) => {
+  const count = rowCount(phrases, scale);
+  const gloss = phrases.some((phrase) => phrase.some((token) => token.spotlight)) ? GLOSS_ROW_HEIGHT : 0;
   return (count * TOKEN_ROW_HEIGHT + gloss) * scale + (count - 1) * TOKEN_ROW_GAP * scale;
 };
 
+// 브라우저처럼 어절을 앞에서부터 채운다. 한 행보다 긴 어절은 그 안에서 꺾인다.
+const rowCount = (phrases: LyricRowToken[][], scale: number) => {
+  let rows = 1;
+  let used = 0;
+  for (const phrase of phrases) {
+    const width = phraseWidth(phrase, scale);
+    if (used > 0 && used + TOKEN_GAP * scale + width > LYRIC_WIDTH) {
+      rows += 1;
+      used = 0;
+    }
+    if (width > LYRIC_WIDTH) {
+      rows += Math.ceil(width / LYRIC_WIDTH) - 1;
+      used = width % LYRIC_WIDTH;
+    } else {
+      used += (used > 0 ? TOKEN_GAP * scale : 0) + width;
+    }
+  }
+  return rows;
+};
+
 // CJK/한글 1자 = 1em 으로 어림한다. 원문 공백 자리의 여백도 같이 센다.
-const rowWidth = (tokens: LyricRowToken[], scale: number) =>
-  tokens.reduce(
+const phraseWidth = (phrase: LyricRowToken[], scale: number) =>
+  phrase.reduce(
     (sum, token) => sum + scale * (textWeight(token.text) * TOKEN_FONT_SIZE + (token.spaceBefore ? SPACE_GAP : 0)),
     0,
   ) +
-  Math.max(0, tokens.length - 1) * TOKEN_GAP * scale;
+  Math.max(0, phrase.length - 1) * TOKEN_GAP * scale;
 
 const uniqueByJapanese = () => {
   const seen = new Set<string>();
@@ -1388,6 +1428,14 @@ const styles = {
     flexWrap: 'wrap',
     justifyContent: 'center',
     width: '100%',
+  },
+  // 어절 한 덩어리. 행보다 길 때만 안에서 꺾인다.
+  lyricPhrase: {
+    alignItems: 'flex-end',
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    minWidth: 0,
   },
   token: {
     ...outline(1),
