@@ -169,11 +169,12 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
   const lyricEntry = entry(0);
   const meaningEntry = entry(2);
   const mvFrame = data.mvFrame ?? null;
+  const overlay = data.renderLayer === 'overlay';
 
   return (
-    <AbsoluteFill style={styles.canvas}>
+    <AbsoluteFill style={overlay ? styles.overlayCanvas : styles.canvas}>
       {/* MV 를 줄이거나 옮겨 생긴 빈 곳은 검은색 — MV 블러 배경은 헤드리스 Chrome 소프트웨어 렌더에서 너무 비싸다 */}
-      <div style={styles.mvLayer}>
+      {!overlay && <div style={styles.mvLayer}>
         <div style={styles.mvSlot}>
           <OffthreadVideo
             muted={false}
@@ -186,10 +187,10 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
             })}
           />
         </div>
-      </div>
+      </div>}
 
       {/* 엔드카드가 덮은 뒤에도 그대로 둔다 — 엔드카드가 이 화면을 블러해 배경으로 쓴다(pen 의 Prev Frame + Blur Layer). */}
-      <div style={styles.activeLayer}>
+      {!(overlay && frame >= lyricsEndFrame) && <div style={styles.activeLayer}>
         <HeadlineBlock data={data} />
         <SongLabel song={data.song} />
         <ProfileCue />
@@ -205,9 +206,9 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
             <div style={styles.contentSpacer} />
           </section>
         )}
-      </div>
+      </div>}
 
-      <EndCard data={data} startFrame={lyricsEndFrame} />
+      <EndCard data={data} startFrame={lyricsEndFrame} backdrop={!overlay} />
     </AbsoluteFill>
   );
 };
@@ -365,7 +366,7 @@ const LyricBlockView = ({
   );
 };
 
-const EndCard = ({data, startFrame}: {data: PromoReelData; startFrame: number}) => {
+const EndCard = ({data, startFrame, backdrop}: {data: PromoReelData; startFrame: number; backdrop: boolean}) => {
   const frame = useCurrentFrame();
   const localFrame = frame - startFrame;
   if (localFrame < 0) return null;
@@ -378,7 +379,7 @@ const EndCard = ({data, startFrame}: {data: PromoReelData; startFrame: number}) 
   const artwork = data.song.artworkAsset.trim() === '' ? null : assetSrc(data.song.artworkAsset);
 
   return (
-    <AbsoluteFill style={{...styles.endCardLayer, opacity: enter}}>
+    <AbsoluteFill style={{...styles.endCardLayer, ...(backdrop ? styles.endCardBackdrop : null), opacity: enter}}>
       <div style={styles.endWatermark}>{data.instagramHandle}</div>
       <div style={{...styles.endTitleBlock, transform: `translateY(${interpolate(enter, [0, 1], [20, 0])}px)`}}>
         <Headline text={END_CARD_HEADLINE} />
@@ -1203,6 +1204,12 @@ const styles = {
     fontFamily: reelFontStack,
     overflow: 'hidden',
   },
+  overlayCanvas: {
+    backgroundColor: 'transparent',
+    color: ink,
+    fontFamily: reelFontStack,
+    overflow: 'hidden',
+  },
   fullVideo: {
     height: '100%',
     objectFit: 'cover',
@@ -1413,11 +1420,14 @@ const styles = {
 
   // 아래 깔린 가사 화면(마지막 줄에서 멈춘 그림)을 그대로 블러해 배경으로 쓴다 — pen 의 Prev Frame + Blur Layer
   endCardLayer: {
-    backdropFilter: 'blur(56px)',
     backgroundColor: '#11101266',
     overflow: 'hidden',
-    WebkitBackdropFilter: 'blur(56px)',
     zIndex: 10,
+  },
+  // overlay 렌더에선 빠지고 ffmpeg 이 같은 블러를 MV 합성 위에 건다. 두 쪽 반경을 같이 바꾼다.
+  endCardBackdrop: {
+    backdropFilter: 'blur(56px)',
+    WebkitBackdropFilter: 'blur(56px)',
   },
   endWatermark: {
     color: '#FAFAF659',
