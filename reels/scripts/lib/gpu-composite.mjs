@@ -29,8 +29,10 @@ export function gpuCompositeFfmpegArgs({data, mvPath, source, framesDir, outputP
   const graph = [
     // color 바탕에 MV 를 overlay 하면 프레임 동기화가 1프레임 밀린다. pad 로 MV 프레임이 곧 타임라인이 되게 한다.
     // pad_cuda 는 느린 PNG 쪽을 기다리는 동안 GPU 프레임 풀이 바닥나 실패하므로 내려받은 뒤 CPU 에서 붙인다.
+    // 출력 프레임레이트는 첫 입력(MV)을 따르므로 24fps MV 도 30fps 로 맞춘다 — 엔드카드 enable 이 프레임 번호 기준이다.
+    // 종횡비를 바꿔 줄이면 scale 이 SAR 로 보정해 비정사각 픽셀이 되어 일부 플레이어가 재생하지 못한다.
     placement
-      ? `[0:v]scale_cuda=w=${placement.width}:h=${placement.height}:format=yuv420p,hwdownload,format=yuv420p,pad=w=${PROMO_WIDTH}:h=${PROMO_HEIGHT}:x=${placement.x}:y=${placement.y}:color=black[mv]`
+      ? `[0:v]scale_cuda=w=${placement.width}:h=${placement.height}:format=yuv420p,hwdownload,format=yuv420p,fps=${FPS},setsar=1,pad=w=${PROMO_WIDTH}:h=${PROMO_HEIGHT}:x=${placement.x}:y=${placement.y}:color=black[mv]`
       : `color=c=black:s=${PROMO_WIDTH}x${PROMO_HEIGHT}:r=${FPS}:d=${totalFrames / FPS},format=yuv420p[mv]`,
     '[1:v]split[txtsrc][endsrc]',
     // 엔드카드 구간의 가사 층은 overlay 렌더가 비워 두므로, 마지막 가사 프레임을 그대로 늘려 깐다.
