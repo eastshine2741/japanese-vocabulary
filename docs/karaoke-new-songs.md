@@ -6,7 +6,7 @@
 
 ## 흐름
 
-batch `KaraokeCollectTask` (`--task=karaoke-collect`, CronJob `karaoke-collect`, 매일 18:00 KST):
+batch `KaraokeCollectTask` (`--task=karaoke-collect`, CronJob `karaoke-collect`, 매일 15:00 KST):
 
 1. `backfillLinks()` — `song_id` 가 빈 행 중 분석된 곡이 생긴 것을 잇는다.
 2. 수집 (`KaraokeListingCollector`) — 원장에 없는 일본곡만 `KaraokeSongService.register`.
