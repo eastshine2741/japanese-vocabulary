@@ -80,6 +80,7 @@ Reels Factory:
 - MV streaming: `<video>` cannot send an `Authorization` header, so the source response embeds a 30-minute media token scoped to `reels-mv` + `songId` in `mvPath`. The `/mv` endpoint is `permitAll` in `SecurityConfig` and validates that token itself; it only serves files already in the cache. Media tokens are rejected by the normal admin bearer filter.
 - Source cache: `ADMIN_REELS_SOURCE_DIRECTORY` (default `${java.io.tmpdir}/kotonoha-reels-sources`), `song-{id}.mp4` + `song-{id}-preview.mp4` per song, LRU-trimmed to `ADMIN_REELS_SOURCE_MAX_FILES` songs (default 4). Render passes the cached file to the render script as `source.localPath`; the script never downloads anything.
 - The server invokes the repo-local Remotion package through `AdminReelsRenderService` and returns an MP4 attachment directly.
+- GPU render (`REELS_GPU=1`, dev only — `k8s/dev/admin-api` runs with `runtimeClassName: nvidia`): `PromoReel` renders with `renderLayer: 'overlay'` (no MV, no end-card backdrop blur, transparent background) to a PNG sequence, then ffmpeg decodes the MV on NVDEC, crops/scales it on CUDA, composites the text layer and the end-card blur on CPU, and encodes once with NVENC (`cq 29`, about the same size as the x264 path). About 40% faster than the x264 path (132s → 81s for a 35s reel). The MV placement and blur are therefore implemented twice: change `PromoReel.tsx` (`mvLayer`/`mvSlot`/`framedVideoStyle`/`endCardBackdrop`) together with `reels/scripts/lib/mv-placement.mjs` and `gpu-composite.mjs`. Prod has no GPU and keeps the x264 path. Chrome itself stays on SwiftShader: headless Chrome cannot init NVIDIA EGL/Vulkan (no `VK_EXT_headless_surface`).
 - No DB entity, migration, Object Storage object, or job history is created.
 - Normal tests use a fake renderer, a fake preview transcoder, and the real file cache on a temp directory. The subprocess renderer requires Node, npm dependencies under `/opt/reels`, and `ffmpeg`.
 - Uploaded MVs are copyrighted material. This workflow is admin-only and is not legal advice.
@@ -108,6 +109,7 @@ Environment:
 - `ADMIN_TOKEN_TTL_MINUTES`
 - `ADMIN_REELS_RENDERER_WORKING_DIRECTORY` (default in container: `/opt/reels`)
 - `ADMIN_REELS_RENDERER_TIMEOUT` (Spring duration; default: `8m`)
+- `REELS_GPU` (`1` turns on the GPU render path; unset in prod)
 - `ADMIN_REELS_SOURCE_DIRECTORY` (default: `${java.io.tmpdir}/kotonoha-reels-sources`)
 - `ADMIN_REELS_SOURCE_MAX_FILES` (default: `4`)
 - `ADMIN_REELS_SOURCE_MAX_UPLOAD` (Spring data size; default: `1GB`)

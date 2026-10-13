@@ -14,6 +14,9 @@ spec:
     spec:
       # 켜 두면 `rabbitmq` 서비스가 RABBITMQ_PORT=tcp://... 를 주입하고, 앱이 그걸 포트로 읽어 기동에 실패한다.
       enableServiceLinks: false
+      # 릴스 렌더가 NVDEC·CUDA·NVENC 를 쓴다(reels/scripts/lib/gpu-composite.mjs). 호스트에 nvidia-container-toolkit 이 있어야 뜬다.
+      # nvidia.com/gpu 를 요청하지 않는다 — 네임스페이스마다 뜨는 admin-api 가 GPU 하나를 같이 쓴다.
+      runtimeClassName: nvidia
       containers:
         - name: admin-api
           image: ${ADMIN_API_IMAGE}
@@ -33,6 +36,12 @@ spec:
                   key: password
             - name: GOOGLE_APPLICATION_CREDENTIALS
               value: /var/secrets/firebase/service-account.json
+            - name: REELS_GPU
+              value: "1"
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: all
+            - name: NVIDIA_DRIVER_CAPABILITIES
+              value: compute,video,utility
           envFrom:
             - configMapRef:
                 name: admin-api-config
