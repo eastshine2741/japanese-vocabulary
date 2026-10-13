@@ -8,7 +8,7 @@ Admin v1 is an internal inspection surface for `song`, `lyric`, and `user`, plus
 - No generic create/update/delete endpoints.
 - No generic table editor or raw field editor.
 - Future write paths must be entity-specific, invariant-preserving workflows with audit logging.
-- Exception: Reels Factory exposes a transient `POST /admin/api/reels-factory/render` workflow. It does not mutate database state, create render history, store generated files, or upload to social platforms.
+- Exception: Reels Factory exposes a `POST /admin/api/reels-factory/render` workflow. It does not mutate database state or upload to social platforms; render jobs and their MP4s live only in admin-api memory/temp disk for a few hours.
 
 Architecture direction:
 
@@ -63,7 +63,9 @@ Routes:
 - `POST /admin/api/reels-factory/songs/{songId}/source` (multipart `file`)
 - `GET /admin/api/reels-factory/songs/{songId}/source`
 - `GET /admin/api/reels-factory/songs/{songId}/mv?token=...` (media token only; no admin bearer)
-- `POST /admin/api/reels-factory/render`
+- `POST /admin/api/reels-factory/render` (202, returns a render job)
+- `GET /admin/api/reels-factory/render-jobs`
+- `GET /admin/api/reels-factory/render-jobs/{jobId}/output`
 
 Reels Factory:
 
@@ -79,7 +81,8 @@ Reels Factory:
 - Preview copy: YouTube MVs are usually open-GOP H.264 (most sync samples are non-IDR I-frames). Seeking to such a keyframe leaves following B-frames referencing frames before it, and Chrome's software decoder (`AV_EF_EXPLODE`) fails with `PIPELINE_ERROR_DECODE` — the Remotion `<Video>` in the Reel tab seeks on every line change, so some lines simply broke. `FfmpegAdminReelsPreviewTranscoder` therefore re-encodes each upload to `song-{id}-preview.mp4` (libx264 superfast, crf 25, IDR every 30 frames, ≤ 720p, audio copied so timestamps match) and `/mv` streams only that copy. Render still uses the untouched original. `cached()` requires both files.
 - MV streaming: `<video>` cannot send an `Authorization` header, so the source response embeds a 30-minute media token scoped to `reels-mv` + `songId` in `mvPath`. The `/mv` endpoint is `permitAll` in `SecurityConfig` and validates that token itself; it only serves files already in the cache. Media tokens are rejected by the normal admin bearer filter.
 - Source cache: `ADMIN_REELS_SOURCE_DIRECTORY` (default `${java.io.tmpdir}/kotonoha-reels-sources`), `song-{id}.mp4` + `song-{id}-preview.mp4` per song, LRU-trimmed to `ADMIN_REELS_SOURCE_MAX_FILES` songs (default 4). Render passes the cached file to the render script as `source.localPath`; the script never downloads anything.
-- The server invokes the repo-local Remotion package through `AdminReelsRenderService` and returns an MP4 attachment directly.
+- Render jobs: `POST /render` validates, queues the render in `AdminReelsRenderJobService` and returns `{ id, status: QUEUED, … }` at once, so closing the browser or dropping the connection does not cancel it. Up to `ADMIN_REELS_RENDERER_CONCURRENCY` renders run at once (default 1; dev 3) and the rest wait in line. `GET /render-jobs` lists jobs (`QUEUED` → `RUNNING` → `SUCCEEDED` / `FAILED` with `error` `render_failed` or `render_timeout`); `GET /render-jobs/{id}/output` streams the MP4 and can be called again until `ADMIN_REELS_RENDERER_RETENTION` (default 6h) after the job finished. Jobs are in memory only: a pod restart drops queued/running jobs and finished outputs. `admin-web` polls the list while a job is active, downloads jobs it submitted itself as soon as they finish, and shows a download button for the rest. Each render uses its own temp work dir, and the render script gives Remotion a per-render `--public-dir`, so concurrent renders share no files.
+- Each job runs the repo-local Remotion package through `AdminReelsRenderService` (`SubprocessAdminReelsRenderService`).
 - GPU render (`REELS_GPU=1`, dev only — `k8s/dev/admin-api` runs with `runtimeClassName: nvidia`): `PromoReel` renders with `renderLayer: 'overlay'` (no MV, no end-card backdrop blur, transparent background) to a PNG sequence, then ffmpeg decodes the MV on NVDEC, crops/scales it on CUDA, composites the text layer and the end-card blur on CPU, and encodes once with NVENC (`cq 29`, about the same size as the x264 path). About 40% faster than the x264 path (132s → 81s for a 35s reel). The MV placement and blur are therefore implemented twice: change `PromoReel.tsx` (`mvLayer`/`mvSlot`/`framedVideoStyle`/`endCardBackdrop`) together with `reels/scripts/lib/mv-placement.mjs` and `gpu-composite.mjs`. Prod has no GPU and keeps the x264 path. Chrome itself stays on SwiftShader: headless Chrome cannot init NVIDIA EGL/Vulkan (no `VK_EXT_headless_surface`).
 - No DB entity, migration, Object Storage object, or job history is created.
 - Normal tests use a fake renderer, a fake preview transcoder, and the real file cache on a temp directory. The subprocess renderer requires Node, npm dependencies under `/opt/reels`, and `ffmpeg`.
@@ -108,7 +111,9 @@ Environment:
 - `ADMIN_TOKEN_SECRET`
 - `ADMIN_TOKEN_TTL_MINUTES`
 - `ADMIN_REELS_RENDERER_WORKING_DIRECTORY` (default in container: `/opt/reels`)
-- `ADMIN_REELS_RENDERER_TIMEOUT` (Spring duration; default: `8m`)
+- `ADMIN_REELS_RENDERER_TIMEOUT` (Spring duration; default: `8m`, per running render)
+- `ADMIN_REELS_RENDERER_CONCURRENCY` (default: `1`; dev sets `3` — GPU renders barely slow each other, about 0.7GB more memory each)
+- `ADMIN_REELS_RENDERER_RETENTION` (Spring duration; default: `6h`)
 - `REELS_GPU` (`1` turns on the GPU render path; unset in prod)
 - `ADMIN_REELS_SOURCE_DIRECTORY` (default: `${java.io.tmpdir}/kotonoha-reels-sources`)
 - `ADMIN_REELS_SOURCE_MAX_FILES` (default: `4`)

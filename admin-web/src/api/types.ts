@@ -274,6 +274,20 @@ export type ReelsSource = {
   mvPath: string
 }
 
+export type ReelsRenderJobStatus = "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED"
+
+/** 서버가 뒤에서 돌리는 렌더. 브라우저를 닫아도 계속되고 끝난 결과는 몇 시간 남는다. */
+export type ReelsRenderJob = {
+  id: string
+  songId: number
+  title: string
+  artist: string
+  status: ReelsRenderJobStatus
+  error: string | null
+  createdAt: string
+  finishedAt: string | null
+}
+
 export type ReelsRenderRequest = {
   songId: number
   data: PromoReelData

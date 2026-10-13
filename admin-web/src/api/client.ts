@@ -7,6 +7,7 @@ import type {
   ManualPushResult,
   PageResponse,
   Recommendation,
+  ReelsRenderJob,
   ReelsRenderRequest,
   ReelsSongCandidate,
   ReelsSongDetail,
@@ -199,9 +200,15 @@ export const adminApi = {
     })
   },
   renderReel(token: string, body: ReelsRenderRequest) {
-    return requestBlob("/reels-factory/render", token, {
+    return request<ReelsRenderJob>("/reels-factory/render", token, {
       method: "POST",
       body: JSON.stringify(body),
     })
+  },
+  reelsRenderJobs(token: string) {
+    return request<ReelsRenderJob[]>("/reels-factory/render-jobs", token)
+  },
+  reelsRenderOutput(token: string, jobId: string) {
+    return requestBlob(`/reels-factory/render-jobs/${jobId}/output`, token, {})
   },
 }

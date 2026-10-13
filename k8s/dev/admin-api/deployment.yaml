@@ -38,6 +38,9 @@ spec:
               value: /var/secrets/firebase/service-account.json
             - name: REELS_GPU
               value: "1"
+            # GPU 렌더는 Chrome 이 코어 하나씩만 써서 3개를 같이 돌려도 한 개일 때와 시간이 거의 같다(83s → 92s).
+            - name: ADMIN_REELS_RENDERER_CONCURRENCY
+              value: "3"
             - name: NVIDIA_VISIBLE_DEVICES
               value: all
             - name: NVIDIA_DRIVER_CAPABILITIES
@@ -74,7 +77,8 @@ spec:
               cpu: 250m
               memory: 1Gi
             limits:
-              memory: 3Gi
+              # 렌더 하나가 0.7GB 가량 더 쓴다 — 동시 렌더 3개 기준.
+              memory: 5Gi
       volumes:
         - name: firebase-credentials
           secret:

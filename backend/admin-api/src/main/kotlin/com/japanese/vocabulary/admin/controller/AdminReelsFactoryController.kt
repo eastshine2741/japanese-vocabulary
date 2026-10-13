@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.admin.controller
 
+import com.japanese.vocabulary.admin.dto.reels.AdminReelsRenderJobResponse
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsRenderRequest
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsSongCandidateResponse
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsSongDetailResponse
@@ -9,11 +10,10 @@ import org.springframework.core.io.FileSystemResource
 import org.springframework.core.io.Resource
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
-import org.springframework.http.ContentDisposition
 import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -23,8 +23,6 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RequestPart
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.multipart.MultipartFile
-import java.nio.file.Files
-import java.nio.file.Path
 
 @RestController
 @RequestMapping("/admin/api/reels-factory")
@@ -69,34 +67,18 @@ class AdminReelsFactoryController(
             .body(FileSystemResource(source))
     }
 
+    /** 렌더를 줄에 세우고 바로 돌려준다. 진행과 결과는 `/render-jobs` 로 본다 — 브라우저를 닫아도 렌더는 계속된다. */
     @PostMapping("/render")
-    fun render(@RequestBody request: AdminReelsRenderRequest): ResponseEntity<StreamingResponseBody> {
-        val output = service.render(request)
-        val outputSize = Files.size(output)
-        val responseBody = StreamingResponseBody { responseStream ->
-            try {
-                Files.newInputStream(output).use { inputStream ->
-                    inputStream.copyTo(responseStream)
-                }
-            } finally {
-                deleteOutputDirectory(output)
-            }
-        }
-        return ResponseEntity.ok()
-            .contentType(MediaType.parseMediaType("video/mp4"))
-            .contentLength(outputSize)
-            .header(
-                HttpHeaders.CONTENT_DISPOSITION,
-                ContentDisposition.attachment().filename("kotonoha-reel-${request.songId}.mp4").build().toString(),
-            )
-            .body(responseBody)
-    }
+    fun render(@RequestBody request: AdminReelsRenderRequest): ResponseEntity<AdminReelsRenderJobResponse> =
+        ResponseEntity.status(HttpStatus.ACCEPTED).body(service.render(request))
 
-    private fun deleteOutputDirectory(output: Path) {
-        runCatching {
-            Files.walk(output.parent)
-                .sorted(Comparator.reverseOrder())
-                .forEach(Files::deleteIfExists)
-        }
-    }
+    @GetMapping("/render-jobs")
+    fun renderJobs(): List<AdminReelsRenderJobResponse> = service.renderJobs()
+
+    /** 끝난 렌더의 mp4. 받아도 지우지 않아 보관 시간 안에는 다시 받을 수 있다. */
+    @GetMapping("/render-jobs/{jobId}/output")
+    fun renderOutput(@PathVariable jobId: String): ResponseEntity<Resource> =
+        ResponseEntity.ok()
+            .contentType(MediaType.parseMediaType("video/mp4"))
+            .body(FileSystemResource(service.renderOutput(jobId)))
 }
