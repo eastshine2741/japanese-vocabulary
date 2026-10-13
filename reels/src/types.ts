@@ -106,4 +106,10 @@ export type PromoReelData = {
   totalLineCount?: number;
   wordCount?: number;
   lyricLines: PromoLine[];
+  /**
+   * 'overlay' 는 렌더 서버가 MV 를 ffmpeg(GPU)로 따로 합성할 때만 쓴다. MV 와 엔드카드 배경 블러를 빼고 투명 바탕에
+   * 글자 층만 그린다 — 엔드카드 구간엔 엔드카드만 그리고, 그 아래 가사 층은 ffmpeg 이 마지막 가사 프레임으로 채운다.
+   * 어드민 미리보기는 늘 전체(없음)다.
+   */
+  renderLayer?: 'overlay' | null;
 };
