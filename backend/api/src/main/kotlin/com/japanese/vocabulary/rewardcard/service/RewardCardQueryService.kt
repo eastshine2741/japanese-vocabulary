@@ -8,6 +8,7 @@ import com.japanese.vocabulary.rewardcard.dto.MasteredSongResponse
 import com.japanese.vocabulary.rewardcard.dto.RewardCardsResponse
 import com.japanese.vocabulary.rewardcard.dto.SongCardDto
 import com.japanese.vocabulary.rewardcard.dto.SongCardResponse
+import com.japanese.vocabulary.rewardcard.dto.SongGradeRuleResponse
 import com.japanese.vocabulary.rewardcard.model.SongCardGrade
 import com.japanese.vocabulary.song.dto.songdetail.SongLyricLineDto
 import com.japanese.vocabulary.song.entity.ArtistEntity
@@ -17,6 +18,7 @@ import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.song.service.songdetail.SongDetailQueryService
 import com.japanese.vocabulary.word.model.SongTierCards
+import com.japanese.vocabulary.word.model.SongWordTierKey
 import com.japanese.vocabulary.word.service.songword.SongTierCardService
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -56,6 +58,7 @@ class RewardCardQueryService(
             artistCards = artistCards.mapNotNull { card ->
                 artists[card.artistId]?.let { artistCard(card, it, masteredByArtist[card.artistId].orEmpty(), songs) }
             },
+            songGradeRule = SONG_GRADE_RULE,
         )
     }
 
@@ -147,3 +150,8 @@ class RewardCardQueryService(
             createdAt = card.createdAt,
         )
 }
+
+private val SONG_GRADE_RULE = SongGradeRuleResponse(
+    tierNames = SongWordTierKey.current.map { it.displayName },
+    masterPercent = SongCardGradeRule.MASTER_PERCENT,
+)

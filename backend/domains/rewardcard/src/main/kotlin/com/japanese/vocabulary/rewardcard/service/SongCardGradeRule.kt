@@ -9,7 +9,7 @@ import com.japanese.vocabulary.rewardcard.model.SongCardGrade
  * 마스터는 완곡 뒤, tier 단어의 90% 가 장기기억일 때다 — '전부'는 망각 때문에 곡이 길수록 닿기 어렵다.
  */
 object SongCardGradeRule {
-    private const val MASTER_PERCENT = 90
+    const val MASTER_PERCENT = 90
 
     /** [tiers] 는 단계 순서다. 단어마다 유저의 카드(없으면 null)를 둔다. */
     fun of(tiers: List<List<FlashcardEntity?>>): SongCardGrade {

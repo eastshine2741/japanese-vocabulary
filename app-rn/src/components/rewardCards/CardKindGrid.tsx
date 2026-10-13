@@ -10,8 +10,9 @@ import { artistCardPreview, songCardPreview, type PreviewArtist, type PreviewSon
 import { CardFonts, songTierName } from './cardTheme';
 import type { ArtistRewardCard, SongRewardCard } from './types';
 import { useAuthStore } from '../../stores/authStore';
+import { useRewardCardStore } from '../../stores/rewardCardStore';
+import { songGradeCondition } from './songGradeCondition';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
-import type { SongWordTierDto } from '../../types/song';
 import { Colors } from '../../theme/theme';
 import { Typography } from '../../theme/typography';
 
@@ -26,13 +27,6 @@ function useOwnerName(): string {
   return userName?.trim() || '학습자';
 }
 
-function songKindCondition(kind: SongCardKind, tiers: readonly SongWordTierDto[]): { short: string; full: string } {
-  if (kind.mastered) return { short: '단어 90% 장기 기억', full: '곡 단어의 90%를 장기 기억으로 만들기' };
-  if (kind.level === 0) return { short: '단어 하나 공부', full: '곡 단어를 하나라도 공부하기' };
-  const name = tiers[kind.level - 1]?.name ?? '';
-  return { short: `'${name}' 단계 완료`, full: `'${name}' 단계 단어 모두 공부하기` };
-}
-
 function artistGradeCondition(step: ArtistGradeStep): { short: string; full: string } {
   if (step.from === 0) return { short: '첫 곡 카드', full: '이 아티스트의 곡 카드 처음 얻기' };
   return { short: `MASTER 카드 ${step.from}장`, full: `이 아티스트 곡의 MASTER 카드 ${step.from}장 모으기` };
@@ -42,19 +36,19 @@ interface SongGridProps {
   song: PreviewSong;
   /** 이 곡의 내 카드들(등급마다 한 장). 없는 등급은 견본이다. */
   cards: readonly SongRewardCard[];
-  tiers: readonly SongWordTierDto[];
   width: number;
   fonts: CardFonts;
 }
 
 /** 이 곡에서 얻을 수 있는 곡 카드 전부. 받은 등급은 그 등급의 내 카드, 아직인 등급은 견본이다. */
-export const SongCardKindGrid = React.memo(function SongCardKindGrid({ song, cards, tiers, width, fonts }: SongGridProps) {
+export const SongCardKindGrid = React.memo(function SongCardKindGrid({ song, cards, width, fonts }: SongGridProps) {
   const navigation = useNavigation<Navigation>();
+  const gradeRule = useRewardCardStore(s => s.songGradeRule);
   const ownerName = useOwnerName();
   const tileWidth = Math.floor((width - GAP * (SONG_COLUMNS - 1)) / SONG_COLUMNS);
 
   const handleOpen = useCallback((kind: SongCardKind) => {
-    const condition = songKindCondition(kind, tiers).full;
+    const condition = songGradeCondition(SONG_CARD_KINDS.indexOf(kind), gradeRule).full;
     const card = songCardOfKind(cards, kind);
     if (card != null) {
       navigation.navigate('RewardCardDetail', { cardId: card.id, ownerName });
@@ -65,17 +59,17 @@ export const SongCardKindGrid = React.memo(function SongCardKindGrid({ song, car
       condition,
       reached: false,
     });
-  }, [cards, navigation, ownerName, song, tiers]);
+  }, [cards, gradeRule, navigation, ownerName, song]);
 
   return (
     <View style={styles.grid}>
-      {SONG_CARD_KINDS.map(kind => (
+      {SONG_CARD_KINDS.map((kind, rung) => (
         <SongKindTile
           key={kind.key}
           kind={kind}
           song={song}
           card={songCardOfKind(cards, kind)}
-          condition={songKindCondition(kind, tiers).short}
+          condition={songGradeCondition(rung, gradeRule).short}
           width={tileWidth}
           fonts={fonts}
           onPress={handleOpen}

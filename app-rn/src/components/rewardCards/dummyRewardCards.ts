@@ -1,5 +1,6 @@
 import { ARTIST_GRADE_STEPS } from './artistGrade';
 import { ArtistRewardCard, CardLyricLine, CardWord, MasteredSong, RubySegment, SongRewardCard } from './types';
+import type { SongGradeRuleDto } from '../../types/rewardCard';
 
 // API 가 생기기 전 화면을 그리기 위한 더미. 가사는 실제 곡 가사가 아니라 지어낸 문장이다.
 
@@ -288,6 +289,8 @@ seeds.push(
 const SONG_LYRICS: Record<string, CardLyricLine[]> = Object.fromEntries(
   seeds.map((seed) => [seed.id, seed.lyrics.map(([source, ko], index) => ({ index, ruby: ruby(source), ko }))]),
 );
+
+export const DUMMY_SONG_GRADE_RULE: SongGradeRuleDto = { tierNames: ['후렴 정복', '따라 부르기', '완곡'], masterPercent: 90 };
 
 export const DUMMY_SONG_CARDS: SongRewardCard[] = seeds.map(({ lyrics: _lyrics, pick, ...card }) => ({
   ...card,

@@ -62,9 +62,18 @@ export interface ArtistCardDto {
   createdAt: string;
 }
 
+/** 곡 카드 등급 조건. 곡마다 같아 목록에 한 번만 온다. */
+export interface SongGradeRuleDto {
+  /** BRONZE 부터 GOLD 까지 등급 순서대로, 끝내야 하는 곡 상세 단계 이름. */
+  tierNames: string[];
+  /** MASTER: 곡 단어 중 장기기억 비율(%). */
+  masterPercent: number;
+}
+
 export interface RewardCardsResponse {
   songCards: SongCardDto[];
   artistCards: ArtistCardDto[];
+  songGradeRule: SongGradeRuleDto;
 }
 
 export type RewardCardShareKind = 'song-cards' | 'artist-cards';

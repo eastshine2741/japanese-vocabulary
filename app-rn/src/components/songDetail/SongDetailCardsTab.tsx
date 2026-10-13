@@ -6,18 +6,13 @@ import { songCardsOf } from '../rewardCards/cardKinds';
 import type { PreviewSong } from '../rewardCards/cardPreview';
 import { useCardFonts } from '../rewardCards/cardTheme';
 import { useRewardCardStore } from '../../stores/rewardCardStore';
-import type { SongWordTierDto } from '../../types/song';
 
 const PAGE_PADDING = 20;
-const EMPTY_TIERS: readonly SongWordTierDto[] = [];
 
 export const SongDetailCardsTab = React.memo(function SongDetailCardsTab({
   song,
-  tiers,
 }: {
   song: PreviewSong;
-  /** 단계 이름을 조건에 쓴다. 못 받았으면 빈 이름으로 둔다. */
-  tiers: readonly SongWordTierDto[] | null;
 }) {
   const { width: screenWidth } = useWindowDimensions();
   const fonts = useCardFonts();
@@ -30,7 +25,6 @@ export const SongDetailCardsTab = React.memo(function SongDetailCardsTab({
       <SongCardKindGrid
         song={song}
         cards={cards}
-        tiers={tiers ?? EMPTY_TIERS}
         width={screenWidth - PAGE_PADDING * 2}
         fonts={fonts}
       />

@@ -269,6 +269,13 @@ class RewardCardControllerTest : ApiBaseIntegrationTest() {
     }
 
     @Test
+    fun `cards carry the song grade rule once`() {
+        val rule = cards(newUser()).songGradeRule
+        assertThat(rule.tierNames).containsExactly("후렴 정복", "따라 부르기", "완곡")
+        assertThat(rule.masterPercent).isEqualTo(90)
+    }
+
+    @Test
     fun `study bootstrap rating acquires every grade it reaches`() {
         val me = newUser()
         val artist = newArtist()

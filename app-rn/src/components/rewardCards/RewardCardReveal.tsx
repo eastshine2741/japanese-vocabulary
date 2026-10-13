@@ -21,8 +21,10 @@ import {
   useRevealMotion,
 } from './CardRevealStage';
 import SongCardShowcase, { SongCardBack, SongCardFront } from './SongCardShowcase';
-import { CARD_RATIO, SHOWROOM, SONG_MASTER_NAME, SONG_TIER_NAME, songTierName, useCardFonts } from './cardTheme';
-import { songRung } from './cardKinds';
+import { CARD_RATIO, SHOWROOM, songTierName, useCardFonts } from './cardTheme';
+import { SONG_CARD_KINDS, songRung } from './cardKinds';
+import { songGradeCondition } from './songGradeCondition';
+import type { SongGradeRuleDto } from '../../types/rewardCard';
 import { CardSignature } from './signature';
 import { CardLyricLine, SongRewardCard } from './types';
 import { useCardTilt } from './useCardTilt';
@@ -33,13 +35,12 @@ const NO_LINES: CardLyricLine[] = [];
 const SONG_RADIUS = 0.046;
 
 /** 레벨 n 은 n번째 단계 단어를 다 공부한 카드다. 등급 이름에 단계 이름을 쓰지 않고 조건으로만 붙인다. */
-const SONG_LADDER: readonly LadderStep[] = [
-  { label: SONG_TIER_NAME[0], caption: '첫 학습' },
-  { label: SONG_TIER_NAME[1], caption: '후렴 정복' },
-  { label: SONG_TIER_NAME[2], caption: '따라 부르기' },
-  { label: SONG_TIER_NAME[3], caption: '완곡' },
-  { label: SONG_MASTER_NAME, caption: '90% 장기 기억' },
-];
+function songLadder(rule: SongGradeRuleDto | null): LadderStep[] {
+  return SONG_CARD_KINDS.map((kind, rung) => ({
+    label: songTierName(kind.level, kind.mastered),
+    caption: songGradeCondition(rung, rule).caption,
+  }));
+}
 const SONG_GUIDE = ['단계를 끝낼 때마다 다음 등급 카드를 새로 받아요.', '등급마다 먼저 받은 순서대로 번호가 붙어요'];
 const INTRO_GUIDE = ['곡 단어를 처음 공부하면 얻는 카드예요.', '단계를 끝낼 때마다 다음 등급 카드를 새로 받아요'];
 const INTRO_LADDER_DELAY_MS = 500;
@@ -119,6 +120,8 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({
   const setLyric = useRewardCardStore((s) => s.setLyric);
   const sign = useRewardCardStore((s) => s.sign);
   const markWearIntroSeen = useRewardCardStore((s) => s.markWearIntroSeen);
+  const gradeRule = useRewardCardStore((s) => s.songGradeRule);
+  const ladder = useMemo(() => songLadder(gradeRule), [gradeRule]);
   // 연 순간 기준으로 고정해야 도중에 버튼 라벨이 바뀌지 않는다.
   const [showWearIntro] = useState(() => !useRewardCardStore.getState().wearIntroSeen);
   const [step, setStep] = useState<Step>(wearOnly ? 'wear' : intro ? 'guide' : 'reveal');
@@ -207,7 +210,7 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({
           showcase={<SongCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} />}
           heading={songRung(card) === 0 ? '곡 카드를 얻었어요' : `${songTierName(card.level, card.mastered)} 카드를 얻었어요`}
           guide={
-            <RevealGuide lines={SONG_GUIDE} steps={SONG_LADDER} current={songRung(card)} accent={card.accent} motion={motion} />
+            <RevealGuide lines={SONG_GUIDE} steps={ladder} current={songRung(card)} accent={card.accent} motion={motion} />
           }
           actions={
             <>
@@ -238,7 +241,7 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({
                   </View>
                 </GestureDetector>
               </View>
-              <RevealGuide lines={INTRO_GUIDE} steps={SONG_LADDER} current={songRung(card)} accent={card.accent} motion={guideMotion} />
+              <RevealGuide lines={INTRO_GUIDE} steps={ladder} current={songRung(card)} accent={card.accent} motion={guideMotion} />
               <View style={styles.guideActions}>
                 <RevealPrimaryButton label="다음" onPress={handleGuideDone} />
               </View>

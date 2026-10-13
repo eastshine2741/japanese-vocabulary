@@ -14,7 +14,6 @@ import kotlin.math.ceil
 /** 카드 면에 싣는 곡 데이터. 단계 진행·기억 확률은 조회 때 계산한다. */
 object SongCardFace {
     private const val WORD_COUNT = 5
-    private const val MASTER_RATIO = 0.9
 
     /** 주인이 고르기 전 기본 줄: 가장 많이 반복되는 줄(대개 후렴)과 그 다음 줄. 번역·분석이 없는 줄은 뒷면이 비어 건너뛴다. */
     fun defaultLyric(lines: List<SongLyricLineDto>): List<SongLyricLineDto> {
@@ -53,7 +52,7 @@ object SongCardFace {
             return RewardCardGoalResponse(current = tier.count { FlashcardMemory.of(it) != FlashcardMemory.REMAINING }, total = tier.size)
         }
         val all = tiers.flatten()
-        val target = ceil(all.size * MASTER_RATIO).toInt()
+        val target = ceil(all.size * SongCardGradeRule.MASTER_PERCENT / 100.0).toInt()
         val longTerm = all.count { FlashcardMemory.of(it) == FlashcardMemory.LONG_TERM }
         return RewardCardGoalResponse(current = minOf(longTerm, target), total = target)
     }

@@ -32,6 +32,7 @@ const ARTIST_TABS: readonly GradeTab[] = ARTIST_GRADE_STEPS.map((step) => ({
   key: step.grade,
   label: step.label,
   frame: ARTIST_MATERIAL[step.grade].frame,
+  ink: ARTIST_MATERIAL[step.grade].chipText,
 }));
 
 function artistCondition(rung: number): string {

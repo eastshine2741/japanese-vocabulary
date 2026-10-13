@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { rewardCardApi } from '../api/rewardCardApi';
 import { songApi } from '../api/songApi';
-import { DUMMY_ARTIST_CARDS, DUMMY_SONG_CARDS, findDummyLyrics } from '../components/rewardCards/dummyRewardCards';
+import { DUMMY_ARTIST_CARDS, DUMMY_SONG_CARDS, DUMMY_SONG_GRADE_RULE, findDummyLyrics } from '../components/rewardCards/dummyRewardCards';
 import { pickLines } from '../components/rewardCards/cardLyric';
 import { paintFromArt } from '../components/rewardCards/artColors';
 import { serverTargetId, toArtistCard, toRevealTarget, toSongCard } from '../components/rewardCards/serverRewardCards';
@@ -9,7 +9,7 @@ import { CardSignature } from '../components/rewardCards/signature';
 import { ArtistRewardCard, CardLyricLine, SongRewardCard } from '../components/rewardCards/types';
 import { toCardLine } from '../components/songDetail/songCardSample';
 import { preferenceStorage } from '../utils/preferenceStorage';
-import type { RewardCardRevealDto } from '../types/rewardCard';
+import type { RewardCardRevealDto, SongGradeRuleDto } from '../types/rewardCard';
 
 export type RewardCardKind = 'song' | 'artist';
 
@@ -27,6 +27,7 @@ export interface RewardCardRevealTarget {
 interface CardSet {
   songCards: SongRewardCard[];
   artistCards: ArtistRewardCard[];
+  songGradeRule: SongGradeRuleDto | null;
 }
 
 interface RewardCardState extends CardSet {
@@ -69,8 +70,8 @@ interface RewardCardState extends CardSet {
   reset: () => void;
 }
 
-const DUMMY: CardSet = { songCards: DUMMY_SONG_CARDS, artistCards: DUMMY_ARTIST_CARDS };
-const EMPTY: CardSet = { songCards: [], artistCards: [] };
+const DUMMY: CardSet = { songCards: DUMMY_SONG_CARDS, artistCards: DUMMY_ARTIST_CARDS, songGradeRule: DUMMY_SONG_GRADE_RULE };
+const EMPTY: CardSet = { songCards: [], artistCards: [], songGradeRule: null };
 
 function mapCards<T extends { id: string }>(cards: T[], cardId: string, fn: (card: T) => T): T[] {
   return cards.map((card) => (card.id === cardId ? fn(card) : card));
@@ -115,7 +116,7 @@ export const useRewardCardStore = create<RewardCardState>((set, get) => {
           Promise.all(res.songCards.map(toSongCard).map((card) => paintFromArt(card, card.artworkUrl))),
           Promise.all(res.artistCards.map(toArtistCard).map((card) => paintFromArt(card, card.imageUrl))),
         ]);
-        const server = { songCards, artistCards };
+        const server = { songCards, artistCards, songGradeRule: res.songGradeRule };
         set((state) => ({ server, serverStatus: 'ready', ...(state.source === 'server' ? server : {}) }));
       } catch {
         set({ serverStatus: 'error' });

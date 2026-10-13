@@ -171,13 +171,14 @@ age    = clamp((0.9 − recall) / 0.4, 0, 1)
 곡 카드를 누르면 `RewardCardDetail`, 아티스트 카드를 누르면 `ArtistCardDetail` 전시 화면 — 회전 센서(`useAnimatedSensor` ROTATION)로 폰 기울기의 35%만 반대로 돌고(화면 안 회전은 무시, 들고 있는 자세로 몇 초에 걸쳐 재정렬) 광택은 기울기를 1:1로 따라가며 드래그로 더 밀 수 있고,
 탭하면 뒷면(가사·단어·획득 순번)이 나온다.
 카드 아래 정보는 이것만 둔다(그 밖의 칩·안내는 넣지 않는다):
-- 등급 패널 하나: 위에 조건 한 줄, 아래 등급 사다리(곡 기본~MASTER, 아티스트 기본~DIAMOND). 지나온 칸은 재질 색, 다음 칸은 진행만큼 차고,
-  조건 줄은 다음 등급 조건과 진행(`12 / 30`, 곡의 가장 높은 카드 기준)이다. 다른 칸을 누르면 그 등급의 내 카드(순번·서명·가사·기억할 확률이 각자 다르다)로
+- 등급 패널 하나: 위에 등급 칩 줄(곡 기본~MASTER, 아티스트 기본~DIAMOND), 아래 고른 칩의 조건 한 줄. 얻은 칩은 재질 색, 다음 칩은 진행만큼 차고,
+  다음 칩을 고르면 조건 옆에 진행(`12 / 30`, 곡의 가장 높은 카드 기준), 얻은 칩이면 체크가 붙는다. 칩을 누르면 그 등급의 내 카드(순번·서명·가사·기억할 확률이 각자 다르다)로
   바꿔 보여 주고 공유·가사 편집도 그 카드에 건다. 아직인 등급은 주인 정보를 비운 견본(새것)이고 공유·편집은 숨긴다.
   승급 조건과 견본 보기를 따로 두면 같은 '등급' 이야기가 두 곳에 흩어져 한눈에 안 들어와 합쳤다.
 - 곡 카드: 상단 공유·카드만 보기·가사 편집 버튼(뒤집기는 카드 탭이 하므로 버튼이 없다), 기억할 확률 % 한 줄(산정 기준은 낡음 설명 화면이 맡는다,
   견본을 보는 동안엔 흐리게), 등급 패널, 맨 아래 `곡 보기`(`SongDetail`)·`복습 시작하기`.
-  조건은 "'따라 부르기' 단계 단어 모두 공부하기" · MASTER 는 "곡 단어의 90%를 장기 기억으로 만들기".
+  조건은 "'따라 부르기' 단계 단어 모두 공부하기", MASTER 는 "곡 단어의 90%를 장기 기억으로 만들기". 단계 이름과 90% 는 앱에 두지 않고
+  `GET /api/reward-cards` 의 `songGradeRule` 로 받는다(곡마다 같아 목록에 한 번). 진열장·획득 연출·곡 상세 카드 탭이 같은 문구 함수(`songGradeCondition`)를 쓴다.
   `복습 시작하기` 는 곡 덱(`/api/decks/by-song/{songId}`)의 due 복습을 바로 연다(`SongReview`, trigger `reward_card`).
   카드는 상단 버튼과 아래 정보를 뺀 남는 높이에 맞춰 그린다. 상단 `카드만 보기` 는 다른 UI·상태 표시줄을 숨기고 카드를 화면 가운데에
   크게 띄운다. 카드 밖을 누르거나 뒤로 가면 돌아온다.
@@ -219,7 +220,7 @@ age    = clamp((0.9 − recall) / 0.4, 0, 1)
 |---|---|
 | `POST /api/flashcards/{id}/review` | 응답 `rewardCards[]` = 이 rating 으로 새로 생긴 카드 `{kind: SONG\|ARTIST, cardId, targetId, grade, acquiredSeq}`, 곡(등급 순) → 아티스트 순 |
 | `GET /api/reward-cards/pending` | 서명 전 카드 전부 |
-| `GET /api/reward-cards` | 곡 카드 등급마다 한 장(최근 획득순, `id`·`issued`, 카드 면에 싣는 가사 줄·뒷면 단어 5개·평균 R·곡의 다음 등급 진행 포함)·아티스트 카드 재질마다 한 장(마스터 순, 지난 재질은 다음 재질 전까지의 곡) |
+| `GET /api/reward-cards` | 곡 카드 등급마다 한 장(최근 획득순, `id`·`issued`, 카드 면에 싣는 가사 줄·뒷면 단어 5개·평균 R·곡의 다음 등급 진행 포함)·아티스트 카드 재질마다 한 장(마스터 순, 지난 재질은 다음 재질 전까지의 곡)·`songGradeRule {tierNames, masterPercent}` 한 번 |
 | `POST /api/reward-cards/song-cards/{cardId}/issue` | `{signature: string[], lyricLineIndexes?: int[]}` 발급. 이미 발급이면 409 |
 | `POST /api/reward-cards/artist-cards/{cardId}/issue` | `{signature}` |
 | `PUT /api/reward-cards/song-cards/{cardId}/lyric` | `{lyricLineIndexes}` 1~2줄. 카드마다 따로다 |
@@ -246,7 +247,8 @@ age    = clamp((0.9 − recall) / 0.4, 0, 1)
   저장할 필요도 없다. 공개 도메인(`img.kotonoha.eastshine.dev`)으로 읽고, 다시 공유하면 덮어쓰며 객체에 `Cache-Control: max-age=300` 을 붙인다.
   없으면 곡·아티스트 아트워크.
 - 앱은 카드 상세의 공유 버튼에서 `X 게시물로 공유`·`인스타그램 스토리로 공유`·`링크로 공유` 를 고른다. 화면의 카드 앞면을 정면으로 세워
-  한 번 떠서(`makeImageFromView`) 9:16 스토리 이미지(하단에 `Kotonoha`·호스트, ASCII 만)와 1200×630 미리보기 이미지를 만든다.
+  한 번 떠서(`react-native-view-shot` — Skia `makeImageFromView` 는 Android 에서 클립·블렌드를 무시한다) 9:16 스토리 이미지와 1200×630 미리보기 이미지를 만든다.
+  스토리는 share-web 처럼 위에 내 프로필 사진·`{이름}의 카드`, 아래에 설치 안내(`가사로 일본어 공부하는 앱`·`Kotonoha`·스토어 검색)를 카드 바탕체로 찍는다.
   미리보기만 서버에 올린다 — X 큰 카드는 약 1.91:1 로 잘라서 세로 이미지를 쓰면 카드 가운데만 보인다.
   - X: 미리보기가 올라간 뒤 `x.com/intent/post` 글쓰기 화면을 연다. 이미지는 첨부하지 않고 링크 미리보기로 붙는다.
   - 인스타 스토리: 스토리 이미지를 배경으로 스토리 편집 화면을 바로 연다(`react-native-share`, iOS `instagram-stories://`·Android `ADD_TO_STORY`).

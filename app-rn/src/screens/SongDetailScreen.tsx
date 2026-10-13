@@ -671,7 +671,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
                   style={[styles.tabPage, { width: screenWidth }]}
                   onLayout={handleCardsPageLayout}
                 >
-                  <SongDetailCardsTab song={cardSong ?? EMPTY_CARD_SONG} tiers={songTiers} />
+                  <SongDetailCardsTab song={cardSong ?? EMPTY_CARD_SONG} />
                 </View>
               </Animated.View>
             </Animated.View>

@@ -16,6 +16,7 @@ vi.mock('../utils/preferenceStorage', () => ({
 vi.mock('../components/rewardCards/dummyRewardCards', () => ({
   DUMMY_SONG_CARDS: [{ id: 'lemon', songId: null, signature: null, lyric: [] }],
   DUMMY_ARTIST_CARDS: [],
+  DUMMY_SONG_GRADE_RULE: null,
   findDummyLyrics: () => [],
 }));
 vi.mock('../components/songDetail/songCardSample', () => ({
@@ -25,6 +26,8 @@ vi.mock('../components/songDetail/songCardSample', () => ({
 import { rewardCardApi } from '../api/rewardCardApi';
 import type { SongCardDto } from '../types/rewardCard';
 import { useRewardCardStore } from './rewardCardStore';
+
+const GRADE_RULE = { tierNames: ['후렴 정복', '따라 부르기', '완곡'], masterPercent: 90 };
 
 const api = vi.mocked(rewardCardApi);
 const store = () => useRewardCardStore.getState();
@@ -44,7 +47,7 @@ describe('rewardCardStore', () => {
   afterEach(() => store().reset());
 
   it('rating reveals reload cards and open one at a time', async () => {
-    api.getCards.mockResolvedValue({ songCards: [songDto()], artistCards: [] });
+    api.getCards.mockResolvedValue({ songCards: [songDto()], artistCards: [], songGradeRule: GRADE_RULE });
 
     await store().receiveReveals([
       { kind: 'SONG', cardId: 90, targetId: 12, grade: 'BASIC', acquiredSeq: 1 },
@@ -59,7 +62,7 @@ describe('rewardCardStore', () => {
   });
 
   it('signing a server reveal issues the card with the picked lines', async () => {
-    api.getCards.mockResolvedValue({ songCards: [songDto()], artistCards: [] });
+    api.getCards.mockResolvedValue({ songCards: [songDto()], artistCards: [], songGradeRule: GRADE_RULE });
     await store().receiveReveals([{ kind: 'SONG', cardId: 90, targetId: 12, grade: 'BASIC', acquiredSeq: 1 }]);
     store().openNextReveal();
 
@@ -75,6 +78,7 @@ describe('rewardCardStore', () => {
     api.getCards.mockResolvedValue({
       songCards: [songDto({ id: 91, grade: 'BRONZE' }), songDto({ issued: true, signature: ['M'] })],
       artistCards: [],
+      songGradeRule: GRADE_RULE,
     });
     await store().receiveReveals([{ kind: 'SONG', cardId: 91, targetId: 12, grade: 'BRONZE', acquiredSeq: 4 }]);
     store().openNextReveal();
@@ -86,7 +90,7 @@ describe('rewardCardStore', () => {
   });
 
   it('editing lyric of an issued card saves it', async () => {
-    api.getCards.mockResolvedValue({ songCards: [songDto({ signature: ['M'] })], artistCards: [] });
+    api.getCards.mockResolvedValue({ songCards: [songDto({ signature: ['M'] })], artistCards: [], songGradeRule: GRADE_RULE });
     await store().loadServerCards();
 
     store().setLyric('srv-song-90', [1, 2]);
@@ -95,7 +99,7 @@ describe('rewardCardStore', () => {
   });
 
   it('lyric edit of a card issued without a reveal saves it though unsigned', async () => {
-    api.getCards.mockResolvedValue({ songCards: [songDto({ issued: true })], artistCards: [] });
+    api.getCards.mockResolvedValue({ songCards: [songDto({ issued: true })], artistCards: [], songGradeRule: GRADE_RULE });
     await store().loadServerCards();
 
     store().setLyric('srv-song-90', [3]);
@@ -103,7 +107,7 @@ describe('rewardCardStore', () => {
   });
 
   it('dev re-reveal never calls the server', async () => {
-    api.getCards.mockResolvedValue({ songCards: [songDto({ signature: ['M'] })], artistCards: [] });
+    api.getCards.mockResolvedValue({ songCards: [songDto({ signature: ['M'] })], artistCards: [], songGradeRule: GRADE_RULE });
     await store().loadServerCards();
 
     store().revealCard('song', 'srv-song-90');

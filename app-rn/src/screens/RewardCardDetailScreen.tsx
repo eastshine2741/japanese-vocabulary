@@ -25,6 +25,7 @@ import { useCardTilt } from '../components/rewardCards/useCardTilt';
 import { useShallow } from 'zustand/react/shallow';
 import { SONG_CARD_KINDS, songCardOfKind, songCardSample, songCardsOf, songRung } from '../components/rewardCards/cardKinds';
 import { serverTargetId } from '../components/rewardCards/serverRewardCards';
+import { songGradeCondition } from '../components/rewardCards/songGradeCondition';
 import { useRewardCardStore } from '../stores/rewardCardStore';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RewardCardDetail'>;
@@ -40,21 +41,10 @@ const STAGE_INSET = 16;
 const FOCUS_INSET = 24;
 
 
-/** SONG_CARD_KINDS 순서. 기본은 첫 학습, 레벨 n 은 n번째 단계(후렴 정복 → 따라 부르기 → 완곡) 단어를 다 공부한 카드다. */
-const SONG_CONDITIONS = [
-  '이 곡의 단어 처음 공부하기',
-  "'후렴 정복' 단계 단어 모두 공부하기",
-  "'따라 부르기' 단계 단어 모두 공부하기",
-  "'완곡' 단계 단어 모두 공부하기",
-  '곡 단어의 90%를 장기 기억으로 만들기',
-];
-
 const SONG_TABS: readonly GradeTab[] = SONG_CARD_KINDS.map((kind) => {
   const material = kind.mastered ? MASTER_CHIP : LEVEL_MATERIAL[kind.level];
-  return { key: kind.key, label: songTierName(kind.level, kind.mastered), frame: material.frame };
+  return { key: kind.key, label: songTierName(kind.level, kind.mastered), frame: material.frame, ink: material.chipText };
 });
-
-const songCondition = (rung: number) => SONG_CONDITIONS[rung];
 
 export default function RewardCardDetailScreen({ navigation, route }: Props) {
   const { cardId } = route.params;
@@ -65,6 +55,8 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
   );
   // 푸시로 들어오면 카드를 아직 받는 중일 수 있다.
   const loading = useRewardCardStore((s) => s.serverStatus === 'loading');
+  const gradeRule = useRewardCardStore((s) => s.songGradeRule);
+  const songCondition = useCallback((rung: number) => songGradeCondition(rung, gradeRule).full, [gradeRule]);
   const ownedRung = siblings.reduce((top, c) => Math.max(top, songRung(c)), opened ? songRung(opened) : 0);
   const [pickedRung, setPickedRung] = useState<number | null>(null);
   const viewRung = pickedRung ?? (opened ? songRung(opened) : 0);
