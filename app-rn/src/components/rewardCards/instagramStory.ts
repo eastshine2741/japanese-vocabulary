@@ -14,3 +14,7 @@ export async function isInstagramInstalled(): Promise<boolean> {
 export async function shareToInstagramStory(_stickerImage: string, _linkUrl: string, _backdrop: StoryBackdrop): Promise<void> {
   throw new Error('instagram story is not supported on web');
 }
+
+export async function shareToInstagramDirect(_message: string): Promise<void> {
+  throw new Error('instagram direct is not supported on web');
+}

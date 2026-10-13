@@ -25,3 +25,15 @@ export async function shareToInstagramStory(stickerImage: string, linkUrl: strin
     linkUrl,
   });
 }
+
+/**
+ * 인스타 DM 보내기 화면을 글만 채워 연다. iOS 는 react-native-share 가 글을 URL 인코딩하지 않아 한글·줄바꿈에서 깨지므로
+ * `instagram://sharesheet` 를 직접 연다. Android 는 인스타 패키지로 text/plain 을 보내면 DM 대상 고르기가 뜬다.
+ */
+export async function shareToInstagramDirect(message: string): Promise<void> {
+  if (Platform.OS === 'ios') {
+    await Linking.openURL(`instagram://sharesheet?text=${encodeURIComponent(message)}`);
+    return;
+  }
+  await Share.shareSingle({ social: Social.Instagram, type: 'text/plain', message });
+}

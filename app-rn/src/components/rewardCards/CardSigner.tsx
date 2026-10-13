@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   FadeIn,
@@ -12,6 +12,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Feather } from '@expo/vector-icons';
+import CardShareButton from './CardShareButton';
 import { hapticBurst, hapticCount, hapticSettle, hapticSign } from './cardHaptics';
 import { SHOWROOM } from './cardTheme';
 import SignaturePad from './SignaturePad';
@@ -32,6 +33,15 @@ export interface SignableCard {
   renderFront: (width: number) => React.ReactNode;
 }
 
+/** 발급된 서버 카드면 공유할 수 있다. */
+export interface ShareableCard {
+  kind: 'song' | 'artist';
+  cardId: number;
+  title: string;
+  accent: string;
+  ink: string;
+}
+
 interface Props {
   card: SignableCard;
   previewWidth: number;
@@ -42,6 +52,8 @@ interface Props {
   onDone: () => void;
   /** 발급 뒤 확인 버튼 라벨. 이어지는 화면이 있으면 '다음'. */
   doneLabel?: string;
+  /** 있으면 발급 뒤 '친구에게 자랑하기'로 공유 메뉴를 연다. */
+  share?: ShareableCard | null;
   bottomInset: number;
 }
 
@@ -49,7 +61,7 @@ interface Props {
  * 서명 → 내 카드가 되는 순간까지.
  * 빈 서명 칸을 점선으로 짚고, 패드에 그리는 획을 미리보기 카드에 그대로 찍는다. 확정하면 서명된 뒷면 그대로 앞면으로 돌려 주인 이름과 순번을 붙인다.
  */
-function CardSigner({ card, previewWidth, sealWidth, onSign, onDone, doneLabel = '확인', bottomInset }: Props) {
+function CardSigner({ card, previewWidth, sealWidth, onSign, onDone, doneLabel = '확인', share = null, bottomInset }: Props) {
   const [strokes, setStrokes] = useState<CardSignature>([]);
   const [live, setLive] = useState<string | null>(null);
   const [sealed, setSealed] = useState<CardSignature | null>(null);
@@ -68,7 +80,9 @@ function CardSigner({ card, previewWidth, sealWidth, onSign, onDone, doneLabel =
   const empty = signature === null;
 
   if (sealed) {
-    return <CardSeal card={card} signature={sealed} width={sealWidth} onDone={onDone} doneLabel={doneLabel} bottomInset={bottomInset} />;
+    return (
+      <CardSeal card={card} signature={sealed} width={sealWidth} onDone={onDone} doneLabel={doneLabel} share={share} bottomInset={bottomInset} />
+    );
   }
 
   return (
@@ -123,16 +137,26 @@ interface SealProps {
   width: number;
   onDone: () => void;
   doneLabel: string;
+  share: ShareableCard | null;
   bottomInset: number;
 }
 
-const CardSeal = React.memo(function CardSeal({ card, signature, width, onDone, doneLabel, bottomInset }: SealProps) {
+const CardSeal = React.memo(function CardSeal({ card, signature, width, onDone, doneLabel, share, bottomInset }: SealProps) {
+  const cardRef = useRef<View>(null);
   const spin = useSharedValue(0);
   const flash = useSharedValue(0);
   const captionIn = useSharedValue(0);
   const [counting, setCounting] = useState(false);
   const [done, setDone] = useState(false);
   const handleCounted = useCallback(() => setDone(true), []);
+  const renderShareTrigger = useCallback(
+    (open: () => void, opening: boolean) => (
+      <Pressable onPress={open} disabled={!done || opening} style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}>
+        {opening ? <ActivityIndicator color={SHOWROOM.bg} /> : <Text style={styles.ctaText}>친구에게 자랑하기</Text>}
+      </Pressable>
+    ),
+    [done],
+  );
 
   useEffect(() => {
     spin.value = withDelay(
@@ -162,7 +186,9 @@ const CardSeal = React.memo(function CardSeal({ card, signature, width, onDone, 
   return (
     <Animated.View entering={FadeIn.duration(260)} style={styles.root}>
       <View style={styles.sealStage}>
-        <FlipCard card={card} signature={signature} width={width} spin={spin} />
+        <View ref={cardRef} collapsable={false}>
+          <FlipCard card={card} signature={signature} width={width} spin={spin} />
+        </View>
       </View>
 
       <Animated.View style={[styles.caption, captionStyle]}>
@@ -173,14 +199,27 @@ const CardSeal = React.memo(function CardSeal({ card, signature, width, onDone, 
         <SerialCount to={card.serialNo} run={counting} color={card.accent} onDone={handleCounted} />
       </Animated.View>
 
-      <Animated.View style={[styles.footer, { paddingBottom: bottomInset + 16 }, captionStyle]}>
-        <Pressable
-          onPress={onDone}
-          disabled={!done}
-          style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
-        >
-          <Text style={styles.ctaText}>{doneLabel}</Text>
-        </Pressable>
+      <Animated.View style={[styles.footer, { paddingBottom: bottomInset + (share ? 4 : 16) }, captionStyle]}>
+        {share ? (
+          <>
+            <CardShareButton
+              kind={share.kind}
+              cardId={share.cardId}
+              title={share.title}
+              cardRef={cardRef}
+              accent={share.accent}
+              ink={share.ink}
+              renderTrigger={renderShareTrigger}
+            />
+            <Pressable onPress={onDone} disabled={!done} hitSlop={8} style={({ pressed }) => [styles.secondary, pressed && styles.ctaPressed]}>
+              <Text style={styles.secondaryText}>{doneLabel}</Text>
+            </Pressable>
+          </>
+        ) : (
+          <Pressable onPress={onDone} disabled={!done} style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}>
+            <Text style={styles.ctaText}>{doneLabel}</Text>
+          </Pressable>
+        )}
       </Animated.View>
       {/* 단계 틀의 여백·상단 막대까지 덮어야 화면 전체가 번쩍인다. */}
       <Animated.View pointerEvents="none" style={[styles.flash, flashStyle]} />
@@ -298,6 +337,8 @@ const styles = StyleSheet.create({
   ctaDisabled: { opacity: 0.35 },
   ctaPressed: { opacity: 0.85 },
   ctaText: { color: SHOWROOM.bg, fontSize: 16, fontWeight: '700' },
+  secondary: { height: 44, marginTop: 4, alignItems: 'center', justifyContent: 'center' },
+  secondaryText: { color: SHOWROOM.fgDim, fontSize: 14, fontWeight: '600' },
   sealStage: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   flipFace: {
     ...StyleSheet.absoluteFillObject,

@@ -7,7 +7,7 @@ import { navigate } from '../../navigation/navigationRef';
 import { useRewardCardStore } from '../../stores/rewardCardStore';
 import { useStreakStore } from '../../stores/streakStore';
 import CardLyricEditor from './CardLyricEditor';
-import CardSigner, { SignableCard } from './CardSigner';
+import CardSigner, { ShareableCard, SignableCard } from './CardSigner';
 import CardWearIntro from './CardWearIntro';
 import {
   LadderStep,
@@ -28,6 +28,7 @@ import { songGradeCondition } from './songGradeCondition';
 import type { SongGradeRuleDto } from '../../types/rewardCard';
 import { CardSignature } from './signature';
 import { CardLyricLine, SongRewardCard } from './types';
+import { serverTargetId } from './serverRewardCards';
 import { useCardTilt } from './useCardTilt';
 
 /** 아트를 못 받아도 이 시간 뒤엔 띄운다. */
@@ -196,6 +197,12 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({
     [card.accent, card.level, card.mastered, card.ownerNo, renderBack, renderFront],
   );
 
+  const shareId = card.issued === true ? serverTargetId(card.id) : null;
+  const share = useMemo<ShareableCard | null>(
+    () => (shareId == null ? null : { kind: 'song', cardId: shareId, title: card.title, accent: card.accent, ink: card.ink }),
+    [shareId, card.title, card.accent, card.ink],
+  );
+
   const cardW = Math.min(screenW * 0.66, (screenH * 0.42) / CARD_RATIO, 320);
 
   return (
@@ -267,6 +274,7 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({
               onSign={handleSign}
               onDone={handleSealed}
               doneLabel={showWearIntro ? '다음' : '확인'}
+              share={share}
               bottomInset={insets.bottom}
             />
           )}

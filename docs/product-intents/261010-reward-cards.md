@@ -260,10 +260,13 @@ age    = clamp((0.9 − recall) / 0.4, 0, 1)
   세 공유 모두 받은 사람을 부르는 훅(`나도 최애곡 카드 만들러 가기`·`나도 최애 아티스트 카드 만들러 가기`, `shareHook`)을 넣는다 — 스티커 바닥줄, X·링크 글 가운데 줄.
   X·링크 글은 `{이름}님이 「제목」 곡 카드를 얻었어요!` / 훅 👉 링크 / `노래로 배우는 일본어, 코토노하` 세 덩어리를 빈 줄로 띄운다(`shareText`). X intent 의 `url` 은 글 맨 끝에 붙어 링크를 글 안에 넣는다.
   미리보기만 서버에 올린다 — X 큰 카드는 약 1.91:1 로 잘라서 세로 이미지를 쓰면 카드 가운데만 보인다.
-  - X: 미리보기가 올라간 뒤 `x.com/intent/post` 글쓰기 화면을 연다. 이미지는 첨부하지 않고 링크 미리보기로 붙는다.
+  - X: 미리보기가 올라간 뒤 `x.com/intent/post` 글쓰기 화면을 연다. 글 맨 위에 `#코토노하` 해시태그를 단다(`xShareText`). 이미지는 첨부하지 않고 링크 미리보기로 붙는다.
   - 인스타 스토리: 패널을 스티커(`stickerImage`)로 얹어 스토리 편집 화면을 바로 연다(`react-native-share`, iOS `instagram-stories://`·Android `ADD_TO_STORY`).
     Meta 앱 id 는 공개 값이라 `instagramStory.native.ts` 의 `FACEBOOK_APP_ID` 에 둔다. 링크 스티커 키도 넘기지만 인스타가 받아 줄지는 보장되지 않는다.
+  - 인스타 DM: 링크 공유와 같은 글로 DM 보내기 화면을 연다(`shareToInstagramDirect`). iOS 는 비공식 `instagram://sharesheet?text=`,
+    Android 는 인스타 패키지로 보내는 text/plain 이다. 카드 그림은 DM 의 링크 미리보기에 맡긴다.
   - 링크: 미리보기가 올라간 뒤 OS 공유 시트로 링크를 낸다.
+- 획득 화면 마지막(서명 뒤 순번이 다 오른 장면)에 `친구에게 자랑하기` CTA 가 같은 공유 메뉴를 연다. 서버에 발급된 카드에만 뜨고, 확인·다음은 그 아래 보조 버튼이 된다.
 - 링크를 받은 앱은 `SharedCard` 화면(남의 카드 보기 전용, 곡·아티스트 보기 버튼)을 연다. 로그인 전이면 로그인·가입 뒤에 연다.
 - 디퍼드 딥링크(설치 뒤 첫 실행에 그 카드로 보내기)는 일부러 하지 않는다. 미설치자는 랜딩 → 스토어까지다.
 - Universal Links·Android App Links 는 `/.well-known/apple-app-site-association`·`/.well-known/assetlinks.json` 이 검증한다.

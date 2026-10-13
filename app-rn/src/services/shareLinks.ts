@@ -37,3 +37,8 @@ export function shareText(owner: string, title: string, kind: 'song' | 'artist',
   const card = kind === 'song' ? '곡 카드' : '아티스트 카드';
   return `${owner}님이 「${title}」 ${card}를 얻었어요!\n\n${shareHook(kind)} 👉 ${url}\n\n${APP_PITCH}, ${APP_NAME}`;
 }
+
+/** X 글은 맨 위 해시태그로 앱 이름을 검색에 걸리게 한다. */
+export function xShareText(owner: string, title: string, kind: 'song' | 'artist', url: string): string {
+  return `#${APP_NAME}\n${shareText(owner, title, kind, url)}`;
+}

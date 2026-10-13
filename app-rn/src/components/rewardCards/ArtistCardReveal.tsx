@@ -3,7 +3,7 @@ import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRewardCardStore } from '../../stores/rewardCardStore';
 import ArtistCardShowcase, { ArtistCardBack, ArtistCardFront } from './ArtistCardShowcase';
-import CardSigner, { SignableCard } from './CardSigner';
+import CardSigner, { ShareableCard, SignableCard } from './CardSigner';
 import {
   LadderStep,
   RevealGuide,
@@ -20,6 +20,7 @@ import { ARTIST_CARD_RATIO, useCardFonts } from './cardTheme';
 import { artistRung } from './cardKinds';
 import { CardSignature } from './signature';
 import { ArtistRewardCard } from './types';
+import { serverTargetId } from './serverRewardCards';
 import { useCardTilt } from './useCardTilt';
 
 const ARTIST_RADIUS = 0.04;
@@ -88,6 +89,12 @@ function ArtistCardReveal({ card, started, onClose }: Props) {
     [card.accent, card.ownerNo, card.masteredCount, renderBack, renderFront],
   );
 
+  const shareId = card.issued === true ? serverTargetId(card.id) : null;
+  const share = useMemo<ShareableCard | null>(
+    () => (shareId == null ? null : { kind: 'artist', cardId: shareId, title: card.name, accent: card.accent, ink: card.ink }),
+    [shareId, card.name, card.accent, card.ink],
+  );
+
   // 가로 카드라 폭을 넉넉히 쓴다.
   const cardW = Math.min(screenW - 56, (screenH * 0.36) / ARTIST_CARD_RATIO, 380);
   const current = artistRung(card);
@@ -118,6 +125,7 @@ function ArtistCardReveal({ card, started, onClose }: Props) {
             sealWidth={cardW}
             onSign={handleSign}
             onDone={onClose}
+            share={share}
             bottomInset={insets.bottom}
           />
         </RevealStep>

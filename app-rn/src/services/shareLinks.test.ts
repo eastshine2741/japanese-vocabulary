@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseShareToken, shareText, xPostUrl } from './shareLinks';
+import { parseShareToken, shareText, xPostUrl, xShareText } from './shareLinks';
 
 const T = 'eyJraWQiOiJ0In0.eyJrIjoicyIsImMiOjF9.Ab-_9z';
 
@@ -46,5 +46,12 @@ describe('shareText', () => {
     expect(shareText('동현', 'YOASOBI', 'artist', url)).toBe(
       `동현님이 「YOASOBI」 아티스트 카드를 얻었어요!\n\n나도 최애 아티스트 카드 만들러 가기 👉 ${url}\n\n노래로 배우는 일본어, 코토노하`,
     );
+  });
+});
+
+describe('xShareText', () => {
+  it('공유 글 맨 위에 #코토노하 를 단다', () => {
+    const url = `https://kotonoha.eastshine.dev/c/${T}`;
+    expect(xShareText('동현', '夜に駆ける', 'song', url)).toBe(`#코토노하\n${shareText('동현', '夜に駆ける', 'song', url)}`);
   });
 });

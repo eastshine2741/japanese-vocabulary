@@ -1,32 +1,35 @@
-import React, { RefObject, useCallback, useRef, useState } from 'react';
+import React, { ReactNode, RefObject, useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import * as Sentry from '@sentry/react-native';
 import { Feather, FontAwesome6 } from '@expo/vector-icons';
 import { AppBottomSheetModal, AppBottomSheetModalRef, AppBottomSheetView } from '../bottomSheet';
 import { rewardCardApi } from '../../api/rewardCardApi';
 import { putToPresignedUrl } from '../../services/presignedUpload';
-import { shareText, xPostUrl } from '../../services/shareLinks';
+import { shareText, xShareText, xPostUrl } from '../../services/shareLinks';
 import { useAuthStore } from '../../stores/authStore';
 import { trackCardShare } from '../../services/analytics';
 import { Colors } from '../../theme/theme';
 import { SHOWROOM } from './cardTheme';
 import { captureCard, composeShareImages } from './shareImage';
-import { instagramStorySupported, isInstagramInstalled, shareToInstagramStory } from './instagramStory';
+import { instagramStorySupported, isInstagramInstalled, shareToInstagramDirect, shareToInstagramStory } from './instagramStory';
 import { CardTilt } from './useCardTilt';
 
-type Method = 'x' | 'instagram_story' | 'link';
+type Method = 'x' | 'instagram_story' | 'instagram_dm' | 'link';
 
 interface Props {
   kind: 'song' | 'artist';
   /** 서버 카드 id. 등급마다 카드가 따로다. */
   cardId: number;
   title: string;
-  tilt: CardTilt;
+  /** 기울이는 진열 카드면 정면·앞면으로 세운 뒤 뜬다. 고정된 카드면 없다. */
+  tilt?: CardTilt;
   /** 공유 이미지로 뜰 카드 뷰. */
   cardRef: RefObject<View | null>;
   /** 카드 아트에서 뽑은 색. 인스타 스토리 바탕을 위 accent → 아래 ink 로 깐다. */
   accent: string;
   ink: string;
+  /** 기본은 헤더의 공유 아이콘이다. */
+  renderTrigger?: (open: () => void, opening: boolean) => ReactNode;
 }
 
 // 정면·앞면으로 바꾼 자세가 화면에 그려진 뒤에 뜬다.
@@ -35,7 +38,7 @@ const nextFrames = () =>
 
 class InstagramMissing extends Error {}
 
-function CardShareButton({ kind, cardId, title, tilt, cardRef, accent, ink }: Props) {
+function CardShareButton({ kind, cardId, title, tilt, cardRef, accent, ink, renderTrigger }: Props) {
   const sheetRef = useRef<AppBottomSheetModalRef>(null);
   const [busy, setBusy] = useState<Method | null>(null);
   const apiKind = kind === 'song' ? 'song-cards' : 'artist-cards';
@@ -49,17 +52,21 @@ function CardShareButton({ kind, cardId, title, tilt, cardRef, accent, ink }: Pr
   const handleOpen = useCallback(async () => {
     if (opening) return;
     setOpening(true);
-    const flip = tilt.flip.value;
-    tilt.flip.value = 0;
-    tilt.still.value = true;
+    const flip = tilt?.flip.value ?? 0;
+    if (tilt) {
+      tilt.flip.value = 0;
+      tilt.still.value = true;
+    }
     try {
       await nextFrames();
       const captured = captureCard(cardRef);
       capturedRef.current = captured;
       await captured.catch(() => undefined);
     } finally {
-      tilt.still.value = false;
-      tilt.flip.value = flip;
+      if (tilt) {
+        tilt.still.value = false;
+        tilt.flip.value = flip;
+      }
       setOpening(false);
     }
     sheetRef.current?.present();
@@ -116,7 +123,7 @@ function CardShareButton({ kind, cardId, title, tilt, cardRef, accent, ink }: Pr
       run('x', async () => {
         const { url } = await prepare(true);
         sheetRef.current?.dismiss();
-        await Linking.openURL(xPostUrl(shareText(owner, title, kind, url)));
+        await Linking.openURL(xPostUrl(xShareText(owner, title, kind, url)));
       }),
     [kind, owner, prepare, run, title],
   );
@@ -132,6 +139,17 @@ function CardShareButton({ kind, cardId, title, tilt, cardRef, accent, ink }: Pr
     [accent, ink, prepare, run],
   );
 
+  const handleInstagramDirect = useCallback(
+    () =>
+      run('instagram_dm', async () => {
+        if (!(await isInstagramInstalled())) throw new InstagramMissing();
+        const { url } = await prepare(true);
+        sheetRef.current?.dismiss();
+        await shareToInstagramDirect(shareText(owner, title, kind, url));
+      }),
+    [kind, owner, prepare, run, title],
+  );
+
   const handleLink = useCallback(
     () =>
       run('link', async () => {
@@ -144,15 +162,22 @@ function CardShareButton({ kind, cardId, title, tilt, cardRef, accent, ink }: Pr
 
   return (
     <>
-      <Pressable onPress={handleOpen} hitSlop={10} style={styles.iconBtn}>
-        <Feather name="share" size={17} color={SHOWROOM.fg} />
-      </Pressable>
+      {renderTrigger ? (
+        renderTrigger(handleOpen, opening)
+      ) : (
+        <Pressable onPress={handleOpen} hitSlop={10} style={styles.iconBtn}>
+          <Feather name="share" size={17} color={SHOWROOM.fg} />
+        </Pressable>
+      )}
       <AppBottomSheetModal ref={sheetRef} enableDynamicSizing enablePanDownToClose>
         <AppBottomSheetView>
           <View style={styles.sheet}>
             <ShareRow method="x" label="X 게시물로 공유" busy={busy} onPress={handleX} />
             {instagramStorySupported && (
-              <ShareRow method="instagram_story" label="인스타그램 스토리로 공유" busy={busy} onPress={handleInstagram} />
+              <>
+                <ShareRow method="instagram_story" label="인스타그램 스토리로 공유" busy={busy} onPress={handleInstagram} />
+                <ShareRow method="instagram_dm" label="인스타그램 DM으로 보내기" busy={busy} onPress={handleInstagramDirect} />
+              </>
             )}
             <ShareRow method="link" label="링크로 공유" busy={busy} onPress={handleLink} />
           </View>
@@ -173,7 +198,7 @@ interface RowProps {
 
 function RowIcon({ method }: { method: Method }) {
   if (method === 'x') return <FontAwesome6 name="x-twitter" size={19} color={Colors.textPrimary} />;
-  if (method === 'instagram_story') return <FontAwesome6 name="instagram" size={20} color={Colors.textPrimary} />;
+  if (method === 'instagram_story' || method === 'instagram_dm') return <FontAwesome6 name="instagram" size={20} color={Colors.textPrimary} />;
   return <Feather name="link" size={20} color={Colors.textPrimary} />;
 }
 
