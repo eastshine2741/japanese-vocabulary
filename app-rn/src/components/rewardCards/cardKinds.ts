@@ -1,7 +1,7 @@
-import { artistGradeStep, type ArtistGradeStep } from './artistGrade';
+import { ARTIST_GRADE_STEPS, artistGradeStep, type ArtistGradeStep } from './artistGrade';
 import type { ArtistRewardCard, CardLevel, SongRewardCard } from './types';
 
-/** 한 곡에서 얻을 수 있는 곡 카드 종류. 레벨은 한 장의 카드가 오르는 단계라 종류마다 카드가 따로 있지 않다. */
+/** 한 곡에서 얻을 수 있는 곡 카드 종류. 등급마다 카드가 따로 나온다. */
 export interface SongCardKind {
   key: string;
   level: CardLevel;
@@ -18,53 +18,60 @@ export const SONG_CARD_KINDS: readonly SongCardKind[] = [
   { key: 'master', level: 3, mastered: true },
 ];
 
-export function ownsSongKind(card: SongRewardCard | null, kind: SongCardKind): boolean {
-  if (card == null) return false;
-  if (kind.mastered) return card.mastered;
-  return card.mastered || card.level >= kind.level;
+/** 곡 카드 승급 계단 자리. 마스터는 완곡 다음 칸이다. */
+export function songRung(card: SongRewardCard): number {
+  return card.mastered ? 4 : card.level;
 }
 
-/** 지나온 종류는 내 카드를 그 레벨로 돌려 보여 준다. */
-export function songCardAt(card: SongRewardCard, kind: SongCardGrade): SongRewardCard {
-  if (card.level === kind.level && card.mastered === kind.mastered) return card;
-  return { ...card, level: kind.level, mastered: kind.mastered };
+export function artistRung(card: ArtistRewardCard): number {
+  return ARTIST_GRADE_STEPS.indexOf(artistGradeStep(card.masteredCount));
 }
 
-export function ownsArtistGrade(card: ArtistRewardCard | null, step: ArtistGradeStep): boolean {
-  return card != null && card.masteredCount >= step.from;
+// 더미 카드는 songId 가 없어 제목으로 곡과 맞춘다.
+function sameSong(card: SongRewardCard, songId: number | null, title: string | null): boolean {
+  return (songId != null && card.songId === songId) || (title != null && card.title === title);
 }
 
-/** 지나온 재질은 그 재질이 되던 때의 마스터 곡 수로 돌려 보여 준다. */
-export function artistCardAt(card: ArtistRewardCard, step: ArtistGradeStep): ArtistRewardCard {
-  if (artistGradeStep(card.masteredCount).grade === step.grade) return card;
-  return { ...card, masteredCount: step.from, masteredSongs: card.masteredSongs.slice(0, step.from) };
+/** 한 곡의 내 카드 전부(등급마다 한 장). */
+export function songCardsOf(cards: readonly SongRewardCard[], songId: number | null, title: string | null): SongRewardCard[] {
+  return cards.filter((card) => sameSong(card, songId, title));
 }
 
-// 더미 카드는 songId 가 없어 제목으로 곡과 맞춘다. API 가 생기면 songId 로 바꾼다.
-function sameSong(card: SongRewardCard, songId: number, title: string): boolean {
-  return (card.songId != null && card.songId === songId) || card.title === title;
+/** 그 등급의 내 카드. 아직 받지 않았으면 null. */
+export function songCardOfKind(cards: readonly SongRewardCard[], kind: SongCardGrade): SongRewardCard | null {
+  return cards.find((card) => card.level === kind.level && card.mastered === kind.mastered) ?? null;
 }
 
-/** 같은 곡 카드가 여럿이면(레벨 견본 더미) 가장 높은 카드를 쓴다. */
-export function findSongCard(cards: readonly SongRewardCard[], songId: number, title: string): SongRewardCard | null {
+/** 한 곡에서 가장 높은 등급의 카드. */
+export function findSongCard(cards: readonly SongRewardCard[], songId: number | null, title: string | null): SongRewardCard | null {
   let best: SongRewardCard | null = null;
-  for (const card of cards) {
-    if (!sameSong(card, songId, title)) continue;
-    if (best == null || songCardRank(card) > songCardRank(best)) best = card;
+  for (const card of songCardsOf(cards, songId, title)) {
+    if (best == null || songRung(card) > songRung(best)) best = card;
   }
   return best;
 }
 
-function songCardRank(card: SongRewardCard): number {
-  return (card.mastered ? 10 : 0) + card.level;
+/** 아직 얻지 않은 등급의 견본. 같은 곡의 카드를 그 등급으로 돌리고 주인 정보를 비운다. */
+export function songCardSample(card: SongRewardCard, kind: SongCardGrade): SongRewardCard {
+  return { ...card, level: kind.level, mastered: kind.mastered, sample: true, recall: 1 };
 }
 
-/** 같은 아티스트 카드가 여럿이면(재질 견본 더미) 재질이 가장 높은 카드를 쓴다. */
-export function pickArtistCard(cards: readonly ArtistRewardCard[], name: string): ArtistRewardCard | null {
-  let best: ArtistRewardCard | null = null;
-  for (const card of cards) {
-    if (card.name !== name) continue;
-    if (best == null || card.masteredCount > best.masteredCount) best = card;
-  }
-  return best;
+// 더미 아티스트 카드는 artistId 가 없어 이름으로 맞춘다.
+function sameArtist(card: ArtistRewardCard, artistId: number | null, name: string): boolean {
+  return (artistId != null && card.artistId === artistId) || card.name === name;
+}
+
+/** 한 아티스트의 내 카드 전부(재질마다 한 장). */
+export function artistCardsOf(cards: readonly ArtistRewardCard[], artistId: number | null, name: string): ArtistRewardCard[] {
+  return cards.filter((card) => sameArtist(card, artistId, name));
+}
+
+/** 그 재질의 내 카드. 아직 받지 않았으면 null. */
+export function artistCardOfStep(cards: readonly ArtistRewardCard[], step: ArtistGradeStep): ArtistRewardCard | null {
+  return cards.find((card) => artistGradeStep(card.masteredCount).grade === step.grade) ?? null;
+}
+
+/** 아직 닿지 않은 재질의 견본. 그 재질이 되는 마스터 곡 수로 돌리고 주인 정보를 비운다. */
+export function artistCardSample(card: ArtistRewardCard, step: ArtistGradeStep): ArtistRewardCard {
+  return { ...card, masteredCount: step.from, sample: true };
 }

@@ -14,30 +14,22 @@ export const rewardCardApi = {
     return data;
   },
 
-  /** 서명 전에 앱을 끈 카드와 못 본 등급 오름. */
+  /** 서명 전에 앱을 끈 카드. */
   async getPending(): Promise<RewardCardRevealDto[]> {
     const { data } = await client.get<{ reveals: RewardCardRevealDto[] }>('/api/reward-cards/pending');
     return data.reveals;
   },
 
-  async issueSongCard(songId: number, signature: string[], lyricLineIndexes: number[]): Promise<void> {
-    await client.post(`/api/reward-cards/songs/${songId}/issue`, { signature, lyricLineIndexes });
+  async issueSongCard(cardId: number, signature: string[], lyricLineIndexes: number[]): Promise<void> {
+    await client.post(`/api/reward-cards/song-cards/${cardId}/issue`, { signature, lyricLineIndexes });
   },
 
-  async issueArtistCard(artistId: number, signature: string[]): Promise<void> {
-    await client.post(`/api/reward-cards/artists/${artistId}/issue`, { signature });
+  async issueArtistCard(cardId: number, signature: string[]): Promise<void> {
+    await client.post(`/api/reward-cards/artist-cards/${cardId}/issue`, { signature });
   },
 
-  async markSongCardSeen(songId: number, grade: string): Promise<void> {
-    await client.post(`/api/reward-cards/songs/${songId}/seen`, { grade });
-  },
-
-  async markArtistCardSeen(artistId: number, grade: string): Promise<void> {
-    await client.post(`/api/reward-cards/artists/${artistId}/seen`, { grade });
-  },
-
-  async updateSongCardLyric(songId: number, lyricLineIndexes: number[]): Promise<void> {
-    await client.put(`/api/reward-cards/songs/${songId}/lyric`, { lyricLineIndexes });
+  async updateSongCardLyric(cardId: number, lyricLineIndexes: number[]): Promise<void> {
+    await client.put(`/api/reward-cards/song-cards/${cardId}/lyric`, { lyricLineIndexes });
   },
 
   /** 같은 카드는 늘 같은 링크다. imageUploaded 면 막 올린 미리보기를 서버가 확인한다. */

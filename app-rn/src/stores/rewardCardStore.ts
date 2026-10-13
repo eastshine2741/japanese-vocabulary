@@ -15,15 +15,12 @@ export type RewardCardKind = 'song' | 'artist';
 /** 개발 빌드에서만 바꾼다. 더미는 서버 없이 모든 등급·재질을 보려고 남겨 둔다. */
 export type RewardCardSource = 'dummy' | 'server';
 
+/** 띄울 획득 연출 하나. 카드는 등급마다 새로 나오므로 연출은 늘 봉투·서명이다. */
 export interface RewardCardRevealTarget {
   kind: RewardCardKind;
   cardId: string;
-  /** 이미 가진 카드의 등급이 올랐다. 봉투·서명 없이 박은 자리에서 새 재질이 번진다. */
-  upgrade?: boolean;
-  /** 서버가 준 연출. 서명하면 발급하고, 등급 오름은 닫을 때 이 등급까지 본 것으로 보낸다. */
-  grade?: string;
-  /** 오르기 전 등급(서버의 seenGrade). 없으면 한 단계 아래 카드로 만든다. */
-  fromGrade?: string | null;
+  /** 서버가 준 연출. 서명하면 발급한다. 개발용으로 다시 띄운 연출은 서버에 보내지 않는다. */
+  server?: boolean;
 }
 
 interface CardSet {
@@ -52,12 +49,10 @@ interface RewardCardState extends CardSet {
   ensureServerCards: () => void;
   /** rating 응답의 연출. 카드를 다시 받은 뒤 차례에 넣는다. 연속 학습 축하가 떠 있으면 그 화면이 닫힌 뒤에 뜬다. */
   receiveReveals: (reveals: RewardCardRevealDto[] | undefined) => Promise<void>;
-  /** 앱을 연 뒤 한 번, 서명 전에 끈 카드와 못 본 등급 오름을 다시 띄운다. */
+  /** 앱을 연 뒤 한 번, 서명 전에 끈 카드를 다시 띄운다. */
   checkPendingOnce: () => Promise<void>;
   /** 개발용 — 가진 카드를 다시 획득 화면으로 띄운다. 서버에는 보내지 않는다. */
   revealCard: (kind: RewardCardKind, cardId: string) => void;
-  /** 개발용 — 가진 카드의 등급 오름 화면을 띄운다. */
-  upgradeCard: (kind: RewardCardKind, cardId: string) => void;
   /** 차례의 맨 앞을 연다. 열 연출이 없으면 null. */
   openNextReveal: () => RewardCardRevealTarget | null;
   closeReveal: () => void;
@@ -154,8 +149,6 @@ export const useRewardCardStore = create<RewardCardState>((set, get) => {
       set((state) => ({ queue: [...state.queue, { kind, cardId }] }));
     },
 
-    upgradeCard: (kind, cardId) => set((state) => ({ queue: [...state.queue, { kind, cardId, upgrade: true }] })),
-
     openNextReveal: () => {
       const { queue, active } = get();
       if (active || queue.length === 0) return null;
@@ -164,16 +157,7 @@ export const useRewardCardStore = create<RewardCardState>((set, get) => {
       return next;
     },
 
-    closeReveal: () => {
-      const { active } = get();
-      set({ active: null });
-      const id = active ? serverTargetId(active.cardId) : null;
-      if (!active?.upgrade || !active.grade || id == null) return;
-      const request =
-        active.kind === 'song' ? rewardCardApi.markSongCardSeen(id, active.grade) : rewardCardApi.markArtistCardSeen(id, active.grade);
-      // 실패하면 서버에 남아 다음에 앱을 열 때 다시 뜬다.
-      request.catch(() => undefined);
-    },
+    closeReveal: () => set({ active: null }),
 
     markWearIntroSeen: () => {
       set({ wearIntroSeen: true });
@@ -217,10 +201,10 @@ export const useRewardCardStore = create<RewardCardState>((set, get) => {
         songCards: mapCards(cards.songCards, cardId, (c) => ({ ...c, lyric: pickLines(lines, picked), picked })),
       }));
       // 연출 중인 발급 전 카드는 서명할 때 함께 보낸다. 연출 없이 채운 카드는 서명이 비어도 발급된 카드다.
-      const songId = serverTargetId(cardId);
+      const id = serverTargetId(cardId);
       const pendingIssue = card.signature === null && get().active?.cardId === cardId;
-      if (songId != null && !pendingIssue) {
-        rewardCardApi.updateSongCardLyric(songId, picked).catch(() => undefined);
+      if (id != null && !pendingIssue) {
+        rewardCardApi.updateSongCardLyric(id, picked).catch(() => undefined);
       }
     },
 
@@ -238,7 +222,7 @@ export const useRewardCardStore = create<RewardCardState>((set, get) => {
 
       const { active } = get();
       const id = serverTargetId(cardId);
-      if (!active?.grade || active.cardId !== cardId || id == null) return;
+      if (!active?.server || active.cardId !== cardId || id == null) return;
       const request =
         kind === 'song'
           ? rewardCardApi.issueSongCard(id, signature, (before as SongRewardCard).picked ?? [])

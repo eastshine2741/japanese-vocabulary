@@ -34,7 +34,7 @@ class RewardCardBackfillTaskTest : BatchBaseIntegrationTest() {
     @Autowired private lateinit var artistCardRepository: ArtistCardRepository
 
     @Test
-    fun `fills saved songs as issued unsigned cards, earlier deck first`() {
+    fun `fills saved songs with an issued unsigned card per grade, earlier deck first`() {
         val artist = ArtistEntity(appleMusicId = "am-${System.nanoTime()}", name = "YOASOBI").also { entityManager.persist(it) }
         val song = newSong(artist)
         val early = TestUserBuilder(entityManager).build()
@@ -43,22 +43,24 @@ class RewardCardBackfillTaskTest : BatchBaseIntegrationTest() {
         studyWord(late, song, "雨", reviewed = false)
 
         val dry = task.dryRun()
-        assertThat(songCardRepository.findByUserIdAndSongId(early.id!!, song.id!!)).isNull()
+        assertThat(songCards(early, song)).isEmpty()
 
         val result = task.backfill(push = false)
         assertThat(dry.newSongCards).isEqualTo(result.newSongCards)
         assertThat(dry.newArtistCards).isEqualTo(result.newArtistCards)
 
-        val earlyCard = songCardRepository.findByUserIdAndSongId(early.id!!, song.id!!)!!
-        val lateCard = songCardRepository.findByUserIdAndSongId(late.id!!, song.id!!)!!
-        assertThat(earlyCard.grade).isEqualTo(SongCardGrade.BRONZE)
-        assertThat(earlyCard.seenGrade).isEqualTo(SongCardGrade.BRONZE)
-        assertThat(earlyCard.signature).isEmpty()
-        assertThat(lateCard.grade).isEqualTo(SongCardGrade.BASIC)
-        assertThat(earlyCard.acquiredSeq).isLessThan(lateCard.acquiredSeq)
-        val artistCard = artistCardRepository.findByUserIdAndArtistId(early.id!!, artist.id!!)!!
+        assertThat(result.newSongCards).isEqualTo(3)
+        val earlyCards = songCards(early, song)
+        val lateCards = songCards(late, song)
+        assertThat(earlyCards.map { it.grade to it.acquiredSeq }).containsExactly(SongCardGrade.BASIC to 1, SongCardGrade.BRONZE to 1)
+        assertThat(earlyCards).allSatisfy {
+            assertThat(it.isIssued).isTrue()
+            assertThat(it.signature).isEmpty()
+        }
+        assertThat(lateCards.map { it.grade to it.acquiredSeq }).containsExactly(SongCardGrade.BASIC to 2)
+        val artistCard = artistCardRepository.findByUserIdAndArtistIdIn(early.id!!, listOf(artist.id!!)).single()
         assertThat(artistCard.grade).isEqualTo(ArtistCardGrade.BASIC)
-        assertThat(artistCard.seenGrade).isEqualTo(ArtistCardGrade.BASIC)
+        assertThat(artistCard.isIssued).isTrue()
         assertThat(result.failed).isZero()
 
         // 다시 돌려도 새 카드가 없어 알리지 않는다.
@@ -96,8 +98,11 @@ class RewardCardBackfillTaskTest : BatchBaseIntegrationTest() {
         task.backfill(push = false)
 
         assertThat(rewardCardService.pending(user.id!!)).isEmpty()
-        assertThat(songCardRepository.findByUserIdAndSongId(user.id!!, song.id!!)!!.signature).isEmpty()
+        assertThat(songCards(user, song).map { it.signature }).containsOnly(emptyList())
     }
+
+    private fun songCards(user: UserEntity, song: SongEntity) =
+        songCardRepository.findByUserIdAndSongIdIn(user.id!!, listOf(song.id!!)).sortedBy { it.grade }
 
     /** 胸 = 후렴 정복, 雨 = 따라 부르기, 輪郭 = 완곡. */
     private fun newSong(artist: ArtistEntity?): SongEntity {

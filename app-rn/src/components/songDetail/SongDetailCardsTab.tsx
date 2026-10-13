@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SongCardKindGrid } from '../rewardCards/CardKindGrid';
-import { findSongCard } from '../rewardCards/cardKinds';
+import { useShallow } from 'zustand/react/shallow';
+import { songCardsOf } from '../rewardCards/cardKinds';
 import type { PreviewSong } from '../rewardCards/cardPreview';
 import { useCardFonts } from '../rewardCards/cardTheme';
 import { useRewardCardStore } from '../../stores/rewardCardStore';
@@ -20,7 +21,7 @@ export const SongDetailCardsTab = React.memo(function SongDetailCardsTab({
 }) {
   const { width: screenWidth } = useWindowDimensions();
   const fonts = useCardFonts();
-  const card = useRewardCardStore(s => findSongCard(s.songCards, song.id, song.title));
+  const cards = useRewardCardStore(useShallow(s => songCardsOf(s.songCards, song.id, song.title)));
   useEffect(() => {
     useRewardCardStore.getState().ensureServerCards();
   }, []);
@@ -28,7 +29,7 @@ export const SongDetailCardsTab = React.memo(function SongDetailCardsTab({
     <View style={styles.container}>
       <SongCardKindGrid
         song={song}
-        card={card}
+        cards={cards}
         tiers={tiers ?? EMPTY_TIERS}
         width={screenWidth - PAGE_PADDING * 2}
         fonts={fonts}

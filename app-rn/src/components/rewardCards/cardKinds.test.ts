@@ -1,58 +1,57 @@
 import { describe, expect, it } from 'vitest';
 import { ARTIST_GRADE_STEPS } from './artistGrade';
-import { SONG_CARD_KINDS, artistCardAt, findSongCard, ownsArtistGrade, ownsSongKind, songCardAt } from './cardKinds';
+import {
+  SONG_CARD_KINDS,
+  artistCardOfStep,
+  artistCardSample,
+  artistCardsOf,
+  findSongCard,
+  songCardOfKind,
+  songCardSample,
+  songCardsOf,
+} from './cardKinds';
 import type { ArtistRewardCard, CardLevel, SongRewardCard } from './types';
 
 function songCard(id: string, title: string, level: CardLevel, mastered = false): SongRewardCard {
   return {
     id, songId: null, title, artist: 'A', artworkUrl: '', accent: '', ink: '', level, mastered,
-    recall: 1, ownerNo: 1, earnedAt: '2026-10-01', lyric: [], signature: null, words: [], nextGoal: null,
+    recall: 0.7, ownerNo: 1, earnedAt: '2026-10-01', lyric: [], signature: null, words: [], nextGoal: null,
   };
 }
 
-function artistCard(masteredCount: number): ArtistRewardCard {
+function artistCard(id: string, masteredCount: number): ArtistRewardCard {
   return {
-    id: 'a', artistId: null, name: 'A', imageUrl: '', accent: '', ink: '', masteredCount, fanNo: 1, since: '2026-10-01',
+    id, artistId: null, name: 'A', imageUrl: '', accent: '', ink: '', masteredCount, fanNo: 1, since: '2026-10-01',
     masteredSongs: Array.from({ length: masteredCount }, (_, i) => ({ title: `곡${i}`, artworkUrl: '' })),
     signature: null,
   };
 }
 
 describe('곡 카드 종류', () => {
-  it('레벨 2 카드는 기본·BRONZE·SILVER 를 가졌고 GOLD·MASTER 는 아직이다', () => {
-    const card = songCard('c', '곡', 2);
-    expect(SONG_CARD_KINDS.map(kind => ownsSongKind(card, kind))).toEqual([true, true, true, false, false]);
+  const cards = [songCard('b0', '곡', 0), songCard('b1', '곡', 1), songCard('m', '곡', 3, true), songCard('x', '다른 곡', 2)];
+
+  it('등급마다 받은 카드가 따로 있고, 없는 등급은 null 이다', () => {
+    const mine = songCardsOf(cards, null, '곡');
+    expect(SONG_CARD_KINDS.map(kind => songCardOfKind(mine, kind)?.id ?? null)).toEqual(['b0', 'b1', null, null, 'm']);
   });
 
-  it('마스터 카드는 모든 종류를 가졌다', () => {
-    const card = songCard('c', '곡', 3, true);
-    expect(SONG_CARD_KINDS.every(kind => ownsSongKind(card, kind))).toBe(true);
-  });
-
-  it('지나온 종류는 내 카드를 그 레벨로 돌리고, 지금 종류는 카드 그대로다', () => {
-    const card = songCard('c', '곡', 3, true);
-    expect(songCardAt(card, SONG_CARD_KINDS[1])).toMatchObject({ id: 'c', level: 1, mastered: false });
-    expect(songCardAt(card, SONG_CARD_KINDS[4])).toBe(card);
-  });
-
-  it('같은 곡 카드가 여럿이면 마스터, 그다음 레벨 높은 카드를 고른다', () => {
-    const cards = [songCard('a', '곡', 3), songCard('b', '곡', 1, true), songCard('c', '다른 곡', 3, true)];
-    expect(findSongCard(cards, 1, '곡')?.id).toBe('b');
+  it('가장 높은 등급 카드를 고른다', () => {
+    expect(findSongCard(cards, 1, '곡')?.id).toBe('m');
     expect(findSongCard(cards, 1, '없는 곡')).toBeNull();
+  });
+
+  it('견본은 그 등급으로 돌리고 새것으로 비운다', () => {
+    expect(songCardSample(cards[0], SONG_CARD_KINDS[3])).toMatchObject({ id: 'b0', level: 3, mastered: false, sample: true, recall: 1 });
   });
 });
 
 describe('아티스트 카드 재질', () => {
-  it('마스터 곡 수가 닿은 재질까지 가졌다', () => {
-    const card = artistCard(3);
-    expect(ARTIST_GRADE_STEPS.map(step => ownsArtistGrade(card, step))).toEqual([true, true, true, false, false, false]);
-    expect(ARTIST_GRADE_STEPS.some(step => ownsArtistGrade(null, step))).toBe(false);
+  it('재질마다 받은 카드가 따로 있다', () => {
+    const mine = artistCardsOf([artistCard('p', 0), artistCard('s', 4)], null, 'A');
+    expect(ARTIST_GRADE_STEPS.map(step => artistCardOfStep(mine, step)?.id ?? null)).toEqual(['p', null, 's', null, null, null]);
   });
 
-  it('지나온 재질은 그 재질이 되던 마스터 곡 수로 돌린다', () => {
-    const card = artistCard(4);
-    expect(artistCardAt(card, ARTIST_GRADE_STEPS[1])).toMatchObject({ masteredCount: 1 });
-    expect(artistCardAt(card, ARTIST_GRADE_STEPS[1]).masteredSongs).toHaveLength(1);
-    expect(artistCardAt(card, ARTIST_GRADE_STEPS[2])).toBe(card);
+  it('견본은 그 재질이 되는 마스터 곡 수로 돌린다', () => {
+    expect(artistCardSample(artistCard('s', 4), ARTIST_GRADE_STEPS[3])).toMatchObject({ masteredCount: 7, sample: true });
   });
 });

@@ -8,7 +8,6 @@ import { useRewardCardStore } from '../../stores/rewardCardStore';
 import { useStreakStore } from '../../stores/streakStore';
 import CardLyricEditor from './CardLyricEditor';
 import CardSigner, { SignableCard } from './CardSigner';
-import { CardUpgrade, useUpgradeMotion } from './CardUpgrade';
 import CardWearIntro from './CardWearIntro';
 import {
   LadderStep,
@@ -21,10 +20,9 @@ import {
   useRevealBackGuard,
   useRevealMotion,
 } from './CardRevealStage';
-import SongCardShowcase, { SongCardBack, SongCardFront, songUpgradeFocus } from './SongCardShowcase';
+import SongCardShowcase, { SongCardBack, SongCardFront } from './SongCardShowcase';
 import { CARD_RATIO, SHOWROOM, SONG_MASTER_NAME, SONG_TIER_NAME, songTierName, useCardFonts } from './cardTheme';
-import { previousSongCard, songRung } from './cardUpgrade';
-import { songGradeOf } from './serverRewardCards';
+import { songRung } from './cardKinds';
 import { CardSignature } from './signature';
 import { CardLyricLine, SongRewardCard } from './types';
 import { useCardTilt } from './useCardTilt';
@@ -42,8 +40,8 @@ const SONG_LADDER: readonly LadderStep[] = [
   { label: SONG_TIER_NAME[3], caption: '완곡' },
   { label: SONG_MASTER_NAME, caption: '90% 장기 기억' },
 ];
-const SONG_GUIDE = ['이 곡의 단어를 공부하는 만큼 강화되는 카드예요.', '각 단계를 끝낼 때마다 등급이 올라요'];
-const INTRO_GUIDE = ['곡 단어를 처음 공부하면 얻는 카드예요.', '각 단계를 끝낼 때마다 등급이 올라요'];
+const SONG_GUIDE = ['단계를 끝낼 때마다 다음 등급 카드를 새로 받아요.', '등급마다 먼저 받은 순서대로 번호가 붙어요'];
+const INTRO_GUIDE = ['곡 단어를 처음 공부하면 얻는 카드예요.', '단계를 끝낼 때마다 다음 등급 카드를 새로 받아요'];
 const INTRO_LADDER_DELAY_MS = 500;
 
 /**
@@ -73,7 +71,7 @@ export const RewardCardRevealHost = React.memo(function RewardCardRevealHost() {
       if (!pending) return;
       pending = false;
       const target = useRewardCardStore.getState().openNextReveal();
-      if (target) navigate('RewardCardReveal', { ...target, queued: true });
+      if (target) navigate('RewardCardReveal', { kind: target.kind, cardId: target.cardId, queued: true });
     };
     // 회전 도중 아트가 늦게 받아져 튀어나오지 않도록 미리 받아 둔다.
     const timer = setTimeout(open, PREFETCH_TIMEOUT_MS);
@@ -184,12 +182,12 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({
       accent: card.accent,
       ratio: CARD_RATIO,
       radius: SONG_RADIUS,
-      subject: '이 곡',
+      subject: `이 곡의 ${songTierName(card.level, card.mastered)}`,
       serialNo: card.ownerNo,
       renderBack,
       renderFront,
     }),
-    [card.accent, card.ownerNo, renderBack, renderFront],
+    [card.accent, card.level, card.mastered, card.ownerNo, renderBack, renderFront],
   );
 
   const cardW = Math.min(screenW * 0.66, (screenH * 0.42) / CARD_RATIO, 320);
@@ -207,7 +205,7 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({
           front={<SongCardFront card={card} width={cardW} fonts={fonts} />}
           back={<SongCardBack card={card} width={cardW} fonts={fonts} />}
           showcase={<SongCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} />}
-          heading="곡 카드를 얻었어요"
+          heading={songRung(card) === 0 ? '곡 카드를 얻었어요' : `${songTierName(card.level, card.mastered)} 카드를 얻었어요`}
           guide={
             <RevealGuide lines={SONG_GUIDE} steps={SONG_LADDER} current={songRung(card)} accent={card.accent} motion={motion} />
           }
@@ -267,46 +265,6 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({
           )}
         </RevealStep>
       )}
-    </RevealShell>
-  );
-});
-
-interface UpgradeProps {
-  card: SongRewardCard;
-  /** 오르기 전 등급(서버). 없으면 한 단계 아래 카드로 만든다. */
-  fromGrade?: string | null;
-  started: boolean;
-  onClose: () => void;
-}
-
-/** 이미 가진 곡 카드의 등급이 올랐을 때. 새 다이아를 박으면 한 단계 아래 카드 위로 지금 재질이 번진다. */
-export const SongCardUpgrade = React.memo(function SongCardUpgrade({ card, fromGrade, started, onClose }: UpgradeProps) {
-  const { width: screenW, height: screenH } = useWindowDimensions();
-  const fonts = useCardFonts();
-  const tilt = useCardTilt();
-  const motion = useUpgradeMotion(started);
-  const before = useMemo(
-    () => (fromGrade ? { ...card, ...songGradeOf(fromGrade) } : previousSongCard(card) ?? card),
-    [card, fromGrade],
-  );
-  const cardW = Math.min(screenW * 0.66, (screenH * 0.42) / CARD_RATIO, 320);
-
-  return (
-    <RevealShell backdropUri={card.artworkUrl} motion={motion}>
-      <CardUpgrade
-        motion={motion}
-        tilt={tilt}
-        width={cardW}
-        ratio={CARD_RATIO}
-        radius={SONG_RADIUS}
-        before={<SongCardFront card={before} width={cardW} fonts={fonts} />}
-        after={<SongCardFront card={card} width={cardW} fonts={fonts} />}
-        focus={songUpgradeFocus(card, cardW)}
-        showcase={<SongCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} />}
-        heading={`${songTierName(card.level, card.mastered)} 카드로 강화되었어요!`}
-        guide={<RevealGuide lines={[]} steps={SONG_LADDER} from={songRung(before)} current={songRung(card)} accent={card.accent} motion={motion} />}
-        onDone={onClose}
-      />
     </RevealShell>
   );
 });

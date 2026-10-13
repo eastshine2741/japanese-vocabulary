@@ -64,7 +64,6 @@ enum class ErrorCode(val status: HttpStatus, val message: String) {
     REWARD_CARD_NOT_FOUND(HttpStatus.NOT_FOUND, "Reward card not found"),
     REWARD_CARD_ALREADY_ISSUED(HttpStatus.CONFLICT, "Reward card already issued"),
     REWARD_CARD_NOT_ISSUED(HttpStatus.CONFLICT, "Reward card not issued yet"),
-    INVALID_REWARD_CARD_GRADE(HttpStatus.BAD_REQUEST, "grade is above the card's current grade"),
     INVALID_SIGNATURE(HttpStatus.BAD_REQUEST, "Signature must have 1-200 non-blank strokes"),
     INVALID_CARD_LYRIC(HttpStatus.BAD_REQUEST, "lyricLineIndexes must be up to 2 distinct lines of the song"),
     REWARD_CARD_SHARE_NOT_FOUND(HttpStatus.NOT_FOUND, "Share link not found"),

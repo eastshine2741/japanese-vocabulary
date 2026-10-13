@@ -1,15 +1,10 @@
 package com.japanese.vocabulary.rewardcard.controller
 
-import com.japanese.vocabulary.common.exception.BusinessException
-import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.rewardcard.dto.IssueArtistCardRequest
 import com.japanese.vocabulary.rewardcard.dto.IssueSongCardRequest
-import com.japanese.vocabulary.rewardcard.dto.MarkRewardCardSeenRequest
 import com.japanese.vocabulary.rewardcard.dto.PendingRewardCardsResponse
 import com.japanese.vocabulary.rewardcard.dto.RewardCardsResponse
 import com.japanese.vocabulary.rewardcard.dto.UpdateSongCardLyricRequest
-import com.japanese.vocabulary.rewardcard.model.ArtistCardGrade
-import com.japanese.vocabulary.rewardcard.model.SongCardGrade
 import com.japanese.vocabulary.rewardcard.service.RewardCardQueryService
 import com.japanese.vocabulary.rewardcard.service.RewardCardService
 import org.springframework.http.HttpStatus
@@ -32,44 +27,31 @@ class RewardCardController(
     @GetMapping
     fun cards(): RewardCardsResponse = rewardCardQueryService.cards(currentUserId())
 
-    /** 앱을 열 때 남은 연출. 서명 전에 앱을 끈 카드와 못 본 등급 오름이 여기 남는다. */
+    /** 앱을 열 때 남은 연출. 서명 전에 앱을 끈 카드가 여기 남는다. */
     @GetMapping("/pending")
     fun pending(): PendingRewardCardsResponse = PendingRewardCardsResponse(rewardCardService.pending(currentUserId()))
 
-    @PostMapping("/songs/{songId}/issue")
+    @PostMapping("/song-cards/{cardId}/issue")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    fun issueSongCard(@PathVariable songId: Long, @RequestBody request: IssueSongCardRequest) {
-        rewardCardQueryService.validateLyricLines(songId, request.lyricLineIndexes)
-        rewardCardService.issueSongCard(currentUserId(), songId, request.signature, request.lyricLineIndexes)
+    fun issueSongCard(@PathVariable cardId: Long, @RequestBody request: IssueSongCardRequest) {
+        val userId = currentUserId()
+        rewardCardQueryService.validateLyricLines(rewardCardService.songCard(userId, cardId).songId, request.lyricLineIndexes)
+        rewardCardService.issueSongCard(userId, cardId, request.signature, request.lyricLineIndexes)
     }
 
-    @PostMapping("/artists/{artistId}/issue")
+    @PostMapping("/artist-cards/{cardId}/issue")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    fun issueArtistCard(@PathVariable artistId: Long, @RequestBody request: IssueArtistCardRequest) {
-        rewardCardService.issueArtistCard(currentUserId(), artistId, request.signature)
+    fun issueArtistCard(@PathVariable cardId: Long, @RequestBody request: IssueArtistCardRequest) {
+        rewardCardService.issueArtistCard(currentUserId(), cardId, request.signature)
     }
 
-    @PostMapping("/songs/{songId}/seen")
+    @PutMapping("/song-cards/{cardId}/lyric")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    fun markSongCardSeen(@PathVariable songId: Long, @RequestBody request: MarkRewardCardSeenRequest) {
-        rewardCardService.markSongCardSeen(currentUserId(), songId, parse<SongCardGrade>(request.grade))
+    fun updateSongCardLyric(@PathVariable cardId: Long, @RequestBody request: UpdateSongCardLyricRequest) {
+        val userId = currentUserId()
+        rewardCardQueryService.validateLyricLines(rewardCardService.songCard(userId, cardId).songId, request.lyricLineIndexes)
+        rewardCardService.updateSongCardLyric(userId, cardId, request.lyricLineIndexes)
     }
-
-    @PostMapping("/artists/{artistId}/seen")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    fun markArtistCardSeen(@PathVariable artistId: Long, @RequestBody request: MarkRewardCardSeenRequest) {
-        rewardCardService.markArtistCardSeen(currentUserId(), artistId, parse<ArtistCardGrade>(request.grade))
-    }
-
-    @PutMapping("/songs/{songId}/lyric")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    fun updateSongCardLyric(@PathVariable songId: Long, @RequestBody request: UpdateSongCardLyricRequest) {
-        rewardCardQueryService.validateLyricLines(songId, request.lyricLineIndexes)
-        rewardCardService.updateSongCardLyric(currentUserId(), songId, request.lyricLineIndexes)
-    }
-
-    private inline fun <reified E : Enum<E>> parse(grade: String): E =
-        enumValues<E>().firstOrNull { it.name == grade } ?: throw BusinessException(ErrorCode.INVALID_REWARD_CARD_GRADE)
 
     private fun currentUserId(): Long =
         SecurityContextHolder.getContext().authentication.principal as Long

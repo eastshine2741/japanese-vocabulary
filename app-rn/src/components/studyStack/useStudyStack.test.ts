@@ -332,7 +332,7 @@ it('resets the memory diff when the stack reloads', async () => {
 });
 
 it('hands reward card reveals from the rating to the card store', async () => {
-  const reveals = [{ kind: 'SONG' as const, targetId: 5, grade: 'BRONZE', seenGrade: null, acquiredSeq: 1 }];
+  const reveals = [{ kind: 'SONG' as const, cardId: 50, targetId: 5, grade: 'BRONZE', acquiredSeq: 1 }];
   vi.mocked(flashcardApi.getDueCards).mockResolvedValue({ cards: [card(1)], totalCount: 1, nextDueAt: null });
   vi.mocked(flashcardApi.review).mockResolvedValue({
     id: 1, state: 1, due: '2026-09-05T01:00:10Z', stability: 9, difficulty: 1, memory: 'SHORT_TERM', rewardCards: reveals,

@@ -21,7 +21,8 @@ import ErrorDialog from '../components/ErrorDialog';
 import SkeletonBox from '../components/SkeletonLoading';
 import RowSpinner from '../components/RowSpinner';
 import { ArtistCardKindGrid } from '../components/rewardCards/CardKindGrid';
-import { pickArtistCard } from '../components/rewardCards/cardKinds';
+import { useShallow } from 'zustand/react/shallow';
+import { artistCardsOf } from '../components/rewardCards/cardKinds';
 import { useCardFonts } from '../components/rewardCards/cardTheme';
 import { useRewardCardStore } from '../stores/rewardCardStore';
 import { artistApi } from '../api/artistApi';
@@ -228,7 +229,7 @@ export default function ArtistDetailScreen({ navigation, route }: Props) {
   const { width: screenWidth } = useWindowDimensions();
   const fonts = useCardFonts();
   const artistName = artist?.name ?? '';
-  const artistCard = useRewardCardStore(s => pickArtistCard(s.artistCards, artistName));
+  const artistCards = useRewardCardStore(useShallow(s => artistCardsOf(s.artistCards, artistId, artistName)));
   useEffect(() => {
     useRewardCardStore.getState().ensureServerCards();
   }, []);
@@ -469,7 +470,7 @@ export default function ArtistDetailScreen({ navigation, route }: Props) {
             />
             {activeTab === 'cards' && (
               <View style={styles.cardsTab}>
-                <ArtistCardKindGrid artist={artist} card={artistCard} width={gridWidth} fonts={fonts} />
+                <ArtistCardKindGrid artist={artist} cards={artistCards} width={gridWidth} fonts={fonts} />
               </View>
             )}
           </>

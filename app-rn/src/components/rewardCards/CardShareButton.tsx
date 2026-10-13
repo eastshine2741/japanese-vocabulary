@@ -17,8 +17,8 @@ type Method = 'x' | 'instagram_story' | 'link';
 
 interface Props {
   kind: 'song' | 'artist';
-  /** songId 또는 artistId. */
-  targetId: number;
+  /** 서버 카드 id. 등급마다 카드가 따로다. */
+  cardId: number;
   title: string;
   tilt: CardTilt;
   /** 공유 이미지로 뜰 카드 뷰. */
@@ -31,10 +31,10 @@ const nextFrames = () =>
 
 class InstagramMissing extends Error {}
 
-function CardShareButton({ kind, targetId, title, tilt, cardRef }: Props) {
+function CardShareButton({ kind, cardId, title, tilt, cardRef }: Props) {
   const sheetRef = useRef<AppBottomSheetModalRef>(null);
   const [busy, setBusy] = useState<Method | null>(null);
-  const apiKind = kind === 'song' ? 'songs' : 'artists';
+  const apiKind = kind === 'song' ? 'song-cards' : 'artist-cards';
   const label = `「${title}」`;
 
   const handleOpen = useCallback(() => sheetRef.current?.present(), []);
@@ -46,28 +46,28 @@ function CardShareButton({ kind, targetId, title, tilt, cardRef }: Props) {
       tilt.still.value = true;
       try {
         await nextFrames();
-        return await composeShareImages(cardRef, `card-share-${apiKind}-${targetId}`, shareUrlLabel(url));
+        return await composeShareImages(cardRef, `card-share-${apiKind}-${cardId}`, shareUrlLabel(url));
       } finally {
         tilt.still.value = false;
         tilt.flip.value = flip;
       }
     },
-    [apiKind, cardRef, targetId, tilt],
+    [apiKind, cardRef, cardId, tilt],
   );
 
   const upload = useCallback(
     async (fileUri: string) => {
-      const { uploadUrl, headers } = await rewardCardApi.issueShareImageUploadUrl(apiKind, targetId);
+      const { uploadUrl, headers } = await rewardCardApi.issueShareImageUploadUrl(apiKind, cardId);
       await putToPresignedUrl(fileUri, uploadUrl, headers);
-      await rewardCardApi.shareCard(apiKind, targetId, true);
+      await rewardCardApi.shareCard(apiKind, cardId, true);
     },
-    [apiKind, targetId],
+    [apiKind, cardId],
   );
 
   /** 링크를 받고 카드를 떠서 미리보기를 올린다. 링크로 퍼지는 X·링크 공유는 미리보기가 올라간 뒤에 내보낸다. */
   const prepare = useCallback(
     async (waitUpload: boolean) => {
-      const { url } = await rewardCardApi.shareCard(apiKind, targetId);
+      const { url } = await rewardCardApi.shareCard(apiKind, cardId);
       const images = await capture(url);
       // 실패하면 서버가 앨범 아트로 대신하니 공유는 계속한다.
       const uploading = upload(images.preview).catch((e) =>
@@ -76,7 +76,7 @@ function CardShareButton({ kind, targetId, title, tilt, cardRef }: Props) {
       if (waitUpload) await uploading;
       return { url, story: images.story };
     },
-    [apiKind, capture, targetId, upload],
+    [apiKind, capture, cardId, upload],
   );
 
   const run = useCallback(

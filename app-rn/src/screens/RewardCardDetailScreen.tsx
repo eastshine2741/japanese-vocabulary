@@ -22,10 +22,10 @@ import GradePanel, { GradeTab } from '../components/rewardCards/GradePanel';
 import { IntroDecision, reportIntroDecision } from '../components/rewardCards/CardIntroDebugOverlay';
 import { CARD_RATIO, LEVEL_MATERIAL, MASTER_CHIP, SHOWROOM, songTierName, useCardFonts } from '../components/rewardCards/cardTheme';
 import { useCardTilt } from '../components/rewardCards/useCardTilt';
-import { SONG_CARD_KINDS, songCardAt } from '../components/rewardCards/cardKinds';
-import { songRung } from '../components/rewardCards/cardUpgrade';
+import { useShallow } from 'zustand/react/shallow';
+import { SONG_CARD_KINDS, songCardOfKind, songCardSample, songCardsOf, songRung } from '../components/rewardCards/cardKinds';
+import { serverTargetId } from '../components/rewardCards/serverRewardCards';
 import { useRewardCardStore } from '../stores/rewardCardStore';
-import { SongRewardCard } from '../components/rewardCards/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RewardCardDetail'>;
 
@@ -56,25 +56,26 @@ const SONG_TABS: readonly GradeTab[] = SONG_CARD_KINDS.map((kind) => {
 
 const songCondition = (rung: number) => SONG_CONDITIONS[rung];
 
-/** 내 카드를 그 등급으로 돌린다. 아직 얻지 않은 등급은 주인 정보를 비운 새 견본이다. */
-function songCardAtRung(card: SongRewardCard, rung: number): SongRewardCard {
-  const at = songCardAt(card, SONG_CARD_KINDS[rung]);
-  return rung > songRung(card) ? { ...at, sample: true, recall: 1 } : at;
-}
-
 export default function RewardCardDetailScreen({ navigation, route }: Props) {
-  const { cardId, grade } = route.params;
-  const owned = useRewardCardStore((s) => s.songCards.find((c) => c.id === cardId));
+  const { cardId } = route.params;
+  const opened = useRewardCardStore((s) => s.songCards.find((c) => c.id === cardId));
+  // 등급마다 카드가 따로라, 다른 칸을 누르면 그 등급의 내 카드로 바꿔 보여 준다.
+  const siblings = useRewardCardStore(
+    useShallow((s) => (opened ? songCardsOf(s.songCards, opened.songId, opened.title) : [])),
+  );
   // 푸시로 들어오면 카드를 아직 받는 중일 수 있다.
   const loading = useRewardCardStore((s) => s.serverStatus === 'loading');
-  const ownedRung = owned ? songRung(owned) : 0;
-  const [pickedRung, setPickedRung] = useState<number | null>(() =>
-    grade ? SONG_CARD_KINDS.findIndex((k) => k.level === grade.level && k.mastered === grade.mastered) : null,
+  const ownedRung = siblings.reduce((top, c) => Math.max(top, songRung(c)), opened ? songRung(opened) : 0);
+  const [pickedRung, setPickedRung] = useState<number | null>(null);
+  const viewRung = pickedRung ?? (opened ? songRung(opened) : 0);
+  const owned = pickedRung == null ? opened : songCardOfKind(siblings, SONG_CARD_KINDS[viewRung]) ?? undefined;
+  // 아직 받지 않은 등급은 주인 정보를 비운 새 견본이다.
+  const card = useMemo(
+    () => owned ?? (opened ? songCardSample(opened, SONG_CARD_KINDS[viewRung]) : undefined),
+    [owned, opened, viewRung],
   );
-  const viewRung = pickedRung ?? ownedRung;
-  const card = useMemo(() => (owned ? songCardAtRung(owned, viewRung) : owned), [owned, viewRung]);
-  // 다른 등급 견본엔 지금 카드의 기억할 확률이 맞지 않는다.
-  const isOtherGrade = card !== owned;
+  // 견본엔 기억할 확률이 맞지 않는다.
+  const isSample = owned == null;
   const { width: screenW } = useWindowDimensions();
   const fonts = useCardFonts();
   const tilt = useCardTilt();
@@ -132,9 +133,9 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
 
   // 채우기로 받은 카드는 획득 연출을 거치지 않아, 규칙을 본 적 없으면 어느 경로로 들어왔든 설명부터 띄운다.
   // 아직 발급 전인 카드는 획득 화면이 곧 같은 설명을 하므로 건너뛴다.
-  const issued = owned?.issued === true;
+  const issued = opened?.issued === true;
   const introCheckedRef = useRef(false);
-  const title = owned?.title ?? cardId;
+  const title = opened?.title ?? cardId;
   const setIntroDecision = useCallback((decision: IntroDecision) => reportIntroDecision(cardId, title, decision), [cardId, title]);
   useEffect(() => {
     if (!introCheckedRef.current) setIntroDecision('waiting');
@@ -163,12 +164,13 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
   const handleWearInfo = useCallback(() => {
     navigation.navigate('RewardCardReveal', { kind: 'song', cardId, wearOnly: true });
   }, [navigation, cardId]);
+  const viewedId = owned?.id ?? null;
   const handleEditLyric = useCallback(() => {
-    navigation.navigate('RewardCardLyricEdit', { cardId });
-  }, [navigation, cardId]);
+    if (viewedId != null) navigation.navigate('RewardCardLyricEdit', { cardId: viewedId });
+  }, [navigation, viewedId]);
 
   const songId = card?.songId ?? null;
-  const canShare = !isOtherGrade && owned?.issued === true && songId != null;
+  const shareId = owned?.issued === true ? serverTargetId(owned.id) : null;
   const handleOpenSong = useCallback(() => {
     if (songId != null) navigation.navigate('SongDetail', { songId, origin: 'reward_card_detail' });
   }, [navigation, songId]);
@@ -220,7 +222,7 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
     );
   }
 
-  const goal = owned?.nextGoal ?? null;
+  const goal = opened?.nextGoal ?? null;
 
   return (
     <View style={styles.root}>
@@ -240,13 +242,15 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
               <Feather name="chevron-down" size={22} color={SHOWROOM.fg} />
             </Pressable>
             <View style={styles.actions}>
-              {canShare && <CardShareButton kind="song" targetId={songId} title={card.title} tilt={tilt} cardRef={cardRef} />}
+              {shareId != null && <CardShareButton kind="song" cardId={shareId} title={card.title} tilt={tilt} cardRef={cardRef} />}
               <Pressable onPress={handleFocus} hitSlop={10} style={styles.iconBtn}>
                 <Feather name="maximize-2" size={17} color={SHOWROOM.fg} />
               </Pressable>
-              <Pressable onPress={handleEditLyric} hitSlop={10} style={styles.iconBtn}>
-                <Feather name="edit-3" size={18} color={SHOWROOM.fg} />
-              </Pressable>
+              {!isSample && (
+                <Pressable onPress={handleEditLyric} hitSlop={10} style={styles.iconBtn}>
+                  <Feather name="edit-3" size={18} color={SHOWROOM.fg} />
+                </Pressable>
+              )}
             </View>
           </Animated.View>
 
@@ -266,12 +270,12 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
 
           <Animated.View style={chromeStyle} pointerEvents={focused ? 'none' : 'auto'}>
             <Animated.View style={[styles.info, infoIn]}>
-              <View style={[styles.recall, isOtherGrade && styles.recallMuted]}>
+              <View style={[styles.recall, isSample && styles.recallMuted]}>
                 <Pressable onPress={handleWearInfo} hitSlop={10} style={styles.recallInfo}>
                   <Text style={styles.recallLabel}>기억할 확률</Text>
                   <Feather name="info" size={13} color={SHOWROOM.fgDim} />
                 </Pressable>
-                <Text style={styles.recallValue}>{Math.round((owned?.recall ?? card.recall) * 100)}%</Text>
+                <Text style={styles.recallValue}>{Math.round((owned ?? opened ?? card).recall * 100)}%</Text>
               </View>
 
               <GradePanel

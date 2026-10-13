@@ -8,11 +8,11 @@ import org.springframework.data.repository.query.Param
 
 interface SongCardRepository : JpaRepository<SongCardEntity, Long> {
 
-    fun findByUserIdAndSongId(userId: Long, songId: Long): SongCardEntity?
+    fun findByIdAndUserId(id: Long, userId: Long): SongCardEntity?
 
     fun findByUserIdAndSongIdIn(userId: Long, songIds: Collection<Long>): List<SongCardEntity>
 
-    fun findByUserIdOrderByCreatedAtDesc(userId: Long): List<SongCardEntity>
+    fun findByUserIdOrderByCreatedAtDescIdDesc(userId: Long): List<SongCardEntity>
 
     @Query(
         "SELECT new com.japanese.vocabulary.rewardcard.dto.ArtistMasterCountDto(c.artistId, COUNT(c)) " +
@@ -24,9 +24,5 @@ interface SongCardRepository : JpaRepository<SongCardEntity, Long> {
         @Param("artistIds") artistIds: Collection<Long>,
     ): List<ArtistMasterCountDto>
 
-    @Query(
-        "SELECT c FROM SongCardEntity c WHERE c.userId = :userId " +
-            "AND (c.seenGrade IS NULL OR c.seenGrade <> c.grade) ORDER BY c.id"
-    )
-    fun findPending(@Param("userId") userId: Long): List<SongCardEntity>
+    fun findByUserIdAndIssuedAtIsNullOrderById(userId: Long): List<SongCardEntity>
 }

@@ -169,7 +169,7 @@ const CardSeal = React.memo(function CardSeal({ card, signature, width, onDone, 
         <Text style={styles.owner} numberOfLines={1}>
           카드를 획득했어요!
         </Text>
-        <Text style={styles.meta}>{card.subject}의 카드를 전체 유저 중</Text>
+        <Text style={styles.meta}>{card.subject} 카드를 전체 유저 중</Text>
         <SerialCount to={card.serialNo} run={counting} color={card.accent} onDone={handleCounted} />
       </Animated.View>
 

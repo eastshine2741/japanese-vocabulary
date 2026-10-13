@@ -46,7 +46,6 @@ import { Token } from '../types/song';
 import type { StudySource } from '../components/studyStack';
 import type { RewardCardKind } from '../stores/rewardCardStore';
 import type { CardPreviewTarget } from '../components/rewardCards/cardPreview';
-import type { SongCardGrade } from '../components/rewardCards/cardKinds';
 
 type SongPlaybackEntryParams = {
   songId?: number;
@@ -85,8 +84,7 @@ export type RootStackParamList = {
   /** 홈 헤더의 연속 학습 칩에서 들어오는 상세. */
   Streak: undefined;
   /** 프로필 카드 탭에서 곡 카드를 누르면 열리는 전시 화면. */
-  /** grade 를 주면 내 카드를 그 지나온 등급 모습으로 보여 준다. */
-  RewardCardDetail: { cardId: string; ownerName: string; grade?: SongCardGrade };
+  RewardCardDetail: { cardId: string; ownerName: string };
   RewardCardLyricEdit: { cardId: string };
   /** 아직 얻지 않은 카드 종류의 견본 전시. condition 은 그 종류의 획득 조건 한 줄. */
   RewardCardPreview: { target: CardPreviewTarget; condition: string; reached: boolean };
@@ -94,10 +92,6 @@ export type RootStackParamList = {
   RewardCardReveal: {
     kind: RewardCardKind;
     cardId: string;
-    upgrade?: boolean;
-    /** 서버가 준 연출의 등급·오르기 전 등급. */
-    grade?: string;
-    fromGrade?: string | null;
     wearOnly?: boolean;
     /** 연출 없이 받은(채우기) 카드의 획득·승급·낡음 설명만. 봉투·서명이 없다. */
     intro?: boolean;
@@ -105,8 +99,7 @@ export type RootStackParamList = {
     queued?: boolean;
   };
   /** 프로필 카드 탭에서 아티스트 카드를 누르면 열리는 전시 화면. */
-  /** masteredCount 를 주면 내 카드를 그 지나온 재질 모습으로 보여 준다. */
-  ArtistCardDetail: { cardId: string; ownerName: string; masteredCount?: number };
+  ArtistCardDetail: { cardId: string; ownerName: string };
   /** 공유 링크로 연 남의 카드. */
   SharedCard: { token: string };
   /** 프로필 카드 탭 아티스트 카드 헤더에서 들어오는 전체 목록. */

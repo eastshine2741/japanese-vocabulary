@@ -31,13 +31,10 @@ class SongCardEntity(
     var artistId: Long? = null,
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "grade", nullable = false, length = 10)
-    var grade: SongCardGrade,
+    @Column(name = "grade", nullable = false, updatable = false, length = 10)
+    val grade: SongCardGrade,
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "seen_grade", length = 10)
-    var seenGrade: SongCardGrade? = null,
-
+    /** 곡·등급마다 따로 센다. */
     @Column(name = "acquired_seq", nullable = false)
     val acquiredSeq: Int,
 
@@ -51,38 +48,25 @@ class SongCardEntity(
     @Column(name = "signature", columnDefinition = "JSON", nullable = false)
     var signature: List<String> = emptyList(),
 
-    @Column(name = "mastered_at")
-    var masteredAt: Instant? = null,
+    /** null 이면 서명 전이라 획득 연출이 남았다. */
+    @Column(name = "issued_at")
+    var issuedAt: Instant? = null,
 
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: Instant,
 ) {
-    val isIssued: Boolean get() = seenGrade != null
+    val isIssued: Boolean get() = issuedAt != null
 
-    /** 오르기만 한다. 올랐으면 true. */
-    fun raiseTo(target: SongCardGrade, now: Instant): Boolean {
-        if (target <= grade) return false
-        grade = target
-        if (target == SongCardGrade.MASTER) masteredAt = now
-        return true
-    }
-
-    /** 발급 = 서명 확정. 발급할 때의 등급까지 본 것으로 친다. */
-    fun issue(signature: List<String>, lyricLineIndexes: List<Int>) {
+    /** 발급 = 서명 확정. */
+    fun issue(signature: List<String>, lyricLineIndexes: List<Int>, now: Instant) {
         if (isIssued) throw BusinessException(ErrorCode.REWARD_CARD_ALREADY_ISSUED)
         this.signature = signature
         this.lyricLineIndexes = lyricLineIndexes
-        seenGrade = grade
+        issuedAt = now
     }
 
-    /** 연출 없이 지금 등급까지 발급한다. 서명은 그대로 둔다. */
-    fun issueSilently() {
-        seenGrade = grade
-    }
-
-    fun markSeen(seen: SongCardGrade) {
-        val current = seenGrade ?: throw BusinessException(ErrorCode.REWARD_CARD_NOT_ISSUED)
-        if (seen > grade) throw BusinessException(ErrorCode.INVALID_REWARD_CARD_GRADE)
-        if (seen > current) seenGrade = seen
+    /** 연출 없이 발급한다. 서명은 그대로 둔다. */
+    fun issueSilently(now: Instant) {
+        if (issuedAt == null) issuedAt = now
     }
 }

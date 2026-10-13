@@ -18,10 +18,10 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import ArtistCardShowcase from '../components/rewardCards/ArtistCardShowcase';
 import CardShareButton from '../components/rewardCards/CardShareButton';
 import GradePanel, { GradeTab } from '../components/rewardCards/GradePanel';
-import { ARTIST_GRADE_STEPS, artistGradeStep, nextArtistGradeStep } from '../components/rewardCards/artistGrade';
-import { artistCardAt } from '../components/rewardCards/cardKinds';
-import { artistRung } from '../components/rewardCards/cardUpgrade';
-import { ArtistRewardCard } from '../components/rewardCards/types';
+import { useShallow } from 'zustand/react/shallow';
+import { ARTIST_GRADE_STEPS, nextArtistGradeStep } from '../components/rewardCards/artistGrade';
+import { artistCardOfStep, artistCardSample, artistCardsOf, artistRung } from '../components/rewardCards/cardKinds';
+import { serverTargetId } from '../components/rewardCards/serverRewardCards';
 import { ARTIST_CARD_RATIO, ARTIST_MATERIAL, SHOWROOM, useCardFonts } from '../components/rewardCards/cardTheme';
 import { useCardTilt } from '../components/rewardCards/useCardTilt';
 import { useRewardCardStore } from '../stores/rewardCardStore';
@@ -39,23 +39,25 @@ function artistCondition(rung: number): string {
   return from === 0 ? '이 아티스트의 첫 곡 카드 얻기' : `이 아티스트 곡의 MASTER 카드 ${from}장 모으기`;
 }
 
-/** 내 카드를 그 재질로 돌린다. 아직 얻지 않은 재질은 주인 정보를 비운 견본이다. */
-function artistCardAtRung(card: ArtistRewardCard, rung: number): ArtistRewardCard {
-  const step = ARTIST_GRADE_STEPS[rung];
-  if (rung <= artistRung(card)) return artistCardAt(card, step);
-  return { ...card, masteredCount: step.from, sample: true };
-}
-
 export default function ArtistCardDetailScreen({ navigation, route }: Props) {
-  const { cardId, masteredCount } = route.params;
-  const owned = useRewardCardStore((s) => s.artistCards.find((c) => c.id === cardId));
-  const ownedRung = owned ? artistRung(owned) : 0;
-  const [pickedRung, setPickedRung] = useState<number | null>(() =>
-    masteredCount != null ? ARTIST_GRADE_STEPS.indexOf(artistGradeStep(masteredCount)) : null,
+  const { cardId } = route.params;
+  const opened = useRewardCardStore((s) => s.artistCards.find((c) => c.id === cardId));
+  // 재질마다 카드가 따로라, 다른 칸을 누르면 그 재질의 내 카드로 바꿔 보여 준다.
+  const siblings = useRewardCardStore(
+    useShallow((s) => (opened ? artistCardsOf(s.artistCards, opened.artistId, opened.name) : [])),
   );
-  const viewRung = pickedRung ?? ownedRung;
-  const card = useMemo(() => (owned ? artistCardAtRung(owned, viewRung) : owned), [owned, viewRung]);
-  const isOtherGrade = card !== owned;
+  const top = useMemo(
+    () => siblings.reduce<typeof opened>((best, c) => (best == null || c.masteredCount > best.masteredCount ? c : best), opened),
+    [siblings, opened],
+  );
+  const ownedRung = top ? artistRung(top) : 0;
+  const [pickedRung, setPickedRung] = useState<number | null>(null);
+  const viewRung = pickedRung ?? (opened ? artistRung(opened) : 0);
+  const owned = pickedRung == null ? opened : artistCardOfStep(siblings, ARTIST_GRADE_STEPS[viewRung]) ?? undefined;
+  const card = useMemo(
+    () => owned ?? (opened ? artistCardSample(opened, ARTIST_GRADE_STEPS[viewRung]) : undefined),
+    [owned, opened, viewRung],
+  );
   const handleSelectRung = useCallback((rung: number) => setPickedRung(rung), []);
   const { width: screenW } = useWindowDimensions();
   const fonts = useCardFonts();
@@ -80,7 +82,7 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
 
   const handleClose = useCallback(() => navigation.goBack(), [navigation]);
   const artistId = card?.artistId ?? null;
-  const canShare = !isOtherGrade && owned?.issued === true && artistId != null;
+  const shareId = owned?.issued === true ? serverTargetId(owned.id) : null;
   const handleOpenArtist = useCallback(() => {
     if (artistId != null) navigation.navigate('ArtistDetail', { artistId });
   }, [artistId, navigation]);
@@ -105,8 +107,8 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
   }
 
   const cardW = Math.min(screenW - 40, 400);
-  const next = owned ? nextArtistGradeStep(owned.masteredCount) : null;
-  const progress = owned && next ? { current: owned.masteredCount, total: next.from } : null;
+  const next = top ? nextArtistGradeStep(top.masteredCount) : null;
+  const progress = top && next ? { current: top.masteredCount, total: next.from } : null;
 
   return (
     <View style={styles.root}>
@@ -124,7 +126,7 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
             <Feather name="chevron-down" size={22} color={SHOWROOM.fg} />
           </Pressable>
           <View style={styles.actions}>
-            {canShare && <CardShareButton kind="artist" targetId={artistId} title={card.name} tilt={tilt} cardRef={cardRef} />}
+            {shareId != null && <CardShareButton kind="artist" cardId={shareId} title={card.name} tilt={tilt} cardRef={cardRef} />}
           </View>
         </View>
 

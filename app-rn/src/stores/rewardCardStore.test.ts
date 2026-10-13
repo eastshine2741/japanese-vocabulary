@@ -6,8 +6,6 @@ vi.mock('../api/rewardCardApi', () => ({
     getPending: vi.fn(),
     issueSongCard: vi.fn(),
     issueArtistCard: vi.fn(),
-    markSongCardSeen: vi.fn(),
-    markArtistCardSeen: vi.fn(),
     updateSongCardLyric: vi.fn(),
   },
 }));
@@ -32,16 +30,15 @@ const api = vi.mocked(rewardCardApi);
 const store = () => useRewardCardStore.getState();
 
 const songDto = (over: Partial<SongCardDto> = {}): SongCardDto => ({
-  songId: 12, title: '群青', artist: 'YOASOBI', artworkUrl: null, artistId: null, grade: 'BASIC', seenGrade: null,
+  id: 90, songId: 12, title: '群青', artist: 'YOASOBI', artworkUrl: null, artistId: null, grade: 'BASIC',
   acquiredSeq: 1, lyricLineIndexes: [], lyric: [], words: [], recall: 1, nextGoal: null, signature: [],
-  masteredAt: null, createdAt: '2026-10-11T00:00:00Z', ...over,
+  issued: false, createdAt: '2026-10-11T00:00:00Z', ...over,
 });
 
 describe('rewardCardStore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     api.issueSongCard.mockResolvedValue();
-    api.markSongCardSeen.mockResolvedValue();
     api.updateSongCardLyric.mockResolvedValue();
   });
   afterEach(() => store().reset());
@@ -50,64 +47,68 @@ describe('rewardCardStore', () => {
     api.getCards.mockResolvedValue({ songCards: [songDto()], artistCards: [] });
 
     await store().receiveReveals([
-      { kind: 'SONG', targetId: 12, grade: 'BASIC', seenGrade: null, acquiredSeq: 1 },
-      { kind: 'ARTIST', targetId: 3, grade: 'BASIC', seenGrade: null, acquiredSeq: 1 },
+      { kind: 'SONG', cardId: 90, targetId: 12, grade: 'BASIC', acquiredSeq: 1 },
+      { kind: 'ARTIST', cardId: 30, targetId: 3, grade: 'BASIC', acquiredSeq: 1 },
     ]);
 
-    expect(store().songCards.map((c) => c.id)).toEqual(['srv-song-12']);
-    expect(store().openNextReveal()?.cardId).toBe('srv-song-12');
+    expect(store().songCards.map((c) => c.id)).toEqual(['srv-song-90']);
+    expect(store().openNextReveal()?.cardId).toBe('srv-song-90');
     expect(store().openNextReveal()).toBeNull();
     store().closeReveal();
-    expect(store().openNextReveal()?.cardId).toBe('srv-artist-3');
+    expect(store().openNextReveal()?.cardId).toBe('srv-artist-30');
   });
 
   it('signing a server reveal issues the card with the picked lines', async () => {
     api.getCards.mockResolvedValue({ songCards: [songDto()], artistCards: [] });
-    await store().receiveReveals([{ kind: 'SONG', targetId: 12, grade: 'BASIC', seenGrade: null, acquiredSeq: 1 }]);
+    await store().receiveReveals([{ kind: 'SONG', cardId: 90, targetId: 12, grade: 'BASIC', acquiredSeq: 1 }]);
     store().openNextReveal();
 
-    store().setLyric('srv-song-12', [3]);
+    store().setLyric('srv-song-90', [3]);
     expect(api.updateSongCardLyric).not.toHaveBeenCalled();
-    store().sign('song', 'srv-song-12', ['M 0 0']);
+    store().sign('song', 'srv-song-90', ['M 0 0']);
 
-    expect(api.issueSongCard).toHaveBeenCalledWith(12, ['M 0 0'], [3]);
+    expect(api.issueSongCard).toHaveBeenCalledWith(90, ['M 0 0'], [3]);
     expect(store().songCards[0].signature).toEqual(['M 0 0']);
   });
 
-  it('closing an upgrade marks the grade seen', async () => {
-    api.getCards.mockResolvedValue({ songCards: [songDto({ grade: 'GOLD', seenGrade: 'BRONZE', signature: ['M'] })], artistCards: [] });
-    await store().receiveReveals([{ kind: 'SONG', targetId: 12, grade: 'GOLD', seenGrade: 'BRONZE', acquiredSeq: 1 }]);
-    expect(store().openNextReveal()).toMatchObject({ upgrade: true, fromGrade: 'BRONZE' });
+  it('a new grade of an owned song is its own card with its own reveal', async () => {
+    api.getCards.mockResolvedValue({
+      songCards: [songDto({ id: 91, grade: 'BRONZE' }), songDto({ issued: true, signature: ['M'] })],
+      artistCards: [],
+    });
+    await store().receiveReveals([{ kind: 'SONG', cardId: 91, targetId: 12, grade: 'BRONZE', acquiredSeq: 4 }]);
+    store().openNextReveal();
 
-    store().closeReveal();
+    store().sign('song', 'srv-song-91', ['N']);
 
-    expect(api.markSongCardSeen).toHaveBeenCalledWith(12, 'GOLD');
+    expect(api.issueSongCard).toHaveBeenCalledWith(91, ['N'], []);
+    expect(store().songCards.find((c) => c.id === 'srv-song-90')?.signature).toEqual(['M']);
   });
 
   it('editing lyric of an issued card saves it', async () => {
     api.getCards.mockResolvedValue({ songCards: [songDto({ signature: ['M'] })], artistCards: [] });
     await store().loadServerCards();
 
-    store().setLyric('srv-song-12', [1, 2]);
+    store().setLyric('srv-song-90', [1, 2]);
 
-    expect(api.updateSongCardLyric).toHaveBeenCalledWith(12, [1, 2]);
+    expect(api.updateSongCardLyric).toHaveBeenCalledWith(90, [1, 2]);
   });
 
   it('lyric edit of a card issued without a reveal saves it though unsigned', async () => {
-    api.getCards.mockResolvedValue({ songCards: [songDto({ seenGrade: 'BASIC' })], artistCards: [] });
+    api.getCards.mockResolvedValue({ songCards: [songDto({ issued: true })], artistCards: [] });
     await store().loadServerCards();
 
-    store().setLyric('srv-song-12', [3]);
-    expect(api.updateSongCardLyric).toHaveBeenCalledWith(12, [3]);
+    store().setLyric('srv-song-90', [3]);
+    expect(api.updateSongCardLyric).toHaveBeenCalledWith(90, [3]);
   });
 
   it('dev re-reveal never calls the server', async () => {
     api.getCards.mockResolvedValue({ songCards: [songDto({ signature: ['M'] })], artistCards: [] });
     await store().loadServerCards();
 
-    store().revealCard('song', 'srv-song-12');
+    store().revealCard('song', 'srv-song-90');
     store().openNextReveal();
-    store().sign('song', 'srv-song-12', ['N']);
+    store().sign('song', 'srv-song-90', ['N']);
 
     expect(api.issueSongCard).not.toHaveBeenCalled();
   });
@@ -116,7 +117,7 @@ describe('rewardCardStore', () => {
     store().setSource('dummy');
     expect(store().songCards.map((c) => c.id)).toEqual(['lemon']);
 
-    await store().receiveReveals([{ kind: 'SONG', targetId: 12, grade: 'BASIC', seenGrade: null, acquiredSeq: 1 }]);
+    await store().receiveReveals([{ kind: 'SONG', cardId: 90, targetId: 12, grade: 'BASIC', acquiredSeq: 1 }]);
 
     expect(api.getCards).not.toHaveBeenCalled();
     expect(store().queue).toEqual([]);

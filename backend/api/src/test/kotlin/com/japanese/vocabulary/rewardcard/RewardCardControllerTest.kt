@@ -144,8 +144,14 @@ class RewardCardControllerTest : ApiBaseIntegrationTest() {
             content = objectMapper.writeValueAsString(body)
         }
 
-    private fun reveal(kind: RewardCardKind, targetId: Long, grade: String, seenGrade: String?, seq: Int) =
-        RewardCardRevealDto(kind = kind, targetId = targetId, grade = grade, seenGrade = seenGrade, acquiredSeq = seq)
+    private data class Reveal(val kind: RewardCardKind, val targetId: Long, val grade: String, val seq: Int)
+
+    private fun reveal(kind: RewardCardKind, targetId: Long, grade: String, seq: Int) = Reveal(kind, targetId, grade, seq)
+
+    private fun List<RewardCardRevealDto>.keys() = map { Reveal(it.kind, it.targetId, it.grade, it.acquiredSeq) }
+
+    private fun songCardId(user: UserEntity, grade: SongCardGrade): Long =
+        cards(user).songCards.single { it.grade == grade }.id
 
     @Test
     fun `first rating in a song deck acquires the song card then the artist card`() {
@@ -156,24 +162,28 @@ class RewardCardControllerTest : ApiBaseIntegrationTest() {
 
         val reveals = review(me, card)
 
-        assertThat(reveals).containsExactly(
-            reveal(RewardCardKind.SONG, song.id!!, "BASIC", null, 1),
-            reveal(RewardCardKind.ARTIST, artist.id!!, "BASIC", null, 1),
+        assertThat(reveals.keys()).containsExactly(
+            reveal(RewardCardKind.SONG, song.id!!, "BASIC", 1),
+            reveal(RewardCardKind.ARTIST, artist.id!!, "BASIC", 1),
         )
         assertThat(pending(me)).isEqualTo(reveals)
     }
 
     @Test
-    fun `acquisition order is per song and per artist across users`() {
+    fun `acquisition order is per song and grade, and per artist and grade, across users`() {
         val artist = newArtist()
         val song = newSong(artist)
         val first = newUser()
         val second = newUser()
 
         review(first, studyWord(first, song, "輪郭"))
-        val reveals = review(second, studyWord(second, song, "輪郭"))
+        assertThat(review(second, studyWord(second, song, "輪郭")).map { it.acquiredSeq }).containsExactly(2, 2)
 
-        assertThat(reveals.map { it.acquiredSeq }).containsExactly(2, 2)
+        // 두 번째 유저가 먼저 후렴 단계를 끝내면 BRONZE 는 그 유저가 1번이다.
+        assertThat(review(second, studyWord(second, song, "胸")).keys())
+            .containsExactly(reveal(RewardCardKind.SONG, song.id!!, "BRONZE", 1))
+        assertThat(review(first, studyWord(first, song, "胸")).keys())
+            .containsExactly(reveal(RewardCardKind.SONG, song.id!!, "BRONZE", 2))
     }
 
     @Test
@@ -189,11 +199,11 @@ class RewardCardControllerTest : ApiBaseIntegrationTest() {
         entityManager.persist(DeckWordEntity(deckId = secondDeck.id!!, wordId = card.wordId))
         entityManager.flush()
 
-        assertThat(review(me, card)).containsExactly(
-            reveal(RewardCardKind.SONG, first.id!!, "BASIC", null, 1),
-            reveal(RewardCardKind.SONG, second.id!!, "BASIC", null, 1),
-            reveal(RewardCardKind.ARTIST, earlierArtist.id!!, "BASIC", null, 1),
-            reveal(RewardCardKind.ARTIST, laterArtist.id!!, "BASIC", null, 1),
+        assertThat(review(me, card).keys()).containsExactly(
+            reveal(RewardCardKind.SONG, first.id!!, "BASIC", 1),
+            reveal(RewardCardKind.SONG, second.id!!, "BASIC", 1),
+            reveal(RewardCardKind.ARTIST, earlierArtist.id!!, "BASIC", 1),
+            reveal(RewardCardKind.ARTIST, laterArtist.id!!, "BASIC", 1),
         )
         assertThat(cards(me).songCards.map { it.songId }).containsExactlyInAnyOrder(first.id, second.id)
     }
@@ -209,37 +219,41 @@ class RewardCardControllerTest : ApiBaseIntegrationTest() {
     }
 
     @Test
-    fun `grade rises with leading tiers and pending upgrade clears once seen`() {
+    fun `each grade reached is a new card and earlier cards stay`() {
         val me = newUser()
         val song = newSong(artist = null)
         val full = studyWord(me, song, "輪郭")
         val chorus = studyWord(me, song, "胸")
         val singalong = studyWord(me, song, "雨")
 
-        assertThat(review(me, full).map { it.grade }).containsExactly("BASIC")
-        // 서명 전에 오르면 여전히 획득 연출이다 — 오른 등급으로 받는다.
-        assertThat(review(me, chorus)).containsExactly(reveal(RewardCardKind.SONG, song.id!!, "BRONZE", null, 1))
+        assertThat(review(me, full).keys()).containsExactly(reveal(RewardCardKind.SONG, song.id!!, "BASIC", 1))
+        assertThat(review(me, chorus).keys()).containsExactly(reveal(RewardCardKind.SONG, song.id!!, "BRONZE", 1))
+        assertThat(pending(me).map { it.grade }).containsExactly("BASIC", "BRONZE")
 
-        postJson(me, "/api/reward-cards/songs/${song.id}/issue", mapOf("signature" to signature, "lyricLineIndexes" to listOf(0)))
+        postJson(me, "/api/reward-cards/song-cards/${songCardId(me, SongCardGrade.BRONZE)}/issue", mapOf("signature" to signature, "lyricLineIndexes" to listOf(0)))
             .andExpect { status { isNoContent() } }
-        assertThat(pending(me)).isEmpty()
+        assertThat(pending(me).map { it.grade }).containsExactly("BASIC")
 
-        assertThat(review(me, singalong)).containsExactly(reveal(RewardCardKind.SONG, song.id!!, "GOLD", "BRONZE", 1))
-        assertThat(pending(me).map { it.seenGrade to it.grade }).containsExactly("BRONZE" to "GOLD")
+        // 따라 부르기와 완곡이 한 번에 끝나면 두 등급 카드가 낮은 등급부터 나온다.
+        assertThat(review(me, singalong).keys()).containsExactly(
+            reveal(RewardCardKind.SONG, song.id!!, "SILVER", 1),
+            reveal(RewardCardKind.SONG, song.id!!, "GOLD", 1),
+        )
 
-        postJson(me, "/api/reward-cards/songs/${song.id}/seen", mapOf("grade" to "GOLD"))
-            .andExpect { status { isNoContent() } }
-        assertThat(pending(me)).isEmpty()
-
-        val songCard = cards(me).songCards.single()
-        assertThat(songCard.grade).isEqualTo(SongCardGrade.GOLD)
-        assertThat(songCard.signature).isEqualTo(signature)
-        assertThat(songCard.lyricLineIndexes).containsExactly(0)
-        assertThat(songCard.lyric.map { it.index }).containsExactly(0)
-        assertThat(songCard.words.map { it.japanese }).containsExactly("胸", "雨", "輪郭")
-        // 막 공부한 단어라 장기기억은 아직 없다. 목표는 tier 단어 3개의 90% 올림.
-        assertThat(songCard.nextGoal).isEqualTo(RewardCardGoalResponse(current = 0, total = 3))
-        assertThat(songCard.recall).isBetween(0.9, 1.0)
+        val songCards = cards(me).songCards
+        assertThat(songCards.map { it.grade }).containsExactlyInAnyOrder(
+            SongCardGrade.BASIC, SongCardGrade.BRONZE, SongCardGrade.SILVER, SongCardGrade.GOLD,
+        )
+        val bronze = songCards.single { it.grade == SongCardGrade.BRONZE }
+        assertThat(bronze.issued).isTrue()
+        assertThat(bronze.signature).isEqualTo(signature)
+        assertThat(bronze.lyricLineIndexes).containsExactly(0)
+        assertThat(bronze.lyric.map { it.index }).containsExactly(0)
+        assertThat(bronze.words.map { it.japanese }).containsExactly("胸", "雨", "輪郭")
+        assertThat(songCards.single { it.grade == SongCardGrade.GOLD }.issued).isFalse()
+        // 다음 등급 진행은 곡의 것이라 카드마다 같다. 막 공부한 단어라 장기기억은 아직 없고, 목표는 tier 단어 3개의 90% 올림.
+        assertThat(songCards.map { it.nextGoal }.distinct()).containsExactly(RewardCardGoalResponse(current = 0, total = 3))
+        assertThat(bronze.recall).isBetween(0.9, 1.0)
     }
 
     @Test
@@ -255,7 +269,7 @@ class RewardCardControllerTest : ApiBaseIntegrationTest() {
     }
 
     @Test
-    fun `study bootstrap rating acquires the song card`() {
+    fun `study bootstrap rating acquires every grade it reaches`() {
         val me = newUser()
         val artist = newArtist()
         val song = newSong(artist)
@@ -264,8 +278,9 @@ class RewardCardControllerTest : ApiBaseIntegrationTest() {
             .andExpect { status { isOk() } }.andReturn().response.contentAsString
         val response = readBody<SongStudyBootstrapResponse>(body)
 
-        // lead 는 중요도 1위 胸 — 후렴 단계의 유일한 단어라 첫 rating 에 BRONZE 로 받는다.
+        // lead 는 중요도 1위 胸 — 후렴 단계의 유일한 단어라 첫 rating 에 BASIC·BRONZE 를 함께 받는다.
         assertThat(response.rewardCards.map { it.kind to it.grade }).containsExactly(
+            RewardCardKind.SONG to "BASIC",
             RewardCardKind.SONG to "BRONZE",
             RewardCardKind.ARTIST to "BASIC",
         )
@@ -276,25 +291,30 @@ class RewardCardControllerTest : ApiBaseIntegrationTest() {
         val me = newUser()
         val song = newSong(artist = null)
         review(me, studyWord(me, song, "輪郭"))
-        val path = "/api/reward-cards/songs/${song.id}/issue"
+        val cardId = songCardId(me, SongCardGrade.BASIC)
+        val path = "/api/reward-cards/song-cards/$cardId/issue"
+        val lyricPath = "/api/reward-cards/song-cards/$cardId/lyric"
 
         postJson(me, path, mapOf("signature" to emptyList<String>())).andExpect { status { isBadRequest() } }
         postJson(me, path, mapOf("signature" to signature, "lyricLineIndexes" to listOf(9))).andExpect { status { isBadRequest() } }
         postJson(me, path, mapOf("signature" to signature, "lyricLineIndexes" to listOf(0, 1, 2))).andExpect { status { isBadRequest() } }
-        postJson(me, "/api/reward-cards/songs/${song.id}/seen", mapOf("grade" to "BASIC")).andExpect { status { isConflict() } }
+        putJson(me, lyricPath, mapOf("lyricLineIndexes" to listOf(1))).andExpect { status { isConflict() } }
 
         postJson(me, path, mapOf("signature" to signature)).andExpect { status { isNoContent() } }
         postJson(me, path, mapOf("signature" to signature)).andExpect { status { isConflict() } }
 
-        mockMvc.put("/api/reward-cards/songs/${song.id}/lyric") {
-            header("Authorization", bearer(me))
-            contentType = MediaType.APPLICATION_JSON
-            content = objectMapper.writeValueAsString(mapOf("lyricLineIndexes" to listOf(2, 1)))
-        }.andExpect { status { isNoContent() } }
+        putJson(me, lyricPath, mapOf("lyricLineIndexes" to listOf(2, 1))).andExpect { status { isNoContent() } }
         assertThat(cards(me).songCards.single().lyricLineIndexes).containsExactly(2, 1)
 
         postJson(newUser(), path, mapOf("signature" to signature)).andExpect { status { isNotFound() } }
     }
+
+    private fun putJson(user: UserEntity, path: String, body: Any): ResultActionsDsl =
+        mockMvc.put(path) {
+            header("Authorization", bearer(user))
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(body)
+        }
 
     @Test
     fun `artist card joins once the song gets its artist`() {
@@ -306,13 +326,13 @@ class RewardCardControllerTest : ApiBaseIntegrationTest() {
         song.artistId = artist.id
         entityManager.flush()
 
-        assertThat(review(me, studyWord(me, song, "雨"))).containsExactly(
-            reveal(RewardCardKind.ARTIST, artist.id!!, "BASIC", null, 1),
+        assertThat(review(me, studyWord(me, song, "雨")).keys()).containsExactly(
+            reveal(RewardCardKind.ARTIST, artist.id!!, "BASIC", 1),
         )
     }
 
     @Test
-    fun `mastered songs raise the artist card and list as recent masters`() {
+    fun `mastering a song issues the master card and each artist grade it reaches`() {
         val me = newUser()
         val artist = newArtist()
         val song = newSong(artist)
@@ -321,11 +341,16 @@ class RewardCardControllerTest : ApiBaseIntegrationTest() {
         val reveals = rewardCardService.achieveSongs(me.id!!, listOf(SongAchievementDto(song.id!!, artist.id, SongCardGrade.MASTER)))
 
         assertThat(reveals.map { it.kind to it.grade }).containsExactly(
+            RewardCardKind.SONG to "BRONZE",
+            RewardCardKind.SONG to "SILVER",
+            RewardCardKind.SONG to "GOLD",
             RewardCardKind.SONG to "MASTER",
             RewardCardKind.ARTIST to "BRONZE",
         )
-        val artistCard = cards(me).artistCards.single()
-        assertThat(artistCard.masteredSongs.map { it.songId }).containsExactly(song.id)
-        assertThat(cards(me).songCards.single().nextGoal).isNull()
+        val artistCards = cards(me).artistCards
+        // 지난 재질의 카드는 다음 재질에 닿기 전의 마스터 곡만 싣는다.
+        assertThat(artistCards.single { it.grade.name == "BASIC" }.masteredSongs).isEmpty()
+        assertThat(artistCards.single { it.grade.name == "BRONZE" }.masteredSongs.map { it.songId }).containsExactly(song.id)
+        assertThat(cards(me).songCards.map { it.nextGoal }.distinct()).containsExactly(null)
     }
 }

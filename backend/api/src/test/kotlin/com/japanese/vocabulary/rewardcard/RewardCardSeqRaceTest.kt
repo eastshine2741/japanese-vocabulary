@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.rewardcard
 
+import com.japanese.vocabulary.rewardcard.dto.RewardCardRevealDto
 import com.japanese.vocabulary.rewardcard.dto.SongAchievementDto
 import com.japanese.vocabulary.rewardcard.model.RewardCardKind
 import com.japanese.vocabulary.rewardcard.model.SongCardGrade
@@ -12,7 +13,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-/** 같은 곡·아티스트의 첫 달성이 동시에 몰려도 순번이 겹치거나 빠지지 않고, 데드락으로 rating 이 실패하지 않는다. */
+/** 같은 곡·아티스트의 여러 등급 달성이 동시에 몰려도 순번이 겹치거나 빠지지 않고, 데드락으로 rating 이 실패하지 않는다. */
 class RewardCardSeqRaceTest : ApiAfterCommitListenerTest() {
 
     @Autowired private lateinit var rewardCardService: RewardCardService
@@ -26,21 +27,27 @@ class RewardCardSeqRaceTest : ApiAfterCommitListenerTest() {
         val pool = Executors.newFixedThreadPool(users.size)
 
         val futures = users.map { userId ->
-            pool.submit<List<Int>> {
+            pool.submit<List<RewardCardRevealDto>> {
                 start.await()
-                inTx { rewardCardService.achieveSongs(userId, listOf(SongAchievementDto(songId, artistId, SongCardGrade.BASIC))) }
-                    .map { it.acquiredSeq }
+                inTx { rewardCardService.achieveSongs(userId, listOf(SongAchievementDto(songId, artistId, SongCardGrade.MASTER))) }
             }
         }
         start.countDown()
         val results = futures.map { it.get(30, TimeUnit.SECONDS) }
         pool.shutdown()
 
-        val songSeqs = results.map { it[0] }
-        val artistSeqs = results.map { it[1] }
-        assertThat(songSeqs).containsExactlyInAnyOrderElementsOf(1..users.size)
-        assertThat(artistSeqs).containsExactlyInAnyOrderElementsOf(1..users.size)
-        assertThat(inTx { rewardCardService.pending(users.first()) }.map { it.kind })
-            .containsExactly(RewardCardKind.SONG, RewardCardKind.ARTIST)
+        // 곡 BASIC~MASTER 다섯 장과 아티스트 BASIC·BRONZE 두 장, (종류, 등급)마다 1..8 이 한 번씩.
+        val seqsByGrade = results.flatten().groupBy({ it.kind to it.grade }, { it.acquiredSeq })
+        assertThat(seqsByGrade).hasSize(7)
+        seqsByGrade.values.forEach { assertThat(it).containsExactlyInAnyOrderElementsOf(1..users.size) }
+        assertThat(inTx { rewardCardService.pending(users.first()) }.map { it.kind to it.grade }).containsExactly(
+            RewardCardKind.SONG to "BASIC",
+            RewardCardKind.SONG to "BRONZE",
+            RewardCardKind.SONG to "SILVER",
+            RewardCardKind.SONG to "GOLD",
+            RewardCardKind.SONG to "MASTER",
+            RewardCardKind.ARTIST to "BASIC",
+            RewardCardKind.ARTIST to "BRONZE",
+        )
     }
 }

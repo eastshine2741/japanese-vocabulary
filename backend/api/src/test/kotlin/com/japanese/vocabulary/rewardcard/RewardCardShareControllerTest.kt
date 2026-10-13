@@ -60,7 +60,7 @@ class RewardCardShareControllerTest : ApiBaseIntegrationTest() {
                 userId = user.id!!,
                 songId = song.id!!,
                 grade = SongCardGrade.BASIC,
-                seenGrade = SongCardGrade.BASIC.takeIf { issued },
+                issuedAt = clock.instant().takeIf { issued },
                 acquiredSeq = 1,
                 createdAt = clock.instant(),
             )
@@ -74,12 +74,24 @@ class RewardCardShareControllerTest : ApiBaseIntegrationTest() {
                 userId = user.id!!,
                 artistId = artist.id!!,
                 grade = ArtistCardGrade.BASIC,
-                seenGrade = ArtistCardGrade.BASIC,
+                issuedAt = clock.instant(),
                 acquiredSeq = 1,
                 createdAt = clock.instant(),
             )
         )
         entityManager.flush()
+    }
+
+    private fun songPath(song: SongEntity): String {
+        val id = entityManager.createQuery("SELECT c.id FROM SongCardEntity c WHERE c.songId = :s", java.lang.Long::class.java)
+            .setParameter("s", song.id).singleResult
+        return "song-cards/$id"
+    }
+
+    private fun artistPath(artist: ArtistEntity): String {
+        val id = entityManager.createQuery("SELECT c.id FROM ArtistCardEntity c WHERE c.artistId = :a", java.lang.Long::class.java)
+            .setParameter("a", artist.id).singleResult
+        return "artist-cards/$id"
     }
 
     private fun share(user: UserEntity, path: String, imageUploaded: Boolean = false): ResultActionsDsl =
@@ -104,9 +116,9 @@ class RewardCardShareControllerTest : ApiBaseIntegrationTest() {
         songCard(me, song)
 
         val first = readBody<RewardCardShareResponse>(
-            share(me, "songs/${song.id}").andExpect { status { isOk() } }.andReturn().response.contentAsString
+            share(me, songPath(song)).andExpect { status { isOk() } }.andReturn().response.contentAsString
         )
-        val second = shareToken(me, "songs/${song.id}")
+        val second = shareToken(me, songPath(song))
 
         assertThat(first.url).isEqualTo("https://kotonoha.test/c/${first.token}")
         assertThat(second).isEqualTo(first.token)
@@ -122,9 +134,9 @@ class RewardCardShareControllerTest : ApiBaseIntegrationTest() {
         songCard(me, unsigned, issued = false)
         songCard(other, othersSong)
 
-        share(me, "songs/${unsigned.id}").andExpect { status { isNotFound() } }
-        share(me, "songs/${othersSong.id}").andExpect { status { isNotFound() } }
-        share(me, "artists/999999").andExpect { status { isNotFound() } }
+        share(me, songPath(unsigned)).andExpect { status { isNotFound() } }
+        share(me, songPath(othersSong)).andExpect { status { isNotFound() } }
+        share(me, "artist-cards/999999").andExpect { status { isNotFound() } }
     }
 
     @Test
@@ -141,11 +153,11 @@ class RewardCardShareControllerTest : ApiBaseIntegrationTest() {
             )
         }
 
-        val body = mockMvc.post("/api/reward-cards/songs/${song.id}/share/image-upload-url") {
+        val body = mockMvc.post("/api/reward-cards/${songPath(song)}/share/image-upload-url") {
             header("Authorization", bearer(me))
         }.andExpect { status { isOk() } }.andReturn().response.contentAsString
 
-        val token = shareToken(me, "songs/${song.id}")
+        val token = shareToken(me, songPath(song))
         val resp = readBody<ShareImageUploadUrlResponse>(body)
         assertThat(resp.uploadUrl).isEqualTo("https://r2.test/${shareTokens.imageKey(token)}?sig")
         assertThat(shareTokens.imageKey(token)).doesNotContain(song.id.toString()).endsWith(".png")
@@ -157,13 +169,13 @@ class RewardCardShareControllerTest : ApiBaseIntegrationTest() {
         val me = newUser()
         val song = TestSongBuilder(entityManager).withArtworkUrl("https://art.test/a.jpg").build()
         songCard(me, song)
-        val token = shareToken(me, "songs/${song.id}")
+        val token = shareToken(me, songPath(song))
         val key = shareTokens.imageKey(token)
         every { objectStorageClient.enabled } returns true
         every { objectStorageClient.head(key) } returns StoredObject(contentType = "image/png", contentLength = 200_000)
         every { objectStorageClient.publicUrl(any()) } answers { "https://img.test/${firstArg<String>()}" }
 
-        assertThat(shareToken(me, "songs/${song.id}", imageUploaded = true)).isEqualTo(token)
+        assertThat(shareToken(me, songPath(song), imageUploaded = true)).isEqualTo(token)
         val html = mockMvc.get("/c/$token").andExpect { status { isOk() } }.andReturn().response.getContentAsString(Charsets.UTF_8)
         assertThat(html).contains("""<meta property="og:image" content="https://img.test/$key">""")
     }
@@ -173,11 +185,11 @@ class RewardCardShareControllerTest : ApiBaseIntegrationTest() {
         val me = newUser()
         val song = TestSongBuilder(entityManager).build()
         songCard(me, song)
-        val key = shareTokens.imageKey(shareToken(me, "songs/${song.id}"))
+        val key = shareTokens.imageKey(shareToken(me, songPath(song)))
         every { objectStorageClient.enabled } returns true
         every { objectStorageClient.head(key) } returns StoredObject(contentType = "image/png", contentLength = 6L * 1024 * 1024)
 
-        share(me, "songs/${song.id}", imageUploaded = true).andExpect { status { isBadRequest() } }
+        share(me, songPath(song), imageUploaded = true).andExpect { status { isBadRequest() } }
         verify { objectStorageClient.delete(key) }
     }
 
@@ -189,8 +201,8 @@ class RewardCardShareControllerTest : ApiBaseIntegrationTest() {
         val artist = ArtistEntity(appleMusicId = "am-${System.nanoTime()}", name = "YOASOBI").also { entityManager.persist(it) }
         songCard(owner, song)
         artistCard(owner, artist)
-        val songToken = shareToken(owner, "songs/${song.id}")
-        val artistToken = shareToken(owner, "artists/${artist.id}")
+        val songToken = shareToken(owner, songPath(song))
+        val artistToken = shareToken(owner, artistPath(artist))
 
         val songShared = readBody<SharedRewardCardResponse>(
             sharedCard(viewer, songToken).andExpect { status { isOk() } }.andReturn().response.contentAsString
@@ -212,7 +224,7 @@ class RewardCardShareControllerTest : ApiBaseIntegrationTest() {
         val me = newUser()
         val song = TestSongBuilder(entityManager).build()
         songCard(me, song)
-        val token = shareToken(me, "songs/${song.id}")
+        val token = shareToken(me, songPath(song))
         val forged = token.substringBeforeLast('.') + ".AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
         sharedCard(me, forged).andExpect { status { isNotFound() } }
@@ -261,7 +273,7 @@ class RewardCardShareControllerTest : ApiBaseIntegrationTest() {
             .withArtworkUrl("https://art.test/a.jpg")
             .build()
         songCard(me, song)
-        val token = shareToken(me, "songs/${song.id}")
+        val token = shareToken(me, songPath(song))
         every { objectStorageClient.enabled } returns false
 
         val response = mockMvc.get("/c/$token")

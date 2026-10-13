@@ -581,8 +581,6 @@ interface GuideProps {
   steps: readonly LadderStep[];
   /** 지금 계단의 index. */
   current: number;
-  /** 등급이 오를 때 — 처음부터 이 칸까지 차 있고, 그 다음 칸부터 채운다. */
-  from?: number;
   accent: string;
   /** 문구가 다 떠오르면 계단을 채우기 시작한다. */
   motion: Pick<RevealMotion, 'copyIn' | 'pulse'>;
@@ -594,10 +592,10 @@ const RUNG_PAD = 2;
 const FILL_FROM = -0.5;
 
 /** 설명 몇 줄과 승급 계단. 지금 자리까지 한 칸씩 차올라 다음 목표가 따로 말하지 않아도 보이게 한다. */
-export const RevealGuide = React.memo(function RevealGuide({ lines, steps, current, from, accent, motion }: GuideProps) {
+export const RevealGuide = React.memo(function RevealGuide({ lines, steps, current, accent, motion }: GuideProps) {
   const { copyIn, pulse } = motion;
   // 가사 고르기에서 돌아오면 다시 채우지 않는다.
-  const fill = useSharedValue(copyIn.value >= 1 ? current : (from ?? FILL_FROM));
+  const fill = useSharedValue(copyIn.value >= 1 ? current : FILL_FROM);
   const [ladderW, setLadderW] = useState(0);
   const handleLadderLayout = useCallback((e: LayoutChangeEvent) => setLadderW(e.nativeEvent.layout.width), []);
   // 칸마다 따로 줄이면(adjustsFontSizeToFit) 안드로이드에서 글자가 찌그러져, 한 크기로 맞춘다.
@@ -606,16 +604,13 @@ export const RevealGuide = React.memo(function RevealGuide({ lines, steps, curre
   const captionSize = useMemo(() => fitFontSize(steps.map((s) => s.caption), textW, 11), [steps, textW]);
 
   const run = useCallback(() => {
-    const first = from === undefined ? 0 : from + 1;
-    if (first > current) return;
-    const legs = Array.from({ length: current - first + 1 }, (_, j) => {
-      const k = first + j;
+    const legs = Array.from({ length: current + 1 }, (_, k) => {
       return withTiming(k, { duration: k === 0 ? 200 : RUNG_MS, easing: Easing.inOut(Easing.quad) }, (finished) => {
         if (finished) runOnJS(hapticRung)(k === current);
       });
     });
     fill.value = withSequence(...legs);
-  }, [current, from, fill]);
+  }, [current, fill]);
 
   useAnimatedReaction(
     () => copyIn.value >= 1,

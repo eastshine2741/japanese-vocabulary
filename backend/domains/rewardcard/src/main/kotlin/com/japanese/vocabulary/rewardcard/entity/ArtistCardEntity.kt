@@ -28,13 +28,10 @@ class ArtistCardEntity(
     val artistId: Long,
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "grade", nullable = false, length = 10)
-    var grade: ArtistCardGrade,
+    @Column(name = "grade", nullable = false, updatable = false, length = 10)
+    val grade: ArtistCardGrade,
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "seen_grade", length = 10)
-    var seenGrade: ArtistCardGrade? = null,
-
+    /** 아티스트·재질마다 따로 센다. */
     @Column(name = "acquired_seq", nullable = false)
     val acquiredSeq: Int,
 
@@ -42,30 +39,22 @@ class ArtistCardEntity(
     @Column(name = "signature", columnDefinition = "JSON", nullable = false)
     var signature: List<String> = emptyList(),
 
+    /** null 이면 서명 전이라 획득 연출이 남았다. */
+    @Column(name = "issued_at")
+    var issuedAt: Instant? = null,
+
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: Instant,
 ) {
-    val isIssued: Boolean get() = seenGrade != null
+    val isIssued: Boolean get() = issuedAt != null
 
-    fun raiseTo(target: ArtistCardGrade): Boolean {
-        if (target <= grade) return false
-        grade = target
-        return true
-    }
-
-    fun issue(signature: List<String>) {
+    fun issue(signature: List<String>, now: Instant) {
         if (isIssued) throw BusinessException(ErrorCode.REWARD_CARD_ALREADY_ISSUED)
         this.signature = signature
-        seenGrade = grade
+        issuedAt = now
     }
 
-    fun issueSilently() {
-        seenGrade = grade
-    }
-
-    fun markSeen(seen: ArtistCardGrade) {
-        val current = seenGrade ?: throw BusinessException(ErrorCode.REWARD_CARD_NOT_ISSUED)
-        if (seen > grade) throw BusinessException(ErrorCode.INVALID_REWARD_CARD_GRADE)
-        if (seen > current) seenGrade = seen
+    fun issueSilently(now: Instant) {
+        if (issuedAt == null) issuedAt = now
     }
 }

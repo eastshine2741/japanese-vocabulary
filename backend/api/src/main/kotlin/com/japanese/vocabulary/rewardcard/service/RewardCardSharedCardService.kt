@@ -30,8 +30,8 @@ class RewardCardSharedCardService(
         } catch (e: BusinessException) {
             return null
         }
-        val songCard = if (ref.kind == RewardCardKind.SONG) rewardCardQueryService.songCard(ref.userId, ref.targetId) ?: return null else null
-        val artistCard = if (ref.kind == RewardCardKind.ARTIST) rewardCardQueryService.artistCard(ref.userId, ref.targetId) ?: return null else null
+        val songCard = if (ref.kind == RewardCardKind.SONG) rewardCardQueryService.songCard(ref.userId, ref.cardId) ?: return null else null
+        val artistCard = if (ref.kind == RewardCardKind.ARTIST) rewardCardQueryService.artistCard(ref.userId, ref.cardId) ?: return null else null
         return SharedRewardCardResponse(
             token = token,
             url = shareProperties.shareUrl(token),

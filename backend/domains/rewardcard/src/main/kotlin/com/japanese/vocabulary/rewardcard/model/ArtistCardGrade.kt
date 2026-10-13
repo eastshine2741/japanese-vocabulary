@@ -4,6 +4,8 @@ package com.japanese.vocabulary.rewardcard.model
 enum class ArtistCardGrade(val minMasterCount: Int) {
     BASIC(0), BRONZE(1), SILVER(3), GOLD(7), PLATINUM(15), DIAMOND(30);
 
+    val next: ArtistCardGrade? get() = entries.getOrNull(ordinal + 1)
+
     companion object {
         fun forMasterCount(count: Int): ArtistCardGrade = entries.last { count >= it.minMasterCount }
     }

@@ -29,7 +29,7 @@ class RewardCardShareController(
     private val shareProperties: ShareProperties,
 ) {
     /** 같은 카드는 늘 같은 링크다. */
-    @PutMapping("/api/reward-cards/{kind:songs|artists}/{id}/share")
+    @PutMapping("/api/reward-cards/{kind:song-cards|artist-cards}/{id}/share")
     fun share(
         @PathVariable kind: String,
         @PathVariable id: Long,
@@ -40,7 +40,7 @@ class RewardCardShareController(
         return RewardCardShareResponse(token = token, url = shareProperties.shareUrl(token))
     }
 
-    @PostMapping("/api/reward-cards/{kind:songs|artists}/{id}/share/image-upload-url")
+    @PostMapping("/api/reward-cards/{kind:song-cards|artist-cards}/{id}/share/image-upload-url")
     fun issueImageUploadUrl(@PathVariable kind: String, @PathVariable id: Long): ShareImageUploadUrlResponse =
         rewardCardShareImageService.issueUploadUrl(myCardToken(kind, id))
 
@@ -50,7 +50,7 @@ class RewardCardShareController(
         rewardCardSharedCardService.find(token) ?: throw BusinessException(ErrorCode.REWARD_CARD_SHARE_NOT_FOUND)
 
     private fun myCardToken(kind: String, id: Long): String {
-        val cardKind = if (kind == "songs") RewardCardKind.SONG else RewardCardKind.ARTIST
+        val cardKind = if (kind == "song-cards") RewardCardKind.SONG else RewardCardKind.ARTIST
         val card = rewardCardShareService.issuedCard(currentUserId(), cardKind, id)
         return shareTokens.issue(card.kind, card.cardId)
     }

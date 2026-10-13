@@ -17,15 +17,8 @@ class RewardCardShareService(
 ) {
     /** 발급 전이거나 남의 카드면 없는 카드와 똑같이 답한다. */
     @Transactional(readOnly = true)
-    fun issuedCard(userId: Long, kind: RewardCardKind, targetId: Long): RewardCardRefDto {
-        val ref = when (kind) {
-            RewardCardKind.SONG -> songCardRepository.findByUserIdAndSongId(userId, targetId)
-                ?.takeIf { it.isIssued }?.let { RewardCardRefDto(kind, it.id!!, it.userId, it.songId) }
-            RewardCardKind.ARTIST -> artistCardRepository.findByUserIdAndArtistId(userId, targetId)
-                ?.takeIf { it.isIssued }?.let { RewardCardRefDto(kind, it.id!!, it.userId, it.artistId) }
-        }
-        return ref ?: throw BusinessException(ErrorCode.REWARD_CARD_NOT_FOUND)
-    }
+    fun issuedCard(userId: Long, kind: RewardCardKind, cardId: Long): RewardCardRefDto =
+        findIssuedCard(kind, cardId)?.takeIf { it.userId == userId } ?: throw BusinessException(ErrorCode.REWARD_CARD_NOT_FOUND)
 
     @Transactional(readOnly = true)
     fun findIssuedCard(kind: RewardCardKind, cardId: Long): RewardCardRefDto? = when (kind) {

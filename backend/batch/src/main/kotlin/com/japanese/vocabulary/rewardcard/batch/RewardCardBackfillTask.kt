@@ -7,6 +7,8 @@ import com.japanese.vocabulary.notification.repository.DeviceTokenRepository
 import com.japanese.vocabulary.notification.service.PushNotificationService
 import com.japanese.vocabulary.rewardcard.service.RewardCardService
 import com.japanese.vocabulary.rewardcard.dto.SongAchievementDto
+import com.japanese.vocabulary.rewardcard.model.ArtistCardGrade
+import com.japanese.vocabulary.rewardcard.model.SongCardGrade
 import com.japanese.vocabulary.rewardcard.service.SongCardGrader
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.user.repository.UserRepository
@@ -16,7 +18,7 @@ import org.springframework.boot.ApplicationArguments
 import org.springframework.stereotype.Component
 
 /**
- * 카드 기능 전부터 담아 둔 곡 단어장을 연출 없이 발급된 카드로 채우고, 카드가 새로 생긴 유저에게 알린다.
+ * 카드 기능 전부터 담아 둔 곡 단어장을 지금 등급까지 등급마다 연출 없이 발급된 카드로 채우고, 카드가 새로 생긴 유저에게 알린다.
  * 새 앱이 충분히 퍼진 뒤 수동으로 한 번 돌린다 — 끝에 모든 카드를 조용히 발급하므로, 다시 돌리면 그 사이 쌓인 연출도 사라진다.
  * 담아 둔 곡이 많은 유저가 다른 곡과 겹치는 단어 하나를 rating 할 때마다 지금 공부하지 않는 곡의 카드가 튀어나오지 않게 미리 채운다.
  */
@@ -58,44 +60,56 @@ class RewardCardBackfillTask(
 
     fun backfill(push: Boolean): Result {
         val (decks, active) = targets()
-        val newSongCards = mutableMapOf<Long, MutableList<SongAchievementDto>>()
+        val newSongs = mutableMapOf<Long, MutableList<SongAchievementDto>>()
+        var newSongCards = 0
         var newArtistCards = 0
         var failed = 0
-        // 곡 단어장을 만든 순서대로 하나씩 — 같은 곡은 먼저 담은 유저가 앞 순번을 받는다.
+        // 곡 단어장을 만든 순서대로 하나씩 — 같은 곡·등급은 먼저 담은 유저가 앞 순번을 받는다.
         for (deck in decks) {
             try {
                 val achievement = songCardGrader.measure(deck.userId, listOf(deck.songId)).singleOrNull() ?: continue
                 val created = rewardCardService.backfillSong(deck.userId, achievement)
-                if (created.song) newSongCards.getOrPut(deck.userId) { mutableListOf() } += achievement
-                if (created.artist) newArtistCards++
+                if (created.songCards > 0) newSongs.getOrPut(deck.userId) { mutableListOf() } += achievement
+                newSongCards += created.songCards
+                newArtistCards += created.artistCards
             } catch (e: Exception) {
                 failed++
                 logger.warn("rewardCardBackfill failed userId={} songId={}", deck.userId, deck.songId, e)
             }
         }
         active.keys.forEach { rewardCardService.issueAllSilently(it) }
-        val pushed = if (push) notify(newSongCards, active) else 0
-        return Result(active.size, newSongCards.values.sumOf { it.size }, newArtistCards, silencedReveals = 0, failed, pushed)
+        val pushed = if (push) notify(newSongs, active) else 0
+        return Result(active.size, newSongCards, newArtistCards, silencedReveals = 0, failed, pushed)
     }
 
     /** [backfill] 과 같은 대상을 재기만 한다. 순번을 받지 않으므로 rating 과 락을 다투지 않는다. */
     fun dryRun(): Result {
         val (decks, active) = targets()
         val newSongCards = mutableMapOf<Long, Int>()
-        val artistIdsByUser = mutableMapOf<Long, MutableSet<Long>>()
+        // 유저 → 아티스트 → 채운 뒤의 마스터 곡 수에 더해질 곡 수
+        val newMasters = mutableMapOf<Long, MutableMap<Long, Int>>()
         var failed = 0
         for (deck in decks) {
             try {
                 val achievement = songCardGrader.measure(deck.userId, listOf(deck.songId)).singleOrNull() ?: continue
-                if (rewardCardService.songGrades(deck.userId, listOf(deck.songId)).isEmpty()) newSongCards.merge(deck.userId, 1, Int::plus)
-                achievement.artistId?.let { artistIdsByUser.getOrPut(deck.userId) { mutableSetOf() } += it }
+                val owned = rewardCardService.ownedSongGrades(deck.userId, listOf(deck.songId))[deck.songId].orEmpty()
+                val missing = SongCardGrade.entries.count { it <= achievement.grade && it !in owned }
+                if (missing > 0) newSongCards.merge(deck.userId, missing, Int::plus)
+                val artistId = achievement.artistId ?: continue
+                val mastered = achievement.grade == SongCardGrade.MASTER && SongCardGrade.MASTER !in owned
+                newMasters.getOrPut(deck.userId) { mutableMapOf() }.merge(artistId, if (mastered) 1 else 0, Int::plus)
             } catch (e: Exception) {
                 failed++
                 logger.warn("rewardCardBackfill dryRun failed userId={} songId={}", deck.userId, deck.songId, e)
             }
         }
-        val newArtistCards = artistIdsByUser.entries.sumOf { (userId, artistIds) ->
-            (artistIds - rewardCardService.artistCards(userId).map { it.artistId }.toSet()).size
+        val newArtistCards = newMasters.entries.sumOf { (userId, added) ->
+            val counts = rewardCardService.masterCounts(userId, added.keys)
+            val owned = rewardCardService.ownedArtistGrades(userId, added.keys)
+            added.entries.sumOf { (artistId, extra) ->
+                val target = ArtistCardGrade.forMasterCount((counts[artistId] ?: 0) + extra)
+                ArtistCardGrade.entries.count { it <= target && it !in owned[artistId].orEmpty() }
+            }
         }
         return Result(
             users = active.size,

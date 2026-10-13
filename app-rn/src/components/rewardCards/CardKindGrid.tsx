@@ -5,14 +5,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ArtistCardFront } from './ArtistCardShowcase';
 import { SongCardFront } from './SongCardShowcase';
 import { ARTIST_GRADE_STEPS, type ArtistGradeStep } from './artistGrade';
-import {
-  SONG_CARD_KINDS,
-  artistCardAt,
-  ownsArtistGrade,
-  ownsSongKind,
-  songCardAt,
-  type SongCardKind,
-} from './cardKinds';
+import { SONG_CARD_KINDS, artistCardOfStep, songCardOfKind, type SongCardKind } from './cardKinds';
 import { artistCardPreview, songCardPreview, type PreviewArtist, type PreviewSong } from './cardPreview';
 import { CardFonts, songTierName } from './cardTheme';
 import type { ArtistRewardCard, SongRewardCard } from './types';
@@ -47,23 +40,24 @@ function artistGradeCondition(step: ArtistGradeStep): { short: string; full: str
 
 interface SongGridProps {
   song: PreviewSong;
-  /** 이 곡의 내 카드. 없으면 모든 종류가 견본이다. */
-  card: SongRewardCard | null;
+  /** 이 곡의 내 카드들(등급마다 한 장). 없는 등급은 견본이다. */
+  cards: readonly SongRewardCard[];
   tiers: readonly SongWordTierDto[];
   width: number;
   fonts: CardFonts;
 }
 
-/** 이 곡에서 얻을 수 있는 곡 카드 전부. 얻은 종류는 내 카드, 아직인 종류는 견본이다. */
-export const SongCardKindGrid = React.memo(function SongCardKindGrid({ song, card, tiers, width, fonts }: SongGridProps) {
+/** 이 곡에서 얻을 수 있는 곡 카드 전부. 받은 등급은 그 등급의 내 카드, 아직인 등급은 견본이다. */
+export const SongCardKindGrid = React.memo(function SongCardKindGrid({ song, cards, tiers, width, fonts }: SongGridProps) {
   const navigation = useNavigation<Navigation>();
   const ownerName = useOwnerName();
   const tileWidth = Math.floor((width - GAP * (SONG_COLUMNS - 1)) / SONG_COLUMNS);
 
   const handleOpen = useCallback((kind: SongCardKind) => {
     const condition = songKindCondition(kind, tiers).full;
-    if (card != null && ownsSongKind(card, kind)) {
-      navigation.navigate('RewardCardDetail', { cardId: card.id, ownerName, grade: { level: kind.level, mastered: kind.mastered } });
+    const card = songCardOfKind(cards, kind);
+    if (card != null) {
+      navigation.navigate('RewardCardDetail', { cardId: card.id, ownerName });
       return;
     }
     navigation.navigate('RewardCardPreview', {
@@ -71,7 +65,7 @@ export const SongCardKindGrid = React.memo(function SongCardKindGrid({ song, car
       condition,
       reached: false,
     });
-  }, [card, navigation, ownerName, song, tiers]);
+  }, [cards, navigation, ownerName, song, tiers]);
 
   return (
     <View style={styles.grid}>
@@ -80,7 +74,7 @@ export const SongCardKindGrid = React.memo(function SongCardKindGrid({ song, car
           key={kind.key}
           kind={kind}
           song={song}
-          card={card}
+          card={songCardOfKind(cards, kind)}
           condition={songKindCondition(kind, tiers).short}
           width={tileWidth}
           fonts={fonts}
@@ -108,11 +102,8 @@ const SongKindTile = React.memo(function SongKindTile({
   fonts: CardFonts;
   onPress: (kind: SongCardKind) => void;
 }) {
-  const owned = ownsSongKind(card, kind);
-  const shown = useMemo(
-    () => (card != null && owned ? songCardAt(card, kind) : songCardPreview(song, kind.level, kind.mastered)),
-    [card, owned, kind, song],
-  );
+  const owned = card != null;
+  const shown = useMemo(() => card ?? songCardPreview(song, kind.level, kind.mastered), [card, kind, song]);
   const handlePress = useCallback(() => onPress(kind), [onPress, kind]);
   return (
     <KindTile
@@ -130,20 +121,22 @@ const SongKindTile = React.memo(function SongKindTile({
 
 interface ArtistGridProps {
   artist: PreviewArtist;
-  card: ArtistRewardCard | null;
+  /** 이 아티스트의 내 카드들(재질마다 한 장). */
+  cards: readonly ArtistRewardCard[];
   width: number;
   fonts: CardFonts;
 }
 
-/** 이 아티스트 카드의 재질 전부. 닿은 재질은 내 카드, 아직인 재질은 견본이다. */
-export const ArtistCardKindGrid = React.memo(function ArtistCardKindGrid({ artist, card, width, fonts }: ArtistGridProps) {
+/** 이 아티스트 카드의 재질 전부. 받은 재질은 그 재질의 내 카드, 아직인 재질은 견본이다. */
+export const ArtistCardKindGrid = React.memo(function ArtistCardKindGrid({ artist, cards, width, fonts }: ArtistGridProps) {
   const navigation = useNavigation<Navigation>();
   const ownerName = useOwnerName();
   const tileWidth = Math.floor((width - GAP * (ARTIST_COLUMNS - 1)) / ARTIST_COLUMNS);
 
   const handleOpen = useCallback((step: ArtistGradeStep) => {
-    if (card != null && ownsArtistGrade(card, step)) {
-      navigation.navigate('ArtistCardDetail', { cardId: card.id, ownerName, masteredCount: step.from });
+    const card = artistCardOfStep(cards, step);
+    if (card != null) {
+      navigation.navigate('ArtistCardDetail', { cardId: card.id, ownerName });
       return;
     }
     navigation.navigate('RewardCardPreview', {
@@ -151,7 +144,7 @@ export const ArtistCardKindGrid = React.memo(function ArtistCardKindGrid({ artis
       condition: artistGradeCondition(step).full,
       reached: false,
     });
-  }, [artist, card, navigation, ownerName]);
+  }, [artist, cards, navigation, ownerName]);
 
   return (
     <View style={styles.grid}>
@@ -160,7 +153,7 @@ export const ArtistCardKindGrid = React.memo(function ArtistCardKindGrid({ artis
           key={step.grade}
           step={step}
           artist={artist}
-          card={card}
+          card={artistCardOfStep(cards, step)}
           width={tileWidth}
           fonts={fonts}
           onPress={handleOpen}
@@ -185,11 +178,8 @@ const ArtistKindTile = React.memo(function ArtistKindTile({
   fonts: CardFonts;
   onPress: (step: ArtistGradeStep) => void;
 }) {
-  const owned = ownsArtistGrade(card, step);
-  const shown = useMemo(
-    () => (card != null && owned ? artistCardAt(card, step) : artistCardPreview(artist, step.from)),
-    [card, owned, step, artist],
-  );
+  const owned = card != null;
+  const shown = useMemo(() => card ?? artistCardPreview(artist, step.from), [card, step, artist]);
   const handlePress = useCallback(() => onPress(step), [onPress, step]);
   return (
     <KindTile

@@ -26,9 +26,9 @@ export function cardPalette(seed: number): { accent: string; ink: string } {
   return PALETTE[Math.abs(seed) % PALETTE.length];
 }
 
-// 더미 아티스트 카드 id(artist-0 …)와 겹치지 않게 접두어를 따로 둔다.
-export const songCardId = (songId: number) => `srv-song-${songId}`;
-export const artistCardId = (artistId: number) => `srv-artist-${artistId}`;
+// 카드는 등급마다 따로라 서버 카드 id 로 잇는다. 더미 아티스트 카드 id(artist-0 …)와 겹치지 않게 접두어를 따로 둔다.
+export const songCardId = (cardId: number) => `srv-song-${cardId}`;
+export const artistCardId = (cardId: number) => `srv-artist-${cardId}`;
 
 /** 카드에 찍는 날은 KST 날짜다. */
 export function kstDate(iso: string): string {
@@ -49,7 +49,7 @@ export function artistGradeFrom(grade: string): number {
 
 export function toSongCard(dto: SongCardDto): SongRewardCard {
   return {
-    id: songCardId(dto.songId),
+    id: songCardId(dto.id),
     songId: dto.songId,
     title: dto.title,
     artist: dto.artist,
@@ -64,48 +64,44 @@ export function toSongCard(dto: SongCardDto): SongRewardCard {
     words: dto.words.map((word) => ({ ...word, reading: katakanaToHiragana(word.reading) })),
     nextGoal: dto.nextGoal,
     picked: dto.lyricLineIndexes,
-    issued: dto.seenGrade != null,
+    issued: dto.issued,
   };
 }
 
 export function toArtistCard(dto: ArtistCardDto): ArtistRewardCard {
   return {
-    id: artistCardId(dto.artistId),
+    id: artistCardId(dto.id),
     artistId: dto.artistId,
     name: dto.name,
     imageUrl: dto.artworkUrl ?? '',
     ...cardPalette(dto.artistId),
-    masteredCount: dto.masteredSongs.length,
+    // 재질은 마스터 곡 수에서 나오므로, 곡 정보가 빠져도 카드의 재질 아래로 내려가지 않게 한다.
+    masteredCount: Math.max(dto.masteredSongs.length, artistGradeFrom(dto.grade)),
     fanNo: dto.acquiredSeq,
     since: kstDate(dto.createdAt),
     masteredSongs: dto.masteredSongs.map((song) => ({ title: song.title, artworkUrl: song.artworkUrl ?? '' })),
     signature: dto.signature.length > 0 ? dto.signature : null,
-    issued: dto.seenGrade != null,
+    issued: dto.issued,
   };
 }
 
 export interface ServerRevealTarget {
   kind: 'song' | 'artist';
   cardId: string;
-  upgrade: boolean;
-  /** 확인하면 이 등급까지 본 것으로 보낸다. */
-  grade: string;
-  /** 오르기 전 등급. 획득이면 null. */
-  fromGrade: string | null;
+  /** 서버가 준 연출. 서명하면 발급한다. */
+  server: true;
 }
 
 export function toRevealTarget(dto: RewardCardRevealDto): ServerRevealTarget {
   const song = dto.kind === 'SONG';
   return {
     kind: song ? 'song' : 'artist',
-    cardId: song ? songCardId(dto.targetId) : artistCardId(dto.targetId),
-    upgrade: dto.seenGrade != null,
-    grade: dto.grade,
-    fromGrade: dto.seenGrade,
+    cardId: song ? songCardId(dto.cardId) : artistCardId(dto.cardId),
+    server: true,
   };
 }
 
-/** 카드 id 에서 서버 id. 더미 카드면 null. */
+/** 카드 id 에서 서버 카드 id. 더미 카드면 null. */
 export function serverTargetId(cardId: string): number | null {
   const m = cardId.match(/^srv-(?:song|artist)-(\d+)$/);
   return m ? Number(m[1]) : null;
