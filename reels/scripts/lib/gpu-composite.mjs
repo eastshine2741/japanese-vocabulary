@@ -92,8 +92,9 @@ export function nvencArgs() {
     'hq',
     '-rc',
     'vbr',
+    // x264(crf 20) 결과와 파일 크기가 같아지는 값. NVENC 는 같은 화질에 비트를 더 써서 20 이면 2.3배가 된다.
     '-cq',
-    '20',
+    '29',
     '-b:v',
     '0',
     '-profile:v',
