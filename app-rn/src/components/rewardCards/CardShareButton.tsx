@@ -1,5 +1,5 @@
 import React, { RefObject, useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Platform, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import * as Sentry from '@sentry/react-native';
 import { Feather, FontAwesome6 } from '@expo/vector-icons';
 import { AppBottomSheetModal, AppBottomSheetModalRef, AppBottomSheetView } from '../bottomSheet';
@@ -39,8 +39,7 @@ function CardShareButton({ kind, cardId, title, tilt, cardRef, accent, ink }: Pr
   const sheetRef = useRef<AppBottomSheetModalRef>(null);
   const [busy, setBusy] = useState<Method | null>(null);
   const apiKind = kind === 'song' ? 'song-cards' : 'artist-cards';
-  const text = shareText(title, kind);
-  const userName = useAuthStore((s) => s.userName);
+  const owner = useAuthStore((s) => s.userName) ?? '사용자';
   const profileImageUrl = useAuthStore((s) => s.profileImageUrl);
 
   // 공유 시트가 카드를 가리기 전에 화면 그대로 떠 둔다.
@@ -69,8 +68,8 @@ function CardShareButton({ kind, cardId, title, tilt, cardRef, accent, ink }: Pr
   const compose = useCallback(async () => {
     const captured = capturedRef.current;
     if (!captured) throw new Error('card not captured');
-    return composeShareImages(await captured, `card-share-${apiKind}-${cardId}`, { name: userName ?? '사용자', profileImageUrl, kind });
-  }, [apiKind, cardId, kind, profileImageUrl, userName]);
+    return composeShareImages(await captured, `card-share-${apiKind}-${cardId}`, { name: owner, profileImageUrl, kind });
+  }, [apiKind, cardId, kind, owner, profileImageUrl]);
 
   const upload = useCallback(
     async (fileUri: string) => {
@@ -117,9 +116,9 @@ function CardShareButton({ kind, cardId, title, tilt, cardRef, accent, ink }: Pr
       run('x', async () => {
         const { url } = await prepare(true);
         sheetRef.current?.dismiss();
-        await Linking.openURL(xPostUrl(text, url));
+        await Linking.openURL(xPostUrl(shareText(owner, title, kind, url)));
       }),
-    [prepare, run, text],
+    [kind, owner, prepare, run, title],
   );
 
   const handleInstagram = useCallback(
@@ -138,9 +137,9 @@ function CardShareButton({ kind, cardId, title, tilt, cardRef, accent, ink }: Pr
       run('link', async () => {
         const { url } = await prepare(true);
         sheetRef.current?.dismiss();
-        await Share.share(Platform.OS === 'ios' ? { message: text, url } : { message: `${text}\n${url}` });
+        await Share.share({ message: shareText(owner, title, kind, url) });
       }),
-    [prepare, run, text],
+    [kind, owner, prepare, run, title],
   );
 
   return (

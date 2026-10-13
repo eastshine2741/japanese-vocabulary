@@ -32,16 +32,19 @@ describe('parseShareToken', () => {
 });
 
 describe('xPostUrl', () => {
-  it('글과 링크를 인코딩해 X 글쓰기 주소를 만든다', () => {
-    expect(xPostUrl('「夜に駆ける」 & more', `https://kotonoha.eastshine.dev/c/${T}`)).toBe(
-      `https://x.com/intent/post?text=${encodeURIComponent('「夜に駆ける」 & more')}&url=${encodeURIComponent(`https://kotonoha.eastshine.dev/c/${T}`)}`,
-    );
+  it('글을 인코딩해 X 글쓰기 주소를 만든다', () => {
+    expect(xPostUrl('「夜に駆ける」 & more')).toBe(`https://x.com/intent/post?text=${encodeURIComponent('「夜に駆ける」 & more')}`);
   });
 });
 
 describe('shareText', () => {
-  it('제목 다음 줄에 카드 종류에 맞는 훅을 붙인다', () => {
-    expect(shareText('夜に駆ける', 'song')).toBe('「夜に駆ける」\n나도 최애곡 카드 만들러 가기\n\n코토노하 · 노래로 배우는 일본어');
-    expect(shareText('YOASOBI', 'artist')).toBe('「YOASOBI」\n나도 최애 아티스트 카드 만들러 가기\n\n코토노하 · 노래로 배우는 일본어');
+  const url = `https://kotonoha.eastshine.dev/c/${T}`;
+  it('얻은 사람·카드, 훅과 링크, 앱 소개를 줄을 띄워 잇는다', () => {
+    expect(shareText('동현', '夜に駆ける', 'song', url)).toBe(
+      `동현님이 「夜に駆ける」 곡 카드를 얻었어요!\n\n나도 최애곡 카드 만들러 가기 👉 ${url}\n\n노래로 배우는 일본어, 코토노하`,
+    );
+    expect(shareText('동현', 'YOASOBI', 'artist', url)).toBe(
+      `동현님이 「YOASOBI」 아티스트 카드를 얻었어요!\n\n나도 최애 아티스트 카드 만들러 가기 👉 ${url}\n\n노래로 배우는 일본어, 코토노하`,
+    );
   });
 });
