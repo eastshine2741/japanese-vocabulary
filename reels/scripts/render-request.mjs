@@ -12,7 +12,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 // Remotion 쪽 인코딩은 remotion.config.ts 의 overrideFfmpegCommand 가 같은 값을 넣는다.
 const FFMPEG_THREADS = 4;
 // GPU 가 붙은 노드(dev)에서만 켠다. Remotion 은 MV 없이 글자 층만 투명 PNG 로 뽑고,
-// 시스템 ffmpeg 이 MV 디코딩·크기 조절·인코딩을 GPU 에서, 합성을 CPU 에서 한다(scripts/lib/gpu-composite.mjs).
+// 시스템 ffmpeg 이 MV 디코딩·크기 조절을 GPU 에서, 합성·인코딩을 CPU 에서 한다(scripts/lib/gpu-composite.mjs).
 const GPU = process.env.REELS_GPU === '1';
 
 const args = parseArgs(process.argv.slice(2));
