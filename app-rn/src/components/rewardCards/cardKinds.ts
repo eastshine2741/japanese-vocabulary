@@ -61,17 +61,17 @@ function sameArtist(card: ArtistRewardCard, artistId: number | null, name: strin
   return (artistId != null && card.artistId === artistId) || card.name === name;
 }
 
-/** 한 아티스트의 내 카드 전부(재질마다 한 장). */
+/** 한 아티스트의 내 카드 전부(등급마다 한 장). */
 export function artistCardsOf(cards: readonly ArtistRewardCard[], artistId: number | null, name: string): ArtistRewardCard[] {
   return cards.filter((card) => sameArtist(card, artistId, name));
 }
 
-/** 그 재질의 내 카드. 아직 받지 않았으면 null. */
+/** 그 등급의 내 카드. 아직 받지 않았으면 null. */
 export function artistCardOfStep(cards: readonly ArtistRewardCard[], step: ArtistGradeStep): ArtistRewardCard | null {
   return cards.find((card) => artistGradeStep(card.masteredCount).grade === step.grade) ?? null;
 }
 
-/** 아직 닿지 않은 재질의 견본. 그 재질이 되는 마스터 곡 수로 돌리고 주인 정보를 비운다. */
+/** 아직 닿지 않은 등급의 견본. 그 등급이 되는 마스터 곡 수로 돌리고 주인 정보를 비운다. */
 export function artistCardSample(card: ArtistRewardCard, step: ArtistGradeStep): ArtistRewardCard {
   return { ...card, masteredCount: step.from, sample: true };
 }

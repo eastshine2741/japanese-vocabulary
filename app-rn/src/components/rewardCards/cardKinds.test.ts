@@ -47,13 +47,13 @@ describe('곡 카드 종류', () => {
   });
 });
 
-describe('아티스트 카드 재질', () => {
-  it('재질마다 받은 카드가 따로 있다', () => {
+describe('아티스트 카드 등급', () => {
+  it('등급마다 받은 카드가 따로 있다', () => {
     const mine = artistCardsOf([artistCard('p', 0), artistCard('s', 4)], null, 'A');
     expect(ARTIST_GRADE_STEPS.map(step => artistCardOfStep(mine, step)?.id ?? null)).toEqual(['p', null, 's', null, null, null]);
   });
 
-  it('견본은 그 재질이 되는 마스터 곡 수로 돌린다', () => {
+  it('견본은 그 등급이 되는 마스터 곡 수로 돌린다', () => {
     expect(artistCardSample(artistCard('s', 4), ARTIST_GRADE_STEPS[3])).toMatchObject({ masteredCount: 7, sample: true });
   });
 });
@@ -69,7 +69,7 @@ describe('보관함 칸 묶기', () => {
     expect(stacks.map((s) => [s.top.id, s.count])).toEqual([['a3m', 3], ['b0', 1]]);
   });
 
-  it('아티스트마다 한 칸으로 묶고 가장 높은 재질 카드를 위에 올린다', () => {
+  it('아티스트마다 한 칸으로 묶고 가장 높은 등급 카드를 위에 올린다', () => {
     const top = artistCard('x-gold', ARTIST_GRADE_STEPS[2].from);
     const stacks = artistCardStacks([artistCard('x-basic', 0), top]);
     expect(stacks).toEqual([{ top, count: 2 }]);

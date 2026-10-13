@@ -42,6 +42,8 @@ function songLadder(rule: SongGradeRuleDto | null): LadderStep[] {
   }));
 }
 const SONG_GUIDE = ['단계를 끝낼 때마다 다음 등급 카드를 새로 받아요.', '등급마다 먼저 받은 순서대로 번호가 붙어요'];
+const SONG_LAST_GUIDE = ['이 곡의 마지막 등급 카드예요.', '등급마다 먼저 받은 순서대로 번호가 붙어요'];
+const SONG_LAST_RUNG = SONG_CARD_KINDS.length - 1;
 const INTRO_GUIDE = ['곡 단어를 처음 공부하면 얻는 카드예요.', '단계를 끝낼 때마다 다음 등급 카드를 새로 받아요'];
 const INTRO_LADDER_DELAY_MS = 500;
 
@@ -210,7 +212,7 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({
           showcase={<SongCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} />}
           heading={songRung(card) === 0 ? '곡 카드를 얻었어요' : `${songTierName(card.level, card.mastered)} 카드를 얻었어요`}
           guide={
-            <RevealGuide lines={SONG_GUIDE} steps={ladder} current={songRung(card)} accent={card.accent} motion={motion} />
+            <RevealGuide lines={songRung(card) === SONG_LAST_RUNG ? SONG_LAST_GUIDE : SONG_GUIDE} steps={ladder} current={songRung(card)} accent={card.accent} motion={motion} />
           }
           actions={
             <>

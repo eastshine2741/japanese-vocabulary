@@ -35,7 +35,7 @@ cd app-rn && npx expo start --web             # App - Web (dev)
 - 아티스트 상세(`GET /api/artists/{id}`)·곡↔Apple Music 아티스트 잇기(`artist` 테이블, batch `artist-link`): `docs/architecture/artist-detail.md`
 - 곡 상세 이해도·word tier 3단계 개편 기획 배경: `docs/product-intents/260925-song-detail-study-status-api.md`
 - 오늘의 복습 스케줄(H6) `GET /api/study-schedule` — 1년 기억 단어 수 예보(매일 GOOD 복습 vs 쉼, FSRS 기억 확률 합): `docs/product-intents/261004-study-schedule-api.md`
-- 보상 카드(곡·아티스트) 등급마다 새로 발급·등급별 순번, 레벨·마스터·낡음(평균 R)·아티스트 재질 규칙과 프로필 카드|학습 탭, rating 때 달성·서명 때 발급(`domains:rewardcard`), 개발 빌드는 더미/서버 전환 칩, 카드 공유 링크(서명 토큰 `/c/{token}`, share-web 카드 웹 화면, 앱 링크 검증 파일): `docs/product-intents/261010-reward-cards.md`
+- 보상 카드(곡·아티스트) 등급마다 새로 발급·등급별 순번, 레벨·마스터·낡음(평균 R)·아티스트 등급 규칙과 프로필 카드|학습 탭, rating 때 달성·서명 때 발급(`domains:rewardcard`), 개발 빌드는 더미/서버 전환 칩, 카드 공유 링크(서명 토큰 `/c/{token}`, share-web 카드 웹 화면, 앱 링크 검증 파일): `docs/product-intents/261010-reward-cards.md`
 - Translation pipeline guardrails: `docs/translation-pipeline.md`
 - Push notification architecture: `docs/architecture/push-notification.md`
 - Admin service: `docs/admin-service.md`

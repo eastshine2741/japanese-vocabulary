@@ -131,7 +131,7 @@ class RewardCardQueryService(
         )
     }
 
-    /** [mastered] 는 마스터한 순서다. 지난 재질의 카드는 다음 재질에 닿기 전까지의 곡만 싣는다. */
+    /** [mastered] 는 마스터한 순서다. 지난 등급의 카드는 다음 등급에 닿기 전까지의 곡만 싣는다. */
     private fun artistCard(card: ArtistCardDto, artist: ArtistEntity, mastered: List<SongCardDto>, songs: Map<Long, SongEntity>) =
         ArtistCardResponse(
             id = card.id,

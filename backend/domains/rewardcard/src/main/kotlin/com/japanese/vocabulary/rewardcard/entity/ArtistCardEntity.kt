@@ -31,7 +31,7 @@ class ArtistCardEntity(
     @Column(name = "grade", nullable = false, updatable = false, length = 10)
     val grade: ArtistCardGrade,
 
-    /** 아티스트·재질마다 따로 센다. */
+    /** 아티스트·등급마다 따로 센다. */
     @Column(name = "acquired_seq", nullable = false)
     val acquiredSeq: Int,
 

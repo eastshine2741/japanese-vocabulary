@@ -27,7 +27,8 @@ const ARTIST_LADDER: readonly LadderStep[] = ARTIST_GRADE_STEPS.map((s) => ({
   label: s.label,
   caption: s.from === 0 ? '첫 곡 카드' : `MASTER 카드 ${s.from}장`,
 }));
-const ARTIST_GUIDE = ['MASTER 곡 카드를 모을수록 다음 재질 카드를 새로 받아요.', '재질마다 먼저 받은 순서대로 번호가 붙어요'];
+const ARTIST_GUIDE = ['MASTER 곡 카드를 모을수록 다음 등급 카드를 새로 받아요.', '등급마다 먼저 받은 순서대로 번호가 붙어요'];
+const ARTIST_LAST_GUIDE = ['이 아티스트의 마지막 등급 카드예요.', '등급마다 먼저 받은 순서대로 번호가 붙어요'];
 
 type Step = 'reveal' | 'sign';
 
@@ -98,7 +99,7 @@ function ArtistCardReveal({ card, started, onClose }: Props) {
           back={<ArtistCardBack card={card} width={cardW} fonts={fonts} />}
           showcase={<ArtistCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} />}
           heading={current === 0 ? '아티스트 카드를 얻었어요' : `${artistGradeStep(card.masteredCount).label} 카드를 얻었어요`}
-          guide={<RevealGuide lines={ARTIST_GUIDE} steps={ARTIST_LADDER} current={current} accent={card.accent} motion={motion} />}
+          guide={<RevealGuide lines={current === ARTIST_LADDER.length - 1 ? ARTIST_LAST_GUIDE : ARTIST_GUIDE} steps={ARTIST_LADDER} current={current} accent={card.accent} motion={motion} />}
           actions={<RevealPrimaryButton label="서명하기" onPress={handleNext} />}
         />
       ) : (

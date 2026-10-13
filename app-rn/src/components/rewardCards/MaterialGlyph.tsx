@@ -9,7 +9,7 @@ interface Props {
   size?: number;
 }
 
-/** 카드 재질을 글자 옆에 찍는 작은 카드 모양. 실제 카드를 그리기엔 너무 작은 자리에 쓴다. */
+/** 카드 등급을 글자 옆에 찍는 작은 카드 모양. 실제 카드를 그리기엔 너무 작은 자리에 쓴다. */
 function MaterialGlyph({ frame, landscape = false, size = 14 }: Props) {
   const long = Math.round(size * 1.4);
   const box = landscape ? { width: long, height: size } : { width: size, height: long };

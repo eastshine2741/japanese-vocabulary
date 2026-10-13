@@ -23,7 +23,7 @@ function finish(c: number, lift: number, s = 1): ColorMatrix {
   ];
 }
 
-// 사진 색은 모든 재질이 같다. 색을 깎거나 금속 색을 덧칠하면 바래 보여서, 등급은 무광 → 유광 인화 마감으로만 오른다.
+// 사진 색은 모든 등급이 같다. 색을 깎거나 금속 색을 덧칠하면 바래 보여서, 등급은 무광 → 유광 인화 마감으로만 오른다.
 export const ARTIST_PHOTO_TONE: Record<ArtistGrade, ColorMatrix> = {
   paper: finish(0.9, 0.06),
   bronze: finish(0.98, 0.035),

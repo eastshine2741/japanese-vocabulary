@@ -7,7 +7,7 @@ describe('artistGradeStep', () => {
     expect(artistGradeStep(0).grade).toBe('paper');
   });
 
-  it('구간 경계에 닿는 순간 재질이 바뀐다', () => {
+  it('구간 경계에 닿는 순간 등급이 바뀐다', () => {
     expect(artistGradeStep(1).grade).toBe('bronze');
     expect(artistGradeStep(2).grade).toBe('bronze');
     expect(artistGradeStep(3).grade).toBe('silver');
@@ -16,17 +16,17 @@ describe('artistGradeStep', () => {
     expect(artistGradeStep(30).grade).toBe('diamond');
   });
 
-  it('최고 재질 뒤에도 곡 수는 계속 오르고 재질은 그대로다', () => {
+  it('최고 등급 뒤에도 곡 수는 계속 오르고 등급은 그대로다', () => {
     expect(artistGradeStep(120).grade).toBe('diamond');
   });
 });
 
 describe('nextArtistGradeStep', () => {
-  it('다음 재질과 그 경계를 돌려준다', () => {
+  it('다음 등급과 그 경계를 돌려준다', () => {
     expect(nextArtistGradeStep(5)).toMatchObject({ grade: 'gold', from: 7 });
   });
 
-  it('최고 재질이면 다음이 없다', () => {
+  it('최고 등급이면 다음이 없다', () => {
     expect(nextArtistGradeStep(30)).toBeNull();
   });
 });

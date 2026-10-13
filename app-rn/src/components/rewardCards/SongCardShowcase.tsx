@@ -372,7 +372,7 @@ function BackFace({
   signatureHint,
   signature,
 }: FaceProps & SignatureSlot & { tilt?: CardTilt; ownerName?: string }) {
-  // 아티스트 카드처럼 뒷면은 앞면 테와 같은 재질의 몸체다. 마스터는 앞면 아트를 흐리게 번져 깔고 무지개 코팅을 그대로 이어 덮는다.
+  // 아티스트 카드처럼 뒷면은 앞면 테와 같은 등급 색의 몸체다. 마스터는 앞면 아트를 흐리게 번져 깔고 무지개 코팅을 그대로 이어 덮는다.
   const material = card.mastered ? null : LEVEL_MATERIAL[card.level];
   const ink = material ? material.chipText : '#FFFFFF';
   const foil = coatingLeft(age);

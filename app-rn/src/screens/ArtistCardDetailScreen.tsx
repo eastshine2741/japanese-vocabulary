@@ -43,7 +43,7 @@ function artistCondition(rung: number): string {
 export default function ArtistCardDetailScreen({ navigation, route }: Props) {
   const { cardId } = route.params;
   const opened = useRewardCardStore((s) => s.artistCards.find((c) => c.id === cardId));
-  // 재질마다 카드가 따로라, 다른 칸을 누르면 그 재질의 내 카드로 바꿔 보여 준다.
+  // 등급마다 카드가 따로라, 다른 칸을 누르면 그 등급의 내 카드로 바꿔 보여 준다.
   const siblings = useRewardCardStore(
     useShallow((s) => (opened ? artistCardsOf(s.artistCards, opened.artistId, opened.name) : [])),
   );

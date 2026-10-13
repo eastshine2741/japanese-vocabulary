@@ -115,13 +115,13 @@ const SongKindTile = React.memo(function SongKindTile({
 
 interface ArtistGridProps {
   artist: PreviewArtist;
-  /** 이 아티스트의 내 카드들(재질마다 한 장). */
+  /** 이 아티스트의 내 카드들(등급마다 한 장). */
   cards: readonly ArtistRewardCard[];
   width: number;
   fonts: CardFonts;
 }
 
-/** 이 아티스트 카드의 재질 전부. 받은 재질은 그 재질의 내 카드, 아직인 재질은 견본이다. */
+/** 이 아티스트 카드의 등급 전부. 받은 등급은 그 등급의 내 카드, 아직인 등급은 견본이다. */
 export const ArtistCardKindGrid = React.memo(function ArtistCardKindGrid({ artist, cards, width, fonts }: ArtistGridProps) {
   const navigation = useNavigation<Navigation>();
   const ownerName = useOwnerName();

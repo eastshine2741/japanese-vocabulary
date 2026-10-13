@@ -143,7 +143,7 @@ export const hapticStamp = () =>
 
 const RIPPLE_BEATS = 16;
 
-/** 박힌 자리에서 새 재질이 번져 나가는 동안 — 처음엔 두 겹으로 촘촘하고 세게, 퍼질수록 띄엄띄엄 약하게. */
+/** 박힌 자리에서 새 등급이 번져 나가는 동안 — 처음엔 두 겹으로 촘촘하고 세게, 퍼질수록 띄엄띄엄 약하게. */
 export const hapticRipple = (ms: number) => {
   const at = (i: number) => (i / RIPPLE_BEATS) ** 1.8 * ms;
   const pulses: Pulse[] = [];
@@ -156,7 +156,7 @@ export const hapticRipple = (ms: number) => {
   strong(pulses, beats);
 };
 
-/** 새 재질이 카드를 다 덮은 순간 — 연타로 내리친 뒤 한 번 더, 그리고 성공 진동. */
+/** 새 등급이 카드를 다 덮은 순간 — 연타로 내리친 뒤 한 번 더, 그리고 성공 진동. */
 export const hapticCrown = () => {
   strong(
     [

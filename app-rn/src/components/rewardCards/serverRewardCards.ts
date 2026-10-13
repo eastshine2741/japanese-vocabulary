@@ -41,7 +41,7 @@ export function songGradeOf(grade: string): SongCardGrade {
   return { level: Math.max(0, level) as CardLevel, mastered: false };
 }
 
-/** 그 재질이 되는 마스터 곡 수. */
+/** 그 등급이 되는 마스터 곡 수. */
 export function artistGradeFrom(grade: string): number {
   const index = ARTIST_GRADES.indexOf(grade as (typeof ARTIST_GRADES)[number]);
   return ARTIST_GRADE_STEPS[Math.max(0, index)].from;
@@ -75,7 +75,7 @@ export function toArtistCard(dto: ArtistCardDto): ArtistRewardCard {
     name: dto.name,
     imageUrl: dto.artworkUrl ?? '',
     ...cardPalette(dto.artistId),
-    // 재질은 마스터 곡 수에서 나오므로, 곡 정보가 빠져도 카드의 재질 아래로 내려가지 않게 한다.
+    // 등급은 마스터 곡 수에서 나오므로, 곡 정보가 빠져도 카드의 등급 아래로 내려가지 않게 한다.
     masteredCount: Math.max(dto.masteredSongs.length, artistGradeFrom(dto.grade)),
     fanNo: dto.acquiredSeq,
     since: kstDate(dto.createdAt),

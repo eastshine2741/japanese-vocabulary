@@ -131,8 +131,8 @@ interface FaceProps {
   fonts: CardFonts;
 }
 
-// 멤버십 카드처럼 사진을 끝까지 깐다. 사진 색은 모든 재질이 같고, 재질은 둘레 금속 모서리부터 차지하는 자리를 넓혀 간다.
-// 썸네일(tilt 없음)도 재질만큼 빛이 멈춰 보이게 한다.
+// 멤버십 카드처럼 사진을 끝까지 깐다. 사진 색은 모든 등급이 같고, 등급은 둘레 금속 모서리부터 차지하는 자리를 넓혀 간다.
+// 썸네일(tilt 없음)도 등급만큼 빛이 멈춰 보이게 한다.
 function FrontFace({ card, width, height, u, tilt, fonts }: FaceProps & { tilt?: CardTilt }) {
   const grade = artistGradeStep(card.masteredCount).grade;
   const m = ARTIST_MATERIAL[grade];
@@ -263,7 +263,7 @@ function CardName({ name, u, fontFamily, emboss, tilt }: {
   );
 }
 
-// 뒷면은 재질로 만든 카드 몸체다. 동·은·금은 깊은 색 몸체에 박을 찍는다. 커버는 앨범 단위라 곡을 가르지 못해 제목 옆 곁들임으로만 쓴다.
+// 뒷면은 등급 색으로 만든 카드 몸체다. 동·은·금은 깊은 색 몸체에 박을 찍는다. 커버는 앨범 단위라 곡을 가르지 못해 제목 옆 곁들임으로만 쓴다.
 function BackFace({
   card,
   width,

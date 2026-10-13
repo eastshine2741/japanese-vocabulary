@@ -13,7 +13,7 @@ import type { RewardCardRevealDto, SongGradeRuleDto } from '../types/rewardCard'
 
 export type RewardCardKind = 'song' | 'artist';
 
-/** 개발 빌드에서만 바꾼다. 더미는 서버 없이 모든 등급·재질을 보려고 남겨 둔다. */
+/** 개발 빌드에서만 바꾼다. 더미는 서버 없이 모든 등급을 보려고 남겨 둔다. */
 export type RewardCardSource = 'dummy' | 'server';
 
 /** 띄울 획득 연출 하나. 카드는 등급마다 새로 나오므로 연출은 늘 봉투·서명이다. */

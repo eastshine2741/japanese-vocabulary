@@ -41,7 +41,7 @@ class RewardCardService(
             .groupBy({ it.songId }, { it.grade })
             .mapValues { it.value.toSet() }
 
-    /** 아티스트마다 이미 받은 재질. */
+    /** 아티스트마다 이미 받은 등급. */
     @Transactional(readOnly = true)
     fun ownedArtistGrades(userId: Long, artistIds: Collection<Long>): Map<Long, Set<ArtistCardGrade>> =
         if (artistIds.isEmpty()) emptyMap()
@@ -58,7 +58,7 @@ class RewardCardService(
      * 곡마다 잰 등급까지 아직 없는 등급의 카드를 낮은 등급부터 새로 만든다. 그 결과 생긴 연출을 곡 카드들 → 아티스트 카드들 순으로 돌려준다.
      * 곡의 첫 카드가 생기거나, 처음 아티스트를 잇거나, 마스터 카드가 생기면 그 아티스트 카드를 맞춘다.
      *
-     * 순번 행 락은 (곡 id, 등급) → (아티스트 id, 재질) 오름차순으로만 잡는다. 카드 여러 장을 함께 만드는 rating 끼리 서로의 락을 엇갈려 기다리지 않게.
+     * 순번 행 락은 (곡 id, 등급) → (아티스트 id, 등급) 오름차순으로만 잡는다. 카드 여러 장을 함께 만드는 rating 끼리 서로의 락을 엇갈려 기다리지 않게.
      */
     @Transactional
     fun achieveSongs(userId: Long, achievements: List<SongAchievementDto>): List<RewardCardRevealDto> {
@@ -130,7 +130,7 @@ class RewardCardService(
         return card.toDto()
     }
 
-    /** 새로 만든 곡 카드들(곡 id·등급 순)과 아티스트 카드들(아티스트 id·재질 순). */
+    /** 새로 만든 곡 카드들(곡 id·등급 순)과 아티스트 카드들(아티스트 id·등급 순). */
     private fun achieve(
         userId: Long,
         achievements: List<SongAchievementDto>,

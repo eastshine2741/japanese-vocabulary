@@ -16,7 +16,7 @@ interface LevelMaterial {
   foil: readonly [string, string, ...string[]] | null;
   /** 앞면 세로 가사까지 박으로 찍는다. */
   foilLyrics: boolean;
-  /** 뒷면 몸체. 앞면 테와 같은 재질로, 글씨가 읽히게 명암 띠만 누그러뜨렸다. 글씨는 chipText. */
+  /** 뒷면 몸체. 앞면 테와 같은 등급 색으로, 글씨가 읽히게 명암 띠만 누그러뜨렸다. 글씨는 chipText. */
   body: readonly [string, string, ...string[]];
   /** 기울이지 않는 썸네일에 멈춰 보이는 포일 가루. */
   restSparkles: number;
@@ -29,7 +29,7 @@ const GOLD_FOIL = ['#8A5E12', '#E0B04A', '#FFF5D6', '#B8862C', '#F4D688'] as con
 const PLAIN = { matte: 0, tint: true, foil: null, foilLyrics: false, restSparkles: 0, gloss: 1 };
 
 export const LEVEL_MATERIAL: Record<CardLevel, LevelMaterial> = {
-  // 아티스트 재질처럼 종이 → 동 → 은 → 금. 박이 차지하는 자리는 제목 → 가사 → 아트 전체로 넓어진다.
+  // 아티스트 등급처럼 종이 → 동 → 은 → 금. 박이 차지하는 자리는 제목 → 가사 → 아트 전체로 넓어진다.
   0: {
     ...PLAIN,
     frame: ['#BDB6A8', '#B1AA9C', '#B8B1A3'],
@@ -70,7 +70,7 @@ export const LEVEL_MATERIAL: Record<CardLevel, LevelMaterial> = {
   },
 };
 
-/** 곡 카드 등급 이름. 재질이 아티스트 카드와 같아 이름도 맞추되, 마스터는 아티스트의 플래티넘·다이아와 섞이지 않게 따로 둔다. */
+/** 곡 카드 등급 이름. 등급이 아티스트 카드와 같아 이름도 맞추되, 마스터는 아티스트의 플래티넘·다이아와 섞이지 않게 따로 둔다. */
 export const SONG_TIER_NAME: Record<CardLevel, string> = { 0: '기본', 1: 'BRONZE', 2: 'SILVER', 3: 'GOLD' };
 export const SONG_MASTER_NAME = 'MASTER';
 
@@ -88,21 +88,21 @@ export const MASTER_CHIP = {
 } as const;
 
 interface ArtistMaterial {
-  /** 앞면 둘레 금속 모서리와 화면 등급 칩에 쓰는 재질 색. */
+  /** 앞면 둘레 금속 모서리와 화면 등급 칩에 쓰는 등급 색. */
   frame: readonly [string, string, ...string[]];
   chipText: string;
-  /** 앞면 재질 각인과 뒷면 숫자에 찍는 박. 진한 색과 거의 흰색이 번갈아야 금속으로 보인다. 컬러 사진 위 이름에 박을 쓰면 색끼리 부딪혀 이름은 늘 흰 글씨다. */
+  /** 앞면 등급 각인과 뒷면 숫자에 찍는 박. 진한 색과 거의 흰색이 번갈아야 금속으로 보인다. 컬러 사진 위 이름에 박을 쓰면 색끼리 부딪혀 이름은 늘 흰 글씨다. */
   foil: readonly [string, string, ...string[]] | null;
-  /** 기울이지 않는 썸네일에 멈춰 보이는 포일 가루의 양. 높은 재질일수록 가만히 있어도 빛이 보인다. */
+  /** 기울이지 않는 썸네일에 멈춰 보이는 포일 가루의 양. 높은 등급일수록 가만히 있어도 빛이 보인다. */
   restSparkles: number;
   /** 무광 인화의 종이 결 세기. 사진 색은 그대로 두고 결만 얹는다. */
   matte: number;
-  /** 뒷면은 재질로 만든 카드 몸체다. 높은 재질일수록 깊은 색에 박을 찍는다. */
+  /** 뒷면은 등급 색으로 만든 카드 몸체다. 높은 등급일수록 깊은 색에 박을 찍는다. */
   body: readonly [string, string, ...string[]];
   bodyInk: string;
   /** 몸체가 어두워 뒷면 숫자도 박으로 찍는지. */
   bodyFoil: boolean;
-  /** 앞면 모서리에 새기는 재질 이름. 종이는 아직 얻은 게 없어 비운다. */
+  /** 앞면 모서리에 새기는 등급 이름. 종이는 아직 얻은 게 없어 비운다. */
   engrave: string | null;
   /** 앞면 둘레 금속 모서리 두께(u). 종이는 0. */
   rim: number;
@@ -136,7 +136,7 @@ const NO_FX = {
   bodyFoil: false,
 };
 
-// 위로 갈수록 재질이 차지하는 자리가 둘레 → 글씨 영역 → 이름 → 사진 전체 → 깊이로 넓어진다.
+// 위로 갈수록 등급이 차지하는 자리가 둘레 → 글씨 영역 → 이름 → 사진 전체 → 깊이로 넓어진다.
 export const ARTIST_MATERIAL: Record<ArtistGrade, ArtistMaterial> = {
   paper: {
     ...NO_FX,

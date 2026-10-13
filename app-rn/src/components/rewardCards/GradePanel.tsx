@@ -7,9 +7,9 @@ import { SHOWROOM } from './cardTheme';
 export interface GradeTab {
   key: string;
   label: string;
-  /** 얻은 칸을 칠하는 재질 색. */
+  /** 얻은 칸을 칠하는 등급 색. */
   frame: readonly string[];
-  /** 재질 위 글씨 색. */
+  /** 등급 위 글씨 색. */
   ink: string;
 }
 

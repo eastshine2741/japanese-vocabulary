@@ -46,18 +46,18 @@ export interface SongCardDto {
   createdAt: string;
 }
 
-/** 재질마다 한 장. */
+/** 등급마다 한 장. */
 export interface ArtistCardDto {
   id: number;
   artistId: number;
   name: string;
   artworkUrl: string | null;
   grade: ArtistCardGradeDto;
-  /** 아티스트·재질마다 따로 센 획득 순번. */
+  /** 아티스트·등급마다 따로 센 획득 순번. */
   acquiredSeq: number;
   signature: string[];
   issued: boolean;
-  /** 마스터한 순서대로. 지난 재질의 카드는 다음 재질에 닿기 전까지의 곡만 온다. */
+  /** 마스터한 순서대로. 지난 등급의 카드는 다음 등급에 닿기 전까지의 곡만 온다. */
   masteredSongs: { songId: number; title: string; artworkUrl: string | null }[];
   createdAt: string;
 }

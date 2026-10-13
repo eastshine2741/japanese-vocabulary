@@ -11,7 +11,7 @@ interface Props {
   height: number;
 }
 
-/** 재질에 따라 색을 입힌 아티스트 사진. RN Image 엔 색 행렬이 없어 Skia 로 그린다. */
+/** 등급에 따라 색을 입힌 아티스트 사진. RN Image 엔 색 행렬이 없어 Skia 로 그린다. */
 function ArtistPhoto({ uri, grade, width, height }: Props) {
   const image = useImage(uri);
   if (!image) return null;

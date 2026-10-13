@@ -264,7 +264,7 @@ const seeds: Seed[] = [
   },
 ];
 
-// 레벨 재질을 같은 곡으로 비교하려고 한 곡을 레벨마다 한 장씩 만든다.
+// 레벨 등급을 같은 곡으로 비교하려고 한 곡을 레벨마다 한 장씩 만든다.
 const zamza: Omit<Seed, 'id' | 'level' | 'mastered' | 'nextGoal'> = {
   songId: null, title: 'ザムザ', artist: '25時、ナイトコードで。',
   artworkUrl: appleArtwork('Music126/v4/dc/75/73/dc75730f-d84b-3c77-dba8-3e070bc66937/4511820-96201.jpg'),
@@ -316,11 +316,11 @@ type ArtistSeed = Omit<ArtistRewardCard, 'id' | 'artistId' | 'imageUrl' | 'maste
   imageUrl?: string;
 };
 
-// 재질 여섯 단계가 모두 보이도록 마스터 곡 수를 골랐다.
+// 등급 여섯 단계가 모두 보이도록 마스터 곡 수를 골랐다.
 const artistSeeds: ArtistSeed[] = [
   {
     imageUrl: appleArtwork('Music112/v4/ae/7c/f4/ae7cf4d1-a006-162c-3d0b-6b2b8c2175e1/4511820-95529.jpg'),
-    // 같은 아티스트로 재질을 비교하려고 재질마다 한 장씩 만든다.
+    // 같은 아티스트로 등급을 비교하려고 등급마다 한 장씩 만든다.
     gradeSamples: true,
     titles: [
       '悔やむと書いてミライ', '限りなく灰色へ', 'カトラリー', 'ジャックポットサッドガール', 'ロウワー', '携帯恋話',

@@ -71,7 +71,7 @@ export interface ArtistRewardCard {
   imageUrl: string;
   accent: string;
   ink: string;
-  /** 이 아티스트의 마스터 곡 카드 수. 상한이 없고, 재질은 이 값에서 나온다 (artistGrade). */
+  /** 이 아티스트의 마스터 곡 카드 수. 상한이 없고, 등급은 이 값에서 나온다 (artistGrade). */
   masteredCount: number;
   /** 이 아티스트 카드를 몇 번째로 받았는지. 발급 때 고정. */
   fanNo: number;
@@ -81,7 +81,7 @@ export interface ArtistRewardCard {
   masteredSongs: MasteredSong[];
   /** 발급 때 주인이 한 번 그린 서명. 서명 전이면 null. */
   signature: CardSignature | null;
-  /** 아직 얻지 않은 재질의 견본. 팬 순번·팬이 된 달을 — 로 비운다. */
+  /** 아직 얻지 않은 등급의 견본. 팬 순번·팬이 된 달을 — 로 비운다. */
   sample?: boolean;
   /** 서버가 발급(서명)을 끝낸 카드. 이 카드만 공유할 수 있다. */
   issued?: boolean;

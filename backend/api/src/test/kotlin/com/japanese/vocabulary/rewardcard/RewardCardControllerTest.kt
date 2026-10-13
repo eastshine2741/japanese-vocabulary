@@ -355,7 +355,7 @@ class RewardCardControllerTest : ApiBaseIntegrationTest() {
             RewardCardKind.ARTIST to "BRONZE",
         )
         val artistCards = cards(me).artistCards
-        // 지난 재질의 카드는 다음 재질에 닿기 전의 마스터 곡만 싣는다.
+        // 지난 등급의 카드는 다음 등급에 닿기 전의 마스터 곡만 싣는다.
         assertThat(artistCards.single { it.grade.name == "BASIC" }.masteredSongs).isEmpty()
         assertThat(artistCards.single { it.grade.name == "BRONZE" }.masteredSongs.map { it.songId }).containsExactly(song.id)
         assertThat(cards(me).songCards.map { it.nextGoal }.distinct()).containsExactly(null)

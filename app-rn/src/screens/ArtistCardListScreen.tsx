@@ -31,7 +31,7 @@ export default function ArtistCardListScreen({ navigation, route }: Props) {
   const [sort, setSort] = useState<ArtistCardSort>('level');
   const artistCards = useRewardCardStore((s) => s.artistCards);
   const loading = useRewardCardStore((s) => s.source === 'server' && (s.serverStatus === 'idle' || s.serverStatus === 'loading'));
-  // 재질마다 카드가 따로라 아티스트마다 가장 높은 재질 카드 한 장으로 묶는다.
+  // 등급마다 카드가 따로라 아티스트마다 가장 높은 등급 카드 한 장으로 묶는다.
   const stacks = useMemo(() => artistCardStacks(artistCards), [artistCards]);
   const stackedIds = useMemo(() => new Set(stacks.filter((stack) => stack.count > 1).map((stack) => stack.top.id)), [stacks]);
   const cards = useMemo(() => sortArtistCards(stacks.map((stack) => stack.top), sort), [stacks, sort]);
