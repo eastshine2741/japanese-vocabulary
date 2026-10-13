@@ -11,6 +11,8 @@ data class ArtistCardResponse(
     val artworkUrl: String?,
     val grade: ArtistCardGrade,
     val acquiredSeq: Int,
+    /** 몇 번째 팬인지. BRONZE 카드의 [acquiredSeq] 를 그 위 등급 카드에도 그대로 싣는다. 기본 카드는 null. */
+    val fanNo: Int?,
     val signature: List<String>,
     /** false 면 아직 서명 전. */
     val issued: Boolean,

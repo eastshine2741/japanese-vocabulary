@@ -55,6 +55,8 @@ export interface ArtistCardDto {
   grade: ArtistCardGradeDto;
   /** 아티스트·등급마다 따로 센 획득 순번. */
   acquiredSeq: number;
+  /** 몇 번째 팬인지. BRONZE 카드의 획득 순번이고, 기본 카드는 null. */
+  fanNo: number | null;
   signature: string[];
   issued: boolean;
   /** 마스터한 순서대로. 지난 등급의 카드는 다음 등급에 닿기 전까지의 곡만 온다. */

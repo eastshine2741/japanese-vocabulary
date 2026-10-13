@@ -55,6 +55,7 @@ describe('serverRewardCards', () => {
       artworkUrl: 'a.jpg',
       grade: 'BRONZE',
       acquiredSeq: 7,
+      fanNo: 7,
       signature: [],
       issued: false,
       masteredSongs: [{ songId: 12, title: '群青', artworkUrl: null }],
@@ -65,6 +66,7 @@ describe('serverRewardCards', () => {
       artistId: 3,
       masteredCount: 1,
       issued: false,
+      ownerNo: 7,
       fanNo: 7,
       since: '2026-10-01',
       masteredSongs: [{ title: '群青', artworkUrl: '' }],
@@ -73,10 +75,10 @@ describe('serverRewardCards', () => {
 
   it('an artist card keeps its grade material even if mastered songs are missing', () => {
     const dto: ArtistCardDto = {
-      id: 56, artistId: 3, name: 'YOASOBI', artworkUrl: null, grade: 'SILVER', acquiredSeq: 1,
+      id: 56, artistId: 3, name: 'YOASOBI', artworkUrl: null, grade: 'SILVER', acquiredSeq: 1, fanNo: 9,
       signature: [], issued: true, masteredSongs: [], createdAt: '2026-10-01T00:00:00Z',
     };
-    expect(toArtistCard(dto).masteredCount).toBe(3);
+    expect(toArtistCard(dto)).toMatchObject({ masteredCount: 3, ownerNo: 1, fanNo: 9 });
   });
 
   it('reveal targets point at the card of that grade', () => {

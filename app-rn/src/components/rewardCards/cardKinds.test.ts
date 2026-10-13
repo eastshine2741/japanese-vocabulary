@@ -23,7 +23,7 @@ function songCard(id: string, title: string, level: CardLevel, mastered = false)
 
 function artistCard(id: string, masteredCount: number): ArtistRewardCard {
   return {
-    id, artistId: null, name: 'A', imageUrl: '', accent: '', ink: '', masteredCount, fanNo: 1, since: '2026-10-01',
+    id, artistId: null, name: 'A', imageUrl: '', accent: '', ink: '', masteredCount, ownerNo: 1, fanNo: masteredCount >= 1 ? 1 : null, since: '2026-10-01',
     masteredSongs: Array.from({ length: masteredCount }, (_, i) => ({ title: `곡${i}`, artworkUrl: '' })),
     signature: null,
   };

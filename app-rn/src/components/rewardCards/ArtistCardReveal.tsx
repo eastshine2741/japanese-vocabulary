@@ -29,9 +29,15 @@ const ARTIST_LADDER: readonly LadderStep[] = ARTIST_GRADE_STEPS.map((s) => ({
   caption: s.from === 0 ? '첫 곡 카드' : `MASTER 카드 ${s.from}장`,
 }));
 const ARTIST_GUIDE = ['MASTER 곡 카드를 모을수록 다음 등급 카드를 새로 받아요'];
+const ARTIST_FIRST_GUIDE = [...ARTIST_GUIDE, 'BRONZE 카드부터 몇 번째 팬인지 번호가 붙어요'];
 const ARTIST_LAST_GUIDE = ['이 아티스트의 마지막 등급 카드예요'];
 
 type Step = 'reveal' | 'sign';
+
+function artistGuide(current: number): string[] {
+  if (current === 0) return ARTIST_FIRST_GUIDE;
+  return current === ARTIST_LADDER.length - 1 ? ARTIST_LAST_GUIDE : ARTIST_GUIDE;
+}
 
 interface Props {
   card: ArtistRewardCard;
@@ -75,11 +81,11 @@ function ArtistCardReveal({ card, started, onClose }: Props) {
       ratio: ARTIST_CARD_RATIO,
       radius: ARTIST_RADIUS,
       subject: `이 아티스트의 ${artistGradeStep(card.masteredCount).label}`,
-      serialNo: card.fanNo,
+      serialNo: card.ownerNo,
       renderBack,
       renderFront,
     }),
-    [card.accent, card.fanNo, card.masteredCount, renderBack, renderFront],
+    [card.accent, card.ownerNo, card.masteredCount, renderBack, renderFront],
   );
 
   // 가로 카드라 폭을 넉넉히 쓴다.
@@ -101,7 +107,7 @@ function ArtistCardReveal({ card, started, onClose }: Props) {
           showcase={<ArtistCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} />}
           cheer={revealCheer(current, ARTIST_LADDER.length - 1)}
           heading={current === 0 ? '아티스트 카드를 얻었어요' : `${artistGradeStep(card.masteredCount).label} 카드를 얻었어요`}
-          guide={<RevealGuide lines={current === ARTIST_LADDER.length - 1 ? ARTIST_LAST_GUIDE : ARTIST_GUIDE} steps={ARTIST_LADDER} current={current} accent={card.accent} motion={motion} />}
+          guide={<RevealGuide lines={artistGuide(current)} steps={ARTIST_LADDER} current={current} accent={card.accent} motion={motion} />}
           actions={<RevealPrimaryButton label="서명하기" onPress={handleNext} />}
         />
       ) : (

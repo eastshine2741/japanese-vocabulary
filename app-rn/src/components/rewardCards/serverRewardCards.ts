@@ -77,7 +77,8 @@ export function toArtistCard(dto: ArtistCardDto): ArtistRewardCard {
     ...cardPalette(dto.artistId),
     // 등급은 마스터 곡 수에서 나오므로, 곡 정보가 빠져도 카드의 등급 아래로 내려가지 않게 한다.
     masteredCount: Math.max(dto.masteredSongs.length, artistGradeFrom(dto.grade)),
-    fanNo: dto.acquiredSeq,
+    ownerNo: dto.acquiredSeq,
+    fanNo: dto.fanNo,
     since: kstDate(dto.createdAt),
     masteredSongs: dto.masteredSongs.map((song) => ({ title: song.title, artworkUrl: song.artworkUrl ?? '' })),
     signature: dto.signature.length > 0 ? dto.signature : null,

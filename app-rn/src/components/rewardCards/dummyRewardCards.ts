@@ -309,7 +309,9 @@ const ARTIST_PHOTOS = [
   '1662920390866-33410f637e72', '1615754890640-1b07ac20cdbc',
 ];
 
-type ArtistSeed = Omit<ArtistRewardCard, 'id' | 'artistId' | 'imageUrl' | 'masteredSongs' | 'signature'> & {
+type ArtistSeed = Omit<ArtistRewardCard, 'id' | 'artistId' | 'imageUrl' | 'masteredSongs' | 'signature' | 'ownerNo' | 'fanNo'> & {
+  /** 더미는 획득 순번을 팬 번호로도 쓴다. */
+  fanNo: number;
   covers: MasteredSong[];
   gradeSamples?: boolean;
   titles?: string[];
@@ -398,6 +400,8 @@ function artistCard({ covers, titles, gradeSamples: _gradeSamples, ...seed }: Ar
     artistId: null,
     ...seed,
     imageUrl: seed.imageUrl ?? photo,
+    ownerNo: seed.fanNo,
+    fanNo: seed.masteredCount >= 1 ? seed.fanNo : null,
     signature: null,
     masteredSongs: Array.from({ length: seed.masteredCount }, (_, k) => ({
       title: titles ? titles[k % titles.length] : covers[k % covers.length].title,

@@ -171,9 +171,11 @@ function FrontFace({ card, width, height, u, tilt, fonts }: FaceProps & { tilt?:
       <View style={[styles.content, { padding: 6 * u }]}>
         {/* 멤버십 카드처럼 등급은 오른쪽 위, 회원 번호와 같은 줄에 둔다. */}
         <View style={styles.topRow}>
-          <Text style={[styles.fanNo, { fontFamily: fonts.koBold, fontSize: 3 * u }]}>
-            {`${card.sample ? '—' : card.fanNo.toLocaleString('ko-KR')}번째 팬`}
-          </Text>
+          {card.fanNo != null && (
+            <Text style={[styles.fanNo, { fontFamily: fonts.koBold, fontSize: 3 * u }]}>
+              {`${card.sample ? '—' : card.fanNo.toLocaleString('ko-KR')}번째 팬`}
+            </Text>
+          )}
           {m.engrave && m.foil && (
             <FoilText
               text={m.engrave}
