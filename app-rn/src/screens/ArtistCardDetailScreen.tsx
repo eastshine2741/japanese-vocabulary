@@ -127,7 +127,7 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
             <Feather name="chevron-down" size={22} color={SHOWROOM.fg} />
           </Pressable>
           <View style={styles.actions}>
-            {shareId != null && <CardShareButton kind="artist" cardId={shareId} title={card.name} tilt={tilt} cardRef={cardRef} />}
+            {shareId != null && <CardShareButton kind="artist" cardId={shareId} title={card.name} tilt={tilt} cardRef={cardRef} accent={card.accent} ink={card.ink} />}
           </View>
         </View>
 

@@ -5,11 +5,12 @@ import { Feather, FontAwesome6 } from '@expo/vector-icons';
 import { AppBottomSheetModal, AppBottomSheetModalRef, AppBottomSheetView } from '../bottomSheet';
 import { rewardCardApi } from '../../api/rewardCardApi';
 import { putToPresignedUrl } from '../../services/presignedUpload';
-import { shareUrlLabel, xPostUrl } from '../../services/shareLinks';
+import { shareText, xPostUrl } from '../../services/shareLinks';
+import { useAuthStore } from '../../stores/authStore';
 import { trackCardShare } from '../../services/analytics';
 import { Colors } from '../../theme/theme';
 import { SHOWROOM } from './cardTheme';
-import { composeShareImages } from './shareImage';
+import { captureCard, composeShareImages } from './shareImage';
 import { instagramStorySupported, isInstagramInstalled, shareToInstagramStory } from './instagramStory';
 import { CardTilt } from './useCardTilt';
 
@@ -23,37 +24,53 @@ interface Props {
   tilt: CardTilt;
   /** 공유 이미지로 뜰 카드 뷰. */
   cardRef: RefObject<View | null>;
+  /** 카드 아트에서 뽑은 색. 인스타 스토리 바탕을 위 accent → 아래 ink 로 깐다. */
+  accent: string;
+  ink: string;
 }
 
-// 정면·앞면으로 바꾼 자세가 UI 스레드에 그려진 뒤에 뜬다.
+// 정면·앞면으로 바꾼 자세가 화면에 그려진 뒤에 뜬다.
 const nextFrames = () =>
   new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 
 class InstagramMissing extends Error {}
 
-function CardShareButton({ kind, cardId, title, tilt, cardRef }: Props) {
+function CardShareButton({ kind, cardId, title, tilt, cardRef, accent, ink }: Props) {
   const sheetRef = useRef<AppBottomSheetModalRef>(null);
   const [busy, setBusy] = useState<Method | null>(null);
   const apiKind = kind === 'song' ? 'song-cards' : 'artist-cards';
-  const label = `「${title}」`;
+  const text = shareText(title, kind);
+  const userName = useAuthStore((s) => s.userName);
+  const profileImageUrl = useAuthStore((s) => s.profileImageUrl);
 
-  const handleOpen = useCallback(() => sheetRef.current?.present(), []);
+  // 공유 시트가 카드를 가리기 전에 화면 그대로 떠 둔다.
+  const capturedRef = useRef<Promise<string> | null>(null);
+  const [opening, setOpening] = useState(false);
 
-  const capture = useCallback(
-    async (url: string) => {
-      const flip = tilt.flip.value;
-      tilt.flip.value = 0;
-      tilt.still.value = true;
-      try {
-        await nextFrames();
-        return await composeShareImages(cardRef, `card-share-${apiKind}-${cardId}`, shareUrlLabel(url));
-      } finally {
-        tilt.still.value = false;
-        tilt.flip.value = flip;
-      }
-    },
-    [apiKind, cardRef, cardId, tilt],
-  );
+  const handleOpen = useCallback(async () => {
+    if (opening) return;
+    setOpening(true);
+    const flip = tilt.flip.value;
+    tilt.flip.value = 0;
+    tilt.still.value = true;
+    try {
+      await nextFrames();
+      const captured = captureCard(cardRef);
+      capturedRef.current = captured;
+      await captured.catch(() => undefined);
+    } finally {
+      tilt.still.value = false;
+      tilt.flip.value = flip;
+      setOpening(false);
+    }
+    sheetRef.current?.present();
+  }, [cardRef, opening, tilt]);
+
+  const compose = useCallback(async () => {
+    const captured = capturedRef.current;
+    if (!captured) throw new Error('card not captured');
+    return composeShareImages(await captured, `card-share-${apiKind}-${cardId}`, { name: userName ?? '사용자', profileImageUrl, kind });
+  }, [apiKind, cardId, kind, profileImageUrl, userName]);
 
   const upload = useCallback(
     async (fileUri: string) => {
@@ -68,15 +85,15 @@ function CardShareButton({ kind, cardId, title, tilt, cardRef }: Props) {
   const prepare = useCallback(
     async (waitUpload: boolean) => {
       const { url } = await rewardCardApi.shareCard(apiKind, cardId);
-      const images = await capture(url);
+      const images = await compose();
       // 실패하면 서버가 앨범 아트로 대신하니 공유는 계속한다.
       const uploading = upload(images.preview).catch((e) =>
         Sentry.captureException(e, { tags: { context: 'card-share-upload' } }),
       );
       if (waitUpload) await uploading;
-      return { url, story: images.story };
+      return { url, sticker: images.sticker };
     },
-    [apiKind, capture, cardId, upload],
+    [apiKind, cardId, compose, upload],
   );
 
   const run = useCallback(
@@ -100,20 +117,20 @@ function CardShareButton({ kind, cardId, title, tilt, cardRef }: Props) {
       run('x', async () => {
         const { url } = await prepare(true);
         sheetRef.current?.dismiss();
-        await Linking.openURL(xPostUrl(label, url));
+        await Linking.openURL(xPostUrl(text, url));
       }),
-    [label, prepare, run],
+    [prepare, run, text],
   );
 
   const handleInstagram = useCallback(
     () =>
       run('instagram_story', async () => {
         if (!(await isInstagramInstalled())) throw new InstagramMissing();
-        const { url, story } = await prepare(false);
+        const { url, sticker } = await prepare(false);
         sheetRef.current?.dismiss();
-        await shareToInstagramStory(story, url);
+        await shareToInstagramStory(sticker, url, { top: accent, bottom: ink });
       }),
-    [prepare, run],
+    [accent, ink, prepare, run],
   );
 
   const handleLink = useCallback(
@@ -121,9 +138,9 @@ function CardShareButton({ kind, cardId, title, tilt, cardRef }: Props) {
       run('link', async () => {
         const { url } = await prepare(true);
         sheetRef.current?.dismiss();
-        await Share.share(Platform.OS === 'ios' ? { message: label, url } : { message: `${label}\n${url}` });
+        await Share.share(Platform.OS === 'ios' ? { message: text, url } : { message: `${text}\n${url}` });
       }),
-    [label, prepare, run],
+    [prepare, run, text],
   );
 
   return (

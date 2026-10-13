@@ -247,11 +247,14 @@ age    = clamp((0.9 − recall) / 0.4, 0, 1)
   저장할 필요도 없다. 공개 도메인(`img.kotonoha.eastshine.dev`)으로 읽고, 다시 공유하면 덮어쓰며 객체에 `Cache-Control: max-age=300` 을 붙인다.
   없으면 곡·아티스트 아트워크.
 - 앱은 카드 상세의 공유 버튼에서 `X 게시물로 공유`·`인스타그램 스토리로 공유`·`링크로 공유` 를 고른다. 화면의 카드 앞면을 정면으로 세워
-  한 번 떠서(`react-native-view-shot` — Skia `makeImageFromView` 는 Android 에서 클립·블렌드를 무시한다) 9:16 스토리 이미지와 1200×630 미리보기 이미지를 만든다.
-  스토리는 share-web 처럼 위에 내 프로필 사진·`{이름}의 카드`, 아래에 설치 안내(`가사로 일본어 공부하는 앱`·`Kotonoha`·스토어 검색)를 카드 바탕체로 찍는다.
+  공유 시트를 열기 전에 화면에 보이는 그대로 한 번 떠서(Android 는 로컬 모듈 `modules/view-pixel-copy` 의 PixelCopy, iOS 는 Skia `makeImageFromView`)
+  스토리 스티커와 1200×630 미리보기 이미지를 만든다. 뷰를 다시 그리는 캡처는 Android 에서 클립·투명도를 놓쳐 Skia 로 그린 층(뒷면 박 글자, 아티스트 사진)이 맨 위에 덧그려진다.
+  스토리는 X 게시물 공유처럼 투명 바탕 흰 패널(머리줄 내 프로필 사진·이름·앱 아이콘, 가운데 카드, 바닥줄 왼쪽 훅·스토어 검색 안내, 오른쪽 `Kotonoha`·`노래로 배우는 일본어`)을
+  스티커로 넘기고, 바탕은 카드 아트에서 뽑은 색(위 accent → 아래 ink) 그라데이션이다(안 넘기면 react-native-share 가 보라색을 깐다). 글자는 앱 UI 글꼴(Funnel Sans, 한글은 시스템 고딕)이다.
+  세 공유 모두 받은 사람을 부르는 훅(`나도 최애곡 카드 만들러 가기`·`나도 최애 아티스트 카드 만들러 가기`, `shareHook`)을 넣는다 — 스티커 바닥줄, X·링크 글의 제목 다음 줄(그 아래 빈 줄 뒤 앱 소개).
   미리보기만 서버에 올린다 — X 큰 카드는 약 1.91:1 로 잘라서 세로 이미지를 쓰면 카드 가운데만 보인다.
   - X: 미리보기가 올라간 뒤 `x.com/intent/post` 글쓰기 화면을 연다. 이미지는 첨부하지 않고 링크 미리보기로 붙는다.
-  - 인스타 스토리: 스토리 이미지를 배경으로 스토리 편집 화면을 바로 연다(`react-native-share`, iOS `instagram-stories://`·Android `ADD_TO_STORY`).
+  - 인스타 스토리: 패널을 스티커(`stickerImage`)로 얹어 스토리 편집 화면을 바로 연다(`react-native-share`, iOS `instagram-stories://`·Android `ADD_TO_STORY`).
     Meta 앱 id 는 공개 값이라 `instagramStory.native.ts` 의 `FACEBOOK_APP_ID` 에 둔다. 링크 스티커 키도 넘기지만 인스타가 받아 줄지는 보장되지 않는다.
   - 링크: 미리보기가 올라간 뒤 OS 공유 시트로 링크를 낸다.
 - 링크를 받은 앱은 `SharedCard` 화면(남의 카드 보기 전용, 곡·아티스트 보기 버튼)을 연다. 로그인 전이면 로그인·가입 뒤에 연다.

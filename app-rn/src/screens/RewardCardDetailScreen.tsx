@@ -234,7 +234,7 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
               <Feather name="chevron-down" size={22} color={SHOWROOM.fg} />
             </Pressable>
             <View style={styles.actions}>
-              {shareId != null && <CardShareButton kind="song" cardId={shareId} title={card.title} tilt={tilt} cardRef={cardRef} />}
+              {shareId != null && <CardShareButton kind="song" cardId={shareId} title={card.title} tilt={tilt} cardRef={cardRef} accent={card.accent} ink={card.ink} />}
               <Pressable onPress={handleFocus} hitSlop={10} style={styles.iconBtn}>
                 <Feather name="maximize-2" size={17} color={SHOWROOM.fg} />
               </Pressable>
