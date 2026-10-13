@@ -268,11 +268,19 @@ interface IntroProps {
   back: React.ReactNode;
   /** 착지 뒤 기울기 효과가 있는 카드. */
   showcase: React.ReactNode;
-  /** 카드 위 한 줄. 곡명·이름은 카드에 이미 있어 무슨 카드인지만 말한다. */
+  /** 카드 위 큰 축하 한마디. */
+  cheer: string;
+  /** 축하 아래 한 줄. 곡명·이름은 카드에 이미 있어 무슨 카드인지만 말한다. */
   heading: string;
   /** 카드 아래 — 이 카드가 무엇이고 어떻게 오르는지. */
   guide: React.ReactNode;
   actions: React.ReactNode;
+}
+
+/** 첫 카드는 축하, 다음 등급은 칭찬, 마지막 등급은 끝까지 온 것을 말한다. */
+export function revealCheer(rung: number, lastRung: number): string {
+  if (rung === 0) return '축하해요!';
+  return rung === lastRung ? '완벽해요!' : '대단해요!';
 }
 
 /** 화면 아래 걸친 봉투를 뜯으면 카드가 가운데로 뽑혀 나오는 첫 단계. */
@@ -286,6 +294,7 @@ export const RevealIntro = React.memo(function RevealIntro({
   front,
   back,
   showcase,
+  cheer,
   heading,
   guide,
   actions,
@@ -435,6 +444,7 @@ export const RevealIntro = React.memo(function RevealIntro({
       style={[styles.step, { paddingTop: insets.top + SHOWROOM_HEADING_TOP, paddingBottom: insets.bottom + 16 }]}
     >
       <Rise progress={copyIn} from={10} style={styles.headingWrap}>
+        <Text style={styles.cheer}>{cheer}</Text>
         <Text style={styles.heading}>{heading}</Text>
       </Rise>
 
@@ -829,7 +839,8 @@ const styles = StyleSheet.create({
   backdrop: { opacity: 0.5, transform: [{ scale: 1.3 }] },
   step: { flex: 1 },
   headingWrap: { alignItems: 'center', paddingHorizontal: 24 },
-  heading: { color: SHOWROOM.fg, fontSize: 20, fontWeight: '700' },
+  cheer: { color: SHOWROOM.fg, fontSize: 28, fontWeight: '800' },
+  heading: { color: SHOWROOM.fgDim, fontSize: 16, fontWeight: '600', marginTop: 4 },
   stage: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   glow: { position: 'absolute' },
   ring: { position: 'absolute', borderWidth: 2 },
