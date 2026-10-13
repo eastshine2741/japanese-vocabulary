@@ -14,9 +14,9 @@ const PROMO_WIDTH = 1080;
 const PROMO_HEIGHT = 1920;
 
 /**
- * overlay 렌더(투명 PNG 시퀀스)와 MV 원본을 GPU 에서 합성해 최종 mp4 로 내는 ffmpeg 인자.
+ * overlay 렌더(투명 PNG 시퀀스)와 MV 원본을 합성해 최종 mp4 로 내는 ffmpeg 인자.
  * MV 는 GPU(NVDEC → 디코더 crop → scale_cuda)에서 줄이고 내려받는다.
- * 글자 층 합성과 엔드카드 배경 블러는 CPU 다 — overlay_cuda 는 hwupload 가 끝나기 전 프레임을 읽어 지난 글자·MV 가
+ * 글자 층 합성·엔드카드 배경 블러·인코딩은 CPU 다 — overlay_cuda 는 hwupload 가 끝나기 전 프레임을 읽어 지난 글자·MV 가
  * 끼어들고, ffmpeg 에 CUDA 가우시안 블러가 없다.
  */
 export function gpuCompositeFfmpegArgs({data, mvPath, source, framesDir, outputPath}) {
@@ -75,7 +75,7 @@ export function gpuCompositeFfmpegArgs({data, mvPath, source, framesDir, outputP
     '0:a:0?',
     '-af',
     `volume=${AUDIO_VOLUME},afade=t=out:st=${(totalFrames - AUDIO_FADE_FRAMES) / FPS}:d=${(AUDIO_FADE_FRAMES - 1) / FPS}`,
-    ...nvencArgs(),
+    ...x264Args(),
     '-c:a',
     'aac',
     '-b:a',
@@ -84,25 +84,24 @@ export function gpuCompositeFfmpegArgs({data, mvPath, source, framesDir, outputP
   ];
 }
 
-export function nvencArgs() {
+// NVENC 는 쓰지 않는다. 컨테이너 ffmpeg(6.1)의 NVENC 가 쓰는 SPS 를 OpenH264(GNOME 기본 플레이어 등)가 잘못 읽어 재생하지 못한다.
+// x264 후처리 경로(render-request.mjs)와 같은 설정이다.
+export function x264Args() {
   return [
     '-c:v',
-    'h264_nvenc',
-    '-preset',
-    'p5',
-    '-tune',
-    'hq',
-    '-rc',
-    'vbr',
-    // x264(crf 20) 결과와 파일 크기가 같아지는 값. NVENC 는 같은 화질에 비트를 더 써서 20 이면 2.3배가 된다.
-    '-cq',
-    '29',
-    '-b:v',
-    '0',
+    'libx264',
+    '-pix_fmt',
+    'yuv420p',
     '-profile:v',
     'high',
     '-level',
     '4.1',
+    '-crf',
+    '20',
+    '-preset',
+    'medium',
+    '-threads',
+    '4',
     '-color_range',
     'tv',
     '-colorspace',
