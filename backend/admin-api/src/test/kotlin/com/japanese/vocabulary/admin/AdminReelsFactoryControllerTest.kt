@@ -325,6 +325,8 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         assertThat(mvPath).startsWith("/reels-factory/songs/${song.id}/mv?token=")
         assertThat(fakeRenderer.lastInput).isNull()
         val mediaToken = mvPath.substringAfter("token=")
+        // 에디터는 MV URL 을 다시 받지 않으므로 로그인 세션보다 먼저 죽으면 편집 중 재생이 끊긴다
+        assertThat(jwtExpiration(mediaToken)).isEqualTo(jwtExpiration(token))
 
         // 올린 뒤에는 다시 올리지 않고 경로만 받을 수 있다 (새 미디어 토큰)
         mockMvc.get("/admin/api/reels-factory/songs/${song.id}/source") {
@@ -416,6 +418,9 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         }
         assertThat(sourceCache.cached(song.id!!)).isNull()
     }
+
+    private fun jwtExpiration(jwt: String): Long =
+        objectMapper.readTree(java.util.Base64.getUrlDecoder().decode(jwt.split(".")[1]))["exp"].asLong()
 
     private fun uploadSource(token: String, songId: Long): String {
         val body = mockMvc.multipart("/admin/api/reels-factory/songs/$songId/source") {

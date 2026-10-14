@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
 import java.nio.file.Path
+import java.time.Instant
 import kotlin.math.abs
 
 @Service
@@ -53,20 +54,20 @@ class AdminReelsFactoryService(
      * 어드민이 올린 source mp4 를 캐시에 넣고 스트리밍 경로를 돌려준다. 본 렌더는 이 원본을 그대로 쓴다.
      */
     @Transactional(readOnly = true)
-    fun uploadSource(songId: Long, file: MultipartFile): AdminReelsSourceResponse {
+    fun uploadSource(songId: Long, file: MultipartFile, sessionExpiresAt: Instant): AdminReelsSourceResponse {
         requireEligible(songId)
         if (file.isEmpty) {
             throw IllegalArgumentException("source file is empty")
         }
         sourceCache.store(songId, file.inputStream)
-        return AdminReelsSourceResponse(mvPath = mvPath(songId))
+        return AdminReelsSourceResponse(mvPath = mvPath(songId, sessionExpiresAt))
     }
 
     /** 이미 올려 둔 source 가 있으면 다시 올리지 않고 스트리밍 경로만 돌려준다. */
     @Transactional(readOnly = true)
-    fun cachedSource(songId: Long): AdminReelsSourceResponse? {
+    fun cachedSource(songId: Long, sessionExpiresAt: Instant): AdminReelsSourceResponse? {
         requireEligible(songId)
-        return sourceCache.cached(songId)?.let { AdminReelsSourceResponse(mvPath = mvPath(songId)) }
+        return sourceCache.cached(songId)?.let { AdminReelsSourceResponse(mvPath = mvPath(songId, sessionExpiresAt)) }
     }
 
     /** 미리보기 MV 스트림. 캐시에 있는 곡의 재인코딩 사본만 내준다. */
@@ -104,8 +105,8 @@ class AdminReelsFactoryService(
         }
     }
 
-    private fun mvPath(songId: Long): String =
-        "/reels-factory/songs/$songId/mv?token=${tokenService.issueMediaToken(songId)}"
+    private fun mvPath(songId: Long, sessionExpiresAt: Instant): String =
+        "/reels-factory/songs/$songId/mv?token=${tokenService.issueMediaToken(songId, sessionExpiresAt)}"
 
     private fun requireEligible(songId: Long) {
         if (!songRepository.existsById(songId)) throw NoSuchElementException("Song not found")

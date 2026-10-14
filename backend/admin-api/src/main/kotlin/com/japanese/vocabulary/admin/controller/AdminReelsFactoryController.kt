@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.admin.controller
 
+import com.japanese.vocabulary.admin.auth.AdminAuthentication
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsRenderJobResponse
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsRenderRequest
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsSongCandidateResponse
@@ -43,12 +44,13 @@ class AdminReelsFactoryController(
     fun uploadSource(
         @PathVariable songId: Long,
         @RequestPart file: MultipartFile,
-    ): AdminReelsSourceResponse = service.uploadSource(songId, file)
+        authentication: AdminAuthentication,
+    ): AdminReelsSourceResponse = service.uploadSource(songId, file, authentication.expiresAt)
 
     /** 이전에 올린 MV 가 아직 캐시에 있으면 다시 올리지 않고 쓸 수 있게 경로만 돌려준다. */
     @GetMapping("/songs/{songId}/source")
-    fun cachedSource(@PathVariable songId: Long): ResponseEntity<AdminReelsSourceResponse> =
-        service.cachedSource(songId)?.let { ResponseEntity.ok(it) } ?: ResponseEntity.notFound().build()
+    fun cachedSource(@PathVariable songId: Long, authentication: AdminAuthentication): ResponseEntity<AdminReelsSourceResponse> =
+        service.cachedSource(songId, authentication.expiresAt)?.let { ResponseEntity.ok(it) } ?: ResponseEntity.notFound().build()
 
     /**
      * 에디터 `<video>` 와 Remotion Player 가 읽는 MV 스트림. 인증은 query 의 미디어 토큰으로 하고(SecurityConfig 에서 permitAll),
