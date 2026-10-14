@@ -1,7 +1,7 @@
 import * as React from "react"
 import type { ReelsSongDetail } from "@/api/types"
 import { cn } from "@/lib/utils"
-import { END_CARD_MS, formatMs, lineByIndex, type EditorState } from "./reelEditor"
+import { activeMvKeyframe, END_CARD_MS, formatMs, lineByIndex, type EditorState, type MvTrack } from "./reelEditor"
 
 type Props = {
   detail: ReelsSongDetail
@@ -10,6 +10,7 @@ type Props = {
   mvDurationMs: number
   playheadMs: number
   selectedIndex: number | null
+  mvTrack: MvTrack
   onSeekSource(ms: number): void
   onSeekReel(ms: number): void
   /** 클립 전체를 옮겨 시작이 이 시각이 되게 한다. */
@@ -18,6 +19,9 @@ type Props = {
   onSetEnd(ms: number): void
   onSetLineStart(index: number, ms: number): void
   onSelectLine(index: number): void
+  onAddKeyframe(ms: number): void
+  /** 드래그 중엔 이웃 키프레임을 넘지 않는다. */
+  onDragKeyframe(index: number, ms: number): void
 }
 
 /**
@@ -30,6 +34,7 @@ export function ReelTimeline({
   mvDurationMs,
   playheadMs,
   selectedIndex,
+  mvTrack,
   onSeekSource,
   onSeekReel,
   onMoveClip,
@@ -37,6 +42,8 @@ export function ReelTimeline({
   onSetEnd,
   onSetLineStart,
   onSelectLine,
+  onAddKeyframe,
+  onDragKeyframe,
 }: Props) {
   return (
     <div className="flex h-full select-none flex-col gap-2 rounded-lg border border-[#d9e1ea] bg-white p-3 [touch-action:none]">
@@ -54,10 +61,13 @@ export function ReelTimeline({
         editor={editor}
         playheadMs={playheadMs}
         selectedIndex={selectedIndex}
+        mvTrack={mvTrack}
         onSeek={onSeekReel}
         onSetEnd={onSetEnd}
         onSetLineStart={onSetLineStart}
         onSelectLine={onSelectLine}
+        onAddKeyframe={onAddKeyframe}
+        onDragKeyframe={onDragKeyframe}
       />
     </div>
   )
@@ -147,19 +157,25 @@ function Detail({
   editor,
   playheadMs,
   selectedIndex,
+  mvTrack,
   onSeek,
   onSetEnd,
   onSetLineStart,
   onSelectLine,
+  onAddKeyframe,
+  onDragKeyframe,
 }: {
   detail: ReelsSongDetail
   editor: EditorState
   playheadMs: number
   selectedIndex: number | null
+  mvTrack: MvTrack
   onSeek(ms: number): void
   onSetEnd(ms: number): void
   onSetLineStart(index: number, ms: number): void
   onSelectLine(index: number): void
+  onAddKeyframe(ms: number): void
+  onDragKeyframe(index: number, ms: number): void
 }) {
   const trackRef = React.useRef<HTMLDivElement>(null)
   const windowStart = editor.sourceStartMs
@@ -172,6 +188,10 @@ function Detail({
   }
   const at = (ms: number) => pct(ms - windowStart, windowLength)
   const ticks = React.useMemo(() => buildTicks(windowStart, windowLength), [windowStart, windowLength])
+  const activeKeyframe = activeMvKeyframe(mvTrack, playheadMs)
+  const visibleKeyframes = mvTrack.keyframes
+    .map((keyframe, index) => ({ ...keyframe, index, percent: at(keyframe.atMs) }))
+    .filter((keyframe) => keyframe.percent >= 0 && keyframe.percent <= 100)
 
   return (
     <div className="flex min-h-0 flex-1 items-stretch gap-3">
@@ -183,6 +203,50 @@ function Detail({
               {formatMs(tick)}
             </span>
           ))}
+        </div>
+        <div
+          aria-label="MV keyframe lane"
+          className="relative mb-1 h-5 cursor-pointer rounded bg-[#f8fafc] ring-1 ring-inset ring-[#e2e8f0]"
+          onDoubleClick={(event) => onAddKeyframe(msAt(event.clientX))}
+          onPointerDown={(event) => {
+            if (event.button !== 0) return
+            onSeek(msAt(event.clientX))
+            startDrag(event, { onMove: (_delta, clientX) => onSeek(msAt(clientX)) })
+          }}
+          role="presentation"
+          title="더블클릭: MV 배치 키프레임 추가"
+        >
+          {visibleKeyframes.map((keyframe) => (
+            <div
+              aria-label={`MV keyframe ${formatMs(keyframe.atMs)}`}
+              className="group absolute inset-y-0 z-10 w-4 -translate-x-1/2 cursor-ew-resize"
+              key={keyframe.index}
+              onDoubleClick={(event) => event.stopPropagation()}
+              onPointerDown={(event) => {
+                if (event.button !== 0) return
+                event.stopPropagation()
+                startDrag(event, {
+                  onMove: (_delta, clientX) => onDragKeyframe(keyframe.index, msAt(clientX)),
+                  onEnd: (moved) => {
+                    if (!moved) onSeek(keyframe.atMs)
+                  },
+                })
+              }}
+              role="presentation"
+              style={{ left: `${keyframe.percent}%` }}
+              title={`MV 배치 ${formatMs(keyframe.atMs)}`}
+            >
+              <div
+                className={cn(
+                  "absolute top-1/2 left-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px] ring-1",
+                  keyframe.index === activeKeyframe
+                    ? "bg-[#7c3aed] ring-[#5b21b6]"
+                    : "bg-white ring-[#7c3aed] group-hover:bg-[#ddd6fe]",
+                )}
+              />
+            </div>
+          ))}
+          <Playhead percent={at(playheadMs)} />
         </div>
         <div
           aria-label="Reel timeline"
@@ -197,6 +261,13 @@ function Detail({
         >
           {ticks.map((tick) => (
             <div className="pointer-events-none absolute inset-y-0 w-px bg-[#e2e8f0]" key={tick} style={{ left: `${at(tick)}%` }} />
+          ))}
+          {visibleKeyframes.map((keyframe) => (
+            <div
+              className="pointer-events-none absolute inset-y-0 z-[5] border-l border-dashed border-[#7c3aed]/70"
+              key={keyframe.index}
+              style={{ left: `${keyframe.percent}%` }}
+            />
           ))}
           {editor.lines.length === 0 ? (
             <div className="absolute inset-0 flex items-center justify-center text-xs text-[#94a3b8]">

@@ -20,6 +20,8 @@ import {
   EMPTY_MV_TRACK,
   emptyEditor,
   frameToMs,
+  addMvKeyframe,
+  moveMvKeyframe,
   setEnd,
   setLineStart,
   setLinesIncluded,
@@ -174,6 +176,37 @@ export function ReelsFactoryPage() {
     monitorRef.current?.seek(ms)
   }, [])
 
+  // 드래그는 pointerdown 때의 핸들러로 계속 불리므로 트랙은 ref 로 읽는다.
+  const mvTrackRef = React.useRef(mvTrack)
+  mvTrackRef.current = mvTrack
+  const handleAddKeyframe = React.useCallback(
+    (ms: number) => {
+      setMvTrack((track) => addMvKeyframe(track, ms))
+      seekReel(Math.max(0, Math.round(ms)))
+    },
+    [seekReel],
+  )
+  /** 플레이헤드가 키프레임을 따라가 그 시각의 MV 장면과 배치가 모니터에 보인다. */
+  const handleDragKeyframe = React.useCallback(
+    (index: number, ms: number) => {
+      const next = moveMvKeyframe(mvTrackRef.current, index, ms, true)
+      mvTrackRef.current = next
+      setMvTrack(next)
+      seekReel(next.keyframes[index].atMs)
+    },
+    [seekReel],
+  )
+  const handleSetKeyframeTime = React.useCallback(
+    (index: number, ms: number) => {
+      const next = moveMvKeyframe(mvTrackRef.current, index, ms)
+      if (next === mvTrackRef.current) return
+      mvTrackRef.current = next
+      setMvTrack(next)
+      seekReel(Math.max(0, Math.round(ms)))
+    },
+    [seekReel],
+  )
+
   /** 플레이헤드에 줄 시작을 찍고 다음 줄로 넘어간다. PLAIN 가사를 들으면서 찍는 흐름이다. */
   const markSelectedLine = React.useCallback(() => {
     if (!detail || selectedIndex == null) return
@@ -319,6 +352,7 @@ export function ReelsFactoryPage() {
               onChangeLyricScale={setLyricScale}
               onChangeLyricOffsetY={setLyricOffsetY}
               onChangeMvTrack={setMvTrack}
+              onSetKeyframeTime={handleSetKeyframeTime}
               onChangeHeadlineOffsetY={setHeadlineOffsetY}
               headlineFontSize={headlineFontSize}
               headlineOffsetY={headlineOffsetY}
@@ -351,6 +385,9 @@ export function ReelsFactoryPage() {
               onSetEnd={handleSetEnd}
               onSetLineStart={handleSetLineStart}
               onSetSourceStart={handleSetSourceStart}
+              mvTrack={mvTrack}
+              onAddKeyframe={handleAddKeyframe}
+              onDragKeyframe={handleDragKeyframe}
             />
           </div>
         </>

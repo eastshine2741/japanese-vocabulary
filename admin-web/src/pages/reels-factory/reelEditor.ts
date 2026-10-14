@@ -120,6 +120,27 @@ export function addMvKeyframe(track: MvTrack, ms: number): MvTrack {
   return { ...track, keyframes }
 }
 
+/**
+ * 키프레임을 `ms` 로 옮긴다. `keepOrder` 면 이웃 키프레임 사이로 묶어 index 가 그대로다(드래그용).
+ * 아니면 다시 정렬하고, 다른 키프레임과 시각이 겹치면 그대로다.
+ */
+export function moveMvKeyframe(track: MvTrack, index: number, ms: number, keepOrder = false): MvTrack {
+  const target = track.keyframes[index]
+  if (!target) return track
+  let atMs = Math.max(0, Math.round(ms))
+  if (keepOrder) {
+    const prev = track.keyframes[index - 1]
+    const next = track.keyframes[index + 1]
+    if (prev) atMs = Math.max(atMs, prev.atMs + 1)
+    if (next) atMs = Math.min(atMs, next.atMs - 1)
+  } else if (track.keyframes.some((keyframe, at) => at !== index && keyframe.atMs === atMs)) {
+    return track
+  }
+  if (atMs === target.atMs) return track
+  const keyframes = track.keyframes.map((keyframe, at) => (at === index ? { ...keyframe, atMs } : keyframe))
+  return { ...track, keyframes: keepOrder ? keyframes : keyframes.sort((a, b) => a.atMs - b.atMs) }
+}
+
 export function removeMvKeyframe(track: MvTrack, index: number): MvTrack {
   return { ...track, keyframes: track.keyframes.filter((_, at) => at !== index) }
 }

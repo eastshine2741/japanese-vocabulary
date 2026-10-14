@@ -67,6 +67,7 @@ type Props = {
   errors: string[]
   onChangeCaption(caption: ReelCaption): void
   onChangeMvTrack(track: MvTrack): void
+  onSetKeyframeTime(index: number, ms: number): void
   onChangeHeadlineFontSize(size: number): void
   onChangeHeadlineOffsetY(offset: number): void
   onChangeLyricScale(scale: number): void
@@ -97,6 +98,7 @@ export function LineInspector({
   errors,
   onChangeCaption,
   onChangeMvTrack,
+  onSetKeyframeTime,
   onChangeHeadlineFontSize,
   onChangeHeadlineOffsetY,
   onChangeLyricScale,
@@ -198,6 +200,7 @@ export function LineInspector({
           track={mvTrack}
           onAdd={() => onChangeMvTrack(addMvKeyframe(mvTrack, playheadMs))}
           onRemove={(index) => onChangeMvTrack(removeMvKeyframe(mvTrack, index))}
+          onSetTime={onSetKeyframeTime}
           onSeek={onSeekReel}
         />
         <div className={SLIDER_GRID}>
@@ -488,13 +491,14 @@ const CROP_SIDES: [keyof MvCrop, string][] = [
   ["right", "RIGHT"],
 ]
 
-/** 첫 배치와 키프레임 목록. 누르면 그 시각으로 가고, 슬라이더는 플레이헤드에 적용 중인 것을 고친다. */
+/** 첫 배치와 키프레임 목록. 시각을 바로 고칠 수 있고, 슬라이더는 플레이헤드에 적용 중인 것을 고친다. */
 function KeyframeList({
   track,
   active,
   clipStartMs,
   onAdd,
   onRemove,
+  onSetTime,
   onSeek,
 }: {
   track: MvTrack
@@ -502,26 +506,50 @@ function KeyframeList({
   clipStartMs: number
   onAdd(): void
   onRemove(index: number): void
+  onSetTime(index: number, ms: number): void
   onSeek(ms: number): void
 }) {
-  const row = (selected: boolean) =>
-    cn(
-      "flex h-7 items-center rounded-md px-2 font-mono text-xs",
-      selected ? "bg-[#0f766e] text-white" : "text-[#42526b] hover:bg-[#eef2f6]",
-    )
+  const marker = (selected: boolean) => cn("h-6 w-1 shrink-0 rounded-full", selected ? "bg-[#7c3aed]" : "bg-transparent")
   return (
-    <div className="mb-2 space-y-0.5">
-      <button aria-label="Go to first frame" className={cn(row(active < 0), "w-full")} onClick={() => onSeek(clipStartMs)} type="button">
+    <div className="mb-2 space-y-1">
+      <button
+        aria-label="Go to first frame"
+        className={cn(
+          "flex h-7 w-full items-center gap-2 rounded-md pr-2 font-mono text-xs",
+          active < 0 ? "text-[#18212f]" : "text-[#42526b] hover:bg-[#eef2f6]",
+        )}
+        onClick={() => onSeek(clipStartMs)}
+        type="button"
+      >
+        <span className={marker(active < 0)} />
         시작
       </button>
       {track.keyframes.map((keyframe, index) => (
-        <div className={row(active === index)} key={keyframe.atMs}>
-          <button aria-label={`Go to keyframe ${formatMs(keyframe.atMs)}`} className="flex-1 text-left" onClick={() => onSeek(keyframe.atMs)} type="button">
-            {formatMs(keyframe.atMs)}
-          </button>
-          <button aria-label={`Remove keyframe ${formatMs(keyframe.atMs)}`} onClick={() => onRemove(index)} title="키프레임 삭제" type="button">
+        <div className="flex items-center gap-2" key={`${index}:${keyframe.atMs}`}>
+          <span className={marker(active === index)} />
+          <TimecodeInput ariaLabel={`Keyframe ${index + 1} time`} value={keyframe.atMs} onCommit={(ms) => onSetTime(index, ms)} />
+          <Button
+            aria-label={`Go to keyframe ${formatMs(keyframe.atMs)}`}
+            className="h-7 w-7 shrink-0"
+            onClick={() => onSeek(keyframe.atMs)}
+            size="icon"
+            title="키프레임으로 이동"
+            type="button"
+            variant="ghost"
+          >
+            <LocateFixed className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            aria-label={`Remove keyframe ${formatMs(keyframe.atMs)}`}
+            className="h-7 w-7 shrink-0"
+            onClick={() => onRemove(index)}
+            size="icon"
+            title="키프레임 삭제"
+            type="button"
+            variant="ghost"
+          >
             <X className="h-3.5 w-3.5" />
-          </button>
+          </Button>
         </div>
       ))}
       <Button className="h-7 w-full justify-start px-2 text-xs" onClick={onAdd} type="button" variant="ghost">

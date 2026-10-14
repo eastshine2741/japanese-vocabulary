@@ -27,6 +27,7 @@ import {
   LYRIC_SCALE_MAX,
   LYRIC_SCALE_MIN,
   MIN_GAP_MS,
+  moveMvKeyframe,
   mvFrameAt,
   parseTimecode,
   removeMvKeyframe,
@@ -368,6 +369,18 @@ describe("mv frame", () => {
     expect(track.keyframes.map((keyframe) => keyframe.atMs)).toEqual([12_000, 14_000])
     expect(activeMvKeyframe(track, 12_500)).toBe(0)
     expect(removeMvKeyframe(track, 1).keyframes).toEqual([{ atMs: 12_000, frame: base }])
+  })
+
+  test("moving a keyframe re-sorts, or stays between neighbours while dragging", () => {
+    const a = { scale: 1, x: 0, y: 0 }
+    const b = { scale: 2, x: 0, y: 0 }
+    const track = { base: null, keyframes: [{ atMs: 10_000, frame: a }, { atMs: 14_000, frame: b }] }
+    expect(moveMvKeyframe(track, 0, 16_000.4).keyframes).toEqual([{ atMs: 14_000, frame: b }, { atMs: 16_000, frame: a }])
+    expect(moveMvKeyframe(track, 0, 14_000)).toBe(track)
+    expect(moveMvKeyframe(track, 1, -500).keyframes[0]).toEqual({ atMs: 0, frame: b })
+    expect(moveMvKeyframe(track, 0, 16_000, true).keyframes).toEqual([{ atMs: 13_999, frame: a }, { atMs: 14_000, frame: b }])
+    expect(moveMvKeyframe(track, 1, 5_000, true).keyframes[1]).toEqual({ atMs: 10_001, frame: b })
+    expect(moveMvKeyframe(track, 2, 5_000)).toBe(track)
   })
 
   test("keyframes become reel frames; ones before the clip set the first frame, ones after the reel are dropped", () => {
