@@ -34,7 +34,12 @@ class LexicalResolver(
         val firstPass = jishoService.lookupAll(tokens.map { it.headword }.distinct())
         // Narrow once per token and reuse; grading twice would emit every log line twice.
         val narrowed = tokens.associate { it.key to narrow(it, firstPass[it.headword], it.headword) }
-        val probeLookups = jishoService.lookupAll(probeKeys(tokens.filter { narrowed[it.key] == null }))
+        val potentialVerbProbes = tokens
+            .filter { narrowed[it.key]?.let(::isPotentialVerbEntry) == true }
+            .mapNotNull(::potentialFormProbe)
+        val probeLookups = jishoService.lookupAll(
+            (probeKeys(tokens.filter { narrowed[it.key] == null }) + potentialVerbProbes).distinct(),
+        )
 
         val byToken = linkedMapOf<PipelineTokenKey, LexicalResolvedToken>()
         val optionsById = linkedMapOf<Int, PipelineSenseOption>()
@@ -44,7 +49,9 @@ class LexicalResolver(
         var nextSenseId = 0
 
         for (token in tokens) {
-            val resolved = narrowed[token.key]
+            val resolved = narrowed[token.key]?.let { exact ->
+                if (isPotentialVerbEntry(exact)) resolvePotentialForm(token, probeLookups) ?: exact else exact
+            }
                 ?: resolveIAdjective(token, probeLookups)
                 ?: resolveSuruDesiderative(token, probeLookups)
                 ?: resolveHiraganaQuery(token, probeLookups)
@@ -859,6 +866,17 @@ class LexicalResolver(
         if (godanEntries.isEmpty()) return null
         if (logRescue) logger.info("Looked up potential form '{}' as '{}'", token.headword, base)
         return AcceptedLexicalEntry(base, godanEntries, accepted.provenance)
+    }
+
+    /**
+     * jisho lists some potential verbs as headwords of their own (眠れる: "to be able to sleep"), so
+     * the exact hit never reaches [resolvePotentialForm] and the card teaches "can sleep" instead of 眠る.
+     * Only entries whose every verb sense is "to be able to …" are sent back: 行ける also means "to be good".
+     */
+    private fun isPotentialVerbEntry(accepted: AcceptedLexicalEntry): Boolean {
+        val verbSenses = accepted.entries.flatMap { it.senses }
+            .filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
+        return verbSenses.isNotEmpty() && verbSenses.all { it.english.startsWith("to be able to") }
     }
 
     /** `掴める` → `掴む`. Null unless the headword carries kanji and ends in an え-row kana + る. */
