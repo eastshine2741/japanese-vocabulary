@@ -12,6 +12,7 @@ import org.springframework.test.web.client.match.MockRestRequestMatchers.method
 import org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo
 import org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess
 import org.springframework.web.client.RestClient
+import java.time.Duration
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -35,37 +36,76 @@ class KaraokeClientsTest {
     }
 
     @Test
-    fun `passes KY cookie challenge and reuses the cookie on later pages`() {
+    fun `passes KY cookie challenge, reuses the cookie, and reads a song by number with its release month`() {
         val builder = RestClient.builder()
         val server = MockRestServiceServer.bindTo(builder).build()
-        server.expect(requestTo("https://kysing.kr/latest/?s_page=1"))
+        server.expect(requestTo("https://kysing.kr/search/?category=1&keyword=57723"))
             .andRespond(withSuccess(fixture("ky-challenge.html"), HTML_UTF8))
-        server.expect(requestTo("https://kysing.kr/latest/?s_page=1"))
+        server.expect(requestTo("https://kysing.kr/search/?category=1&keyword=57723"))
             .andExpect(header("Cookie", "CUPID=c571f4d2f56ab754724247870648f1bc"))
-            .andRespond(withSuccess(fixture("ky-latest.html"), HTML_UTF8))
-        server.expect(requestTo("https://kysing.kr/latest/?s_page=2"))
+            .andRespond(withSuccess(fixture("ky-search.html"), HTML_UTF8))
+        server.expect(requestTo("https://kysing.kr/search/?category=1&keyword=57722"))
             .andExpect(header("Cookie", "CUPID=c571f4d2f56ab754724247870648f1bc"))
             .andRespond(withSuccess("<html></html>", HTML_UTF8))
+        val client = kyClient(builder)
 
-        val songs = KyClient(builder).latestSongs()
-
-        assertThat(songs).containsExactly(
+        assertThat(client.song(57723)).isEqualTo(
             KaraokeListing(
-                KaraokeListingVendor.KY, 44123, "アイドル", "YOASOBI",
-                lyricLines = listOf("無敵の笑顔で荒らすメディア", "知りたいその秘密ミステリアス"),
+                KaraokeListingVendor.KY, 57723, "千鳥", "ヨルシカ",
+                lyricLines = listOf("카제가 오모테데 욘데이루", "かぜ//////よ/", "風がおもてで呼んでいる"),
+                releaseMonth = YearMonth.of(2026, 12),
             ),
         )
+        assertThat(client.song(57722)).isNull()
         server.verify()
     }
 
     @Test
-    fun `fails instead of reporting no KY songs when the first page has no rows`() {
+    fun `reads every page of every initial in the KY Japanese book`() {
+        val builder = RestClient.builder()
+        val server = MockRestServiceServer.bindTo(builder).build()
+        server.expect(requestTo("https://kysing.kr/karaoke-book/?city=jp"))
+            .andRespond(withSuccess(fixture("ky-book-index.html"), HTML_UTF8))
+        server.expect(requestTo(bookPage("A", 1))).andRespond(withSuccess(bookHtml(40000 until 42000), HTML_UTF8))
+        server.expect(requestTo(bookPage("A", 2))).andRespond(withSuccess(bookHtml(42000 until 43000), HTML_UTF8))
+        server.expect(requestTo(bookPage("A", 3))).andRespond(withSuccess("<html></html>", HTML_UTF8))
+        server.expect(requestTo(bookPage("%E3%81%82", 1))).andRespond(withSuccess(bookHtml(57723..57800), HTML_UTF8))
+        server.expect(requestTo(bookPage("%E3%81%82", 2))).andRespond(withSuccess("<html></html>", HTML_UTF8))
+
+        val numbers = kyClient(builder).bookNumbers()
+
+        assertThat(numbers).hasSize(3078)
+        assertThat(numbers).containsAll(listOf(40000, 42999, 57723, 57800))
+        server.verify()
+    }
+
+    @Test
+    fun `fails instead of reporting no KY songs when the book comes back nearly empty`() {
+        val builder = RestClient.builder()
+        val server = MockRestServiceServer.bindTo(builder).build()
+        server.expect(requestTo("https://kysing.kr/karaoke-book/?city=jp"))
+            .andRespond(withSuccess(fixture("ky-book-index.html"), HTML_UTF8))
+        server.expect(requestTo(bookPage("A", 1))).andRespond(withSuccess("<html></html>", HTML_UTF8))
+        server.expect(requestTo(bookPage("%E3%81%82", 1))).andRespond(withSuccess("<html></html>", HTML_UTF8))
+
+        assertThatThrownBy { kyClient(builder).bookNumbers() }.isInstanceOf(IllegalStateException::class.java)
+    }
+
+    @Test
+    fun `fails when KY answers with its access blocked page`() {
         val builder = RestClient.builder()
         MockRestServiceServer.bindTo(builder).build()
-            .expect(requestTo("https://kysing.kr/latest/?s_page=1"))
-            .andRespond(withSuccess("<html></html>", HTML_UTF8))
+            .expect(requestTo("https://kysing.kr/search/?category=1&keyword=57723"))
+            .andRespond(withSuccess("<title>사이트 소유자에 의해 이 사이트에 대한 액세스가 제한되었습니다</title>", HTML_UTF8))
 
-        assertThatThrownBy { KyClient(builder).latestSongs() }.isInstanceOf(IllegalStateException::class.java)
+        assertThatThrownBy { kyClient(builder).song(57723) }.isInstanceOf(IllegalStateException::class.java)
+    }
+
+    @Test
+    fun `book rows are read from the cell text because titles carry unescaped quotes`() {
+        val numbers = kyClient(RestClient.builder()).parseBook(fixture("ky-book-index.html"))
+
+        assertThat(numbers).containsExactly(41432)
     }
 
     @Test
@@ -77,6 +117,15 @@ class KaraokeClientsTest {
     }
 
     private val HTML_UTF8 = MediaType("text", "html", Charsets.UTF_8)
+
+    private fun kyClient(builder: RestClient.Builder) = KyClient(builder).apply { minInterval = Duration.ZERO }
+
+    private fun bookPage(initial: String, page: Int) =
+        "https://kysing.kr/karaoke-book/?city=jp&s_cd=2&s_page=$page&s_value=$initial"
+
+    private fun bookHtml(numbers: IntRange) = numbers.joinToString("", "<html><body>", "</body></html>") {
+        """<ul class="index_search_list clear"><li class="index_search_num">$it</li></ul>"""
+    }
 
     private fun fixture(name: String): String =
         javaClass.getResource("/karaoke/$name")!!.readText()

@@ -36,6 +36,10 @@ class KaraokeSongService(
         if (numbers.isEmpty()) emptySet()
         else karaokeSongRepository.findAllByVendorAndNumberIn(vendor, numbers).map { it.number }.toSet()
 
+    @Transactional(readOnly = true)
+    fun findAllByVendor(vendor: KaraokeVendor): List<KaraokeSongDto> =
+        karaokeSongRepository.findAllByVendor(vendor).map { it.toDto() }
+
     /**
      * 행을 먼저 남기고 분석을 요청한다. 분석 요청이 실패해도 행은 남아 목록과 푸시에 나간다.
      * 트랜잭션을 묶지 않는 이유: 분석 요청의 중복 충돌은 그 트랜잭션을 통째로 롤백시킨다.

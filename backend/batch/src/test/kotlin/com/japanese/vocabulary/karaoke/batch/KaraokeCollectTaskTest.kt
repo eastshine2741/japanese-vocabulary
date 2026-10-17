@@ -27,12 +27,15 @@ import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.DefaultApplicationArguments
 import org.springframework.test.context.TestPropertySource
+import java.time.Instant
 import java.time.LocalDate
+import java.time.YearMonth
 import java.util.concurrent.atomic.AtomicLong
 
 @TestPropertySource(properties = ["push.firebase.enabled=true"])
@@ -70,10 +73,14 @@ class KaraokeCollectTaskTest : BatchBaseIntegrationTest() {
             tj(90100, "古い歌", "古い人", today.minusDays(10)),
         )
         every { tjClient.isJapanese(any()) } answers { firstArg<Int>() in setOf(90170, 90171, 90100) }
-        every { kyClient.latestSongs() } returns listOf(
-            KaraokeListing(KaraokeListingVendor.KY, 57740, "唱", "Ado", lyricLines = listOf("쇼", "しょう", "唱")),
-            KaraokeListing(KaraokeListingVendor.KY, 51800, "Home", "연준", lyricLines = listOf("집", "home")),
-        )
+        // 금영은 57741 까지 이미 원장에 있다. 57740 은 새 곡, 57742 는 원장에 없던 옛 곡, 57739 는 한국곡이다.
+        kyRow(57741, today.minusDays(10))
+        every { kyClient.bookNumbers() } returns setOf(57740, 57741, 57742, 51800)
+        every { kyClient.song(any()) } returns null
+        every { kyClient.song(57740) } returns ky(57740, "唱", "Ado", YearMonth.from(today).plusMonths(2))
+        every { kyClient.song(57742) } returns ky(57742, "古い歌", "古い人", YearMonth.from(today).minusMonths(1))
+        every { kyClient.song(57739) } returns
+            KaraokeListing(KaraokeListingVendor.KY, 57739, "Home", "연준", lyricLines = listOf("집", "home"), releaseMonth = YearMonth.from(today))
     }
 
     @Test
@@ -86,7 +93,7 @@ class KaraokeCollectTaskTest : BatchBaseIntegrationTest() {
 
         val rows = karaokeRows()
         assertThat(rows.map { it.vendor to it.number }).containsExactlyInAnyOrder(
-            KaraokeVendor.TJ to 90170, KaraokeVendor.TJ to 90171, KaraokeVendor.KY to 57740,
+            KaraokeVendor.TJ to 90170, KaraokeVendor.TJ to 90171, KaraokeVendor.KY to 57740, KaraokeVendor.KY to 57741,
         )
         val sho = rows.single { it.number == 90170 }
         assertThat(sho.songId).isEqualTo(analyzed.id)
@@ -116,8 +123,35 @@ class KaraokeCollectTaskTest : BatchBaseIntegrationTest() {
 
         task.run(DefaultApplicationArguments())
 
-        assertThat(karaokeRows()).hasSize(3)
+        assertThat(karaokeRows()).hasSize(4)
         assertThat(sentMessages).isEmpty()
+    }
+
+    @Test
+    fun `follows KY to a new number band through the book and finds its neighbours missing from the book`() {
+        task.run(DefaultApplicationArguments())
+        every { kyClient.bookNumbers() } returns setOf(57740, 57741, 57742, 51800, 60010)
+        every { kyClient.song(60010) } returns ky(60010, "新しい歌", "新人", YearMonth.from(today).plusMonths(1))
+        every { kyClient.song(60011) } returns ky(60011, "主題歌 (\"アニメ\"OP)", "新人", YearMonth.from(today).plusMonths(1))
+
+        task.run(DefaultApplicationArguments())
+
+        assertThat(karaokeRows().filter { it.vendor == KaraokeVendor.KY }.map { it.number })
+            .containsExactlyInAnyOrder(57740, 57741, 60010, 60011)
+    }
+
+    @Test
+    fun `fails the job when KY has had no new Japanese song for weeks`() {
+        entityManager.createQuery("UPDATE KaraokeSongEntity k SET k.listedOn = :old")
+            .setParameter("old", today.minusDays(60))
+            .executeUpdate()
+        entityManager.clear()
+        every { kyClient.song(57740) } returns null
+
+        assertThatThrownBy { task.run(DefaultApplicationArguments()) }
+            .isInstanceOf(IllegalStateException::class.java)
+            .hasMessageContaining("KY")
+        assertThat(karaokeRows().map { it.number }).contains(90170)
     }
 
     @Test
@@ -140,6 +174,19 @@ class KaraokeCollectTaskTest : BatchBaseIntegrationTest() {
         task.run(DefaultApplicationArguments())
 
         assertThat(karaokeRows().single { it.number == 90171 }.songId).isEqualTo(song.id)
+    }
+
+    private fun ky(number: Int, title: String, artist: String, releaseMonth: YearMonth) =
+        KaraokeListing(KaraokeListingVendor.KY, number, title, artist, lyricLines = listOf("쇼", "しょう", "唱"), releaseMonth = releaseMonth)
+
+    private fun kyRow(number: Int, listedOn: LocalDate) {
+        entityManager.persist(
+            KaraokeSongEntity(
+                vendor = KaraokeVendor.KY, number = number, title = "前の歌", artist = "前の人",
+                listedOn = listedOn, notifiedAt = Instant.now(),
+            )
+        )
+        entityManager.flush()
     }
 
     private fun tj(number: Int, title: String, artist: String, listedOn: LocalDate) =
