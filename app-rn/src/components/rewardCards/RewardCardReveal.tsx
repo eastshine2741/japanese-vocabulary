@@ -206,7 +206,7 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({
   const cardW = Math.min(screenW * 0.66, (screenH * 0.42) / CARD_RATIO, 320);
 
   return (
-    <RevealShell backdropUri={card.artworkUrl} motion={motion}>
+    <RevealShell backdropUri={card.artworkUrl} motion={motion} flash={!wearOnly && !intro}>
       {step === 'reveal' ? (
         <RevealIntro
           motion={motion}

@@ -230,11 +230,13 @@ interface ShellProps {
   backdropUri: string;
   /** charge 가 없으면 화면을 어둡게 누르지 않는다. */
   motion: { flash: SharedValue<number>; charge?: SharedValue<number> };
+  /** 봉투 연출이 없는 설명 화면은 섬광을 깔지 않는다. */
+  flash?: boolean;
   children: React.ReactNode;
 }
 
 /** 흐린 아트 배경과 착지 섬광. 단계가 바뀌어도 그대로 남는다. */
-export const RevealShell = React.memo(function RevealShell({ backdropUri, motion, children }: ShellProps) {
+export const RevealShell = React.memo(function RevealShell({ backdropUri, motion, flash = true, children }: ShellProps) {
   const flashStyle = useAnimatedStyle(() => ({ opacity: motion.flash.value }));
   const { charge } = motion;
   const dimStyle = useAnimatedStyle(() => ({ opacity: charge ? 0.6 * charge.value : 0 }));
@@ -248,7 +250,7 @@ export const RevealShell = React.memo(function RevealShell({ backdropUri, motion
       />
       {charge && <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.dim, dimStyle]} />}
       {children}
-      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.flash, flashStyle]} />
+      {flash && <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.flash, flashStyle]} />}
     </View>
   );
 });
@@ -889,7 +891,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  flash: { backgroundColor: '#FFFFFF' },
+  // 애니메이션 스타일이 붙기 전 프레임에 불투명 흰 화면이 비치지 않게 기본은 투명.
+  flash: { backgroundColor: '#FFFFFF', opacity: 0 },
   dim: { backgroundColor: '#000000' },
   leak: { position: 'absolute', left: 0, right: 0 },
   piece: { position: 'absolute', borderRadius: 1.5 },
