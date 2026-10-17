@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AnalysisJob, derivePillState, deriveJobPillState, failureReason, PILL_TITLE, STUDY_HINT_NOTE } from './pillState';
+import { AnalysisJob, derivePillState, deriveJobPillState, failureReason, LYRICS_NOT_FOUND_NOTE, LYRICS_NOT_FOUND_TITLE, PILL_TITLE, STUDY_HINT_NOTE } from './pillState';
 
 const job = (over: Partial<AnalysisJob>): AnalysisJob => ({
   workId: 1,
@@ -100,15 +100,26 @@ describe('derivePillState', () => {
   });
 
   it('a failed song shows the failure reason and dismisses on tap', () => {
-    const state = derivePillState([job({ title: 'Lemon', phase: 'failed', settledAt: 10, errorCode: 'LYRICS_NOT_FOUND' })]);
+    const state = derivePillState([job({ title: 'Lemon', phase: 'failed', settledAt: 10, errorCode: 'SONG_ANALYSIS_WORK_TIMEOUT' })]);
     expect(state).toMatchObject({
       tone: 'failed',
       title: PILL_TITLE.failed,
       song: 'Lemon',
-      note: ' · 가사를 찾지 못했어요',
+      note: ' · 시간이 너무 오래 걸렸어요',
       arts: ['a.jpg'],
       expandable: false,
       tapSongId: null,
+      dismissWorkId: 1,
+    });
+  });
+
+  it('lyrics-not-found drops the song name so the whole note fits on one line', () => {
+    const state = derivePillState([job({ title: 'Lemon', phase: 'failed', settledAt: 10, errorCode: 'LYRICS_NOT_FOUND' })]);
+    expect(state).toMatchObject({
+      tone: 'failed',
+      title: LYRICS_NOT_FOUND_TITLE,
+      song: null,
+      note: LYRICS_NOT_FOUND_NOTE,
       dismissWorkId: 1,
     });
   });
@@ -131,7 +142,6 @@ describe('derivePillState', () => {
 
 describe('failureReason', () => {
   it('maps known codes and falls back to retry-later', () => {
-    expect(failureReason('LYRICS_NOT_FOUND')).toBe('가사를 찾지 못했어요');
     expect(failureReason('SONG_ANALYSIS_WORK_TIMEOUT')).toBe('시간이 너무 오래 걸렸어요');
     expect(failureReason('SONG_ANALYSIS_WORK_FAILED')).toBe('잠시 후 다시 시도해주세요');
     expect(failureReason(null)).toBe('잠시 후 다시 시도해주세요');
@@ -164,8 +174,9 @@ describe('deriveJobPillState', () => {
   it('maps a failed job to a dismissable failure pill', () => {
     expect(deriveJobPillState(job({ workId: 5, phase: 'failed', settledAt: 1, errorCode: 'LYRICS_NOT_FOUND' }))).toMatchObject({
       tone: 'failed',
-      song: '夜に駆ける',
-      note: ' · 가사를 찾지 못했어요',
+      title: LYRICS_NOT_FOUND_TITLE,
+      song: null,
+      note: LYRICS_NOT_FOUND_NOTE,
       tapSongId: null,
       dismissWorkId: 5,
     });
