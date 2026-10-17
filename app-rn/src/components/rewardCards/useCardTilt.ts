@@ -21,6 +21,10 @@ const EFFECT_FULL_X = Math.sin((16 * Math.PI) / 180);
 const EFFECT_FULL_Y = Math.sin((12 * Math.PI) / 180);
 const DRAG_MAX_Y = 16;
 const DRAG_MAX_X = 12;
+// 가로로 이만큼(px) 밀거나 이 속도(px/s)로 튕기고 놓으면 민 방향으로 뒤집힌다.
+const FLIP_DISTANCE = 120;
+const FLIP_VELOCITY = 900;
+const FLIP_MS = 720;
 const SMOOTH = 0.18;
 // 들고 있는 자세가 바뀌면 몇 초에 걸쳐 그 자세를 새 정면으로 삼는다.
 const RECENTER = 0.005;
@@ -91,13 +95,24 @@ export function useCardTilt(): CardTilt {
         dragY.value = Math.max(-1, Math.min(1, e.translationX / 140)) * DRAG_MAX_Y;
         dragX.value = -Math.max(-1, Math.min(1, e.translationY / 180)) * DRAG_MAX_X;
       })
+      .onEnd((e) => {
+        const fling = Math.abs(e.velocityX) > FLIP_VELOCITY;
+        if (!fling && Math.abs(e.translationX) < FLIP_DISTANCE) return;
+        const dir = Math.sign(fling ? e.velocityX : e.translationX);
+        const from = Math.round(flip.value);
+        // 왼쪽으로 넘기면 -1·2 를 거치게 해 미는 방향으로 돌고, 다 돌면 같은 모습인 0·1 로 되돌린다.
+        const to = from + dir;
+        flip.value = withTiming(to, { duration: FLIP_MS }, (finished) => {
+          if (finished) flip.value = ((to % 2) + 2) % 2;
+        });
+      })
       .onFinalize(() => {
         dragX.value = withSpring(0, { damping: 12, stiffness: 90 });
         dragY.value = withSpring(0, { damping: 12, stiffness: 90 });
       });
 
     const tap = Gesture.Tap().onEnd(() => {
-      flip.value = withTiming(flip.value > 0.5 ? 0 : 1, { duration: 720 });
+      flip.value = withTiming(flip.value > 0.5 ? 0 : 1, { duration: FLIP_MS });
     });
     return Gesture.Race(pan, tap);
   }, [flip, dragX, dragY]);
