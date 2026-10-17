@@ -8,6 +8,8 @@ import java.time.LocalDate
 interface KaraokeSongRepository : JpaRepository<KaraokeSongEntity, Long> {
     fun findAllByVendorAndNumberIn(vendor: KaraokeVendor, numbers: Collection<Int>): List<KaraokeSongEntity>
 
+    fun findAllByVendor(vendor: KaraokeVendor): List<KaraokeSongEntity>
+
     fun findAllBySongIdIsNull(): List<KaraokeSongEntity>
 
     fun findAllBySongIdIsNullAndTitleAndArtist(title: String, artist: String): List<KaraokeSongEntity>
