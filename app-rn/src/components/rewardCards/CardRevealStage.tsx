@@ -215,6 +215,10 @@ export function useRevealMotion(started: boolean): RevealMotion {
  * 획득 화면 단계 사이의 뒤로 가기. 첫 단계에서는 막는다 — 서명 없이 닫히면 서명할 기회가 다시 없다.
  * 서명한 뒤에도 되돌아갈 곳이 없다.
  */
+/** 상세 ↔ 설명은 배경을 그대로 두고 내용만 이 시간으로 비우고 채운다. */
+export const EXPLAINER_OUT_MS = 180;
+export const EXPLAINER_IN_MS = 280;
+
 export function useRevealBackGuard(atFirstStep: boolean, signed: boolean, onBack: () => void) {
   useEffect(() => {
     if (Platform.OS !== 'android') return;

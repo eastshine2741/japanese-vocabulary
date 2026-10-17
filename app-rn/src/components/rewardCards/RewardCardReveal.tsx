@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Image, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
-import { Easing, useSharedValue, withDelay, withRepeat, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { navigate } from '../../navigation/navigationRef';
 import { useRewardCardStore } from '../../stores/rewardCardStore';
@@ -10,6 +10,8 @@ import CardLyricEditor from './CardLyricEditor';
 import CardSigner, { ShareableCard, SignableCard } from './CardSigner';
 import CardWearIntro from './CardWearIntro';
 import {
+  EXPLAINER_IN_MS,
+  EXPLAINER_OUT_MS,
   LadderStep,
   RevealGuide,
   RevealIntro,
@@ -133,6 +135,26 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({
   const [signFrom, setSignFrom] = useState<'reveal' | 'pick'>('reveal');
   const [signed, setSigned] = useState(false);
 
+  // 설명만 보는 화면은 화면 전환 없이 열리므로 내용을 스스로 띄우고, 닫을 때도 비운 뒤 닫는다.
+  const explainer = wearOnly || intro;
+  const presence = useSharedValue(explainer ? 0 : 1);
+  useEffect(() => {
+    if (explainer) presence.value = withTiming(1, { duration: EXPLAINER_IN_MS, easing: Easing.out(Easing.cubic) });
+  }, [explainer, presence]);
+  const presenceStyle = useAnimatedStyle(() => ({
+    opacity: presence.value,
+    transform: [{ translateY: (1 - presence.value) * 16 }],
+  }));
+  const closingRef = useRef(false);
+  const close = useCallback(() => {
+    if (!explainer) return onClose();
+    if (closingRef.current) return;
+    closingRef.current = true;
+    presence.value = withTiming(0, { duration: EXPLAINER_OUT_MS, easing: Easing.in(Easing.quad) }, (finished) => {
+      if (finished) runOnJS(onClose)();
+    });
+  }, [explainer, presence, onClose]);
+
   const handlePick = useCallback(() => setStep('pick'), []);
   const handleKeep = useCallback(() => {
     setSignFrom('reveal');
@@ -140,10 +162,10 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({
   }, []);
   const handleBack = useCallback(() => {
     // 설명만 보는 화면은 막을 서명이 없어 첫 단계에서 뒤로 가면 닫는다.
-    if (wearOnly || (intro && step === 'guide')) onClose();
+    if (wearOnly || (intro && step === 'guide')) close();
     else if (intro) setStep('guide');
     else setStep((prev) => (prev === 'sign' ? signFrom : 'reveal'));
-  }, [wearOnly, intro, onClose, signFrom, step]);
+  }, [wearOnly, intro, close, signFrom, step]);
   const handleGuideDone = useCallback(() => setStep('wear'), []);
   const handleLyric = useCallback(
     (picked: number[]) => {
@@ -163,8 +185,8 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({
   const handleSealed = useCallback(() => (showWearIntro ? setStep('wear') : onClose()), [showWearIntro, onClose]);
   const handleWearDone = useCallback(() => {
     if (!wearOnly) markWearIntroSeen();
-    onClose();
-  }, [wearOnly, markWearIntroSeen, onClose]);
+    close();
+  }, [wearOnly, markWearIntroSeen, close]);
   useRevealBackGuard(!intro && step === 'reveal', signed, handleBack);
 
   // 설명 단계는 봉투 연출이 없어, 화면이 다 열리면 계단만 채운다.
@@ -206,85 +228,88 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({
   const cardW = Math.min(screenW * 0.66, (screenH * 0.42) / CARD_RATIO, 320);
 
   return (
-    <RevealShell backdropUri={card.artworkUrl} motion={motion} flash={!wearOnly && !intro}>
-      {step === 'reveal' ? (
-        <RevealIntro
-          motion={motion}
-          tilt={tilt}
-          accent={card.accent}
-          width={cardW}
-          ratio={CARD_RATIO}
-          radius={SONG_RADIUS}
-          front={<SongCardFront card={card} width={cardW} fonts={fonts} />}
-          back={<SongCardBack card={card} width={cardW} fonts={fonts} />}
-          showcase={<SongCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} />}
-          cheer={revealCheer(songRung(card), SONG_LAST_RUNG)}
-          heading={songRung(card) === 0 ? '곡 카드를 얻었어요' : `${songTierName(card.level, card.mastered)} 카드를 얻었어요`}
-          guide={
-            <RevealGuide lines={songRung(card) === SONG_LAST_RUNG ? SONG_LAST_GUIDE : SONG_GUIDE} steps={ladder} current={songRung(card)} accent={card.accent} motion={motion} />
-          }
-          actions={
-            <>
-              <RevealPrimaryButton label="가사 고르기" onPress={handlePick} />
-              <RevealSecondaryButton label="이대로 받기" onPress={handleKeep} />
-            </>
-          }
-        />
-      ) : (
-        <RevealStep key={step} onBack={signed || step === 'guide' ? null : handleBack}>
-          {step === 'pick' ? (
-            <CardLyricEditor
-              card={card}
-              lines={lines}
-              fonts={fonts}
-              previewWidth={Math.min(screenW * 0.34, 150)}
-              ctaLabel="다음"
-              onConfirm={handleLyric}
-              bottomInset={insets.bottom}
-            />
-          ) : step === 'guide' ? (
-            <View style={[styles.guideStep, { paddingBottom: insets.bottom + 16 }]}>
-              <Text style={styles.guideTitle}>그동안 공부한 곡이 카드가 됐어요</Text>
-              <View style={styles.guideStage}>
-                <GestureDetector gesture={tilt.gesture}>
-                  <View>
-                    <SongCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} />
-                  </View>
-                </GestureDetector>
+    <RevealShell backdropUri={card.artworkUrl} motion={motion} flash={!explainer}>
+      <Animated.View style={[styles.presence, presenceStyle]}>
+        {step === 'reveal' ? (
+          <RevealIntro
+            motion={motion}
+            tilt={tilt}
+            accent={card.accent}
+            width={cardW}
+            ratio={CARD_RATIO}
+            radius={SONG_RADIUS}
+            front={<SongCardFront card={card} width={cardW} fonts={fonts} />}
+            back={<SongCardBack card={card} width={cardW} fonts={fonts} />}
+            showcase={<SongCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} />}
+            cheer={revealCheer(songRung(card), SONG_LAST_RUNG)}
+            heading={songRung(card) === 0 ? '곡 카드를 얻었어요' : `${songTierName(card.level, card.mastered)} 카드를 얻었어요`}
+            guide={
+              <RevealGuide lines={songRung(card) === SONG_LAST_RUNG ? SONG_LAST_GUIDE : SONG_GUIDE} steps={ladder} current={songRung(card)} accent={card.accent} motion={motion} />
+            }
+            actions={
+              <>
+                <RevealPrimaryButton label="가사 고르기" onPress={handlePick} />
+                <RevealSecondaryButton label="이대로 받기" onPress={handleKeep} />
+              </>
+            }
+          />
+        ) : (
+          <RevealStep key={step} onBack={signed || step === 'guide' ? null : handleBack}>
+            {step === 'pick' ? (
+              <CardLyricEditor
+                card={card}
+                lines={lines}
+                fonts={fonts}
+                previewWidth={Math.min(screenW * 0.34, 150)}
+                ctaLabel="다음"
+                onConfirm={handleLyric}
+                bottomInset={insets.bottom}
+              />
+            ) : step === 'guide' ? (
+              <View style={[styles.guideStep, { paddingBottom: insets.bottom + 16 }]}>
+                <Text style={styles.guideTitle}>그동안 공부한 곡이 카드가 됐어요</Text>
+                <View style={styles.guideStage}>
+                  <GestureDetector gesture={tilt.gesture}>
+                    <View>
+                      <SongCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} />
+                    </View>
+                  </GestureDetector>
+                </View>
+                <RevealGuide lines={INTRO_GUIDE} steps={ladder} current={songRung(card)} accent={card.accent} motion={guideMotion} />
+                <View style={styles.guideActions}>
+                  <RevealPrimaryButton label="다음" onPress={handleGuideDone} />
+                </View>
               </View>
-              <RevealGuide lines={INTRO_GUIDE} steps={ladder} current={songRung(card)} accent={card.accent} motion={guideMotion} />
-              <View style={styles.guideActions}>
-                <RevealPrimaryButton label="다음" onPress={handleGuideDone} />
-              </View>
-            </View>
-          ) : step === 'wear' ? (
-            <CardWearIntro
-              card={card}
-              fonts={fonts}
-              previewWidth={Math.min(screenW * 0.46, (screenH * 0.34) / CARD_RATIO)}
-              accent={card.accent}
-              bottomInset={insets.bottom}
-              onDone={handleWearDone}
-            />
-          ) : (
-            <CardSigner
-              card={signable}
-              previewWidth={Math.min(screenW * 0.42, 190)}
-              sealWidth={cardW}
-              onSign={handleSign}
-              onDone={handleSealed}
-              doneLabel={showWearIntro ? '다음' : '확인'}
-              share={share}
-              bottomInset={insets.bottom}
-            />
-          )}
-        </RevealStep>
-      )}
+            ) : step === 'wear' ? (
+              <CardWearIntro
+                card={card}
+                fonts={fonts}
+                previewWidth={Math.min(screenW * 0.46, (screenH * 0.34) / CARD_RATIO)}
+                accent={card.accent}
+                bottomInset={insets.bottom}
+                onDone={handleWearDone}
+              />
+            ) : (
+              <CardSigner
+                card={signable}
+                previewWidth={Math.min(screenW * 0.42, 190)}
+                sealWidth={cardW}
+                onSign={handleSign}
+                onDone={handleSealed}
+                doneLabel={showWearIntro ? '다음' : '확인'}
+                share={share}
+                bottomInset={insets.bottom}
+              />
+            )}
+          </RevealStep>
+        )}
+      </Animated.View>
     </RevealShell>
   );
 });
 
 const styles = StyleSheet.create({
+  presence: { flex: 1 },
   guideStep: { flex: 1, paddingHorizontal: 24 },
   guideTitle: { color: SHOWROOM.fg, fontSize: 20, fontWeight: '700', textAlign: 'center', marginTop: 4 },
   guideStage: { flex: 1, alignItems: 'center', justifyContent: 'center' },

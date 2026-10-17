@@ -8,6 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -20,6 +21,7 @@ import SongCardShowcase from '../components/rewardCards/SongCardShowcase';
 import CardShareButton from '../components/rewardCards/CardShareButton';
 import GradePanel, { GradeTab } from '../components/rewardCards/GradePanel';
 import { IntroDecision, reportIntroDecision } from '../components/rewardCards/CardIntroDebugOverlay';
+import { EXPLAINER_IN_MS, EXPLAINER_OUT_MS } from '../components/rewardCards/CardRevealStage';
 import { CARD_RATIO, LEVEL_MATERIAL, MASTER_CHIP, SHOWROOM, songTierName, useCardFonts } from '../components/rewardCards/cardTheme';
 import { useCardTilt } from '../components/rewardCards/useCardTilt';
 import { useShallow } from 'zustand/react/shallow';
@@ -88,6 +90,26 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
     transform: [{ translateY: (1 - enter.value) * 40 }, { scale: 0.86 + enter.value * 0.14 }],
   }));
   const infoIn = useAnimatedStyle(() => ({ opacity: info.value, transform: [{ translateY: (1 - info.value) * 12 }] }));
+
+  // 설명 화면은 같은 아트 배경 위에 뜨므로, 화면 전환 대신 내용만 비우고 채운다.
+  const away = useSharedValue(0);
+  const awayStyle = useAnimatedStyle(() => ({ opacity: 1 - away.value, transform: [{ scale: 1 - away.value * 0.04 }] }));
+  const openExplainer = useCallback(
+    (params: RootStackParamList['RewardCardReveal']) => {
+      const go = () => navigation.navigate('RewardCardReveal', params);
+      away.value = withTiming(1, { duration: EXPLAINER_OUT_MS, easing: Easing.in(Easing.quad) }, (finished) => {
+        if (finished) runOnJS(go)();
+      });
+    },
+    [away, navigation],
+  );
+  useEffect(
+    () =>
+      navigation.addListener('focus', () => {
+        if (away.value > 0) away.value = withTiming(0, { duration: EXPLAINER_IN_MS, easing: Easing.out(Easing.cubic) });
+      }),
+    [away, navigation],
+  );
   const [body, setBody] = useState<Box | null>(null);
   const [stage, setStage] = useState<Box | null>(null);
   const handleBodyLayout = useCallback((e: LayoutChangeEvent) => setBody(e.nativeEvent.layout), []);
@@ -149,16 +171,16 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
         if (state.wearIntroSeen) return setIntroDecision('seen');
         if (state.active) return setIntroDecision('revealing');
         setIntroDecision('shown');
-        navigation.navigate('RewardCardReveal', { kind: 'song', cardId, intro: true });
+        openExplainer({ kind: 'song', cardId, intro: true });
       });
     return () => {
       cancelled = true;
     };
-  }, [issued, navigation, cardId, setIntroDecision]);
+  }, [issued, openExplainer, cardId, setIntroDecision]);
 
   const handleWearInfo = useCallback(() => {
-    navigation.navigate('RewardCardReveal', { kind: 'song', cardId, wearOnly: true });
-  }, [navigation, cardId]);
+    openExplainer({ kind: 'song', cardId, wearOnly: true });
+  }, [openExplainer, cardId]);
   const viewedId = owned?.id ?? null;
   const handleEditLyric = useCallback(() => {
     if (viewedId != null) navigation.navigate('RewardCardLyricEdit', { cardId: viewedId });
@@ -230,7 +252,7 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
       />
 
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-        <View style={styles.safe} onLayout={handleBodyLayout}>
+        <Animated.View style={[styles.safe, awayStyle]} onLayout={handleBodyLayout}>
           <Pressable style={StyleSheet.absoluteFill} disabled={!focused} onPress={handleUnfocus} />
           <Animated.View style={[styles.topBar, chromeStyle]} pointerEvents={focused ? 'none' : 'auto'}>
             <Pressable onPress={handleClose} hitSlop={10} style={styles.iconBtn}>
@@ -300,7 +322,7 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
               </View>
             </Animated.View>
           </Animated.View>
-        </View>
+        </Animated.View>
       </SafeAreaView>
     </View>
   );
