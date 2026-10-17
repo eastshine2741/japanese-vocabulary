@@ -1,15 +1,19 @@
 import * as React from "react"
-import { AlertTriangle, Crosshair, LocateFixed, RotateCcw } from "lucide-react"
+import { AlertTriangle, Crosshair, LocateFixed, Plus, RotateCcw, X } from "lucide-react"
 import type { ReelsSongDetail } from "@/api/types"
 import type { MvCrop, MvFrame } from "@reels/types"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import {
+  activeMvKeyframe,
+  addMvKeyframe,
   clampHeadlineFontSize,
+  clampHeadlineOffsetY,
   clampLyricOffsetY,
   clampLyricScale,
   clampMvFrame,
   coverMvFrame,
+  DEFAULT_HEADLINE_FONT_SIZE,
   DEFAULT_LYRIC_SCALE,
   END_CARD_MS,
   FIT_WIDTH_MV_FRAME,
@@ -17,6 +21,8 @@ import {
   hasCrop,
   HEADLINE_FONT_SIZE_MAX,
   HEADLINE_FONT_SIZE_MIN,
+  HEADLINE_OFFSET_Y_MAX,
+  HEADLINE_OFFSET_Y_MIN,
   lineByIndex,
   LYRIC_OFFSET_Y_MAX,
   LYRIC_OFFSET_Y_MIN,
@@ -27,12 +33,16 @@ import {
   MV_OFFSET_Y_MAX,
   MV_SCALE_MAX,
   MV_SCALE_MIN,
+  mvFrameAt,
   NO_CROP,
   parseTimecode,
+  removeMvKeyframe,
+  setMvFrameAt,
   tokenMeaning,
   tokenSelectable,
   tokenTakesMeaning,
   type EditorState,
+  type MvTrack,
   type ReelCaption,
 } from "./reelEditor"
 
@@ -40,12 +50,14 @@ type Props = {
   detail: ReelsSongDetail
   editor: EditorState
   caption: ReelCaption
-  /** null 이면 캔버스를 꽉 채운다(cover). */
-  mvFrame: MvFrame | null
+  /** 인스펙터는 플레이헤드에 적용 중인 배치(처음 배치 또는 키프레임)를 고친다. */
+  mvTrack: MvTrack
   /** 올린 MV 의 가로/세로 비율. 메타데이터를 읽기 전엔 null. */
   mvAspect: number | null
   /** 상단 헤드라인 글자 크기(px). 릴스 전체에 고정이다. */
   headlineFontSize: number
+  /** 계정명·헤드라인 세로 이동(px, + 가 아래). */
+  headlineOffsetY: number
   /** 가사 원문 글자 배율. 릴스 전체에 고정이다. */
   lyricScale: number
   /** 가사 블록 세로 이동(px, + 가 아래). 릴스 전체에 고정이다. */
@@ -54,8 +66,10 @@ type Props = {
   playheadMs: number
   errors: string[]
   onChangeCaption(caption: ReelCaption): void
-  onChangeMvFrame(frame: MvFrame | null): void
+  onChangeMvTrack(track: MvTrack): void
+  onSetKeyframeTime(index: number, ms: number): void
   onChangeHeadlineFontSize(size: number): void
+  onChangeHeadlineOffsetY(offset: number): void
   onChangeLyricScale(scale: number): void
   onChangeLyricOffsetY(offset: number): void
   onSetSourceStart(ms: number): void
@@ -73,17 +87,20 @@ export function LineInspector({
   detail,
   editor,
   caption,
-  mvFrame,
+  mvTrack,
   mvAspect,
   headlineFontSize,
+  headlineOffsetY,
   lyricScale,
   lyricOffsetY,
   selectedIndex,
   playheadMs,
   errors,
   onChangeCaption,
-  onChangeMvFrame,
+  onChangeMvTrack,
+  onSetKeyframeTime,
   onChangeHeadlineFontSize,
+  onChangeHeadlineOffsetY,
   onChangeLyricScale,
   onChangeLyricOffsetY,
   onSetSourceStart,
@@ -98,6 +115,9 @@ export function LineInspector({
   const included = selectedIndex == null ? undefined : editor.lines.find((current) => current.index === selectedIndex)
   const hasClip = editor.lines.length > 0
   const spanMs = editor.endMs - editor.sourceStartMs
+  const activeKeyframe = activeMvKeyframe(mvTrack, playheadMs)
+  const mvFrame = mvFrameAt(mvTrack, playheadMs)
+  const onChangeMvFrame = (frame: MvFrame | null) => onChangeMvTrack(setMvFrameAt(mvTrack, playheadMs, frame))
   // cover 상태에서 슬라이더를 움직이면 cover 와 같은 배치에서 출발한다. 비율을 모르면 그 값을 알 수 없어 막는다.
   const shownFrame = mvFrame ?? (mvAspect != null ? coverMvFrame(mvAspect) : null)
   const changeFrame = (patch: Partial<MvFrame>) => {
@@ -111,6 +131,7 @@ export function LineInspector({
     onChangeMvFrame(mvFrame == null ? coverMvFrame(mvAspect, next) : clampMvFrame({ ...shownFrame, crop: next }))
   }
   const fill = () => onChangeMvFrame(hasCrop(crop) && mvAspect != null ? coverMvFrame(mvAspect, crop) : null)
+  const coverScale = mvAspect != null ? coverMvFrame(mvAspect, crop).scale : 1
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-auto rounded-lg border border-[#d9e1ea] bg-white text-sm">
@@ -129,9 +150,10 @@ export function LineInspector({
           <span className="mt-1 self-start font-mono text-xs text-[#637083]">HEAD</span>
           <HeadlineInput value={caption.headline} onChange={(headline) => onChangeCaption({ ...caption, headline })} />
         </div>
-        <div className="mt-1.5 grid grid-cols-[48px_1fr_76px] items-center gap-x-2">
+        <div className={cn("mt-1.5", SLIDER_GRID)}>
           <FrameSlider
             ariaLabel="Headline size"
+            defaultValue={DEFAULT_HEADLINE_FONT_SIZE}
             label="SIZE"
             suffix="px"
             max={HEADLINE_FONT_SIZE_MAX}
@@ -139,6 +161,17 @@ export function LineInspector({
             step={1}
             value={headlineFontSize}
             onChange={(size) => onChangeHeadlineFontSize(clampHeadlineFontSize(size))}
+          />
+          <FrameSlider
+            ariaLabel="Headline y"
+            defaultValue={0}
+            label="Y"
+            suffix="px"
+            max={HEADLINE_OFFSET_Y_MAX}
+            min={HEADLINE_OFFSET_Y_MIN}
+            step={1}
+            value={headlineOffsetY}
+            onChange={(offset) => onChangeHeadlineOffsetY(clampHeadlineOffsetY(offset))}
           />
         </div>
       </section>
@@ -161,8 +194,18 @@ export function LineInspector({
             </Button>
           </div>
         </div>
-        <div className="grid grid-cols-[48px_1fr_76px] items-center gap-x-2 gap-y-1.5">
+        <KeyframeList
+          active={activeKeyframe}
+          clipStartMs={editor.sourceStartMs}
+          track={mvTrack}
+          onAdd={() => onChangeMvTrack(addMvKeyframe(mvTrack, playheadMs))}
+          onRemove={(index) => onChangeMvTrack(removeMvKeyframe(mvTrack, index))}
+          onSetTime={onSetKeyframeTime}
+          onSeek={onSeekReel}
+        />
+        <div className={SLIDER_GRID}>
           <FrameSlider
+            defaultValue={coverScale}
             disabled={shownFrame == null}
             factor={100}
             label="SCALE"
@@ -174,6 +217,7 @@ export function LineInspector({
             onChange={(scale) => changeFrame({ scale })}
           />
           <FrameSlider
+            defaultValue={0}
             disabled={shownFrame == null}
             label="X"
             max={MV_OFFSET_X_MAX}
@@ -183,6 +227,7 @@ export function LineInspector({
             onChange={(x) => changeFrame({ x })}
           />
           <FrameSlider
+            defaultValue={0}
             disabled={shownFrame == null}
             label="Y"
             max={MV_OFFSET_Y_MAX}
@@ -193,9 +238,10 @@ export function LineInspector({
           />
         </div>
         <div className="mt-3 mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#637083]">Crop</div>
-        <div className="grid grid-cols-[48px_1fr_76px] items-center gap-x-2 gap-y-1.5">
+        <div className={SLIDER_GRID}>
           {CROP_SIDES.map(([side, label]) => (
             <FrameSlider
+              defaultValue={0}
               disabled={shownFrame == null}
               digits={1}
               factor={100}
@@ -228,9 +274,10 @@ export function LineInspector({
             기본값
           </Button>
         </div>
-        <div className="grid grid-cols-[48px_1fr_76px] items-center gap-x-2 gap-y-1.5">
+        <div className={SLIDER_GRID}>
           <FrameSlider
             ariaLabel="Lyric size"
+            defaultValue={DEFAULT_LYRIC_SCALE}
             factor={100}
             label="SIZE"
             max={LYRIC_SCALE_MAX}
@@ -242,6 +289,7 @@ export function LineInspector({
           />
           <FrameSlider
             ariaLabel="Lyric y"
+            defaultValue={0}
             label="Y"
             max={LYRIC_OFFSET_Y_MAX}
             min={LYRIC_OFFSET_Y_MIN}
@@ -443,10 +491,82 @@ const CROP_SIDES: [keyof MvCrop, string][] = [
   ["right", "RIGHT"],
 ]
 
-/** 슬라이더 한 줄. 라벨 · range · 값 순의 3칸을 부모 grid 에 그대로 깐다. */
+/** 첫 배치와 키프레임 목록. 시각을 바로 고칠 수 있고, 슬라이더는 플레이헤드에 적용 중인 것을 고친다. */
+function KeyframeList({
+  track,
+  active,
+  clipStartMs,
+  onAdd,
+  onRemove,
+  onSetTime,
+  onSeek,
+}: {
+  track: MvTrack
+  active: number
+  clipStartMs: number
+  onAdd(): void
+  onRemove(index: number): void
+  onSetTime(index: number, ms: number): void
+  onSeek(ms: number): void
+}) {
+  const marker = (selected: boolean) => cn("h-6 w-1 shrink-0 rounded-full", selected ? "bg-[#7c3aed]" : "bg-transparent")
+  return (
+    <div className="mb-2 space-y-1">
+      <button
+        aria-label="Go to first frame"
+        className={cn(
+          "flex h-7 w-full items-center gap-2 rounded-md pr-2 font-mono text-xs",
+          active < 0 ? "text-[#18212f]" : "text-[#42526b] hover:bg-[#eef2f6]",
+        )}
+        onClick={() => onSeek(clipStartMs)}
+        type="button"
+      >
+        <span className={marker(active < 0)} />
+        시작
+      </button>
+      {track.keyframes.map((keyframe, index) => (
+        <div className="flex items-center gap-2" key={`${index}:${keyframe.atMs}`}>
+          <span className={marker(active === index)} />
+          <TimecodeInput ariaLabel={`Keyframe ${index + 1} time`} value={keyframe.atMs} onCommit={(ms) => onSetTime(index, ms)} />
+          <Button
+            aria-label={`Go to keyframe ${formatMs(keyframe.atMs)}`}
+            className="h-7 w-7 shrink-0"
+            onClick={() => onSeek(keyframe.atMs)}
+            size="icon"
+            title="키프레임으로 이동"
+            type="button"
+            variant="ghost"
+          >
+            <LocateFixed className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            aria-label={`Remove keyframe ${formatMs(keyframe.atMs)}`}
+            className="h-7 w-7 shrink-0"
+            onClick={() => onRemove(index)}
+            size="icon"
+            title="키프레임 삭제"
+            type="button"
+            variant="ghost"
+          >
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      ))}
+      <Button className="h-7 w-full justify-start px-2 text-xs" onClick={onAdd} type="button" variant="ghost">
+        <Plus className="mr-1 h-3.5 w-3.5" />
+        플레이헤드에 키프레임
+      </Button>
+    </div>
+  )
+}
+
+const SLIDER_GRID = "grid grid-cols-[48px_1fr_76px_28px] items-center gap-x-2 gap-y-1.5"
+
+/** 슬라이더 한 줄. 라벨 · range · 값 · 초기화 순의 4칸을 부모 grid([SLIDER_GRID])에 그대로 깐다. */
 function FrameSlider({
   label,
   ariaLabel = `MV ${label.toLowerCase()}`,
+  defaultValue,
   min,
   max,
   step,
@@ -459,6 +579,7 @@ function FrameSlider({
 }: {
   label: string
   ariaLabel?: string
+  defaultValue: number
   min: number
   max: number
   step: number
@@ -492,6 +613,18 @@ function FrameSlider({
         value={value * factor}
         onCommit={(shown) => onChange(shown / factor)}
       />
+      <Button
+        aria-label={`Reset ${ariaLabel}`}
+        className="h-7 w-7"
+        disabled={disabled || Math.abs(value - defaultValue) < 1e-6}
+        onClick={() => onChange(defaultValue)}
+        size="icon"
+        title="초기화"
+        type="button"
+        variant="ghost"
+      >
+        <RotateCcw className="h-3.5 w-3.5" />
+      </Button>
     </>
   )
 }

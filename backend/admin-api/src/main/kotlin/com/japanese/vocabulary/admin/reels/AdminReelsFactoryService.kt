@@ -2,6 +2,7 @@ package com.japanese.vocabulary.admin.reels
 
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsLyricLineResponse
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsLyricTokenResponse
+import com.japanese.vocabulary.admin.dto.reels.AdminReelsRenderJobResponse
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsRenderRequest
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsSongCandidateResponse
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsSongDetailResponse
@@ -9,6 +10,7 @@ import com.japanese.vocabulary.admin.dto.reels.AdminReelsSourceResponse
 import com.japanese.vocabulary.admin.auth.AdminTokenService
 import com.japanese.vocabulary.admin.repository.AdminLyricRepository
 import com.japanese.vocabulary.admin.repository.AdminSongRepository
+import com.japanese.vocabulary.admin.reels.model.AdminReelsMvFrame
 import com.japanese.vocabulary.admin.reels.model.AdminReelsPromoData
 import com.japanese.vocabulary.admin.reels.model.AdminReelsRenderInput
 import com.japanese.vocabulary.admin.reels.model.AdminReelsRenderSource
@@ -21,13 +23,14 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
 import java.nio.file.Path
+import java.time.Instant
 import kotlin.math.abs
 
 @Service
 class AdminReelsFactoryService(
     private val songRepository: AdminSongRepository,
     private val lyricRepository: AdminLyricRepository,
-    private val renderService: AdminReelsRenderService,
+    private val renderJobs: AdminReelsRenderJobService,
     private val sourceCache: AdminReelsSourceCache,
     private val tokenService: AdminTokenService,
 ) {
@@ -51,20 +54,20 @@ class AdminReelsFactoryService(
      * 어드민이 올린 source mp4 를 캐시에 넣고 스트리밍 경로를 돌려준다. 본 렌더는 이 원본을 그대로 쓴다.
      */
     @Transactional(readOnly = true)
-    fun uploadSource(songId: Long, file: MultipartFile): AdminReelsSourceResponse {
+    fun uploadSource(songId: Long, file: MultipartFile, sessionExpiresAt: Instant): AdminReelsSourceResponse {
         requireEligible(songId)
         if (file.isEmpty) {
             throw IllegalArgumentException("source file is empty")
         }
         sourceCache.store(songId, file.inputStream)
-        return AdminReelsSourceResponse(mvPath = mvPath(songId))
+        return AdminReelsSourceResponse(mvPath = mvPath(songId, sessionExpiresAt))
     }
 
     /** 이미 올려 둔 source 가 있으면 다시 올리지 않고 스트리밍 경로만 돌려준다. */
     @Transactional(readOnly = true)
-    fun cachedSource(songId: Long): AdminReelsSourceResponse? {
+    fun cachedSource(songId: Long, sessionExpiresAt: Instant): AdminReelsSourceResponse? {
         requireEligible(songId)
-        return sourceCache.cached(songId)?.let { AdminReelsSourceResponse(mvPath = mvPath(songId)) }
+        return sourceCache.cached(songId)?.let { AdminReelsSourceResponse(mvPath = mvPath(songId, sessionExpiresAt)) }
     }
 
     /** 미리보기 MV 스트림. 캐시에 있는 곡의 재인코딩 사본만 내준다. */
@@ -76,8 +79,9 @@ class AdminReelsFactoryService(
         return sourceCache.cached(songId)?.preview ?: throw NoSuchElementException("Source is not cached")
     }
 
+    /** 검증만 하고 렌더는 줄에 세운다. 결과는 [renderJobs] 에서 찾는다. */
     @Transactional(readOnly = true)
-    fun render(request: AdminReelsRenderRequest): Path {
+    fun render(request: AdminReelsRenderRequest): AdminReelsRenderJobResponse {
         requireAcknowledgement(request.acknowledgeSourceRightsAndPlatformRisk)
         requireEligible(request.songId)
         validateRenderData(request.data)
@@ -88,8 +92,12 @@ class AdminReelsFactoryService(
             // 렌더 스크립트가 mvAsset 을 채운다. 클라이언트가 넣은 스트리밍 URL 은 버린다.
             data = request.data.copy(song = request.data.song.copy(mvAsset = "")),
         )
-        return renderService.render(input)
+        return renderJobs.submit(request.songId, input)
     }
+
+    fun renderJobs(): List<AdminReelsRenderJobResponse> = renderJobs.list()
+
+    fun renderOutput(jobId: String): Path = renderJobs.output(jobId)
 
     private fun requireAcknowledgement(acknowledged: Boolean) {
         if (!acknowledged) {
@@ -97,8 +105,8 @@ class AdminReelsFactoryService(
         }
     }
 
-    private fun mvPath(songId: Long): String =
-        "/reels-factory/songs/$songId/mv?token=${tokenService.issueMediaToken(songId)}"
+    private fun mvPath(songId: Long, sessionExpiresAt: Instant): String =
+        "/reels-factory/songs/$songId/mv?token=${tokenService.issueMediaToken(songId, sessionExpiresAt)}"
 
     private fun requireEligible(songId: Long) {
         if (!songRepository.existsById(songId)) throw NoSuchElementException("Song not found")
@@ -123,22 +131,24 @@ class AdminReelsFactoryService(
         if (data.sourceStartFrame < 0) {
             throw IllegalArgumentException("sourceStartFrame must not be negative")
         }
-        data.mvFrame?.let { frame ->
-            if (frame.scale !in MV_SCALE_RANGE) {
-                throw IllegalArgumentException("mvFrame.scale must be within $MV_SCALE_RANGE")
+        data.mvFrame?.let(::validateMvFrame)
+        data.mvKeyframes.orEmpty().let { keyframes ->
+            if (keyframes.any { it.startFrame <= 0 || it.startFrame >= data.lyricsEndFrame + END_CARD_FRAMES }) {
+                throw IllegalArgumentException("mvKeyframes must start inside the reel")
             }
-            if (abs(frame.x) > MV_OFFSET_X_MAX || abs(frame.y) > MV_OFFSET_Y_MAX) {
-                throw IllegalArgumentException("mvFrame offset is out of range")
+            if (keyframes.zipWithNext().any { (previous, next) -> next.startFrame <= previous.startFrame }) {
+                throw IllegalArgumentException("mvKeyframes start frames must strictly increase")
             }
-            frame.crop?.let { crop ->
-                if (listOf(crop.top, crop.right, crop.bottom, crop.left).any { it !in MV_CROP_RANGE }) {
-                    throw IllegalArgumentException("mvFrame.crop sides must be within $MV_CROP_RANGE")
-                }
-            }
+            keyframes.forEach { keyframe -> keyframe.mvFrame?.let(::validateMvFrame) }
         }
         data.headlineFontSize?.let { size ->
             if (size !in HEADLINE_FONT_SIZE_RANGE) {
                 throw IllegalArgumentException("headlineFontSize must be within $HEADLINE_FONT_SIZE_RANGE")
+            }
+        }
+        data.headlineOffsetY?.let { offset ->
+            if (offset !in HEADLINE_OFFSET_Y_RANGE) {
+                throw IllegalArgumentException("headlineOffsetY must be within $HEADLINE_OFFSET_Y_RANGE")
             }
         }
         data.lyricScale?.let { scale ->
@@ -174,6 +184,20 @@ class AdminReelsFactoryService(
             }
             if (line.vocabulary.any { it.japanese.isBlank() || it.korean.isBlank() }) {
                 throw IllegalArgumentException("line ${line.lineNumber} has a word without text or meaning")
+            }
+        }
+    }
+
+    private fun validateMvFrame(frame: AdminReelsMvFrame) {
+        if (frame.scale !in MV_SCALE_RANGE) {
+            throw IllegalArgumentException("mvFrame.scale must be within $MV_SCALE_RANGE")
+        }
+        if (abs(frame.x) > MV_OFFSET_X_MAX || abs(frame.y) > MV_OFFSET_Y_MAX) {
+            throw IllegalArgumentException("mvFrame offset is out of range")
+        }
+        frame.crop?.let { crop ->
+            if (listOf(crop.top, crop.right, crop.bottom, crop.left).any { it !in MV_CROP_RANGE }) {
+                throw IllegalArgumentException("mvFrame.crop sides must be within $MV_CROP_RANGE")
             }
         }
     }
@@ -247,6 +271,10 @@ class AdminReelsFactoryService(
         val LYRIC_SCALE_RANGE = 0.6..1.4
         val LYRIC_OFFSET_Y_RANGE = -600..300
         val HEADLINE_FONT_SIZE_RANGE = 48..110
+        /** admin-web reelEditor.ts 의 HEADLINE_OFFSET_Y_MIN/MAX 와 같다. */
+        val HEADLINE_OFFSET_Y_RANGE = -300..300
+        /** PromoReel END_CARD_DURATION_IN_FRAMES. 마지막 줄 뒤에 붙는 엔드카드 길이다. */
+        const val END_CARD_FRAMES = 210
         const val INSTAGRAM_HANDLE = "@kotonoha.app"
 
         /**

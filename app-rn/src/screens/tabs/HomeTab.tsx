@@ -98,7 +98,7 @@ export default function HomeTab() {
   }, [consumeReload, focused, reload]);
 
   // 몰입 규칙:
-  //  ① 몰입 밖에서는 카드를 못 만진다 — 탭이든 드래그든 몰입 진입이다 (WordLayer 잠금 오버레이).
+  //  ① 몰입 밖에서 카드를 탭하면 탭한 동작과 함께 몰입에 들어간다 (WordLayer 탭 감시).
   //  ② 세로 드래그가 몰입 값을 끈다 — 몰입 중엔 아래로, 아니면 위로. 카드 앞뒤면은 무관하다.
   //  ③ 놓으면 가까운 쪽(0.5 기준)으로 붙는다.
   // immerse 는 레이아웃 값(카드 안쪽 여백)도 끌어서 RN Animated 네이티브 드라이버를 못 쓴다.

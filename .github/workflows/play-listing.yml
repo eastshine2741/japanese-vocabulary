@@ -1,0 +1,29 @@
+name: Play Store Listing
+
+# iOS 스토어 정보는 CD - iOS 의 심사 제출이 같이 올린다. Play 는 빌드 없이 바뀌므로 파일이 바뀔 때 따로 올린다.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app-rn/fastlane/metadata/android/**'
+  workflow_dispatch:
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+
+      - name: Install fastlane
+        run: gem install fastlane -N
+
+      - name: Upload listing
+        working-directory: app-rn
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: fastlane android upload_listing

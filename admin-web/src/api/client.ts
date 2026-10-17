@@ -2,11 +2,13 @@ import type {
   AdminUser,
   AdminUserDetail,
   AdminUserWord,
+  FeatureFlag,
   LoginResponse,
   LyricDetail,
   ManualPushResult,
   PageResponse,
   Recommendation,
+  ReelsRenderJob,
   ReelsRenderRequest,
   ReelsSongCandidate,
   ReelsSongDetail,
@@ -140,6 +142,18 @@ export const adminApi = {
       body: JSON.stringify({ ids }),
     })
   },
+  featureFlags(token: string) {
+    return request<FeatureFlag[]>("/feature-flags", token)
+  },
+  saveFeatureFlag(token: string, key: string, body: { startAt: string | null; endAt: string | null; description: string }) {
+    return request<FeatureFlag>(`/feature-flags/${encodeURIComponent(key)}`, token, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    })
+  },
+  deleteFeatureFlag(token: string, key: string) {
+    return request<void>(`/feature-flags/${encodeURIComponent(key)}`, token, { method: "DELETE" })
+  },
   users(token: string, page: number, query?: string) {
     return request<PageResponse<AdminUser>>(`/users?${pageParams(page, query)}`, token)
   },
@@ -199,9 +213,15 @@ export const adminApi = {
     })
   },
   renderReel(token: string, body: ReelsRenderRequest) {
-    return requestBlob("/reels-factory/render", token, {
+    return request<ReelsRenderJob>("/reels-factory/render", token, {
       method: "POST",
       body: JSON.stringify(body),
     })
+  },
+  reelsRenderJobs(token: string) {
+    return request<ReelsRenderJob[]>("/reels-factory/render-jobs", token)
+  },
+  reelsRenderOutput(token: string, jobId: string) {
+    return requestBlob(`/reels-factory/render-jobs/${jobId}/output`, token, {})
   },
 }

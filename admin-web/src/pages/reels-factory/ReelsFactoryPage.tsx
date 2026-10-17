@@ -1,8 +1,7 @@
 import * as React from "react"
-import { Download, Loader2 } from "lucide-react"
+import { Clapperboard, Loader2 } from "lucide-react"
 import { adminApi, ApiError, apiUrl } from "@/api/client"
 import type { ReelsSongDetail } from "@/api/types"
-import type { MvFrame } from "@reels/types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { LoadingState } from "@/components/StateViews"
@@ -10,6 +9,7 @@ import { useAuth } from "@/features/auth"
 import { LineBin } from "./LineBin"
 import { LineInspector } from "./LineInspector"
 import { ReelMonitor, type MonitorHandle, type MonitorMode } from "./ReelMonitor"
+import { RenderJobList, useRenderJobs } from "./RenderJobs"
 import { ReelTimeline } from "./ReelTimeline"
 import { SongPicker } from "./SongPicker"
 import {
@@ -17,8 +17,11 @@ import {
   DEFAULT_HEADLINE_FONT_SIZE,
   DEFAULT_LYRIC_SCALE,
   defaultCaption,
+  EMPTY_MV_TRACK,
   emptyEditor,
   frameToMs,
+  addMvKeyframe,
+  moveMvKeyframe,
   setEnd,
   setLineStart,
   setLinesIncluded,
@@ -28,6 +31,7 @@ import {
   toggleLine,
   toggleToken,
   validate,
+  type MvTrack,
   type ReelCaption,
 } from "./reelEditor"
 
@@ -46,17 +50,20 @@ export function ReelsFactoryPage() {
   const [mvUrl, setMvUrl] = React.useState<string | null>(null)
   const [mvDurationMs, setMvDurationMs] = React.useState<number | null>(null)
   const [mvAspect, setMvAspect] = React.useState<number | null>(null)
-  /** 릴스 전체에 고정되는 MV 배치. null 이면 꽉 채움(cover). 줄을 비워도 유지하고 곡을 바꾸면 되돌린다. */
-  const [mvFrame, setMvFrame] = React.useState<MvFrame | null>(null)
+  /** MV 배치와 키프레임. 줄을 비워도 유지하고 곡을 바꾸면 되돌린다. */
+  const [mvTrack, setMvTrack] = React.useState<MvTrack>(EMPTY_MV_TRACK)
   /** 상단 헤드라인 글자 크기(px). 가사 배율처럼 릴스 전체에 고정이고 곡을 바꾸면 되돌린다. */
   const [headlineFontSize, setHeadlineFontSize] = React.useState(DEFAULT_HEADLINE_FONT_SIZE)
+  const [headlineOffsetY, setHeadlineOffsetY] = React.useState(0)
   /** 가사 원문 글자 배율. MV 배치처럼 릴스 전체에 고정이고 곡을 바꾸면 되돌린다. */
   const [lyricScale, setLyricScale] = React.useState(DEFAULT_LYRIC_SCALE)
   const [lyricOffsetY, setLyricOffsetY] = React.useState(0)
   /** 업로드 진행률 0..1. 올리는 중이 아니면 null. */
   const [uploadProgress, setUploadProgress] = React.useState<number | null>(null)
-  const [rendering, setRendering] = React.useState(false)
+  /** 렌더를 서버 줄에 세우는 요청 중. 렌더 자체는 뒤에서 돌아 여러 개를 이어 맡길 수 있다. */
+  const [submitting, setSubmitting] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const renderJobs = useRenderJobs(token, setError)
   const [mode, setMode] = React.useState<MonitorMode>("source")
   const [playheadMs, setPlayheadMs] = React.useState(0)
   // 키 핸들러가 재생 중 프레임마다 다시 붙지 않도록 플레이헤드는 ref 로 읽는다.
@@ -74,10 +81,11 @@ export function ReelsFactoryPage() {
     setMvUrl(null)
     setMvDurationMs(null)
     setMvAspect(null)
-    setMvFrame(null)
+    setMvTrack(EMPTY_MV_TRACK)
     setLyricScale(DEFAULT_LYRIC_SCALE)
     setLyricOffsetY(0)
     setHeadlineFontSize(DEFAULT_HEADLINE_FONT_SIZE)
+    setHeadlineOffsetY(0)
     setMode("source")
     setPlayheadMs(0)
     setError(null)
@@ -104,14 +112,14 @@ export function ReelsFactoryPage() {
   const data = React.useMemo(
     () =>
       detail && editor.lines.length > 0
-        ? buildPromoData(detail, editor, mvUrl ?? "", caption, mvFrame, lyricScale, headlineFontSize, lyricOffsetY)
+        ? buildPromoData(detail, editor, mvUrl ?? "", caption, mvTrack, lyricScale, headlineFontSize, lyricOffsetY, headlineOffsetY)
         : null,
-    [caption, detail, editor, headlineFontSize, lyricOffsetY, lyricScale, mvFrame, mvUrl],
+    [caption, detail, editor, headlineFontSize, headlineOffsetY, lyricOffsetY, lyricScale, mvTrack, mvUrl],
   )
   const fps = detail?.fps ?? 30
   const inputReady = Boolean(detail?.song.renderEligible) && errors.length === 0
   // 서버는 올려 둔 MV 로만 렌더한다.
-  const canRender = inputReady && mvUrl != null && !rendering
+  const canRender = inputReady && mvUrl != null && !submitting
 
   const handleToggleLine = React.useCallback(
     (index: number) => {
@@ -167,6 +175,37 @@ export function ReelsFactoryPage() {
     setPlayheadMs(ms)
     monitorRef.current?.seek(ms)
   }, [])
+
+  // 드래그는 pointerdown 때의 핸들러로 계속 불리므로 트랙은 ref 로 읽는다.
+  const mvTrackRef = React.useRef(mvTrack)
+  mvTrackRef.current = mvTrack
+  const handleAddKeyframe = React.useCallback(
+    (ms: number) => {
+      setMvTrack((track) => addMvKeyframe(track, ms))
+      seekReel(Math.max(0, Math.round(ms)))
+    },
+    [seekReel],
+  )
+  /** 플레이헤드가 키프레임을 따라가 그 시각의 MV 장면과 배치가 모니터에 보인다. */
+  const handleDragKeyframe = React.useCallback(
+    (index: number, ms: number) => {
+      const next = moveMvKeyframe(mvTrackRef.current, index, ms, true)
+      mvTrackRef.current = next
+      setMvTrack(next)
+      seekReel(next.keyframes[index].atMs)
+    },
+    [seekReel],
+  )
+  const handleSetKeyframeTime = React.useCallback(
+    (index: number, ms: number) => {
+      const next = moveMvKeyframe(mvTrackRef.current, index, ms)
+      if (next === mvTrackRef.current) return
+      mvTrackRef.current = next
+      setMvTrack(next)
+      seekReel(Math.max(0, Math.round(ms)))
+    },
+    [seekReel],
+  )
 
   /** 플레이헤드에 줄 시작을 찍고 다음 줄로 넘어간다. PLAIN 가사를 들으면서 찍는 흐름이다. */
   const markSelectedLine = React.useCallback(() => {
@@ -231,20 +270,20 @@ export function ReelsFactoryPage() {
 
   async function renderReel() {
     if (!token || !detail || !data) return
-    setRendering(true)
+    setSubmitting(true)
     setError(null)
     monitorRef.current?.pause()
     try {
-      const blob = await adminApi.renderReel(token, {
+      const job = await adminApi.renderReel(token, {
         songId: detail.song.id,
         data: { ...data, song: { ...data.song, mvAsset: "" } },
         acknowledgeSourceRightsAndPlatformRisk: true,
       })
-      downloadBlob(blob, `${data.song.artist}-${data.song.title}-kotonoha-reel.mp4`)
+      renderJobs.add(job)
     } catch (cause) {
       setError(errorLabel(cause))
     } finally {
-      setRendering(false)
+      setSubmitting(false)
     }
   }
 
@@ -263,11 +302,13 @@ export function ReelsFactoryPage() {
         ) : null}
         <div className="ml-auto flex items-center gap-3">
           <Button disabled={!canRender} onClick={renderReel} type="button">
-            {rendering ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            {rendering ? "Rendering..." : "Render and download MP4"}
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Clapperboard className="h-4 w-4" />}
+            Render MP4
           </Button>
         </div>
       </div>
+
+      <RenderJobList jobs={renderJobs.jobs} onDownload={renderJobs.download} />
 
       {error ? <div className="rounded-md border border-[#fecaca] bg-[#fff1f2] px-3 py-2 text-sm text-[#991b1b]">{error}</div> : null}
 
@@ -310,12 +351,15 @@ export function ReelsFactoryPage() {
               onChangeHeadlineFontSize={setHeadlineFontSize}
               onChangeLyricScale={setLyricScale}
               onChangeLyricOffsetY={setLyricOffsetY}
-              onChangeMvFrame={setMvFrame}
+              onChangeMvTrack={setMvTrack}
+              onSetKeyframeTime={handleSetKeyframeTime}
+              onChangeHeadlineOffsetY={setHeadlineOffsetY}
               headlineFontSize={headlineFontSize}
+              headlineOffsetY={headlineOffsetY}
               lyricScale={lyricScale}
               lyricOffsetY={lyricOffsetY}
               mvAspect={mvAspect}
-              mvFrame={mvFrame}
+              mvTrack={mvTrack}
               playheadMs={playheadMs}
               selectedIndex={selectedIndex}
               onSeekReel={seekReel}
@@ -341,6 +385,9 @@ export function ReelsFactoryPage() {
               onSetEnd={handleSetEnd}
               onSetLineStart={handleSetLineStart}
               onSetSourceStart={handleSetSourceStart}
+              mvTrack={mvTrack}
+              onAddKeyframe={handleAddKeyframe}
+              onDragKeyframe={handleDragKeyframe}
             />
           </div>
         </>
@@ -356,15 +403,4 @@ export function ReelsFactoryPage() {
 function errorLabel(cause: unknown) {
   if (cause instanceof ApiError) return `${cause.status}: ${cause.message}`
   return cause instanceof Error ? cause.message : "Request failed"
-}
-
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob)
-  const anchor = document.createElement("a")
-  anchor.href = url
-  anchor.download = filename
-  document.body.appendChild(anchor)
-  anchor.click()
-  anchor.remove()
-  URL.revokeObjectURL(url)
 }

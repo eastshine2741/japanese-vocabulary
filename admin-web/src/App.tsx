@@ -12,6 +12,7 @@ import { SongAnalysisWorksPage } from "@/pages/song-analysis-works/SongAnalysisW
 import { UserDetailPage } from "@/pages/users/UserDetailPage"
 import { UsersPage } from "@/pages/users/UsersPage"
 import { ReelsFactoryPage } from "@/pages/reels-factory/ReelsFactoryPage"
+import { FeatureFlagsPage } from "@/pages/feature-flags/FeatureFlagsPage"
 
 export function App() {
   return (
@@ -27,6 +28,7 @@ export function App() {
             <Route path="/song-analysis-works" element={<SongAnalysisWorksPage />} />
             <Route path="/song-analysis-works/:workId" element={<SongAnalysisWorkDetailPage />} />
             <Route path="/reels-factory" element={<ReelsFactoryPage />} />
+            <Route path="/feature-flags" element={<FeatureFlagsPage />} />
             <Route path="/users" element={<UsersPage />} />
             <Route path="/users/:userId" element={<UserDetailPage />} />
           </Route>

@@ -225,7 +225,7 @@ metadata:
   name: karaoke-collect
 spec:
   # 노래방(TJ·금영) 일본 신곡 수집 → 분석 요청 → 구독자 알림. 첫 배포는 args 에 --backfill 을 붙여 한 번 돌린다
-  schedule: "0 18 * * *"
+  schedule: "0 15 * * *"
   timeZone: "Asia/Seoul"
   suspend: false
   concurrencyPolicy: Forbid

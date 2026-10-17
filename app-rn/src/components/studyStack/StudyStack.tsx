@@ -27,7 +27,7 @@ export interface StudyStackProps {
   contentInsetTop?: StageInset;
   /** 시스템 하단 영역이 무대 위를 덮는 높이. 하단 컨트롤만 그만큼 올린다. */
   contentInsetBottom?: number;
-  /** 홈 확장 상태처럼 카드 조작 전에 먼저 immersive 전환이 필요한 경우. */
+  /** 홈 확장 상태처럼 카드를 탭하면 immersive 로도 전환해야 하는 경우. */
   requireImmersedInteraction?: boolean;
   onRequestImmerse?: () => void;
 }

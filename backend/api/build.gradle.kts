@@ -25,6 +25,7 @@ dependencies {
     implementation(project(":domains:word"))
     implementation(project(":domains:studystats"))
     implementation(project(":domains:notification"))
+    implementation(project(":domains:featureflag"))
     implementation(project(":integrations:song-search"))
     implementation(project(":integrations:github"))
     implementation(project(":integrations:message-queue"))

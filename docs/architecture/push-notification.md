@@ -27,7 +27,7 @@ decide who gets what: `batch` (streak reminder CronJob), `worker` (analysis-comp
   it come back through the module's `onPress` event / `consumeInitialPress()`, not
   expo-notifications. The module is native code, so it ships only with a new native build.
 - Karaoke new songs: `KaraokeNewSongNotifier` in `batch`, run by the `karaoke-collect` CronJob at
-  `18:00` KST right after collection. One push per run to users with `karaokeNewSongNotifications` (opt-in,
+  `15:00` KST right after collection. One push per run to users with `karaokeNewSongNotifications` (opt-in,
   default false), the only user-gated push. Payload `data.type` is `karaoke_new_songs`. Rules:
   `docs/karaoke-new-songs.md`.
 - Reward cards backfilled: `RewardCardBackfillTask` in `batch`, run once by hand from the suspended

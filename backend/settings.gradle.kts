@@ -23,4 +23,5 @@ include(
     "domains:word",
     "domains:studystats",
     "domains:notification",
+    "domains:featureflag",
 )

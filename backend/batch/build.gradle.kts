@@ -19,6 +19,7 @@ dependencies {
     implementation(project(":domains:song-analysis"))
     implementation(project(":domains:studystats"))
     implementation(project(":domains:notification"))
+    implementation(project(":domains:featureflag"))
     implementation(project(":domains:user"))
     // 보상 카드 채우기(reward-card-backfill)가 곡 단어장과 단계 분류로 등급을 잰다.
     implementation(project(":domains:word"))

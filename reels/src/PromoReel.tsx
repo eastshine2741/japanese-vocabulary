@@ -13,7 +13,7 @@ import type {CSSProperties} from 'react';
 import {convertLineReading, convertReading, katakanaToHiragana} from '../../app-rn/src/utils/readingConverter';
 import {SCORE_DREAM_FAMILY, useScoreDream} from './fonts/scoreDream';
 import {parseHeadline} from './headline';
-import type {LyricToken, MvCrop, MvFrame, PartOfSpeech, PromoLine, PromoReelData, VocabularyWord} from './types';
+import type {LyricToken, MvCrop, MvFrame, MvKeyframe, PartOfSpeech, PromoLine, PromoReelData, VocabularyWord} from './types';
 
 export const PROMO_FPS = 30;
 // 엔드카드 7초. 앱 목업이 시트 → 단어 탭 → 복습 → rating → 다음 단어까지 흐르고, 스토어 검색 큐를 읽을 시간이다.
@@ -168,12 +168,13 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
   const entry = (delay: number) => linear(localFrame - delay, 0, ENTRY_FRAMES);
   const lyricEntry = entry(0);
   const meaningEntry = entry(2);
-  const mvFrame = data.mvFrame ?? null;
+  const mvFrame = activeMvFrame(data.mvFrame ?? null, data.mvKeyframes ?? [], frame);
+  const overlay = data.renderLayer === 'overlay';
 
   return (
-    <AbsoluteFill style={styles.canvas}>
+    <AbsoluteFill style={overlay ? styles.overlayCanvas : styles.canvas}>
       {/* MV 를 줄이거나 옮겨 생긴 빈 곳은 검은색 — MV 블러 배경은 헤드리스 Chrome 소프트웨어 렌더에서 너무 비싸다 */}
-      <div style={styles.mvLayer}>
+      {!overlay && <div style={styles.mvLayer}>
         <div style={styles.mvSlot}>
           <OffthreadVideo
             muted={false}
@@ -186,10 +187,10 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
             })}
           />
         </div>
-      </div>
+      </div>}
 
       {/* 엔드카드가 덮은 뒤에도 그대로 둔다 — 엔드카드가 이 화면을 블러해 배경으로 쓴다(pen 의 Prev Frame + Blur Layer). */}
-      <div style={styles.activeLayer}>
+      {!(overlay && frame >= lyricsEndFrame) && <div style={styles.activeLayer}>
         <HeadlineBlock data={data} />
         <SongLabel song={data.song} />
         <ProfileCue />
@@ -205,12 +206,16 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
             <div style={styles.contentSpacer} />
           </section>
         )}
-      </div>
+      </div>}
 
-      <EndCard data={data} startFrame={lyricsEndFrame} />
+      <EndCard data={data} startFrame={lyricsEndFrame} backdrop={!overlay} />
     </AbsoluteFill>
   );
 };
+
+/** 이 프레임에 시작해 있는 마지막 키프레임의 배치. 키프레임 전이면 기본 배치다. */
+export const activeMvFrame = (base: MvFrame | null, keyframes: MvKeyframe[], frame: number): MvFrame | null =>
+  keyframes.reduce((found, keyframe) => (keyframe.startFrame <= frame ? keyframe.mvFrame : found), base);
 
 // 폭만 정하고 높이는 MV 원래 비율을 따른다. objectFit 로 캔버스에 맞춰 자르지 않아야 MV 전체를 줄여 담을 수 있다.
 const framedVideoStyle = ({scale, x, y, crop}: MvFrame): CSSProperties => ({
@@ -249,10 +254,13 @@ const entryStyle = (progress: number, skew = 0): CSSProperties => ({
 });
 
 // 화면 맨 위 띠. 계정명과 어드민이 쓴 헤드라인이 MV 와 겹치지 않는 바탕 위에 앉는다.
+// 어드민이 옮기는 건 글자뿐이라 띠 높이는 그대로다.
 const HeadlineBlock = ({data}: {data: PromoReelData}) => (
   <div style={styles.headlineBlock}>
-    <div style={styles.watermark}>{data.instagramHandle}</div>
-    <Headline text={data.headline} fontSize={data.headlineFontSize ?? DEFAULT_HEADLINE_FONT_SIZE} onBand />
+    <div style={{...styles.headlineGroup, transform: `translateY(${data.headlineOffsetY ?? 0}px)`}}>
+      <div style={styles.watermark}>{data.instagramHandle}</div>
+      <Headline text={data.headline} fontSize={data.headlineFontSize ?? DEFAULT_HEADLINE_FONT_SIZE} onBand />
+    </div>
   </div>
 );
 
@@ -311,8 +319,8 @@ const ProfileCue = () => (
   </div>
 );
 
-// 한 줄 전체를 토큰 단위로 펼친다. 개행은 폭(760)이 넘칠 때만 생긴다 — 원문 공백은 칸 사이 여백으로만 남으므로
-// 어드민이 글자 크기를 줄이면 접히는 자리가 실제로 바뀐다. 아래에 그 줄의 번역을 붙인다(가사보다 4프레임 늦게 들어온다).
+// 한 줄 전체를 토큰 단위로 펼친다. 행은 폭이 넘칠 때 어절(원문 공백) 사이에서만 꺾이고, 가장 긴 어절이 한 행에
+// 들어가도록 글자를 줄인다. 아래에 그 줄의 번역을 붙인다(가사보다 4프레임 늦게 들어온다).
 // 강조 단어 칸은 뜻을 위에 얹은 세로 칸이 되고, 행이 아래(flex-end)로 맞춰져 있어 원문 글자 높이는 그대로다.
 const LyricBlockView = ({
   line,
@@ -326,8 +334,8 @@ const LyricBlockView = ({
   /** 어드민이 정한 가사 배율. 자동 축소 위에 곱해진다. */
   userScale: number;
 }) => {
-  const tokens = buildLyricTokens(line);
-  const scale = lyricScale(tokens, userScale);
+  const phrases = groupByPhrase(buildLyricTokens(line));
+  const scale = lyricScale(phrases, userScale);
   return (
     <div style={styles.lyricBlock}>
       <div
@@ -338,25 +346,36 @@ const LyricBlockView = ({
           ...entryStyle(lyricEntry),
         }}
       >
-        {tokens.map((token) => {
-          const text = (
-            <span style={{...styles.token, color: token.spotlight?.color ?? softInk, fontSize: TOKEN_FONT_SIZE * scale}}>
-              {token.text}
-            </span>
-          );
-          const marginLeft = token.spaceBefore ? SPACE_GAP * scale : 0;
-          if (!token.spotlight) return <span key={token.key} style={{marginLeft}}>{text}</span>;
-          return (
-            <span key={token.key} style={{...styles.glossCell, gap: GLOSS_GAP * scale, marginLeft}}>
-              <span style={styles.glossTrack}>
-                <span style={{...styles.gloss, color: token.spotlight.color, fontSize: GLOSS_FONT_SIZE * scale}}>
-                  {token.spotlight.gloss}
+        {phrases.map((phrase) => (
+          <span
+            key={phrase[0].key}
+            style={{
+              ...styles.lyricPhrase,
+              columnGap: TOKEN_GAP * scale,
+              rowGap: TOKEN_ROW_GAP * scale,
+              marginLeft: phrase[0].spaceBefore ? SPACE_GAP * scale : 0,
+            }}
+          >
+            {phrase.map((token) => {
+              const text = (
+                <span style={{...styles.token, color: token.spotlight?.color ?? softInk, fontSize: TOKEN_FONT_SIZE * scale}}>
+                  {token.text}
                 </span>
-              </span>
-              {text}
-            </span>
-          );
-        })}
+              );
+              if (!token.spotlight) return <span key={token.key}>{text}</span>;
+              return (
+                <span key={token.key} style={{...styles.glossCell, gap: GLOSS_GAP * scale}}>
+                  <span style={styles.glossTrack}>
+                    <span style={{...styles.gloss, color: token.spotlight.color, fontSize: GLOSS_FONT_SIZE * scale}}>
+                      {token.spotlight.gloss}
+                    </span>
+                  </span>
+                  {text}
+                </span>
+              );
+            })}
+          </span>
+        ))}
       </div>
       {line.koreanLyrics !== '' && (
         <p style={{...styles.korean, ...entryStyle(meaningEntry, KOREAN_SKEW)}}>{line.koreanLyrics}</p>
@@ -365,7 +384,7 @@ const LyricBlockView = ({
   );
 };
 
-const EndCard = ({data, startFrame}: {data: PromoReelData; startFrame: number}) => {
+const EndCard = ({data, startFrame, backdrop}: {data: PromoReelData; startFrame: number; backdrop: boolean}) => {
   const frame = useCurrentFrame();
   const localFrame = frame - startFrame;
   if (localFrame < 0) return null;
@@ -378,7 +397,7 @@ const EndCard = ({data, startFrame}: {data: PromoReelData; startFrame: number}) 
   const artwork = data.song.artworkAsset.trim() === '' ? null : assetSrc(data.song.artworkAsset);
 
   return (
-    <AbsoluteFill style={{...styles.endCardLayer, opacity: enter}}>
+    <AbsoluteFill style={{...styles.endCardLayer, ...(backdrop ? styles.endCardBackdrop : null), opacity: enter}}>
       <div style={styles.endWatermark}>{data.instagramHandle}</div>
       <div style={{...styles.endTitleBlock, transform: `translateY(${interpolate(enter, [0, 1], [20, 0])}px)`}}>
         <Headline text={END_CARD_HEADLINE} />
@@ -1086,27 +1105,56 @@ const GLOSS_ROW_HEIGHT = 36;
 // 기본 크기로 세 행과 뜻 한 줄까지. 넘치면 위로 자라는데, 띠 아래 곡 표기(≈560)까지는 여유가 있다.
 const LYRIC_HEIGHT_BUDGET = 171;
 
-// 어드민 배율을 먼저 곱하고, 그래도 높이 예산을 넘으면 자동 축소 단계를 한 칸씩 내린다.
-const lyricScale = (tokens: LyricRowToken[], userScale = 1) => {
-  const step =
-    TOKEN_SCALES.find((scale) => lyricRowHeight(tokens, scale * userScale) <= LYRIC_HEIGHT_BUDGET) ??
-    TOKEN_SCALES[TOKEN_SCALES.length - 1];
+// 원문 공백으로 나뉜 어절. 행은 어절 사이에서만 꺾인다.
+const groupByPhrase = (tokens: LyricRowToken[]) =>
+  tokens.reduce<LyricRowToken[][]>((phrases, token) => {
+    if (token.spaceBefore || phrases.length === 0) phrases.push([token]);
+    else phrases[phrases.length - 1].push(token);
+    return phrases;
+  }, []);
+
+// 어드민 배율을 먼저 곱하고, 높이 예산을 넘거나 가장 긴 어절이 한 행에 안 들어가면 자동 축소 단계를 한 칸씩 내린다.
+const lyricScale = (phrases: LyricRowToken[][], userScale = 1) => {
+  const fits = (scale: number) =>
+    lyricRowHeight(phrases, scale) <= LYRIC_HEIGHT_BUDGET &&
+    phrases.every((phrase) => phraseWidth(phrase, scale) <= LYRIC_WIDTH);
+  const step = TOKEN_SCALES.find((scale) => fits(scale * userScale)) ?? TOKEN_SCALES[TOKEN_SCALES.length - 1];
   return step * userScale;
 };
 
-const lyricRowHeight = (tokens: LyricRowToken[], scale: number) => {
-  const count = Math.max(1, Math.ceil(rowWidth(tokens, scale) / LYRIC_WIDTH));
-  const gloss = tokens.some((token) => token.spotlight) ? GLOSS_ROW_HEIGHT : 0;
+const lyricRowHeight = (phrases: LyricRowToken[][], scale: number) => {
+  const count = rowCount(phrases, scale);
+  const gloss = phrases.some((phrase) => phrase.some((token) => token.spotlight)) ? GLOSS_ROW_HEIGHT : 0;
   return (count * TOKEN_ROW_HEIGHT + gloss) * scale + (count - 1) * TOKEN_ROW_GAP * scale;
 };
 
+// 브라우저처럼 어절을 앞에서부터 채운다. 한 행보다 긴 어절은 그 안에서 꺾인다.
+const rowCount = (phrases: LyricRowToken[][], scale: number) => {
+  let rows = 1;
+  let used = 0;
+  for (const phrase of phrases) {
+    const width = phraseWidth(phrase, scale);
+    if (used > 0 && used + TOKEN_GAP * scale + width > LYRIC_WIDTH) {
+      rows += 1;
+      used = 0;
+    }
+    if (width > LYRIC_WIDTH) {
+      rows += Math.ceil(width / LYRIC_WIDTH) - 1;
+      used = width % LYRIC_WIDTH;
+    } else {
+      used += (used > 0 ? TOKEN_GAP * scale : 0) + width;
+    }
+  }
+  return rows;
+};
+
 // CJK/한글 1자 = 1em 으로 어림한다. 원문 공백 자리의 여백도 같이 센다.
-const rowWidth = (tokens: LyricRowToken[], scale: number) =>
-  tokens.reduce(
+const phraseWidth = (phrase: LyricRowToken[], scale: number) =>
+  phrase.reduce(
     (sum, token) => sum + scale * (textWeight(token.text) * TOKEN_FONT_SIZE + (token.spaceBefore ? SPACE_GAP : 0)),
     0,
   ) +
-  Math.max(0, tokens.length - 1) * TOKEN_GAP * scale;
+  Math.max(0, phrase.length - 1) * TOKEN_GAP * scale;
 
 const uniqueByJapanese = () => {
   const seen = new Set<string>();
@@ -1203,6 +1251,12 @@ const styles = {
     fontFamily: reelFontStack,
     overflow: 'hidden',
   },
+  overlayCanvas: {
+    backgroundColor: 'transparent',
+    color: ink,
+    fontFamily: reelFontStack,
+    overflow: 'hidden',
+  },
   fullVideo: {
     height: '100%',
     objectFit: 'cover',
@@ -1233,12 +1287,10 @@ const styles = {
   },
   // 헤드라인이 길면 띠가 아래로 늘어나 MV 윗부분을 덮는다.
   headlineBlock: {
-    alignItems: 'center',
     backgroundColor: bandInk,
     boxSizing: 'border-box',
     display: 'flex',
     flexDirection: 'column',
-    gap: 22,
     justifyContent: 'flex-end',
     left: 0,
     minHeight: HEADLINE_BAND_HEIGHT,
@@ -1247,6 +1299,12 @@ const styles = {
     right: 0,
     top: 0,
     zIndex: 4,
+  },
+  headlineGroup: {
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 22,
   },
   watermark: {
     color: ink,
@@ -1371,6 +1429,14 @@ const styles = {
     justifyContent: 'center',
     width: '100%',
   },
+  // 어절 한 덩어리. 행보다 길 때만 안에서 꺾인다.
+  lyricPhrase: {
+    alignItems: 'flex-end',
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    minWidth: 0,
+  },
   token: {
     ...outline(1),
     fontWeight: 700,
@@ -1413,11 +1479,14 @@ const styles = {
 
   // 아래 깔린 가사 화면(마지막 줄에서 멈춘 그림)을 그대로 블러해 배경으로 쓴다 — pen 의 Prev Frame + Blur Layer
   endCardLayer: {
-    backdropFilter: 'blur(56px)',
     backgroundColor: '#11101266',
     overflow: 'hidden',
-    WebkitBackdropFilter: 'blur(56px)',
     zIndex: 10,
+  },
+  // overlay 렌더에선 빠지고 ffmpeg 이 같은 블러를 MV 합성 위에 건다. 두 쪽 반경을 같이 바꾼다.
+  endCardBackdrop: {
+    backdropFilter: 'blur(56px)',
+    WebkitBackdropFilter: 'blur(56px)',
   },
   endWatermark: {
     color: '#FAFAF659',

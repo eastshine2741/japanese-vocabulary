@@ -11,7 +11,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Duration
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicBoolean
 
 @Service
 @EnableConfigurationProperties(AdminReelsRendererProperties::class)
@@ -19,12 +18,7 @@ class SubprocessAdminReelsRenderService(
     private val objectMapper: ObjectMapper,
     private val properties: AdminReelsRendererProperties,
 ) : AdminReelsRenderService {
-    private val active = AtomicBoolean(false)
-
     override fun render(input: AdminReelsRenderInput): Path {
-        if (!active.compareAndSet(false, true)) {
-            throw AdminReelsRenderBusyException()
-        }
         val workDir = Files.createTempDirectory("kotonoha-reels-")
         try {
             val inputPath = workDir.resolve("render-input.json")
@@ -58,7 +52,14 @@ class SubprocessAdminReelsRenderService(
                 it.start()
             }
 
-            val finished = process.waitFor(properties.timeout.seconds, TimeUnit.SECONDS)
+            val finished = try {
+                process.waitFor(properties.timeout.seconds, TimeUnit.SECONDS)
+            } catch (exception: InterruptedException) {
+                // 파드 종료 때 작업 스레드가 끊긴다. 남겨 두면 Chrome·ffmpeg 이 지워진 폴더에 계속 쓴다.
+                killProcessTree(process)
+                Thread.currentThread().interrupt()
+                throw exception
+            }
             if (!finished) {
                 killProcessTree(process)
                 outputThread.join(Duration.ofSeconds(2).toMillis())
@@ -93,9 +94,6 @@ class SubprocessAdminReelsRenderService(
                 exception,
             )
             throw AdminReelsRenderFailedException(exception.message ?: "Renderer failed")
-        } finally {
-            deleteRecursively(properties.workingDirectory.resolve("public/admin-render"))
-            active.set(false)
         }
     }
 
@@ -148,6 +146,10 @@ data class AdminReelsRendererProperties(
     val command: List<String> = listOf("npm", "run", "render:request", "--"),
     val timeout: Duration = Duration.ofMinutes(8),
     val maxLogBytes: Int = 8192,
+    /** 동시에 도는 렌더 수. 넘치는 요청은 줄을 선다. 렌더 하나가 메모리를 0.7GB 가량 더 쓴다. */
+    val concurrency: Int = 1,
+    /** 끝난 렌더 결과를 다시 받을 수 있게 남겨 두는 시간. */
+    val retention: Duration = Duration.ofHours(6),
 )
 
 private fun defaultReelsWorkingDirectory(): Path {

@@ -37,6 +37,7 @@ cd app-rn && npx expo start --web             # App - Web (dev)
 - 오늘의 복습 스케줄(H6) `GET /api/study-schedule` — 1년 기억 단어 수 예보(매일 GOOD 복습 vs 쉼, FSRS 기억 확률 합): `docs/product-intents/261004-study-schedule-api.md`
 - 보상 카드(곡·아티스트) 등급마다 새로 발급·등급별 순번, 레벨·마스터·낡음(밀린 복습 비율)·아티스트 등급 규칙과 프로필 카드|학습 탭, rating 때 달성·서명 때 발급(`domains:rewardcard`), 개발 빌드는 더미/서버 전환 칩, 카드 공유 링크(서명 토큰 `/c/{token}`, share-web 카드 웹 화면, 앱 링크 검증 파일): `docs/product-intents/261010-reward-cards.md`
 - Translation pipeline guardrails: `docs/translation-pipeline.md`
+- Feature flag(시작·종료 시각 구간으로 켜짐, 롤아웃 없이 30초 내 반영): `docs/architecture/feature-flag.md`
 - Push notification architecture: `docs/architecture/push-notification.md`
 - Admin service: `docs/admin-service.md`
 - KPI 와 측정 방법 (GA4/BigQuery): `docs/analytics.md`
@@ -139,9 +140,9 @@ freeze 행은 연속을 잇기만 하고 streak/총 학습일 카운트에는 �
 오늘 첫 rating 직후의 플로팅 배너는 폐기되고 전체 화면 축하로 바뀌었다:
 `docs/product-intents/261004-streak-celebration-screen.md`.
 
-**Karaoke new songs:** batch `karaoke-collect`(18:00 KST)가 TJ·금영 일본 신곡을 `karaoke_song`에 쌓고 → 분석을 요청하고 → 구독자에게 알린다. 분석 결과와 무관하게 보여주고, 분석된 곡만 `songId`가 있다. `GET /api/karaoke-songs/daily|monthly`. 앱은 검색 탭 디스커버리 섹션에서 `KaraokeNewSongs` 화면(날짜별·월별)으로 들어간다.
+**Karaoke new songs:** batch `karaoke-collect`(15:00 KST)가 TJ·금영 일본 신곡을 `karaoke_song`에 쌓고 → 분석을 요청하고 → 구독자에게 알린다. 분석 결과와 무관하게 보여주고, 분석된 곡만 `songId`가 있다. `GET /api/karaoke-songs/daily|monthly`. 앱은 검색 탭 디스커버리 섹션에서 `KaraokeNewSongs` 화면(날짜별·월별)으로 들어간다.
 
-**Admin surface:** `backend/admin-api` exposes `/admin/api/auth/login`, `/admin/api/songs`, `/admin/api/lyrics`, `/admin/api/song-analysis-works`, `/admin/api/users`, `/admin/api/users/{id}/words` (per-user decks/words/review state, read-only), and `/admin/api/push/send` (운영자 수동 푸시; 구 batch `/dev/push/send` 대체). `admin-web` is a Vite React TypeScript shadcn-style SPA. Dev 는 `/<namespace>/admin` 경로로, prod 는 `https://kotonoha.eastshine.dev/admin` (API 는 `/admin/api`) 한 호스트로 배포된다 — path 별 미들웨어가 필요해 Traefik `IngressRoute` 를 쓴다. See `docs/admin-service.md`.
+**Admin surface:** `backend/admin-api` exposes `/admin/api/auth/login`, `/admin/api/songs`, `/admin/api/lyrics`, `/admin/api/song-analysis-works`, `/admin/api/users`, `/admin/api/users/{id}/words` (per-user decks/words/review state, read-only), `/admin/api/feature-flags`, and `/admin/api/push/send` (운영자 수동 푸시; 구 batch `/dev/push/send` 대체). `admin-web` is a Vite React TypeScript shadcn-style SPA. Dev 는 `/<namespace>/admin` 경로로, prod 는 `https://kotonoha.eastshine.dev/admin` (API 는 `/admin/api`) 한 호스트로 배포된다 — path 별 미들웨어가 필요해 Traefik `IngressRoute` 를 쓴다. See `docs/admin-service.md`.
 
 **Partial coverage:** Backend integration tests for new domains; broader e2e tests still pending.
 

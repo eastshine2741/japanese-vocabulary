@@ -1,5 +1,15 @@
 import React from 'react';
-import { Animated, Easing, GestureResponderHandlers, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Animated,
+  Easing,
+  GestureResponderEvent,
+  GestureResponderHandlers,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { CardStage, SourceHeader, StageInset } from './CardStage';
 import { SWIPE_OUT_DISTANCE } from './useStudyStack';
 import { WordBack } from './WordBack';
@@ -11,6 +21,32 @@ import { StudyCard } from './types';
 const SPLIT_MS = 720;
 
 const ARTWORK_CROSSFADE_MS = 360;
+
+/** 이 거리 안에서 떼면 탭으로 본다. 드래그는 홈의 몰입·당겨서 새로고침 제스처가 따로 처리한다. */
+const TAP_SLOP = 10;
+
+/**
+ * 손가락이 거의 안 움직이고 떼어지면 onTap 을 부른다. responder 를 잡지 않는 touch 이벤트라
+ * 카드 안쪽 버튼도 같은 탭을 그대로 받는다.
+ */
+function useTapObserver(onTap: (() => void) | undefined) {
+  const startRef = React.useRef<{ x: number; y: number } | null>(null);
+  const onTouchStart = React.useCallback((e: GestureResponderEvent) => {
+    startRef.current = { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY };
+  }, []);
+  const onTouchEnd = React.useCallback((e: GestureResponderEvent) => {
+    const start = startRef.current;
+    startRef.current = null;
+    if (!start || !onTap) return;
+    const dx = e.nativeEvent.pageX - start.x;
+    const dy = e.nativeEvent.pageY - start.y;
+    if (dx * dx + dy * dy <= TAP_SLOP * TAP_SLOP) onTap();
+  }, [onTap]);
+  const onTouchCancel = React.useCallback(() => {
+    startRef.current = null;
+  }, []);
+  return { onTouchStart, onTouchEnd, onTouchCancel };
+}
 
 /** 카드마다 무대 커버가 바뀌면 이전 커버를 겹쳐 서서히 걷어낸다 — 바로 바꾸면 배경이 번쩍인다. */
 function useArtworkCrossfade(artworkUrl: string | null) {
@@ -56,7 +92,7 @@ export interface WordLayerProps {
   onSourcePress: () => void;
   onOpenExampleSource?: (songId: number) => void;
   onEditWord?: (card: StudyCard) => void;
-  /** 카드 전체를 잠근다 — 탭이면 onRequestImmerse 만 부르고, 나머지 터치는 카드에 닿지 않는다. */
+  /** 카드 어디를 탭하든 onRequestImmerse 를 함께 부른다 — 탭한 버튼의 동작은 그대로 일어난다. */
   requireImmersedInteraction?: boolean;
   onRequestImmerse?: () => void;
   /** 무대 위에 얹힌 크롬 높이 — 무대 안쪽 내용만 그만큼 내려간다. */
@@ -91,6 +127,7 @@ export const WordLayer = React.memo(function WordLayer({
   contentInsetBottom,
 }: WordLayerProps) {
   const artworkUrl = stageArtworkUrl(card);
+  const tapObserver = useTapObserver(requireImmersedInteraction ? onRequestImmerse : undefined);
   const artworkFade = useArtworkCrossfade(artworkUrl);
   const nextArtworkUrl = nextCard ? stageArtworkUrl(nextCard) : null;
   React.useEffect(() => {
@@ -230,34 +267,36 @@ export const WordLayer = React.memo(function WordLayer({
       contentInsetTop={contentInsetTop}
       contentInsetBottom={contentInsetBottom}
     >
-      <SourceHeader source={card.source} onPress={onSourcePress} />
-      <View key={card.id} style={styles.stack}>
-        {nextCard && (
-          <Animated.View style={[styles.nextLayer, { opacity: nextOpacity }]} pointerEvents="none">
-            <WordFront card={nextCard} />
+      <View style={styles.tapArea} {...tapObserver}>
+        <SourceHeader source={card.source} onPress={onSourcePress} />
+        <View key={card.id} style={styles.stack}>
+          {nextCard && (
+            <Animated.View style={[styles.nextLayer, { opacity: nextOpacity }]} pointerEvents="none">
+              <WordFront card={nextCard} />
+            </Animated.View>
+          )}
+          <Animated.View
+            style={[
+              styles.wordLayer,
+              { opacity, transform: [{ translateY }] },
+            ]}
+            {...panHandlers}
+          >
+            {/* 뒤집힌 뒤에도 같은 Pressable 을 유지한다 — View 로 바꾸면 faceStack 이 reveal 시작과 동시에 재마운트된다. */}
+            <Pressable style={styles.wordPressable} onPress={onReveal} disabled={revealed}>
+              {faceStack}
+            </Pressable>
           </Animated.View>
-        )}
-        <Animated.View
-          style={[
-            styles.wordLayer,
-            { opacity, transform: [{ translateY }] },
-          ]}
-          {...panHandlers}
-        >
-          {/* 뒤집힌 뒤에도 같은 Pressable 을 유지한다 — View 로 바꾸면 faceStack 이 reveal 시작과 동시에 재마운트된다. */}
-          <Pressable style={styles.wordPressable} onPress={onReveal} disabled={revealed}>
-            {faceStack}
-          </Pressable>
-        </Animated.View>
+        </View>
       </View>
-      {requireImmersedInteraction && (
-        <Pressable style={styles.interactionLock} onPress={onRequestImmerse} />
-      )}
     </CardStage>
   );
 });
 
 const styles = StyleSheet.create({
+  tapArea: {
+    flex: 1,
+  },
   stack: {
     flex: 1,
   },
@@ -271,10 +310,6 @@ const styles = StyleSheet.create({
   },
   wordPressable: {
     flex: 1,
-  },
-  interactionLock: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 4,
   },
   faceStack: {
     flex: 1,

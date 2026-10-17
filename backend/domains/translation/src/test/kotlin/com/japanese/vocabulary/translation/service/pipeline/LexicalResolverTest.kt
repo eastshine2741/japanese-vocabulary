@@ -867,6 +867,65 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a potential verb jisho lists as its own headword is looked up as the godan verb`(): Unit = runBlocking {
+        stub(
+            "眠れる" to found(
+                JishoDictionaryEntryDto(
+                    headword = "眠れる",
+                    reading = "ネムレル",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Pre-noun adjectival (rentaishi)"),
+                            english = "sleeping / asleep",
+                            englishDefinitions = listOf("sleeping", "asleep"),
+                        ),
+                        JishoOptionDto(
+                            pos = listOf("Ichidan verb", "Intransitive verb"),
+                            english = "to be able to sleep",
+                            englishDefinitions = listOf("to be able to sleep"),
+                        ),
+                    ),
+                ),
+            ),
+            "眠る" to found(godanVerb("眠る", "ネムル", "to sleep")),
+        )
+
+        val resolved = resolver.resolve(listOf(token("眠れ", "眠れる", "ネムレル"))).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("眠る")
+        assertThat(resolved.options.map { it.english }).containsExactly("to sleep")
+    }
+
+    @Test
+    fun `a potential-looking verb with a meaning of its own keeps its entry`(): Unit = runBlocking {
+        stub(
+            "行ける" to found(
+                JishoDictionaryEntryDto(
+                    headword = "行ける",
+                    reading = "イケル",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Ichidan verb", "Intransitive verb"),
+                            english = "to be able to go",
+                            englishDefinitions = listOf("to be able to go"),
+                        ),
+                        JishoOptionDto(
+                            pos = listOf("Ichidan verb", "Intransitive verb"),
+                            english = "to be good / to be passable",
+                            englishDefinitions = listOf("to be good", "to be passable"),
+                        ),
+                    ),
+                ),
+            ),
+            "行く" to found(godanVerb("行く", "イク", "to go")),
+        )
+
+        val resolved = resolver.resolve(listOf(token("行ける", "行ける", "イケル"))).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("行ける")
+    }
+
+    @Test
     fun `a negative-form probe that lands on a non-verb is not accepted`(): Unit = runBlocking {
         // 少ない is an adjective; the probe asks for 少る, and a noun answering it must not be taken.
         stub("少る" to found(entry(headword = "少る", reading = "スクル", english = "noun")))
@@ -1019,6 +1078,18 @@ class LexicalResolverTest {
         jlpt = jlpt,
         senses = listOf(
             JishoOptionDto(pos = listOf("Noun"), english = english, englishDefinitions = listOf(english)),
+        ),
+    )
+
+    private fun godanVerb(headword: String, reading: String, english: String) = JishoDictionaryEntryDto(
+        headword = headword,
+        reading = reading,
+        senses = listOf(
+            JishoOptionDto(
+                pos = listOf("Godan verb with '${reading.last()}' ending", "Intransitive verb"),
+                english = english,
+                englishDefinitions = listOf(english),
+            ),
         ),
     )
 
