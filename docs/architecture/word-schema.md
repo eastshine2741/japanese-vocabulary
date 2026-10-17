@@ -20,6 +20,9 @@ words(id, user_id, japanese_text VARCHAR(255), reading VARCHAR(255) NULL, senses
 UNIQUE (user_id, japanese_text)
 ```
 
+`japanese_text` 는 `utf8mb4_bin` 이다 (V47). `_ci`/`_ai` collation 은 탁음·작은 글자·히라가나/가타카나를 무시해
+まだ 와 また 를 한 행으로 합친다.
+
 ```json
 [{ "meaning": "흐르다", "partOfSpeech": "동사", "jlpt": "N4",
    "examples": [{ "text": "川が流れる", "translation": "강이 흐른다", "songId": 12, "lineIndex": 7 }] }]
