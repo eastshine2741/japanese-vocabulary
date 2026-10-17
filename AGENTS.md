@@ -36,6 +36,7 @@ cd app-rn && npx expo start --web             # App - Web (dev)
 - 곡 상세 이해도·word tier 3단계 개편 기획 배경: `docs/product-intents/260925-song-detail-study-status-api.md`
 - 오늘의 복습 스케줄(H6) `GET /api/study-schedule` — 1년 기억 단어 수 예보(매일 GOOD 복습 vs 쉼, FSRS 기억 확률 합): `docs/product-intents/261004-study-schedule-api.md`
 - Translation pipeline guardrails: `docs/translation-pipeline.md`
+- Feature flag(시작·종료 시각 구간으로 켜짐, 롤아웃 없이 30초 내 반영): `docs/architecture/feature-flag.md`
 - Push notification architecture: `docs/architecture/push-notification.md`
 - Admin service: `docs/admin-service.md`
 - KPI 와 측정 방법 (GA4/BigQuery): `docs/analytics.md`
@@ -140,7 +141,7 @@ freeze 행은 연속을 잇기만 하고 streak/총 학습일 카운트에는 �
 
 **Karaoke new songs:** batch `karaoke-collect`(15:00 KST)가 TJ·금영 일본 신곡을 `karaoke_song`에 쌓고 → 분석을 요청하고 → 구독자에게 알린다. 분석 결과와 무관하게 보여주고, 분석된 곡만 `songId`가 있다. `GET /api/karaoke-songs/daily|monthly`. 앱은 검색 탭 디스커버리 섹션에서 `KaraokeNewSongs` 화면(날짜별·월별)으로 들어간다.
 
-**Admin surface:** `backend/admin-api` exposes `/admin/api/auth/login`, `/admin/api/songs`, `/admin/api/lyrics`, `/admin/api/song-analysis-works`, `/admin/api/users`, `/admin/api/users/{id}/words` (per-user decks/words/review state, read-only), and `/admin/api/push/send` (운영자 수동 푸시; 구 batch `/dev/push/send` 대체). `admin-web` is a Vite React TypeScript shadcn-style SPA. Dev 는 `/<namespace>/admin` 경로로, prod 는 `https://kotonoha.eastshine.dev/admin` (API 는 `/admin/api`) 한 호스트로 배포된다 — path 별 미들웨어가 필요해 Traefik `IngressRoute` 를 쓴다. See `docs/admin-service.md`.
+**Admin surface:** `backend/admin-api` exposes `/admin/api/auth/login`, `/admin/api/songs`, `/admin/api/lyrics`, `/admin/api/song-analysis-works`, `/admin/api/users`, `/admin/api/users/{id}/words` (per-user decks/words/review state, read-only), `/admin/api/feature-flags`, and `/admin/api/push/send` (운영자 수동 푸시; 구 batch `/dev/push/send` 대체). `admin-web` is a Vite React TypeScript shadcn-style SPA. Dev 는 `/<namespace>/admin` 경로로, prod 는 `https://kotonoha.eastshine.dev/admin` (API 는 `/admin/api`) 한 호스트로 배포된다 — path 별 미들웨어가 필요해 Traefik `IngressRoute` 를 쓴다. See `docs/admin-service.md`.
 
 **Partial coverage:** Backend integration tests for new domains; broader e2e tests still pending.
 

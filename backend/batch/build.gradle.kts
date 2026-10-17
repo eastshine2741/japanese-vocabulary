@@ -19,6 +19,7 @@ dependencies {
     implementation(project(":domains:song-analysis"))
     implementation(project(":domains:studystats"))
     implementation(project(":domains:notification"))
+    implementation(project(":domains:featureflag"))
     implementation(project(":domains:user"))
     implementation(project(":integrations:song-search"))
     implementation(project(":integrations:karaoke-listing"))

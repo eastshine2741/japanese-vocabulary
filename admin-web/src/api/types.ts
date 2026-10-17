@@ -293,3 +293,12 @@ export type ReelsRenderRequest = {
   data: PromoReelData
   acknowledgeSourceRightsAndPlatformRisk: boolean
 }
+
+export type FeatureFlag = {
+  key: string
+  startAt: string | null
+  endAt: string | null
+  description: string
+  on: boolean
+  updatedAt: string | null
+}

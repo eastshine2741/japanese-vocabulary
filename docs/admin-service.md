@@ -54,6 +54,7 @@ Routes:
 - `GET /admin/api/song-analysis-works/{workId}/stages/{stage}/output` — 단계 산출물 JSON 원문
 - `POST /admin/api/song-analysis-works/{workId}/resume` — FAILED 작업을 실패한 단계부터 다시 돌린다 (활성 작업이 있거나 단계 원장 이전 작업이면 409)
 - `GET /admin/api/recommendations` / `POST` `{songId}` / `DELETE /{id}` / `PUT /order` `{ids}` — 홈 추천곡 전역 목록 편집 (`docs/recommended-songs.md`)
+- `GET /admin/api/feature-flags` / `PUT /{key}` `{startAt, endAt, description}` / `DELETE /{key}` — 시각 구간 기능 플래그 (`docs/architecture/feature-flag.md`)
 - `GET /admin/api/users` — 유저마다 `wordCount`, `songDeckCount`, `customDeckCount`, `lastWordSavedAt`, `lastReviewedAt` 포함
 - `GET /admin/api/users/{userId}` — `{ user, learning, decks }`
 - `GET /admin/api/users/{userId}/words?deckId=&q=` — 페이지 (최근 담은 순)
