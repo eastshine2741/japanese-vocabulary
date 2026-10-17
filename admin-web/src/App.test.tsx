@@ -343,10 +343,10 @@ describe("admin web", () => {
 
     // 일본어 글자 크기는 릴스 전체에 고정이고 기본 크기로 되돌릴 수 있다
     expect(screen.getByLabelText("Lyric size")).toHaveValue("1")
-    expect(screen.getByRole("button", { name: "기본 크기" })).toBeDisabled()
+    expect(screen.getByLabelText("Reset Lyric size")).toBeDisabled()
     fireEvent.change(screen.getByLabelText("Lyric size"), { target: { value: "1.2" } })
     expect(screen.getByLabelText("Lyric size")).toHaveValue("1.2")
-    await user.click(screen.getByRole("button", { name: "기본 크기" }))
+    await user.click(screen.getByLabelText("Reset Lyric size"))
     expect(screen.getByLabelText("Lyric size")).toHaveValue("1")
     expect(screen.getByLabelText("Toggle word 沈む")).toHaveTextContent("가라앉다")
 
