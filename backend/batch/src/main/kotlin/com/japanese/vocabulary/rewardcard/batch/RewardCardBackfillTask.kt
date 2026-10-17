@@ -3,6 +3,7 @@ package com.japanese.vocabulary.rewardcard.batch
 import com.japanese.vocabulary.batch.CronTask
 import com.japanese.vocabulary.deck.dto.SongDeckRefDto
 import com.japanese.vocabulary.deck.repository.DeckRepository
+import com.japanese.vocabulary.flashcard.model.FlashcardMemory
 import com.japanese.vocabulary.notification.repository.DeviceTokenRepository
 import com.japanese.vocabulary.notification.service.PushNotificationService
 import com.japanese.vocabulary.rewardcard.service.RewardCardService
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Component
 
 /**
  * 카드 기능 전부터 담아 둔 곡 단어장을 지금 등급까지 등급마다 연출 없이 발급된 카드로 채우고, 카드가 새로 생긴 유저에게 알린다.
+ * 등급은 플래그와 상관없이 출시 기준인 14일 장기기억으로 잰다.
  * 새 앱이 충분히 퍼진 뒤 수동으로 한 번 돌린다 — 끝에 모든 카드를 조용히 발급하므로, 다시 돌리면 그 사이 쌓인 연출도 사라진다.
  * 담아 둔 곡이 많은 유저가 다른 곡과 겹치는 단어 하나를 rating 할 때마다 지금 공부하지 않는 곡의 카드가 튀어나오지 않게 미리 채운다.
  */
@@ -67,7 +69,7 @@ class RewardCardBackfillTask(
         // 곡 단어장을 만든 순서대로 하나씩 — 같은 곡·등급은 먼저 담은 유저가 앞 순번을 받는다.
         for (deck in decks) {
             try {
-                val achievement = songCardGrader.measure(deck.userId, listOf(deck.songId)).singleOrNull() ?: continue
+                val achievement = songCardGrader.measure(deck.userId, listOf(deck.songId), FlashcardMemory.LONG_TERM_STABILITY_DAYS).singleOrNull() ?: continue
                 val created = rewardCardService.backfillSong(deck.userId, achievement)
                 if (created.songCards > 0) newSongs.getOrPut(deck.userId) { mutableListOf() } += achievement
                 newSongCards += created.songCards
@@ -91,7 +93,7 @@ class RewardCardBackfillTask(
         var failed = 0
         for (deck in decks) {
             try {
-                val achievement = songCardGrader.measure(deck.userId, listOf(deck.songId)).singleOrNull() ?: continue
+                val achievement = songCardGrader.measure(deck.userId, listOf(deck.songId), FlashcardMemory.LONG_TERM_STABILITY_DAYS).singleOrNull() ?: continue
                 val owned = rewardCardService.ownedSongGrades(deck.userId, listOf(deck.songId))[deck.songId].orEmpty()
                 val missing = SongCardGrade.entries.count { it <= achievement.grade && it !in owned }
                 if (missing > 0) newSongCards.merge(deck.userId, missing, Int::plus)

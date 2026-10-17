@@ -1,6 +1,7 @@
 package com.japanese.vocabulary.rewardcard
 
 import com.japanese.vocabulary.flashcard.entity.FlashcardEntity
+import com.japanese.vocabulary.flashcard.model.FlashcardMemory
 import com.japanese.vocabulary.rewardcard.model.ArtistCardGrade
 import com.japanese.vocabulary.rewardcard.model.SongCardGrade
 import com.japanese.vocabulary.rewardcard.service.SongCardGradeRule
@@ -11,6 +12,7 @@ import java.time.Instant
 class SongCardGradeRuleTest {
 
     private val now = Instant.parse("2026-10-01T00:00:00Z")
+    private val longTermDays = FlashcardMemory.LONG_TERM_STABILITY_DAYS
 
     private fun card(stability: Double) =
         FlashcardEntity(wordId = 0, userId = 0, due = now, stability = stability, lastReview = now)
@@ -26,7 +28,8 @@ class SongCardGradeRuleTest {
                 tier(total = 3, shortTerm = 2),
                 tier(total = 2, shortTerm = 2),
                 tier(total = 1, shortTerm = 1),
-            )
+            ),
+            longTermDays,
         )
         assertThat(grade).isEqualTo(SongCardGrade.BASIC)
     }
@@ -38,14 +41,14 @@ class SongCardGradeRuleTest {
             tier(total = 2, shortTerm = 1),
             tier(total = 1),
         )
-        assertThat(SongCardGradeRule.of(bronze)).isEqualTo(SongCardGrade.BRONZE)
+        assertThat(SongCardGradeRule.of(bronze, longTermDays)).isEqualTo(SongCardGrade.BRONZE)
 
         val silver = listOf(
             tier(total = 2, shortTerm = 2),
             tier(total = 0),
             tier(total = 1),
         )
-        assertThat(SongCardGradeRule.of(silver)).isEqualTo(SongCardGrade.SILVER)
+        assertThat(SongCardGradeRule.of(silver, longTermDays)).isEqualTo(SongCardGrade.SILVER)
     }
 
     @Test
@@ -55,20 +58,20 @@ class SongCardGradeRuleTest {
             tier(total = 3, longTerm = 3),
             tier(total = 3, longTerm = 1, shortTerm = 2),
         )
-        assertThat(SongCardGradeRule.of(gold)).isEqualTo(SongCardGrade.GOLD)
+        assertThat(SongCardGradeRule.of(gold, longTermDays)).isEqualTo(SongCardGrade.GOLD)
 
         val master = listOf(
             tier(total = 4, longTerm = 4),
             tier(total = 3, longTerm = 3),
             tier(total = 3, longTerm = 2, shortTerm = 1),
         )
-        assertThat(SongCardGradeRule.of(master)).isEqualTo(SongCardGrade.MASTER)
+        assertThat(SongCardGradeRule.of(master, longTermDays)).isEqualTo(SongCardGrade.MASTER)
     }
 
     @Test
     fun `song without tier words never masters`() {
         val empty = List(3) { tier(total = 0) }
-        assertThat(SongCardGradeRule.of(empty)).isEqualTo(SongCardGrade.GOLD)
+        assertThat(SongCardGradeRule.of(empty, longTermDays)).isEqualTo(SongCardGrade.GOLD)
     }
 
     @Test

@@ -10,7 +10,7 @@ if (featureFlags.isOn("new-home")) { ... }
 
 - 켜짐은 `start_at <= now < end_at` 이다. `start_at` 이 없으면 꺼져 있고 `end_at` 이 없으면 끝이 없다.
 - DB 에 없는 키, 첫 조회 실패는 꺼짐으로 본다. 코드를 먼저 내보내고 플래그 행은 나중에 만들어도 된다.
-- 키는 소문자 kebab-case 100자 이하.
+- 키는 소문자 kebab-case 100자 이하. 코드가 읽는 키는 `FeatureFlagKeys` 에 모은다.
 
 ## 반영 시점
 

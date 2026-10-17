@@ -1,6 +1,7 @@
 package com.japanese.vocabulary.rewardcard.service
 
 import com.japanese.vocabulary.deck.repository.DeckRepository
+import com.japanese.vocabulary.flashcard.service.LongTermThreshold
 import com.japanese.vocabulary.rewardcard.dto.RewardCardRevealDto
 import com.japanese.vocabulary.rewardcard.model.SongCardGrade
 import org.springframework.stereotype.Service
@@ -13,6 +14,7 @@ class RewardCardAchievementService(
     private val deckRepository: DeckRepository,
     private val songCardGrader: SongCardGrader,
     private val rewardCardService: RewardCardService,
+    private val longTermThreshold: LongTermThreshold,
 ) {
     @Transactional(propagation = Propagation.MANDATORY)
     fun onReviewed(userId: Long, wordId: Long): List<RewardCardRevealDto> {
@@ -21,6 +23,6 @@ class RewardCardAchievementService(
         val owned = rewardCardService.ownedSongGrades(userId, songIds)
         val targets = songIds.filter { SongCardGrade.MASTER !in owned[it].orEmpty() }
         if (targets.isEmpty()) return emptyList()
-        return rewardCardService.achieveSongs(userId, songCardGrader.measure(userId, targets))
+        return rewardCardService.achieveSongs(userId, songCardGrader.measure(userId, targets, longTermThreshold.days()))
     }
 }

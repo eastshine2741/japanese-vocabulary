@@ -2,6 +2,7 @@ package com.japanese.vocabulary.rewardcard.service
 
 import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
+import com.japanese.vocabulary.flashcard.service.LongTermThreshold
 import com.japanese.vocabulary.rewardcard.dto.ArtistCardDto
 import com.japanese.vocabulary.rewardcard.dto.ArtistCardResponse
 import com.japanese.vocabulary.rewardcard.dto.MasteredSongResponse
@@ -35,6 +36,7 @@ class RewardCardQueryService(
     private val songDetailQueryService: SongDetailQueryService,
     private val songTierCardService: SongTierCardService,
     private val clock: Clock,
+    private val longTermThreshold: LongTermThreshold,
 ) {
     /** 카드 수와 상관없이 곡·아티스트·가사·유저 단어·flashcard 를 한 번씩만 조회한다. */
     @Transactional(readOnly = true)
@@ -134,7 +136,7 @@ class RewardCardQueryService(
             words = tierCards?.let { SongCardFace.words(it.words.words, lyric.map { line -> line.index }) }.orEmpty(),
             reviewedCount = reviewed.size,
             dueCount = reviewed.count { !it.due.isAfter(now) },
-            goals = SongCardFace.goals(topGrade, tiers),
+            goals = SongCardFace.goals(topGrade, tiers, longTermThreshold.days()),
             signature = card.signature,
             issued = card.issued,
             createdAt = card.createdAt,

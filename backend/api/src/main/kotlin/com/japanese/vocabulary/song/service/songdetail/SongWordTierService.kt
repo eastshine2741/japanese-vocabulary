@@ -8,6 +8,7 @@ import com.japanese.vocabulary.flashcard.model.FlashcardMemory
 import com.japanese.vocabulary.flashcard.model.FlashcardStudyState
 import com.japanese.vocabulary.flashcard.repository.FlashcardRepository
 import com.japanese.vocabulary.flashcard.service.FlashcardService
+import com.japanese.vocabulary.flashcard.service.LongTermThreshold
 import com.japanese.vocabulary.song.dto.songdetail.SongCoverageDto
 import com.japanese.vocabulary.song.dto.songdetail.SongWordTierDto
 import com.japanese.vocabulary.song.dto.songdetail.SongWordTierStudyResponse
@@ -38,17 +39,19 @@ class SongWordTierService(
     private val wordService: WordService,
     private val deckService: DeckService,
     private val clock: Clock,
+    private val longTermThreshold: LongTermThreshold,
 ) {
     @Transactional(readOnly = true)
     fun tiers(songId: Long, userId: Long): SongWordTiersDto {
         val song = load(songId, userId)
         val now = Instant.now(clock)
+        val longTermDays = longTermThreshold.days()
 
         val tiers = SongWordTierKey.current.map { key ->
             val tierWords = song.tiers[key].orEmpty()
             val cards = tierWords.map { song.cardOf(it) }
             val states = cards.filterNotNull().map { FlashcardStudyState.of(it) }
-            val memories = cards.map { FlashcardMemory.of(it) }
+            val memories = cards.map { FlashcardMemory.of(it, longTermDays) }
             // 학습 진입과 같은 집합·순서다. 같은 저장 키로 모이는 단어는 카드 하나라 한 번만 센다.
             val dueWords = tierWords.filter { FlashcardMemory.isDue(song.cardOf(it), now) }.distinctBy { it.addRequest.japanese }
             SongWordTierDto(
@@ -79,7 +82,8 @@ class SongWordTierService(
         val lines = song.words.lineWordIndexes.values
             .map { indexes -> with(songWordQueryService) { indexes.map { song.words.words[it] }.filter { it.isTierWord() } } }
             .filter { it.isNotEmpty() }
-        val knownLines = lines.count { line -> line.all { FlashcardMemory.of(song.cardOf(it)) == FlashcardMemory.LONG_TERM } }
+        val longTermDays = longTermThreshold.days()
+        val knownLines = lines.count { line -> line.all { FlashcardMemory.of(song.cardOf(it), longTermDays) == FlashcardMemory.LONG_TERM } }
         return SongCoverageDto(songId = songId, totalLines = lines.size, knownLines = knownLines)
     }
 

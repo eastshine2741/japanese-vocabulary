@@ -199,8 +199,10 @@ age = clamp((due − 0.2) / 0.8, 0, 1)
 
 ## 서버 — 달성은 rating 트랜잭션, 발급은 서명
 
-`domains:rewardcard`(`song_card`·`artist_card`·`reward_card_seq`, V43 → 등급별 발급 V44). 판정은 api 의 `RewardCardAchievementService` 가 rating 트랜잭션에서 `SongCardGrader`(domains:rewardcard)로 잰다.
+`domains:rewardcard`(`song_card`·`artist_card`·`reward_card_seq`, V45 → 등급별 발급 V46). 판정은 api 의 `RewardCardAchievementService` 가 rating 트랜잭션에서 `SongCardGrader`(domains:rewardcard)로 잰다.
 
+- **출시 플래그 `reward-card`**(`FeatureFlagKeys.REWARD_CARD`, [feature-flag](../architecture/feature-flag.md)): 기존 API 에서 구클라에도 보이는 변경만 건다 —
+  장기기억 기준 14일(꺼지면 7일, `LongTermThreshold`)과 rating 때 달성(꺼지면 `rewardCards` 가 비고 아무것도 쓰지 않는다). 새 `/api/reward-cards/**` 와 batch 채우기는 걸지 않는다(채우기는 늘 14일로 잰다).
 - **언제 다는가**: rating 직후, 같은 트랜잭션에서. 복습 세션은 탭만 바꿔도 끝나 경계가 없으므로 세션 끝에 몰아 띄우지 않는다.
   카드는 곡마다 다섯 장뿐이고, 연속 학습 축하도 이미 rating 직후에 뜬다. 원인(방금 이 단어로 단계를 끝냄)과 결과가 붙어 있어야 읽힌다.
 - **어느 경로에서**: `POST /api/flashcards/{id}/review` 와 곡의 첫 rating 인 `POST /api/songs/{id}/study-bootstrap` 둘 다. 응답의 `rewardCards[]` 를

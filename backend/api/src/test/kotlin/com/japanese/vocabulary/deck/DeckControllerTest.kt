@@ -11,6 +11,7 @@ import com.japanese.vocabulary.deck.dto.DeckResponse
 import com.japanese.vocabulary.deck.dto.DeckWordListResponse
 import com.japanese.vocabulary.deck.entity.DeckEntity
 import com.japanese.vocabulary.deck.entity.DeckWordEntity
+import com.japanese.vocabulary.featureflag.FeatureFlagKeys
 import com.japanese.vocabulary.flashcard.entity.FlashcardEntity
 import com.japanese.vocabulary.song.entity.SongEntity
 import com.japanese.vocabulary.test.ApiBaseIntegrationTest
@@ -164,6 +165,7 @@ class DeckControllerTest : ApiBaseIntegrationTest() {
 
         @Test
         fun `longTerm and shortTerm counts follow stability, not FSRS state`() {
+            turnOn(FeatureFlagKeys.REWARD_CARD)
             val me = newUser()
             val song = newSong()
             val deck = newDeck(me, song)

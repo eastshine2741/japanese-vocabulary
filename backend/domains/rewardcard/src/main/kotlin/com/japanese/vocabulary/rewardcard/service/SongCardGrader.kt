@@ -16,7 +16,7 @@ class SongCardGrader(
 ) {
     // 곡·활성 가사가 없는 곡은 결과에서 빠질 뿐 던지지 않는다 — 던지면 공유 트랜잭션이 rollback-only 가 되어 rating 까지 무너진다.
     @Transactional(readOnly = true)
-    fun measure(userId: Long, songIds: Collection<Long>): List<SongAchievementDto> {
+    fun measure(userId: Long, songIds: Collection<Long>, longTermDays: Double): List<SongAchievementDto> {
         if (songIds.isEmpty()) return emptyList()
         val artistIds = songRepository.findAllById(songIds).associate { it.id!! to it.artistId }
         val lyrics = lyricRepository.findActiveBySongIdIn(songIds).filter { it.songId in artistIds }
@@ -24,7 +24,7 @@ class SongCardGrader(
             SongAchievementDto(
                 songId = songId,
                 artistId = artistIds[songId],
-                grade = SongCardGradeRule.of(cards.tiers.values.map { tier -> tier.map { it.second } }),
+                grade = SongCardGradeRule.of(cards.tiers.values.map { tier -> tier.map { it.second } }, longTermDays),
             )
         }
     }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.japanese.vocabulary.auth.jwt.JwtUtil
 import com.japanese.vocabulary.deck.entity.DeckEntity
 import com.japanese.vocabulary.deck.entity.DeckWordEntity
+import com.japanese.vocabulary.featureflag.FeatureFlagKeys
 import com.japanese.vocabulary.flashcard.dto.DueFlashcardsResponse
 import com.japanese.vocabulary.flashcard.dto.FlashcardStatsResponse
 import com.japanese.vocabulary.flashcard.dto.ReviewRequest
@@ -482,6 +483,7 @@ class FlashcardControllerTest : ApiBaseIntegrationTest() {
 
         @Test
         fun `longTerm and shortTerm counts follow stability, not FSRS state`() {
+            turnOn(FeatureFlagKeys.REWARD_CARD)
             val me = newUser()
             val now = clock.instant()
             // REVIEW + stability 14일 이상 → 장기기억
@@ -501,6 +503,22 @@ class FlashcardControllerTest : ApiBaseIntegrationTest() {
             // 남음 = total - long - short. FSRS state 기준 review 와는 판정이 다르다.
             assertThat(resp.total - resp.longTermCount - resp.shortTermCount).isEqualTo(1)
             assertThat(resp.review).isEqualTo(2)
+        }
+
+        @Test
+        fun `long-term stays at 7 days until reward cards launch`() {
+            val me = newUser()
+            val now = clock.instant()
+            newCard(me, dueAt = now.plus(Duration.ofDays(9)), state = 1, lastReviewedAt = now, stability = 7.0)
+            newCard(me, dueAt = now.plus(Duration.ofDays(2)), state = 1, lastReviewedAt = now, stability = 6.9)
+
+            val body = mockMvc.get("/api/flashcards/stats") {
+                header("Authorization", bearer(me))
+            }.andReturn().response.contentAsString
+
+            val resp = readBody<FlashcardStatsResponse>(body)
+            assertThat(resp.longTermCount).isEqualTo(1)
+            assertThat(resp.shortTermCount).isEqualTo(1)
         }
 
         @Test

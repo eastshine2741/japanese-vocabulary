@@ -10,7 +10,7 @@ import com.japanese.vocabulary.word.dto.songword.WordInSongItemDto
 import java.time.Instant
 import kotlin.math.ceil
 
-/** 카드 면에 싣는 곡 데이터. 단계 진행·밀린 복습은 조회 때 계산한다. */
+/** 카드 면에 싣는 곡 데이터. 단계 진행·복습할 때가 된 단어 수는 조회 때 계산한다. */
 object SongCardFace {
     private const val WORD_COUNT = 5
 
@@ -39,17 +39,17 @@ object SongCardFace {
         tiers.flatten().filterNotNull().filter { card -> card.lastReview?.let { it >= issuedAt } == true }.distinctBy { it.id }
 
     /** 받은 등급 위 등급마다의 진행, 등급 순서대로: 단계 등급은 그 단계의 공부한 단어 수, 마스터는 90% 목표까지의 장기기억 수. */
-    fun goals(top: SongCardGrade, tiers: List<List<FlashcardEntity?>>): List<RewardCardGoalResponse> =
-        SongCardGrade.entries.filter { it > top }.mapNotNull { goal(it, tiers) }
+    fun goals(top: SongCardGrade, tiers: List<List<FlashcardEntity?>>, longTermDays: Double): List<RewardCardGoalResponse> =
+        SongCardGrade.entries.filter { it > top }.mapNotNull { goal(it, tiers, longTermDays) }
 
-    private fun goal(grade: SongCardGrade, tiers: List<List<FlashcardEntity?>>): RewardCardGoalResponse? {
+    private fun goal(grade: SongCardGrade, tiers: List<List<FlashcardEntity?>>, longTermDays: Double): RewardCardGoalResponse? {
         if (grade != SongCardGrade.MASTER) {
             val tier = tiers.getOrNull(grade.ordinal - 1) ?: return null
-            return RewardCardGoalResponse(grade, current = tier.count { FlashcardMemory.of(it) != FlashcardMemory.REMAINING }, total = tier.size)
+            return RewardCardGoalResponse(grade, current = tier.count { FlashcardMemory.of(it, longTermDays) != FlashcardMemory.REMAINING }, total = tier.size)
         }
         val all = tiers.flatten()
         val target = ceil(all.size * SongCardGradeRule.MASTER_PERCENT / 100.0).toInt()
-        val longTerm = all.count { FlashcardMemory.of(it) == FlashcardMemory.LONG_TERM }
+        val longTerm = all.count { FlashcardMemory.of(it, longTermDays) == FlashcardMemory.LONG_TERM }
         return RewardCardGoalResponse(grade, current = minOf(longTerm, target), total = target)
     }
 }

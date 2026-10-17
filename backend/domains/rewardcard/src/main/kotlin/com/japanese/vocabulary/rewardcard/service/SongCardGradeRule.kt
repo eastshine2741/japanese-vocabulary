@@ -12,11 +12,11 @@ object SongCardGradeRule {
     const val MASTER_PERCENT = 90
 
     /** [tiers] 는 단계 순서다. 단어마다 유저의 카드(없으면 null)를 둔다. */
-    fun of(tiers: List<List<FlashcardEntity?>>): SongCardGrade {
-        val completed = tiers.takeWhile { tier -> tier.all { FlashcardMemory.of(it) != FlashcardMemory.REMAINING } }.size
+    fun of(tiers: List<List<FlashcardEntity?>>, longTermDays: Double): SongCardGrade {
+        val completed = tiers.takeWhile { tier -> tier.all { FlashcardMemory.of(it, longTermDays) != FlashcardMemory.REMAINING } }.size
         if (completed < tiers.size) return SongCardGrade.ofCompletedTiers(completed)
         val all = tiers.flatten()
-        val longTerm = all.count { FlashcardMemory.of(it) == FlashcardMemory.LONG_TERM }
+        val longTerm = all.count { FlashcardMemory.of(it, longTermDays) == FlashcardMemory.LONG_TERM }
         return if (all.isNotEmpty() && longTerm * 100 >= all.size * MASTER_PERCENT) SongCardGrade.MASTER else SongCardGrade.GOLD
     }
 }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.japanese.vocabulary.auth.jwt.JwtUtil
 import com.japanese.vocabulary.common.exception.BusinessException
+import com.japanese.vocabulary.featureflag.FeatureFlagKeys
 import com.japanese.vocabulary.song.dto.AnalyzeSongRequest
 import com.japanese.vocabulary.song.model.AnalyzedLine
 import com.japanese.vocabulary.song.model.LyricLineData
@@ -1090,6 +1091,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
 
         @Test
         fun `coverage counts lines whose tier words are all long-term and skips lines without tier words`() {
+            turnOn(FeatureFlagKeys.REWARD_CARD)
             val me = newUser()
             val song = newSong()
             newLyric(

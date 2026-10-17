@@ -5,6 +5,7 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import com.japanese.vocabulary.auth.jwt.JwtUtil
 import com.japanese.vocabulary.deck.entity.DeckEntity
 import com.japanese.vocabulary.deck.entity.DeckWordEntity
+import com.japanese.vocabulary.featureflag.FeatureFlagKeys
 import com.japanese.vocabulary.flashcard.dto.ReviewRequest
 import com.japanese.vocabulary.flashcard.dto.ReviewResponse
 import com.japanese.vocabulary.flashcard.entity.FlashcardEntity
@@ -32,6 +33,7 @@ import com.japanese.vocabulary.test.fixtures.TestUserBuilder
 import com.japanese.vocabulary.test.fixtures.TestWordBuilder
 import com.japanese.vocabulary.user.entity.UserEntity
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -51,6 +53,9 @@ class RewardCardControllerTest : ApiBaseIntegrationTest() {
     @Autowired private lateinit var rewardCardService: RewardCardService
 
     private val signature = listOf("M 10 10 Q 20 20 30 10")
+
+    @BeforeEach
+    fun turnOnRewardCards() = turnOn(FeatureFlagKeys.REWARD_CARD)
 
     private fun newUser(): UserEntity = TestUserBuilder(entityManager).build()
     private fun bearer(user: UserEntity) = "Bearer ${jwtUtil.generateToken(user.id!!, user.username)}"
@@ -167,6 +172,16 @@ class RewardCardControllerTest : ApiBaseIntegrationTest() {
             reveal(RewardCardKind.ARTIST, artist.id!!, "BASIC", 1),
         )
         assertThat(pending(me)).isEqualTo(reveals)
+    }
+
+    @Test
+    fun `rating acquires nothing while reward cards are off`() {
+        turnOff(FeatureFlagKeys.REWARD_CARD)
+        val me = newUser()
+        val card = studyWord(me, newSong(newArtist()), "輪郭")
+
+        assertThat(review(me, card)).isEmpty()
+        assertThat(pending(me)).isEmpty()
     }
 
     @Test

@@ -68,6 +68,26 @@ class RewardCardBackfillTaskTest : BatchBaseIntegrationTest() {
     }
 
     @Test
+    fun `grades with 14-day long-term even while the reward-card flag is off`() {
+        val me = TestUserBuilder(entityManager).build()
+        val song = newSong(artist = null)
+        val deck = DeckEntity(userId = me.id!!, songId = song.id!!, title = song.title, description = song.artist)
+            .also { entityManager.persist(it) }
+        // 완곡까지 다 봤고 stability 10일 — 7일 기준이면 MASTER, 14일 기준이면 GOLD 다.
+        for (japanese in listOf("胸", "雨", "輪郭")) {
+            val word = TestWordBuilder(entityManager).forUser(me).withJapaneseText(japanese).build()
+            entityManager.persist(DeckWordEntity(deckId = deck.id!!, wordId = word.id!!))
+            TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(word)
+                .withState(1).withStability(10.0).lastReviewedAt(clock.instant()).dueAt(clock.instant()).build()
+        }
+        entityManager.flush()
+
+        task.backfill(push = false)
+
+        assertThat(songCards(me, song).map { it.grade }.last()).isEqualTo(SongCardGrade.GOLD)
+    }
+
+    @Test
     fun `push names the highest grade song, the later one on a tie`() {
         val cards = listOf(
             SongAchievementDto(1, null, SongCardGrade.BRONZE),

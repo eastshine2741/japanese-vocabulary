@@ -15,8 +15,8 @@ import com.japanese.vocabulary.deck.model.DeckTargets
 import com.japanese.vocabulary.deck.repository.DeckRepository
 import com.japanese.vocabulary.deck.repository.DeckWordRepository
 import com.japanese.vocabulary.flashcard.dto.DueFlashcardsDto
-import com.japanese.vocabulary.flashcard.model.FlashcardMemory
 import com.japanese.vocabulary.flashcard.service.FlashcardService
+import com.japanese.vocabulary.flashcard.service.LongTermThreshold
 import com.japanese.vocabulary.word.dto.WordListDto
 import com.japanese.vocabulary.word.dto.WordListItemDto
 import com.japanese.vocabulary.song.repository.SongRepository
@@ -43,6 +43,7 @@ class DeckService(
     private val wordRepository: WordRepository,
     private val flashcardService: FlashcardService,
     private val clock: Clock,
+    private val longTermThreshold: LongTermThreshold,
 ) {
 
     /**
@@ -92,7 +93,7 @@ class DeckService(
         }
 
         val deckIds = decks.mapNotNull { it.id }
-        val statsMap = deckRepository.findDeckStats(userId, deckIds, Instant.now(clock), FlashcardMemory.LONG_TERM_STABILITY_DAYS).associateBy { it.getDeckId() }
+        val statsMap = deckRepository.findDeckStats(userId, deckIds, Instant.now(clock), longTermThreshold.days()).associateBy { it.getDeckId() }
 
         val songIds = decks.mapNotNull { it.songId }.toSet()
         val artworkMap = if (songIds.isEmpty()) emptyMap() else {
@@ -231,7 +232,7 @@ class DeckService(
     @Transactional(readOnly = true)
     fun getDeckDetail(userId: Long, deckId: Long): DeckDetailDto {
         val deck = loadOwnedDeck(userId, deckId)
-        val stats = deckRepository.findDeckDetailStats(deckId, userId, Instant.now(clock), FlashcardMemory.LONG_TERM_STABILITY_DAYS)
+        val stats = deckRepository.findDeckDetailStats(deckId, userId, Instant.now(clock), longTermThreshold.days())
         val artworkUrl = deck.songId?.let { songRepository.findById(it).map { s -> s.artworkUrl }.orElse(null) }
 
         return DeckDetailDto(
@@ -252,7 +253,7 @@ class DeckService(
 
     @Transactional(readOnly = true)
     fun getAllDeckDetail(userId: Long): DeckDetailDto {
-        val stats = deckRepository.findAllDeckDetailStats(userId, Instant.now(clock), FlashcardMemory.LONG_TERM_STABILITY_DAYS)
+        val stats = deckRepository.findAllDeckDetailStats(userId, Instant.now(clock), longTermThreshold.days())
         return DeckDetailDto(
             deckId = deckRepository.findByUserIdAndIsDefaultTrue(userId)?.id,
             songId = null,
