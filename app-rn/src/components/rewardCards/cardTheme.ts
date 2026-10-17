@@ -70,13 +70,7 @@ export const LEVEL_MATERIAL: Record<CardLevel, LevelMaterial> = {
   },
 };
 
-/** 곡 카드 등급 이름. 등급이 아티스트 카드와 같아 이름도 맞추되, 마스터는 아티스트의 플래티넘·다이아와 섞이지 않게 따로 둔다. */
-export const SONG_TIER_NAME: Record<CardLevel, string> = { 0: '기본', 1: 'BRONZE', 2: 'SILVER', 3: 'GOLD' };
-export const SONG_MASTER_NAME = 'MASTER';
-
-export function songTierName(level: CardLevel, mastered: boolean): string {
-  return mastered ? SONG_MASTER_NAME : SONG_TIER_NAME[level];
-}
+export { SONG_MASTER_NAME, SONG_TIER_NAME, songTierName } from './cardKinds';
 
 /** 마스터 카드는 완곡 금색 대신 푸른 다이아로 레벨을 찍는다. */
 export const MASTER_PIP = '#7CC8FF';

@@ -251,8 +251,12 @@ age = clamp((due − 0.2) / 0.8, 0, 1)
 - 링크는 카드의 지금 모습을 보여 준다. 주인 정보는 이름·프로필 사진만 내보낸다.
 - `/c/{token}` 은 api 가 내려 주는 HTML 이다. X 크롤러는 JS 를 돌리지 않아 서버가 `og:*`·`twitter:card=summary_large_image` 를 채운다.
   api 는 share-web 의 `index.html` 을 받아 카드 메타와 화면 데이터(`<script id="kotonoha-share">` JSON)를 끼운다.
-  share-web 은 app-rn 의 카드 컴포넌트를 웹으로 빌드한 것(`EXPO_PUBLIC_SHARE_WEB=1`, `src/shareWeb`)이라 앱과 같은 카드를 그리고,
-  `앱에서 열기`(`kotonoha://c/{token}`)·App Store·Google Play 버튼을 둔다. 번들은 `/share-assets/**` 를 nginx 가 서빙한다.
+  share-web 은 app-rn 의 카드 컴포넌트를 웹으로 빌드한 것(`EXPO_PUBLIC_SHARE_WEB=1`, `src/shareWeb`)이라 앱과 같은 카드를 그린다.
+  링크로 앱을 처음 알게 되는 사람에게 위는 축하(`{이름}님이 / {등급} 카드를 얻었어요`, 등급 칩·등급별 순번 또는 팬 순번,
+  그 등급의 조건 한 줄, 승급 계단). 보는 사람은 앱을 모르므로 조건·계단에 앱 단계 이름('후렴 정복' 등)을 쓰지 않고
+  무엇을 공부했는지('후렴에 나오는 단어를 모두', '7곡의 가사 단어를 완전히 외워야')로 적는다. 아래는 설치 유도(`shareHook` 훅·세 단계·내 기기 스토어를 앞에 둔 App Store·Google Play 배지)다.
+  마스터 기준(%)이 필요해 `GET /api/reward-card-shares/{token}` 응답에 `songGradeRule` 을 싣는다.
+  `앱에서 열기`(`kotonoha://c/{token}`)는 모바일에서만 머리줄에 둔다. 번들은 `/share-assets/**` 를 nginx 가 서빙한다.
   share-web 을 못 받으면 서버가 그린 간단한 페이지(미리보기 이미지·곡명·버튼)로 대신한다. 웹 카드 폰트는 Google Fonts 에서 받는다.
 - 미리보기 이미지(og:image) 키는 `shares/{토큰 서명부}.png` 다. 서버 키 없이 만들 수 없어 카드 id 로 남의 미리보기 주소를 짐작할 수 없고,
   저장할 필요도 없다. 공개 도메인(`img.kotonoha.eastshine.dev`)으로 읽고, 다시 공유하면 덮어쓰며 객체에 `Cache-Control: max-age=300` 을 붙인다.
@@ -281,4 +285,4 @@ age = clamp((due − 0.2) / 0.8, 0, 1)
 |---|---|
 | `PUT /api/reward-cards/{song-cards\|artist-cards}/{cardId}/share` | `{imageUploaded?}` → `{token, url}`. `imageUploaded` 면 올라간 미리보기를 HEAD 로 확인(≤5MB png), 어긋나면 지운다 |
 | `POST /api/reward-cards/{song-cards\|artist-cards}/{cardId}/share/image-upload-url` | → `{uploadUrl, headers, expiresAt}`. png presigned PUT, 키는 링크에서 나온다 |
-| `GET /api/reward-card-shares/{token}` | 앱의 `SharedCard` 화면. `{token, url, kind, songCard?, artistCard?, owner: {name, profileImageUrl}}`, 카드 모양은 `GET /api/reward-cards` 와 같다 |
+| `GET /api/reward-card-shares/{token}` | 앱의 `SharedCard` 화면. `{token, url, kind, songCard?, artistCard?, owner: {name, profileImageUrl}, songGradeRule}`, 카드 모양은 `GET /api/reward-cards` 와 같다 |

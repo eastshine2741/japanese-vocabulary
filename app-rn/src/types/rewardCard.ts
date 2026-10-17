@@ -103,4 +103,5 @@ export interface SharedRewardCardDto {
   songCard: SongCardDto | null;
   artistCard: ArtistCardDto | null;
   owner: { name: string; profileImageUrl: string | null };
+  songGradeRule: SongGradeRuleDto;
 }

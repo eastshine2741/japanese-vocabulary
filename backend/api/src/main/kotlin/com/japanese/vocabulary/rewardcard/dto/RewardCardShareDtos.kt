@@ -28,6 +28,8 @@ data class SharedRewardCardResponse(
     val songCard: SongCardResponse?,
     val artistCard: ArtistCardResponse?,
     val owner: SharedCardOwnerResponse,
+    /** 받는 사람은 카드 목록을 받지 않아 등급 조건을 여기 싣는다. */
+    val songGradeRule: SongGradeRuleResponse,
 )
 
 data class SharedCardOwnerResponse(

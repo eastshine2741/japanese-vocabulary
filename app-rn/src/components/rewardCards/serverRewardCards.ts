@@ -47,9 +47,13 @@ function songGradeRung(grade: string): number {
 }
 
 /** 그 등급이 되는 마스터 곡 수. */
+/** ARTIST_GRADE_STEPS 자리. */
+export function artistGradeIndex(grade: string): number {
+  return Math.max(0, ARTIST_GRADES.indexOf(grade as (typeof ARTIST_GRADES)[number]));
+}
+
 export function artistGradeFrom(grade: string): number {
-  const index = ARTIST_GRADES.indexOf(grade as (typeof ARTIST_GRADES)[number]);
-  return ARTIST_GRADE_STEPS[Math.max(0, index)].from;
+  return ARTIST_GRADE_STEPS[artistGradeIndex(grade)].from;
 }
 
 export function toSongCard(dto: SongCardDto): SongRewardCard {

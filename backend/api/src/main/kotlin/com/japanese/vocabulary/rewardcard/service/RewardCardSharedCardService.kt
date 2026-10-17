@@ -39,6 +39,7 @@ class RewardCardSharedCardService(
             songCard = songCard,
             artistCard = artistCard,
             owner = SharedCardOwnerResponse(name = owner.name, profileImageUrl = profileImageService.publicUrl(owner.profileImageKey)),
+            songGradeRule = SONG_GRADE_RULE,
         )
     }
 }

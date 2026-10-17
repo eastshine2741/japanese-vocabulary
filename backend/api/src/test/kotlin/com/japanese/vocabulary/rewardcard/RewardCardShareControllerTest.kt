@@ -215,6 +215,7 @@ class RewardCardShareControllerTest : ApiBaseIntegrationTest() {
         assertThat(songShared.songCard!!.title).isEqualTo("夜に駆ける")
         assertThat(songShared.artistCard).isNull()
         assertThat(songShared.owner.name).isEqualTo("하루")
+        assertThat(songShared.songGradeRule.tierNames).containsExactly("후렴 정복", "따라 부르기", "완곡")
         assertThat(artistShared.artistCard!!.name).isEqualTo("YOASOBI")
         assertThat(artistShared.songCard).isNull()
     }

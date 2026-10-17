@@ -10,6 +10,14 @@ export interface SongCardKind {
 
 export type SongCardGrade = Pick<SongCardKind, 'level' | 'mastered'>;
 
+/** 곡 카드 등급 이름. 등급이 아티스트 카드와 같아 이름도 맞추되, 마스터는 아티스트의 플래티넘·다이아와 섞이지 않게 따로 둔다. */
+export const SONG_TIER_NAME: Record<CardLevel, string> = { 0: '기본', 1: 'BRONZE', 2: 'SILVER', 3: 'GOLD' };
+export const SONG_MASTER_NAME = 'MASTER';
+
+export function songTierName(level: CardLevel, mastered: boolean): string {
+  return mastered ? SONG_MASTER_NAME : SONG_TIER_NAME[level];
+}
+
 export const SONG_CARD_KINDS: readonly SongCardKind[] = [
   { key: 'level-0', level: 0, mastered: false },
   { key: 'level-1', level: 1, mastered: false },

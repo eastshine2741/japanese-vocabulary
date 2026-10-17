@@ -170,7 +170,7 @@ class RewardCardQueryService(
         )
 }
 
-private val SONG_GRADE_RULE = SongGradeRuleResponse(
+internal val SONG_GRADE_RULE = SongGradeRuleResponse(
     tierNames = SongWordTierKey.current.map { it.displayName },
     masterPercent = SongCardGradeRule.MASTER_PERCENT,
 )

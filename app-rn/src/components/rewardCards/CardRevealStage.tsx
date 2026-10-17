@@ -38,6 +38,7 @@ import { SHOWROOM, SHOWROOM_HEADING_TOP } from './cardTheme';
 import { fitFontSize } from './fitFontSize';
 import { seededRandom } from './seededRandom';
 import { CardTilt } from './useCardTilt';
+import type { LadderStep } from './cardLadders';
 
 const PACK_AT_MS = 180;
 /** 다 찢고 이만큼 숨을 모은 뒤 터진다 — 방이 어두워지고 찢긴 틈으로 빛이 새어 나온다. */
@@ -585,12 +586,6 @@ export const RevealStep = React.memo(function RevealStep({ onBack, children }: S
     </Animated.View>
   );
 });
-
-export interface LadderStep {
-  label: string;
-  /** 그 계단에 오르는 조건을 짧게. */
-  caption: string;
-}
 
 interface GuideProps {
   lines: string[];

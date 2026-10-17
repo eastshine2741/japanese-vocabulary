@@ -5,7 +5,6 @@ import { useRewardCardStore } from '../../stores/rewardCardStore';
 import ArtistCardShowcase, { ArtistCardBack, ArtistCardFront } from './ArtistCardShowcase';
 import CardSigner, { ShareableCard, SignableCard } from './CardSigner';
 import {
-  LadderStep,
   RevealGuide,
   RevealIntro,
   RevealPrimaryButton,
@@ -15,7 +14,8 @@ import {
   useRevealBackGuard,
   useRevealMotion,
 } from './CardRevealStage';
-import { ARTIST_GRADE_STEPS, artistGradeStep } from './artistGrade';
+import { artistGradeStep } from './artistGrade';
+import { ARTIST_LADDER } from './cardLadders';
 import { ARTIST_CARD_RATIO, useCardFonts } from './cardTheme';
 import { artistRung } from './cardKinds';
 import { CardSignature } from './signature';
@@ -25,10 +25,6 @@ import { useCardTilt } from './useCardTilt';
 
 const ARTIST_RADIUS = 0.04;
 
-const ARTIST_LADDER: readonly LadderStep[] = ARTIST_GRADE_STEPS.map((s) => ({
-  label: s.label,
-  caption: s.from === 0 ? '첫 곡 카드' : `MASTER 카드 ${s.from}장`,
-}));
 const ARTIST_GUIDE = ['MASTER 곡 카드를 모을수록 다음 등급 카드를 새로 받아요'];
 const ARTIST_FIRST_GUIDE = [...ARTIST_GUIDE, 'BRONZE 카드부터 몇 번째 팬인지 번호가 붙어요'];
 const ARTIST_LAST_GUIDE = ['이 아티스트의 마지막 등급 카드예요'];

@@ -12,7 +12,6 @@ import CardWearIntro from './CardWearIntro';
 import {
   EXPLAINER_IN_MS,
   EXPLAINER_OUT_MS,
-  LadderStep,
   RevealGuide,
   RevealIntro,
   RevealPrimaryButton,
@@ -26,8 +25,7 @@ import {
 import SongCardShowcase, { SongCardBack, SongCardFront } from './SongCardShowcase';
 import { CARD_RATIO, SHOWROOM, songTierName, useCardFonts } from './cardTheme';
 import { SONG_CARD_KINDS, songRung } from './cardKinds';
-import { songGradeCondition } from './songGradeCondition';
-import type { SongGradeRuleDto } from '../../types/rewardCard';
+import { songLadder } from './cardLadders';
 import { CardSignature } from './signature';
 import { CardLyricLine, SongRewardCard } from './types';
 import { serverTargetId } from './serverRewardCards';
@@ -38,13 +36,6 @@ const PREFETCH_TIMEOUT_MS = 1500;
 const NO_LINES: CardLyricLine[] = [];
 const SONG_RADIUS = 0.046;
 
-/** 레벨 n 은 n번째 단계 단어를 다 공부한 카드다. 등급 이름에 단계 이름을 쓰지 않고 조건으로만 붙인다. */
-function songLadder(rule: SongGradeRuleDto | null): LadderStep[] {
-  return SONG_CARD_KINDS.map((kind, rung) => ({
-    label: songTierName(kind.level, kind.mastered),
-    caption: songGradeCondition(rung, rule).caption,
-  }));
-}
 const SONG_GUIDE = ['단계를 끝낼 때마다 다음 등급 카드를 새로 받아요'];
 const SONG_LAST_GUIDE = ['이 곡의 마지막 등급 카드예요'];
 const SONG_LAST_RUNG = SONG_CARD_KINDS.length - 1;
