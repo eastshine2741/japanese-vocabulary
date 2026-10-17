@@ -73,7 +73,9 @@ export function artistCardOfStep(cards: readonly ArtistRewardCard[], step: Artis
 
 /** 아직 닿지 않은 등급의 견본. 그 등급이 되는 마스터 곡 수로 돌리고 주인 정보를 비운다. */
 export function artistCardSample(card: ArtistRewardCard, step: ArtistGradeStep): ArtistRewardCard {
-  return { ...card, masteredCount: step.from, sample: true };
+  // 기본 카드엔 팬 번호가 없지만 BRONZE 부터는 번호 자리가 있다. 견본이라 값은 '—' 로 그린다.
+  const fanNo = step.from >= 1 ? (card.fanNo ?? 0) : null;
+  return { ...card, masteredCount: step.from, fanNo, sample: true };
 }
 
 /** 보관함 한 칸. 같은 곡(아티스트)의 카드들을 가장 높은 등급 카드 한 장으로 묶는다. */

@@ -56,6 +56,12 @@ describe('아티스트 카드 등급', () => {
   it('견본은 그 등급이 되는 마스터 곡 수로 돌린다', () => {
     expect(artistCardSample(artistCard('s', 4), ARTIST_GRADE_STEPS[3])).toMatchObject({ masteredCount: 7, sample: true });
   });
+
+  it('기본 카드로 만든 BRONZE 이상 견본에도 팬 번호 자리가 있다', () => {
+    const basic = { ...artistCard('s', 0), fanNo: null };
+    expect(artistCardSample(basic, ARTIST_GRADE_STEPS[1]).fanNo).not.toBeNull();
+    expect(artistCardSample(artistCard('s', 4), ARTIST_GRADE_STEPS[0]).fanNo).toBeNull();
+  });
 });
 
 describe('보관함 칸 묶기', () => {
