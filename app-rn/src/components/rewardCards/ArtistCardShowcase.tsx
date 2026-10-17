@@ -306,7 +306,7 @@ function BackFace({
       <View style={[styles.backBody, { padding: pad, gap: colGap }]}>
         <View style={[styles.backLeft, { width: leftW }]}>
           <View>
-            <Text style={[label, { fontFamily: fonts.ko, fontSize: 2.6 * u }]}>MASTER 카드</Text>
+            <Text style={[label, { fontFamily: fonts.ko, fontSize: 2.6 * u }]}>마스터한 곡</Text>
             <View style={styles.countRow}>
               {m.bodyFoil && m.foil ? (
                 <FoilText
