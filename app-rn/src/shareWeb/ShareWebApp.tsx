@@ -6,22 +6,21 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { OwnerAvatar, SharedCardShowcase, sharedCardArtwork, useSharedCards } from '../components/rewardCards/SharedCardStage';
 import { RevealGuide } from '../components/rewardCards/CardRevealStage';
-import { ARTIST_CARD_RATIO, ARTIST_MATERIAL, CARD_RATIO, LEVEL_MATERIAL, MASTER_CHIP, SHOWROOM } from '../components/rewardCards/cardTheme';
-import { ARTIST_GRADE_STEPS } from '../components/rewardCards/artistGrade';
-import { songGradeOf } from '../components/rewardCards/serverRewardCards';
+import { ARTIST_CARD_RATIO, CARD_RATIO, SHOWROOM } from '../components/rewardCards/cardTheme';
 import { APP_PITCH, shareHook } from '../services/shareLinks';
 import type { SharedRewardCardDto } from '../types/rewardCard';
+import FitText, { FitLines } from './FitText';
 import StoreBadge, { type Store } from './StoreBadge';
 import { readShareWebData, storeOf, type ShareWebData } from './shareWebData';
-import { shareCelebration, shareLadder, sharePitch } from './shareWebCopy';
+import { rankLine, shareCelebration, shareLadder, sharePitch } from './shareWebCopy';
 
 const APP_ICON = require('../../assets/icon.png');
 const COLUMN_W = 440;
 // 머리줄·제목·카드 아래 힌트가 카드와 함께 첫 화면에 들어오게 남기는 높이.
 const HERO_CHROME = 260;
 const STEPS: readonly [icon: React.ComponentProps<typeof Feather>['name'], label: string][] = [
-  ['music', '좋아하는 노래 고르기'],
-  ['repeat', '가사 속 단어 복습'],
+  ['music', '좋아하는 일본 노래 고르기'],
+  ['repeat', '가사 속 단어 복습하기'],
   ['award', '공부한 만큼 카드 받기'],
 ];
 
@@ -69,16 +68,6 @@ export default function ShareWebApp() {
   );
 }
 
-function chipOf(shared: SharedRewardCardDto, rung: number): { colors: readonly [string, string, ...string[]]; text: string } {
-  if (shared.songCard) {
-    const { level, mastered } = songGradeOf(shared.songCard.grade);
-    if (mastered) return { colors: MASTER_CHIP.frame, text: MASTER_CHIP.chipText };
-    return { colors: LEVEL_MATERIAL[level].frame, text: LEVEL_MATERIAL[level].chipText };
-  }
-  const material = ARTIST_MATERIAL[ARTIST_GRADE_STEPS[rung].grade];
-  return { colors: material.frame, text: material.chipText };
-}
-
 /** 누가 어떤 카드를 얻었고, 그 카드가 얼마나 공부해야 받는 것인지. */
 const Celebration = React.memo(function Celebration({ data }: { data: ShareWebData }) {
   const { card: shared } = data;
@@ -87,7 +76,6 @@ const Celebration = React.memo(function Celebration({ data }: { data: ShareWebDa
   const celebration = useMemo(() => shareCelebration(shared), [shared]);
   const ladder = useMemo(() => shareLadder(shared), [shared]);
   const accent = cards.songCard?.accent ?? cards.artistCard?.accent ?? SHOWROOM.fg;
-  const chip = useMemo(() => chipOf(shared, celebration?.rung ?? 0), [shared, celebration]);
 
   const inner = Math.min(width, COLUMN_W) - 40;
   const cardW = shared.songCard
@@ -120,32 +108,36 @@ const Celebration = React.memo(function Celebration({ data }: { data: ShareWebDa
     <View style={styles.hero}>
       <View style={styles.owner}>
         <OwnerAvatar name={name} uri={profileImageUrl} size={28} />
-        <Text style={styles.ownerText} numberOfLines={1}>
-          {name}님이
-        </Text>
+        <FitText text={`${name}님이`} style={styles.ownerText} boxStyle={styles.ownerBox} />
       </View>
-      <Text style={styles.headline}>{celebration.headline}</Text>
+      <FitText text={celebration.subject} style={styles.headline} boxStyle={styles.subjectBox} minFontSize={18} />
+      <FitText text={celebration.headline} style={styles.headline} />
+      <RankLine no={celebration.rankNo} accent={accent} />
 
       <Animated.View style={[styles.stage, cardStyle]}>
         <SharedCardShowcase {...cards} width={cardW} ownerName={name} />
       </Animated.View>
       <View style={styles.hint}>
         <Feather name="move" size={12} color={SHOWROOM.fgDim} />
-        <Text style={styles.hintText}>카드를 끌어 보세요. 옆으로 밀면 뒤집혀요</Text>
+        <FitText text="카드를 끌어 보세요. 옆으로 밀면 뒤집혀요" style={styles.hintText} boxStyle={styles.hintBox} />
       </View>
 
       <Animated.View style={[styles.panel, panelStyle]}>
-        <View style={styles.rankRow}>
-          <LinearGradient colors={chip.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.chip}>
-            <Text style={[styles.chipText, { color: chip.text }]}>{celebration.grade}</Text>
-          </LinearGradient>
-          <Text style={styles.rankText} numberOfLines={1}>
-            {celebration.rank}
-          </Text>
+        <View style={styles.meaning}>
+          <FitLines text={celebration.meaning} style={styles.meaningText} />
         </View>
-        <Text style={styles.meaning}>{celebration.meaning}</Text>
         <RevealGuide lines={[]} steps={ladder} current={celebration.rung} accent={accent} motion={guideMotion} />
       </Animated.View>
+    </View>
+  );
+});
+
+const RankLine = React.memo(function RankLine({ no, accent }: { no: number; accent: string }) {
+  const line = rankLine(no);
+  return (
+    <View style={styles.rank}>
+      <Text style={[styles.rankNo, { color: accent }]}>{line.no}</Text>
+      <Text style={styles.rankRest}>{line.rest}</Text>
     </View>
   );
 });
@@ -162,8 +154,10 @@ const InstallPitch = React.memo(function InstallPitch({ kind, store, onOpen }: P
   return (
     <View style={styles.pitch}>
       <Image source={APP_ICON} style={styles.pitchIcon} />
-      <Text style={styles.pitchHook}>{shareHook(kind === 'SONG' ? 'song' : 'artist')}</Text>
-      <Text style={styles.pitchBody}>{sharePitch(kind)}</Text>
+      <FitText text={shareHook(kind === 'SONG' ? 'song' : 'artist')} style={styles.pitchHook} boxStyle={styles.pitchHookBox} />
+      <View style={styles.pitchBody}>
+        <FitLines text={sharePitch(kind)} style={styles.pitchBodyText} />
+      </View>
       <View style={styles.steps}>
         {STEPS.map(([icon, label], i) => (
           <View key={icon} style={styles.step}>
@@ -171,7 +165,7 @@ const InstallPitch = React.memo(function InstallPitch({ kind, store, onOpen }: P
               <Feather name={icon} size={18} color={SHOWROOM.fg} />
             </View>
             <Text style={styles.stepNo}>{i + 1}</Text>
-            <Text style={styles.stepLabel}>{label}</Text>
+            <FitText text={label} style={styles.stepLabel} boxStyle={styles.stepLabelBox} />
           </View>
         ))}
       </View>
@@ -180,7 +174,7 @@ const InstallPitch = React.memo(function InstallPitch({ kind, store, onOpen }: P
           <StoreBadge key={s} store={s} onPress={onOpen} />
         ))}
       </View>
-      <Text style={styles.footer}>Kotonoha · {APP_PITCH}</Text>
+      <FitText text={`Kotonoha · ${APP_PITCH}`} style={styles.footer} boxStyle={styles.footerBox} />
     </View>
   );
 });
@@ -202,10 +196,16 @@ const styles = StyleSheet.create({
 
   hero: { alignItems: 'center', paddingTop: 12 },
   owner: { flexDirection: 'row', alignItems: 'center', gap: 8, maxWidth: '100%' },
-  ownerText: { color: SHOWROOM.fgDim, fontSize: 16, fontWeight: '600', flexShrink: 1 },
-  headline: { color: SHOWROOM.fg, fontSize: 28, fontWeight: '800', letterSpacing: -0.6, textAlign: 'center', marginTop: 8 },
+  ownerBox: { alignSelf: 'auto', flexShrink: 1 },
+  ownerText: { color: SHOWROOM.fgDim, fontSize: 16, fontWeight: '600' },
+  subjectBox: { marginTop: 8 },
+  headline: { color: SHOWROOM.fg, fontSize: 26, lineHeight: 34, fontWeight: '800', letterSpacing: -0.6, textAlign: 'center' },
+  rank: { flexDirection: 'row', alignItems: 'baseline', marginTop: 10 },
+  rankNo: { fontSize: 20, fontWeight: '800', letterSpacing: -0.3 },
+  rankRest: { color: SHOWROOM.fg, fontSize: 16, fontWeight: '700' },
   stage: { marginTop: 28 },
-  hint: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 18 },
+  hint: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 18, maxWidth: '100%' },
+  hintBox: { alignSelf: 'auto', flexShrink: 1 },
   hintText: { color: SHOWROOM.fgDim, fontSize: 12 },
 
   panel: {
@@ -217,28 +217,30 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: SHOWROOM.line,
   },
-  rankRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  chip: { height: 24, paddingHorizontal: 10, borderRadius: 12, justifyContent: 'center' },
-  chipText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.4 },
-  rankText: { color: SHOWROOM.fg, fontSize: 14, fontWeight: '700', flexShrink: 1 },
-  meaning: { color: SHOWROOM.fg, fontSize: 17, fontWeight: '600', lineHeight: 25, marginTop: 14, marginBottom: 6 },
+  meaning: { marginBottom: 6 },
+  meaningText: { color: SHOWROOM.fg, fontSize: 17, fontWeight: '600', lineHeight: 25 },
 
   pitch: { alignItems: 'center', marginTop: 56, paddingTop: 40, borderTopWidth: 1, borderTopColor: SHOWROOM.line },
   pitchIcon: { width: 64, height: 64, borderRadius: 16 },
-  pitchHook: { color: SHOWROOM.fg, fontSize: 24, fontWeight: '800', letterSpacing: -0.5, textAlign: 'center', marginTop: 20 },
-  pitchBody: { color: SHOWROOM.fgDim, fontSize: 15, lineHeight: 22, textAlign: 'center', marginTop: 10 },
-  steps: { flexDirection: 'row', alignSelf: 'stretch', marginTop: 28, gap: 8 },
-  step: { flex: 1, alignItems: 'center' },
+  pitchHookBox: { marginTop: 20 },
+  pitchHook: { color: SHOWROOM.fg, fontSize: 24, fontWeight: '800', letterSpacing: -0.5, textAlign: 'center' },
+  pitchBody: { alignSelf: 'stretch', marginTop: 10 },
+  pitchBodyText: { color: SHOWROOM.fgDim, fontSize: 15, lineHeight: 22, textAlign: 'center' },
+  // 좁은 화면에서 세 칸 가로 배치는 글이 꺾여, 한 줄씩 쌓는다.
+  steps: { alignSelf: 'stretch', marginTop: 28, gap: 10 },
+  step: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 14, backgroundColor: SHOWROOM.glass },
   stepIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: SHOWROOM.glass,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stepNo: { color: SHOWROOM.fgDim, fontSize: 11, fontWeight: '700', marginTop: 10 },
-  stepLabel: { color: SHOWROOM.fg, fontSize: 13, fontWeight: '600', textAlign: 'center', marginTop: 2 },
+  stepNo: { color: SHOWROOM.fgDim, fontSize: 13, fontWeight: '800' },
+  stepLabelBox: { flex: 1 },
+  stepLabel: { color: SHOWROOM.fg, fontSize: 15, fontWeight: '700' },
   badges: { flexDirection: 'row', alignSelf: 'stretch', gap: 10, marginTop: 32 },
-  footer: { color: SHOWROOM.fgDim, fontSize: 12, marginTop: 28 },
+  footerBox: { marginTop: 28 },
+  footer: { color: SHOWROOM.fgDim, fontSize: 12, textAlign: 'center' },
 });
