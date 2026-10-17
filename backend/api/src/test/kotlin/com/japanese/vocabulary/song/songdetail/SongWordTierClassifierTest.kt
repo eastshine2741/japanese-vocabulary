@@ -1,9 +1,9 @@
 package com.japanese.vocabulary.song.songdetail
 
-import com.japanese.vocabulary.song.dto.songdetail.SongWordTierKey
-import com.japanese.vocabulary.song.dto.songdetail.WordInSongItemDto
+import com.japanese.vocabulary.word.model.SongWordTierKey
+import com.japanese.vocabulary.word.dto.songword.WordInSongItemDto
 import com.japanese.vocabulary.song.model.LyricLineData
-import com.japanese.vocabulary.song.service.songdetail.SongWordTierClassifier
+import com.japanese.vocabulary.word.service.songword.SongWordTierClassifier
 import com.japanese.vocabulary.word.dto.AddWordRequest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test

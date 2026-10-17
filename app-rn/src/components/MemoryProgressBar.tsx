@@ -1,14 +1,17 @@
-import React, { useMemo } from 'react';
-import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import React, { useCallback, useMemo, useRef } from 'react';
+import { StyleProp, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import { MemoryHelpSheet, MemoryHelpSheetRef } from './memoryHelp/MemoryHelpSheet';
 import { Colors } from '../theme/theme';
 import { Typography } from '../theme/typography';
 
 const SEGMENT_GAP = 2;
 const LEGEND_DOT_SIZE = 7;
+const LEGEND_HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 };
 
 export interface MemoryProgressBarProps {
   totalCount: number;
-  /** 장기기억 — 7일 뒤 90% 이상 회상. 서버가 `stability >= 7일` 로 판정해 내려준다. */
+  /** 장기기억 — 14일 뒤 90% 이상 회상. 서버가 `stability >= 14일` 로 판정해 내려준다. */
   longTermCount: number;
   /** 단기기억 — 한 번이라도 리뷰했으나 장기기억이 아닌 단어. */
   shortTermCount: number;
@@ -44,6 +47,9 @@ function MemoryProgressBar({
     };
   }, [totalCount, longTermCount, shortTermCount]);
 
+  const helpSheetRef = useRef<MemoryHelpSheetRef>(null);
+  const handleOpenHelp = useCallback(() => helpSheetRef.current?.present(), []);
+
   const longTermRatio = total > 0 ? longTerm / total : 0;
   const shortTermRatio = total > 0 ? shortTerm / total : 0;
   const remainingRatio = total > 0 ? remaining / total : 1;
@@ -56,12 +62,23 @@ function MemoryProgressBar({
         {remainingRatio > 0 && <View style={{ flex: remainingRatio }} />}
       </View>
       {showLegend && (
-        <View style={[styles.legend, legendAlign === 'center' && styles.legendCenter]}>
-          <LegendItem color={Colors.memoryLongTerm} label="장기기억" value={longTerm} />
-          <LegendItem color={Colors.memoryShortTerm} label="단기기억" value={shortTerm} />
-          <LegendItem color={Colors.memoryRemaining} label="남음" value={remaining} muted />
+        <View style={[styles.legendRow, legendAlign === 'center' && styles.legendCenter]}>
+          <TouchableOpacity
+            style={styles.legend}
+            onPress={handleOpenHelp}
+            activeOpacity={0.6}
+            hitSlop={LEGEND_HIT_SLOP}
+            accessibilityRole="button"
+            accessibilityLabel={`장기기억 ${longTerm}, 단기기억 ${shortTerm}, 남음 ${remaining}. 설명 보기`}
+          >
+            <LegendItem color={Colors.memoryLongTerm} label="장기기억" value={longTerm} />
+            <LegendItem color={Colors.memoryShortTerm} label="단기기억" value={shortTerm} />
+            <LegendItem color={Colors.memoryRemaining} label="남음" value={remaining} muted />
+            <Feather name="info" size={12} color={Colors.textMuted} />
+          </TouchableOpacity>
         </View>
       )}
+      {showLegend && <MemoryHelpSheet ref={helpSheetRef} />}
     </View>
   );
 }
@@ -106,11 +123,15 @@ const styles = StyleSheet.create({
   shortTermSegment: {
     backgroundColor: Colors.memoryShortTerm,
   },
+  legendRow: {
+    flexDirection: 'row',
+    marginTop: 10,
+  },
   legend: {
+    flexShrink: 1,
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    marginTop: 10,
     gap: 12,
   },
   legendCenter: {

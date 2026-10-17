@@ -9,6 +9,7 @@ import { useAuthStore } from '../stores/authStore';
 import { TOS_URL, PRIVACY_URL } from '../config/legal';
 import { Colors } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { consumePendingShareLink } from '../services/shareLinkHandler';
 import ServerURLDialog from '../components/ServerURLDialog';
 import BrandMark from '../components/BrandMark';
 import GoogleLogo from '../components/GoogleLogo';
@@ -64,6 +65,7 @@ export default function LoginScreen({ navigation }: Props) {
     if (status === 'success') {
       reset();
       navigation.replace('Main');
+      consumePendingShareLink();
     } else if (status === 'needs_signup' && pendingIdToken) {
       navigation.replace('Signup', {
         provider: pendingProvider ?? 'google',

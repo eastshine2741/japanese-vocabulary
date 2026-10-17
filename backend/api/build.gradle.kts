@@ -21,6 +21,7 @@ dependencies {
     implementation(project(":domains:auth"))
     implementation(project(":domains:user"))
     implementation(project(":domains:userinventory"))
+    implementation(project(":domains:rewardcard"))
     implementation(project(":domains:word"))
     implementation(project(":domains:studystats"))
     implementation(project(":domains:notification"))
@@ -47,6 +48,11 @@ dependencies {
 
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
 
+    // 카드 공유 링크 서명
+    implementation("io.jsonwebtoken:jjwt-api:0.12.3")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.3")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.3")
+
     runtimeOnly("com.mysql:mysql-connector-j")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
@@ -68,4 +74,6 @@ tasks.withType<Test> {
     // Testcontainers' shaded docker-java client defaults to API 1.32, which Docker 25+ rejects.
     systemProperty("api.version", "1.43")
     environment("DOCKER_API_VERSION", "1.43")
+    // deploy.sh 가 export 한 SHARE_* 가 relaxed binding 으로 test application.yml 의 share 설정을 덮는다.
+    environment = environment.filterKeys { !it.startsWith("SHARE_") }
 }

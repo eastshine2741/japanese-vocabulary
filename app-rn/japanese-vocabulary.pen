@@ -116784,6 +116784,3578 @@
     },
     {
       "type": "frame",
+      "id": "bryH4",
+      "x": 5626,
+      "y": -2648,
+      "name": "art/artist-YOASOBI",
+      "width": 300,
+      "height": 300,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "generated-1.png",
+        "mode": "cover"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "t6IkM",
+      "x": 5946,
+      "y": -2648,
+      "name": "art/artist-米津玄師",
+      "width": 300,
+      "height": 300,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "generated-2.png",
+        "mode": "cover"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "sQWbQ",
+      "x": 6266,
+      "y": -2648,
+      "name": "art/artist-King Gnu",
+      "width": 300,
+      "height": 300,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "generated-3.png",
+        "mode": "cover"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "pSVC5",
+      "x": 6382,
+      "y": -3289,
+      "name": "component/songCard",
+      "reusable": true,
+      "clip": true,
+      "width": 110,
+      "height": 154,
+      "fill": {
+        "type": "gradient",
+        "gradientType": "linear",
+        "enabled": true,
+        "rotation": 135,
+        "size": {
+          "height": 1
+        },
+        "colors": [
+          {
+            "color": "#FBE7A6",
+            "position": 0
+          },
+          {
+            "color": "#B8862C",
+            "position": 0.25
+          },
+          {
+            "color": "#FFF4C9",
+            "position": 0.45
+          },
+          {
+            "color": "#9C6C1E",
+            "position": 0.7
+          },
+          {
+            "color": "#F6DC8E",
+            "position": 1
+          }
+        ]
+      },
+      "cornerRadius": 8,
+      "layout": "vertical",
+      "padding": 3,
+      "children": [
+        {
+          "type": "frame",
+          "id": "HEB9b",
+          "name": "art",
+          "clip": true,
+          "width": "fill_container",
+          "height": "fill_container",
+          "fill": [
+            {
+              "type": "image",
+              "enabled": true,
+              "url": "images/generated-1788364380801.png",
+              "mode": "cover"
+            },
+            {
+              "type": "gradient",
+              "gradientType": "linear",
+              "enabled": true,
+              "rotation": 180,
+              "size": {
+                "height": 1
+              },
+              "colors": [
+                {
+                  "color": "#00000000",
+                  "position": 0
+                },
+                {
+                  "color": "#00000000",
+                  "position": 0.45
+                },
+                {
+                  "color": "#000000B0",
+                  "position": 0.78
+                },
+                {
+                  "color": "#000000EE",
+                  "position": 1
+                }
+              ]
+            }
+          ],
+          "cornerRadius": 6,
+          "layout": "vertical",
+          "justifyContent": "end",
+          "children": [
+            {
+              "type": "frame",
+              "id": "tCpde",
+              "layoutPosition": "absolute",
+              "x": 0,
+              "y": 0,
+              "name": "lenticular",
+              "enabled": false,
+              "width": 104,
+              "height": 148,
+              "fill": [
+                {
+                  "type": "gradient",
+                  "gradientType": "linear",
+                  "enabled": true,
+                  "rotation": 110,
+                  "size": {
+                    "height": 1
+                  },
+                  "colors": [
+                    {
+                      "color": "#FF7A7A55",
+                      "position": 0
+                    },
+                    {
+                      "color": "#FFE56A55",
+                      "position": 0.18
+                    },
+                    {
+                      "color": "#9BFF7355",
+                      "position": 0.36
+                    },
+                    {
+                      "color": "#6FF6FF55",
+                      "position": 0.54
+                    },
+                    {
+                      "color": "#7F90FF55",
+                      "position": 0.72
+                    },
+                    {
+                      "color": "#E07AFF55",
+                      "position": 0.9
+                    },
+                    {
+                      "color": "#FF7A7A55",
+                      "position": 1
+                    }
+                  ]
+                },
+                {
+                  "type": "gradient",
+                  "gradientType": "linear",
+                  "enabled": true,
+                  "rotation": 90,
+                  "size": {
+                    "height": 1
+                  },
+                  "colors": [
+                    {
+                      "color": "#FFFFFF00",
+                      "position": 0
+                    },
+                    {
+                      "color": "#FFFFFF30",
+                      "position": 0.5
+                    },
+                    {
+                      "color": "#FFFFFF00",
+                      "position": 1
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "h9M2dH",
+              "name": "meta",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 2,
+              "padding": [
+                0,
+                8,
+                7,
+                8
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "X0AKFs",
+                  "name": "cardTitle",
+                  "fill": "#FFFFFF",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Lemon",
+                  "lineHeight": 1.2,
+                  "fontFamily": "Shippori Mincho B1",
+                  "fontSize": 12,
+                  "fontWeight": "800"
+                },
+                {
+                  "type": "text",
+                  "id": "TUdEz",
+                  "name": "pips",
+                  "fill": "#F6DC8E",
+                  "content": "◆◆◆",
+                  "fontFamily": "Inter",
+                  "fontSize": 7,
+                  "fontWeight": "normal",
+                  "letterSpacing": 2
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "fc7FS",
+              "layoutPosition": "absolute",
+              "x": 0,
+              "y": 0,
+              "name": "wear",
+              "enabled": false,
+              "opacity": 0.7,
+              "width": 104,
+              "height": 148,
+              "fill": [
+                "#B8A0708C",
+                {
+                  "type": "gradient",
+                  "gradientType": "radial",
+                  "enabled": true,
+                  "rotation": 0,
+                  "size": {
+                    "width": 1.3,
+                    "height": 1.3
+                  },
+                  "colors": [
+                    {
+                      "color": "#6B4E2400",
+                      "position": 0.35
+                    },
+                    {
+                      "color": "#5A3F1A99",
+                      "position": 0.75
+                    },
+                    {
+                      "color": "#3A2810F2",
+                      "position": 1
+                    }
+                  ]
+                },
+                {
+                  "type": "gradient",
+                  "gradientType": "linear",
+                  "enabled": true,
+                  "rotation": 104,
+                  "size": {
+                    "height": 1
+                  },
+                  "colors": [
+                    {
+                      "color": "#FFFFFF00",
+                      "position": 0.46
+                    },
+                    {
+                      "color": "#FFFFFF66",
+                      "position": 0.47
+                    },
+                    {
+                      "color": "#00000055",
+                      "position": 0.48
+                    },
+                    {
+                      "color": "#FFFFFF00",
+                      "position": 0.49
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "gVuiD",
+      "x": 6382,
+      "y": -3080,
+      "name": "spec/songCard states",
+      "fill": "#FFFFFF",
+      "cornerRadius": 16,
+      "stroke": "$border-default",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": 24,
+      "children": [
+        {
+          "type": "text",
+          "id": "IxJo1",
+          "name": "specTitle",
+          "fill": "$foreground.primary",
+          "content": "곡 카드 상태",
+          "fontFamily": "$font.headings",
+          "fontSize": 16,
+          "fontWeight": "700"
+        },
+        {
+          "type": "frame",
+          "id": "N2RiM",
+          "name": "states",
+          "gap": 16,
+          "children": [
+            {
+              "type": "frame",
+              "id": "HwhAN",
+              "name": "state-1레벨",
+              "layout": "vertical",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "id": "AEvtj",
+                  "type": "ref",
+                  "ref": "pSVC5",
+                  "name": "card-1레벨",
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 160,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#4A4555",
+                        "position": 0
+                      },
+                      {
+                        "color": "#24212C",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "descendants": {
+                    "HEB9b": {
+                      "fill": [
+                        {
+                          "type": "image",
+                          "enabled": true,
+                          "url": "images/generated-1788364171354.png",
+                          "mode": "cover"
+                        },
+                        {
+                          "type": "gradient",
+                          "gradientType": "linear",
+                          "enabled": true,
+                          "rotation": 180,
+                          "size": {
+                            "height": 1
+                          },
+                          "colors": [
+                            {
+                              "color": "#00000000",
+                              "position": 0
+                            },
+                            {
+                              "color": "#00000000",
+                              "position": 0.45
+                            },
+                            {
+                              "color": "#000000B0",
+                              "position": 0.78
+                            },
+                            {
+                              "color": "#000000EE",
+                              "position": 1
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    "X0AKFs": {
+                      "content": "夜に駆ける"
+                    },
+                    "TUdEz": {
+                      "content": "◆◇◇",
+                      "fill": "#CFC8DA"
+                    }
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "aUmQU",
+                  "name": "label",
+                  "fill": "$foreground.muted",
+                  "content": "1레벨",
+                  "fontFamily": "$font.body",
+                  "fontSize": 11,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Vqa6k",
+              "name": "state-2레벨",
+              "layout": "vertical",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "id": "hkGwo",
+                  "type": "ref",
+                  "ref": "pSVC5",
+                  "name": "card-2레벨",
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 135,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#E6E9EF",
+                        "position": 0
+                      },
+                      {
+                        "color": "#8A93A3",
+                        "position": 0.25
+                      },
+                      {
+                        "color": "#F7F8FB",
+                        "position": 0.45
+                      },
+                      {
+                        "color": "#7D8698",
+                        "position": 0.7
+                      },
+                      {
+                        "color": "#E9ECF2",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "descendants": {
+                    "HEB9b": {
+                      "fill": [
+                        {
+                          "type": "image",
+                          "enabled": true,
+                          "url": "images/generated-1788364170560.png",
+                          "mode": "cover"
+                        },
+                        {
+                          "type": "gradient",
+                          "gradientType": "linear",
+                          "enabled": true,
+                          "rotation": 180,
+                          "size": {
+                            "height": 1
+                          },
+                          "colors": [
+                            {
+                              "color": "#00000000",
+                              "position": 0
+                            },
+                            {
+                              "color": "#00000000",
+                              "position": 0.45
+                            },
+                            {
+                              "color": "#000000B0",
+                              "position": 0.78
+                            },
+                            {
+                              "color": "#000000EE",
+                              "position": 1
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    "X0AKFs": {
+                      "content": "アイドル"
+                    },
+                    "TUdEz": {
+                      "content": "◆◆◇",
+                      "fill": "#E7EBF2"
+                    }
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "ilBms",
+                  "name": "label",
+                  "fill": "$foreground.muted",
+                  "content": "2레벨",
+                  "fontFamily": "$font.body",
+                  "fontSize": 11,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "y7sOl",
+              "name": "state-3레벨",
+              "layout": "vertical",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "id": "MIqxh",
+                  "type": "ref",
+                  "ref": "pSVC5",
+                  "name": "card-3레벨",
+                  "descendants": {
+                    "HEB9b": {
+                      "fill": [
+                        {
+                          "type": "image",
+                          "enabled": true,
+                          "url": "images/generated-1788364380801.png",
+                          "mode": "cover"
+                        },
+                        {
+                          "type": "gradient",
+                          "gradientType": "linear",
+                          "enabled": true,
+                          "rotation": 180,
+                          "size": {
+                            "height": 1
+                          },
+                          "colors": [
+                            {
+                              "color": "#00000000",
+                              "position": 0
+                            },
+                            {
+                              "color": "#00000000",
+                              "position": 0.45
+                            },
+                            {
+                              "color": "#000000B0",
+                              "position": 0.78
+                            },
+                            {
+                              "color": "#000000EE",
+                              "position": 1
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    "X0AKFs": {
+                      "content": "Lemon"
+                    },
+                    "TUdEz": {
+                      "content": "◆◆◆",
+                      "fill": "#F6DC8E"
+                    }
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "rUM6G",
+                  "name": "label",
+                  "fill": "$foreground.muted",
+                  "content": "3레벨",
+                  "fontFamily": "$font.body",
+                  "fontSize": 11,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "MAbI4",
+              "name": "state-렌티큘러",
+              "layout": "vertical",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "id": "HDPIc",
+                  "type": "ref",
+                  "ref": "pSVC5",
+                  "name": "card-렌티큘러",
+                  "descendants": {
+                    "HEB9b": {
+                      "fill": [
+                        {
+                          "type": "image",
+                          "enabled": true,
+                          "url": "images/generated-1788364380801.png",
+                          "mode": "cover"
+                        },
+                        {
+                          "type": "gradient",
+                          "gradientType": "linear",
+                          "enabled": true,
+                          "rotation": 180,
+                          "size": {
+                            "height": 1
+                          },
+                          "colors": [
+                            {
+                              "color": "#00000000",
+                              "position": 0
+                            },
+                            {
+                              "color": "#00000000",
+                              "position": 0.45
+                            },
+                            {
+                              "color": "#000000B0",
+                              "position": 0.78
+                            },
+                            {
+                              "color": "#000000EE",
+                              "position": 1
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    "tCpde": {
+                      "enabled": true
+                    },
+                    "X0AKFs": {
+                      "content": "Lemon"
+                    },
+                    "TUdEz": {
+                      "content": "◆◆◆",
+                      "fill": "#F6DC8E"
+                    }
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "WPMSO",
+                  "name": "label",
+                  "fill": "$foreground.muted",
+                  "content": "렌티큘러",
+                  "fontFamily": "$font.body",
+                  "fontSize": 11,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "JjjgY",
+              "name": "state-빛바램",
+              "layout": "vertical",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "id": "iB64B",
+                  "type": "ref",
+                  "ref": "pSVC5",
+                  "name": "card-빛바램",
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 135,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#E6E9EF",
+                        "position": 0
+                      },
+                      {
+                        "color": "#8A93A3",
+                        "position": 0.25
+                      },
+                      {
+                        "color": "#F7F8FB",
+                        "position": 0.45
+                      },
+                      {
+                        "color": "#7D8698",
+                        "position": 0.7
+                      },
+                      {
+                        "color": "#E9ECF2",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "descendants": {
+                    "HEB9b": {
+                      "fill": [
+                        {
+                          "type": "image",
+                          "enabled": true,
+                          "url": "images/generated-1788364170560.png",
+                          "mode": "cover"
+                        },
+                        {
+                          "type": "gradient",
+                          "gradientType": "linear",
+                          "enabled": true,
+                          "rotation": 180,
+                          "size": {
+                            "height": 1
+                          },
+                          "colors": [
+                            {
+                              "color": "#00000000",
+                              "position": 0
+                            },
+                            {
+                              "color": "#00000000",
+                              "position": 0.45
+                            },
+                            {
+                              "color": "#000000B0",
+                              "position": 0.78
+                            },
+                            {
+                              "color": "#000000EE",
+                              "position": 1
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    "X0AKFs": {
+                      "content": "アイドル"
+                    },
+                    "TUdEz": {
+                      "content": "◆◆◇",
+                      "fill": "#E7EBF2"
+                    },
+                    "fc7FS": {
+                      "enabled": true,
+                      "opacity": 0.35
+                    }
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "MawTY",
+                  "name": "label",
+                  "fill": "$foreground.muted",
+                  "content": "빛바램",
+                  "fontFamily": "$font.body",
+                  "fontSize": 11,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "UV5j4",
+              "name": "state-낡음",
+              "layout": "vertical",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "id": "HpUVz",
+                  "type": "ref",
+                  "ref": "pSVC5",
+                  "name": "card-낡음",
+                  "descendants": {
+                    "HEB9b": {
+                      "fill": [
+                        {
+                          "type": "image",
+                          "enabled": true,
+                          "url": "images/generated-1788364380801.png",
+                          "mode": "cover"
+                        },
+                        {
+                          "type": "gradient",
+                          "gradientType": "linear",
+                          "enabled": true,
+                          "rotation": 180,
+                          "size": {
+                            "height": 1
+                          },
+                          "colors": [
+                            {
+                              "color": "#00000000",
+                              "position": 0
+                            },
+                            {
+                              "color": "#00000000",
+                              "position": 0.45
+                            },
+                            {
+                              "color": "#000000B0",
+                              "position": 0.78
+                            },
+                            {
+                              "color": "#000000EE",
+                              "position": 1
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    "X0AKFs": {
+                      "content": "Lemon"
+                    },
+                    "TUdEz": {
+                      "content": "◆◆◆",
+                      "fill": "#F6DC8E"
+                    },
+                    "fc7FS": {
+                      "enabled": true,
+                      "opacity": 0.65
+                    }
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "Ac2TZ",
+                  "name": "label",
+                  "fill": "$foreground.muted",
+                  "content": "낡음",
+                  "fontFamily": "$font.body",
+                  "fontSize": 11,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "lll8k",
+              "name": "state-너덜너덜",
+              "layout": "vertical",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "id": "JByRy",
+                  "type": "ref",
+                  "ref": "pSVC5",
+                  "name": "card-너덜너덜",
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 160,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#4A4555",
+                        "position": 0
+                      },
+                      {
+                        "color": "#24212C",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "descendants": {
+                    "HEB9b": {
+                      "fill": [
+                        {
+                          "type": "image",
+                          "enabled": true,
+                          "url": "images/generated-1788364171354.png",
+                          "mode": "cover"
+                        },
+                        {
+                          "type": "gradient",
+                          "gradientType": "linear",
+                          "enabled": true,
+                          "rotation": 180,
+                          "size": {
+                            "height": 1
+                          },
+                          "colors": [
+                            {
+                              "color": "#00000000",
+                              "position": 0
+                            },
+                            {
+                              "color": "#00000000",
+                              "position": 0.45
+                            },
+                            {
+                              "color": "#000000B0",
+                              "position": 0.78
+                            },
+                            {
+                              "color": "#000000EE",
+                              "position": 1
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    "X0AKFs": {
+                      "content": "夜に駆ける"
+                    },
+                    "TUdEz": {
+                      "content": "◆◇◇",
+                      "fill": "#CFC8DA"
+                    },
+                    "fc7FS": {
+                      "enabled": true,
+                      "opacity": 1
+                    }
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "x5oiz",
+                  "name": "label",
+                  "fill": "$foreground.muted",
+                  "content": "너덜너덜",
+                  "fontFamily": "$font.body",
+                  "fontSize": 11,
+                  "fontWeight": "500"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "I3uNf",
+      "x": 6522,
+      "y": -3289,
+      "name": "component/artistCard",
+      "reusable": true,
+      "clip": true,
+      "width": 240,
+      "height": 151,
+      "fill": [
+        {
+          "type": "image",
+          "enabled": true,
+          "url": "generated-1.png",
+          "mode": "cover"
+        },
+        {
+          "type": "gradient",
+          "gradientType": "linear",
+          "enabled": true,
+          "rotation": 100,
+          "size": {
+            "height": 1
+          },
+          "colors": [
+            {
+              "color": "#1B1028F2",
+              "position": 0
+            },
+            {
+              "color": "#1B102899",
+              "position": 0.55
+            },
+            {
+              "color": "#1B102840",
+              "position": 1
+            }
+          ]
+        },
+        {
+          "type": "gradient",
+          "gradientType": "linear",
+          "enabled": true,
+          "rotation": 125,
+          "size": {
+            "height": 1
+          },
+          "colors": [
+            {
+              "color": "#C9CED84D",
+              "position": 0
+            },
+            {
+              "color": "#6F778700",
+              "position": 0.3
+            },
+            {
+              "color": "#EEF1F640",
+              "position": 0.5
+            },
+            {
+              "color": "#5D657500",
+              "position": 0.75
+            },
+            {
+              "color": "#CDD2DB4D",
+              "position": 1
+            }
+          ]
+        }
+      ],
+      "cornerRadius": 12,
+      "layout": "vertical",
+      "padding": [
+        14,
+        16
+      ],
+      "justifyContent": "space_between",
+      "children": [
+        {
+          "type": "frame",
+          "id": "N4igFv",
+          "name": "top",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 6,
+          "children": [
+            {
+              "type": "frame",
+              "id": "HfZLg",
+              "name": "lvChip",
+              "fill": {
+                "type": "gradient",
+                "gradientType": "linear",
+                "enabled": true,
+                "rotation": 125,
+                "size": {
+                  "height": 1
+                },
+                "colors": [
+                  {
+                    "color": "#E6E9EF",
+                    "position": 0
+                  },
+                  {
+                    "color": "#8A93A3",
+                    "position": 0.4
+                  },
+                  {
+                    "color": "#F7F8FB",
+                    "position": 0.7
+                  },
+                  {
+                    "color": "#9AA3B2",
+                    "position": 1
+                  }
+                ]
+              },
+              "cornerRadius": 9999,
+              "padding": [
+                3,
+                8
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "a9xpGt",
+                  "name": "lvLabel",
+                  "fill": "#15111B",
+                  "content": "LV.2",
+                  "fontFamily": "$font.data",
+                  "fontSize": 9,
+                  "fontWeight": "600",
+                  "letterSpacing": 1
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "BWcCG",
+              "name": "artistName",
+              "fill": "#FFFFFF",
+              "content": "YOASOBI",
+              "lineHeight": 1.15,
+              "fontFamily": "Shippori Mincho B1",
+              "fontSize": 19,
+              "fontWeight": "800"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "usm4c",
+          "name": "bottom",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 6,
+          "children": [
+            {
+              "type": "frame",
+              "id": "j2BEX8",
+              "name": "countRow",
+              "width": "fill_container",
+              "justifyContent": "space_between",
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "q7gQ1M",
+                  "name": "cardCount",
+                  "fill": "#FFFFFFD9",
+                  "content": "곡 카드 4장",
+                  "fontFamily": "$font.body",
+                  "fontSize": 11,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "uYnH1",
+                  "name": "nextLabel",
+                  "fill": "#FFFFFF99",
+                  "content": "LV.3까지 1장",
+                  "fontFamily": "$font.body",
+                  "fontSize": 10,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "iJoL6",
+              "name": "track",
+              "clip": true,
+              "width": "fill_container",
+              "height": 4,
+              "fill": "#FFFFFF26",
+              "cornerRadius": 9999,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "ioS8p",
+                  "name": "progress",
+                  "width": 166,
+                  "height": "fill_container",
+                  "fill": "#E7EAF0",
+                  "cornerRadius": 9999
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "XOGkN",
+      "x": 3289,
+      "y": 5937,
+      "name": "P3a. Profile — 카드 탭",
+      "clip": true,
+      "width": 402,
+      "fill": "$surface.secondary",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "n27QC",
+          "name": "status",
+          "width": "fill_container",
+          "height": 62,
+          "padding": [
+            20,
+            24,
+            0,
+            24
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "wNpDN",
+              "name": "timeLabel",
+              "fill": "$foreground.primary",
+              "content": "9:41",
+              "fontFamily": "$font.body",
+              "fontSize": 15,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "EkvoJ",
+              "name": "iconsR",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "AuVUi",
+                  "name": "sigIco",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "signal",
+                  "library": "lucide",
+                  "fill": "$foreground.primary"
+                },
+                {
+                  "type": "icon",
+                  "id": "nKvYW",
+                  "name": "wifiIco",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "wifi",
+                  "library": "lucide",
+                  "fill": "$foreground.primary"
+                },
+                {
+                  "type": "icon",
+                  "id": "bnV5X",
+                  "name": "batIco",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "battery-full",
+                  "library": "lucide",
+                  "fill": "$foreground.primary"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "MZZI4",
+          "name": "content",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 24,
+          "padding": [
+            0,
+            24,
+            24,
+            24
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "co6IW",
+              "name": "profHeader",
+              "width": "fill_container",
+              "padding": [
+                8,
+                4
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "X62q9q",
+                  "name": "phHandle",
+                  "fill": "$foreground.primary",
+                  "content": "@eastshine",
+                  "fontFamily": "$font.headings",
+                  "fontSize": 18,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "mhALK",
+                  "name": "menuBtn",
+                  "width": 36,
+                  "height": 36,
+                  "cornerRadius": 9999,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "eNb4W",
+                      "name": "menuIco",
+                      "width": 22,
+                      "height": 22,
+                      "icon": "menu",
+                      "library": "lucide",
+                      "fill": "$foreground.primary"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "h6ElR",
+              "name": "profileCard",
+              "width": "fill_container",
+              "fill": "#FFFFFF00",
+              "gap": 14,
+              "padding": [
+                12,
+                0
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "OlFUs",
+                  "name": "avatar",
+                  "width": 56,
+                  "height": 56,
+                  "fill": "$surface.primary",
+                  "cornerRadius": 9999,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "y08YjE",
+                      "name": "avatarIco",
+                      "width": 28,
+                      "height": 28,
+                      "icon": "user",
+                      "library": "lucide",
+                      "fill": "$foreground.muted"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "l0Y6yD",
+                  "name": "nameRow",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 3,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "GIZcY",
+                      "name": "profName",
+                      "fill": "$foreground.primary",
+                      "content": "김동빛",
+                      "fontFamily": "$font.headings",
+                      "fontSize": 18,
+                      "fontWeight": "800"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "jMGJj",
+                  "name": "editBtn",
+                  "width": 36,
+                  "height": 36,
+                  "fill": "$bg-elevated",
+                  "cornerRadius": 9999,
+                  "gap": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "DL29N",
+                      "name": "pIco",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "pencil",
+                      "library": "lucide",
+                      "fill": "$foreground.secondary"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "YIUOe",
+              "name": "profileTabs",
+              "width": "fill_container",
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "OPChQ",
+                  "name": "tabRow",
+                  "width": "fill_container",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "mswMa",
+                      "name": "tab-카드",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": [
+                        10,
+                        0,
+                        0,
+                        0
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "EO2aw",
+                          "name": "tabLabel",
+                          "fill": "$foreground.primary",
+                          "content": "카드",
+                          "fontFamily": "$font.headings",
+                          "fontSize": 15,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "bvISA",
+                          "name": "indicator",
+                          "width": "fill_container",
+                          "height": 2,
+                          "fill": "$foreground.primary"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ycyyQ",
+                      "name": "tab-학습",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": [
+                        10,
+                        0,
+                        0,
+                        0
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "y3H1op",
+                          "name": "tabLabel",
+                          "fill": "$foreground.muted",
+                          "content": "학습",
+                          "fontFamily": "$font.headings",
+                          "fontSize": 15,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "yXs7I",
+                          "name": "indicator",
+                          "width": "fill_container",
+                          "height": 2,
+                          "fill": "#FFFFFF00"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "y7CjU",
+                  "name": "divider",
+                  "width": "fill_container",
+                  "height": 1,
+                  "fill": "$border-default"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "k20c2c",
+              "name": "artistSection",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 14,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "W59Be",
+                  "name": "head",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "W4zJR",
+                      "name": "headTitle",
+                      "fill": "$foreground.primary",
+                      "content": "아티스트 카드",
+                      "fontFamily": "$font.headings",
+                      "fontSize": 17,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "D3PIRD",
+                      "name": "headCount",
+                      "fill": "$foreground.muted",
+                      "content": "3",
+                      "fontFamily": "$font.data",
+                      "fontSize": 14,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "a7xao",
+                      "name": "spacer",
+                      "width": "fill_container",
+                      "height": 1
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Nx6Hi",
+                  "name": "artistRow",
+                  "clip": true,
+                  "width": "fill_container",
+                  "gap": 12,
+                  "children": [
+                    {
+                      "id": "kTKtS",
+                      "type": "ref",
+                      "ref": "I3uNf",
+                      "name": "artist-YOASOBI",
+                      "fill": [
+                        {
+                          "type": "image",
+                          "enabled": true,
+                          "url": "generated-1.png",
+                          "mode": "cover"
+                        },
+                        {
+                          "type": "gradient",
+                          "gradientType": "linear",
+                          "enabled": true,
+                          "rotation": 100,
+                          "size": {
+                            "height": 1
+                          },
+                          "colors": [
+                            {
+                              "color": "#1B1028F2",
+                              "position": 0
+                            },
+                            {
+                              "color": "#1B102899",
+                              "position": 0.55
+                            },
+                            {
+                              "color": "#1B102840",
+                              "position": 1
+                            }
+                          ]
+                        },
+                        {
+                          "type": "gradient",
+                          "gradientType": "linear",
+                          "enabled": true,
+                          "rotation": 125,
+                          "size": {
+                            "height": 1
+                          },
+                          "colors": [
+                            {
+                              "color": "#C9CED84D",
+                              "position": 0
+                            },
+                            {
+                              "color": "#6F778700",
+                              "position": 0.3
+                            },
+                            {
+                              "color": "#EEF1F640",
+                              "position": 0.5
+                            },
+                            {
+                              "color": "#5D657500",
+                              "position": 0.75
+                            },
+                            {
+                              "color": "#CDD2DB4D",
+                              "position": 1
+                            }
+                          ]
+                        }
+                      ],
+                      "descendants": {
+                        "a9xpGt": {
+                          "content": "LV.2"
+                        },
+                        "BWcCG": {
+                          "content": "YOASOBI"
+                        },
+                        "q7gQ1M": {
+                          "content": "곡 카드 4장"
+                        },
+                        "uYnH1": {
+                          "content": "LV.3까지 1장"
+                        },
+                        "ioS8p": {
+                          "width": 166
+                        }
+                      }
+                    },
+                    {
+                      "id": "lFint",
+                      "type": "ref",
+                      "ref": "I3uNf",
+                      "name": "artist-米津玄師",
+                      "fill": [
+                        {
+                          "type": "image",
+                          "enabled": true,
+                          "url": "generated-2.png",
+                          "mode": "cover"
+                        },
+                        {
+                          "type": "gradient",
+                          "gradientType": "linear",
+                          "enabled": true,
+                          "rotation": 100,
+                          "size": {
+                            "height": 1
+                          },
+                          "colors": [
+                            {
+                              "color": "#14111AF5",
+                              "position": 0
+                            },
+                            {
+                              "color": "#14111AB3",
+                              "position": 0.6
+                            },
+                            {
+                              "color": "#14111A66",
+                              "position": 1
+                            }
+                          ]
+                        }
+                      ],
+                      "descendants": {
+                        "HfZLg": {
+                          "fill": "#3A3442",
+                          "stroke": "#6B6274"
+                        },
+                        "a9xpGt": {
+                          "content": "LV.1",
+                          "fill": "#E9E3F1"
+                        },
+                        "BWcCG": {
+                          "content": "米津玄師"
+                        },
+                        "q7gQ1M": {
+                          "content": "곡 카드 2장"
+                        },
+                        "uYnH1": {
+                          "content": "LV.2까지 1장"
+                        },
+                        "ioS8p": {
+                          "width": 104,
+                          "fill": "#B9B1C6"
+                        }
+                      }
+                    },
+                    {
+                      "id": "P8syS",
+                      "type": "ref",
+                      "ref": "I3uNf",
+                      "name": "artist-King Gnu",
+                      "fill": [
+                        {
+                          "type": "image",
+                          "enabled": true,
+                          "url": "generated-3.png",
+                          "mode": "cover"
+                        },
+                        {
+                          "type": "gradient",
+                          "gradientType": "linear",
+                          "enabled": true,
+                          "rotation": 100,
+                          "size": {
+                            "height": 1
+                          },
+                          "colors": [
+                            {
+                              "color": "#14111AF5",
+                              "position": 0
+                            },
+                            {
+                              "color": "#14111AB3",
+                              "position": 0.6
+                            },
+                            {
+                              "color": "#14111A66",
+                              "position": 1
+                            }
+                          ]
+                        }
+                      ],
+                      "descendants": {
+                        "HfZLg": {
+                          "fill": "#3A3442",
+                          "stroke": "#6B6274"
+                        },
+                        "a9xpGt": {
+                          "content": "LV.1",
+                          "fill": "#E9E3F1"
+                        },
+                        "BWcCG": {
+                          "content": "King Gnu"
+                        },
+                        "q7gQ1M": {
+                          "content": "곡 카드 1장"
+                        },
+                        "uYnH1": {
+                          "content": "LV.2까지 2장"
+                        },
+                        "ioS8p": {
+                          "width": 52,
+                          "fill": "#B9B1C6"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "ir1fx",
+              "name": "songCardSection",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 14,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "R7P3s",
+                  "name": "head",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Ql4SQ",
+                      "name": "headTitle",
+                      "fill": "$foreground.primary",
+                      "content": "곡 카드",
+                      "fontFamily": "$font.headings",
+                      "fontSize": 17,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "J8Nrl",
+                      "name": "headCount",
+                      "fill": "$foreground.muted",
+                      "content": "12",
+                      "fontFamily": "$font.data",
+                      "fontSize": 14,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "HOIeH",
+                      "name": "spacer",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "BDngN",
+                      "name": "sortChip",
+                      "fill": "$bg-elevated",
+                      "cornerRadius": 9999,
+                      "gap": 4,
+                      "padding": [
+                        5,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ZGyRa",
+                          "name": "sortLabel",
+                          "fill": "$foreground.secondary",
+                          "content": "레벨순",
+                          "fontFamily": "$font.body",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "icon",
+                          "id": "D855u",
+                          "name": "sortIco",
+                          "width": 14,
+                          "height": 14,
+                          "icon": "chevron-down",
+                          "library": "lucide",
+                          "fill": "$foreground.secondary"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "I5ira",
+                  "name": "cardGrid",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 14,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "UJYiX",
+                      "name": "gridRow",
+                      "width": "fill_container",
+                      "gap": 12,
+                      "children": [
+                        {
+                          "id": "R6zPi",
+                          "type": "ref",
+                          "ref": "pSVC5",
+                          "name": "card-Lemon",
+                          "descendants": {
+                            "HEB9b": {
+                              "fill": [
+                                {
+                                  "type": "image",
+                                  "enabled": true,
+                                  "url": "images/generated-1788364380801.png",
+                                  "mode": "cover"
+                                },
+                                {
+                                  "type": "gradient",
+                                  "gradientType": "linear",
+                                  "enabled": true,
+                                  "rotation": 180,
+                                  "size": {
+                                    "height": 1
+                                  },
+                                  "colors": [
+                                    {
+                                      "color": "#00000000",
+                                      "position": 0
+                                    },
+                                    {
+                                      "color": "#00000000",
+                                      "position": 0.45
+                                    },
+                                    {
+                                      "color": "#000000B0",
+                                      "position": 0.78
+                                    },
+                                    {
+                                      "color": "#000000EE",
+                                      "position": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            "tCpde": {
+                              "enabled": true
+                            },
+                            "X0AKFs": {
+                              "content": "Lemon"
+                            },
+                            "TUdEz": {
+                              "content": "◆◆◆",
+                              "fill": "#F6DC8E"
+                            }
+                          }
+                        },
+                        {
+                          "id": "xCmcL",
+                          "type": "ref",
+                          "ref": "pSVC5",
+                          "name": "card-アイドル",
+                          "descendants": {
+                            "HEB9b": {
+                              "fill": [
+                                {
+                                  "type": "image",
+                                  "enabled": true,
+                                  "url": "images/generated-1788364170560.png",
+                                  "mode": "cover"
+                                },
+                                {
+                                  "type": "gradient",
+                                  "gradientType": "linear",
+                                  "enabled": true,
+                                  "rotation": 180,
+                                  "size": {
+                                    "height": 1
+                                  },
+                                  "colors": [
+                                    {
+                                      "color": "#00000000",
+                                      "position": 0
+                                    },
+                                    {
+                                      "color": "#00000000",
+                                      "position": 0.45
+                                    },
+                                    {
+                                      "color": "#000000B0",
+                                      "position": 0.78
+                                    },
+                                    {
+                                      "color": "#000000EE",
+                                      "position": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            "X0AKFs": {
+                              "content": "アイドル"
+                            },
+                            "TUdEz": {
+                              "content": "◆◆◆",
+                              "fill": "#F6DC8E"
+                            }
+                          }
+                        },
+                        {
+                          "id": "WfN76",
+                          "type": "ref",
+                          "ref": "pSVC5",
+                          "name": "card-夜に駆ける",
+                          "descendants": {
+                            "HEB9b": {
+                              "fill": [
+                                {
+                                  "type": "image",
+                                  "enabled": true,
+                                  "url": "images/generated-1788364171354.png",
+                                  "mode": "cover"
+                                },
+                                {
+                                  "type": "gradient",
+                                  "gradientType": "linear",
+                                  "enabled": true,
+                                  "rotation": 180,
+                                  "size": {
+                                    "height": 1
+                                  },
+                                  "colors": [
+                                    {
+                                      "color": "#00000000",
+                                      "position": 0
+                                    },
+                                    {
+                                      "color": "#00000000",
+                                      "position": 0.45
+                                    },
+                                    {
+                                      "color": "#000000B0",
+                                      "position": 0.78
+                                    },
+                                    {
+                                      "color": "#000000EE",
+                                      "position": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            "X0AKFs": {
+                              "content": "夜に駆ける"
+                            },
+                            "TUdEz": {
+                              "content": "◆◆◆",
+                              "fill": "#F6DC8E"
+                            },
+                            "fc7FS": {
+                              "enabled": true,
+                              "opacity": 0.35
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "WhVEp",
+                      "name": "gridRow",
+                      "width": "fill_container",
+                      "gap": 12,
+                      "children": [
+                        {
+                          "id": "CC42J",
+                          "type": "ref",
+                          "ref": "pSVC5",
+                          "name": "card-マリーゴールド",
+                          "fill": {
+                            "type": "gradient",
+                            "gradientType": "linear",
+                            "enabled": true,
+                            "rotation": 135,
+                            "size": {
+                              "height": 1
+                            },
+                            "colors": [
+                              {
+                                "color": "#E6E9EF",
+                                "position": 0
+                              },
+                              {
+                                "color": "#8A93A3",
+                                "position": 0.25
+                              },
+                              {
+                                "color": "#F7F8FB",
+                                "position": 0.45
+                              },
+                              {
+                                "color": "#7D8698",
+                                "position": 0.7
+                              },
+                              {
+                                "color": "#E9ECF2",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "descendants": {
+                            "HEB9b": {
+                              "fill": [
+                                {
+                                  "type": "image",
+                                  "enabled": true,
+                                  "url": "https://images.unsplash.com/photo-1769430724125-96853e0eadbb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                                  "mode": "cover"
+                                },
+                                {
+                                  "type": "gradient",
+                                  "gradientType": "linear",
+                                  "enabled": true,
+                                  "rotation": 180,
+                                  "size": {
+                                    "height": 1
+                                  },
+                                  "colors": [
+                                    {
+                                      "color": "#00000000",
+                                      "position": 0
+                                    },
+                                    {
+                                      "color": "#00000000",
+                                      "position": 0.45
+                                    },
+                                    {
+                                      "color": "#000000B0",
+                                      "position": 0.78
+                                    },
+                                    {
+                                      "color": "#000000EE",
+                                      "position": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            "X0AKFs": {
+                              "content": "マリーゴールド"
+                            },
+                            "TUdEz": {
+                              "content": "◆◆◇",
+                              "fill": "#E7EBF2"
+                            }
+                          }
+                        },
+                        {
+                          "id": "Mq4il",
+                          "type": "ref",
+                          "ref": "pSVC5",
+                          "name": "card-群青",
+                          "fill": {
+                            "type": "gradient",
+                            "gradientType": "linear",
+                            "enabled": true,
+                            "rotation": 135,
+                            "size": {
+                              "height": 1
+                            },
+                            "colors": [
+                              {
+                                "color": "#E6E9EF",
+                                "position": 0
+                              },
+                              {
+                                "color": "#8A93A3",
+                                "position": 0.25
+                              },
+                              {
+                                "color": "#F7F8FB",
+                                "position": 0.45
+                              },
+                              {
+                                "color": "#7D8698",
+                                "position": 0.7
+                              },
+                              {
+                                "color": "#E9ECF2",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "descendants": {
+                            "HEB9b": {
+                              "fill": [
+                                {
+                                  "type": "image",
+                                  "enabled": true,
+                                  "url": "https://images.unsplash.com/photo-1716809699704-209488bbac53?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                                  "mode": "cover"
+                                },
+                                {
+                                  "type": "gradient",
+                                  "gradientType": "linear",
+                                  "enabled": true,
+                                  "rotation": 180,
+                                  "size": {
+                                    "height": 1
+                                  },
+                                  "colors": [
+                                    {
+                                      "color": "#00000000",
+                                      "position": 0
+                                    },
+                                    {
+                                      "color": "#00000000",
+                                      "position": 0.45
+                                    },
+                                    {
+                                      "color": "#000000B0",
+                                      "position": 0.78
+                                    },
+                                    {
+                                      "color": "#000000EE",
+                                      "position": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            "X0AKFs": {
+                              "content": "群青"
+                            },
+                            "TUdEz": {
+                              "content": "◆◆◇",
+                              "fill": "#E7EBF2"
+                            },
+                            "fc7FS": {
+                              "enabled": true,
+                              "opacity": 0.65
+                            }
+                          }
+                        },
+                        {
+                          "id": "m29uHt",
+                          "type": "ref",
+                          "ref": "pSVC5",
+                          "name": "card-怪獣の花唄",
+                          "fill": {
+                            "type": "gradient",
+                            "gradientType": "linear",
+                            "enabled": true,
+                            "rotation": 135,
+                            "size": {
+                              "height": 1
+                            },
+                            "colors": [
+                              {
+                                "color": "#E6E9EF",
+                                "position": 0
+                              },
+                              {
+                                "color": "#8A93A3",
+                                "position": 0.25
+                              },
+                              {
+                                "color": "#F7F8FB",
+                                "position": 0.45
+                              },
+                              {
+                                "color": "#7D8698",
+                                "position": 0.7
+                              },
+                              {
+                                "color": "#E9ECF2",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "descendants": {
+                            "HEB9b": {
+                              "fill": [
+                                {
+                                  "type": "image",
+                                  "enabled": true,
+                                  "url": "https://images.unsplash.com/photo-1506105524407-94b39b1e7415?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                                  "mode": "cover"
+                                },
+                                {
+                                  "type": "gradient",
+                                  "gradientType": "linear",
+                                  "enabled": true,
+                                  "rotation": 180,
+                                  "size": {
+                                    "height": 1
+                                  },
+                                  "colors": [
+                                    {
+                                      "color": "#00000000",
+                                      "position": 0
+                                    },
+                                    {
+                                      "color": "#00000000",
+                                      "position": 0.45
+                                    },
+                                    {
+                                      "color": "#000000B0",
+                                      "position": 0.78
+                                    },
+                                    {
+                                      "color": "#000000EE",
+                                      "position": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            "X0AKFs": {
+                              "content": "怪獣の花唄"
+                            },
+                            "TUdEz": {
+                              "content": "◆◆◇",
+                              "fill": "#E7EBF2"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "lliW6",
+                      "name": "gridRow",
+                      "width": "fill_container",
+                      "gap": 12,
+                      "children": [
+                        {
+                          "id": "YzX0L",
+                          "type": "ref",
+                          "ref": "pSVC5",
+                          "name": "card-白日",
+                          "fill": {
+                            "type": "gradient",
+                            "gradientType": "linear",
+                            "enabled": true,
+                            "rotation": 160,
+                            "size": {
+                              "height": 1
+                            },
+                            "colors": [
+                              {
+                                "color": "#4A4555",
+                                "position": 0
+                              },
+                              {
+                                "color": "#24212C",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "descendants": {
+                            "HEB9b": {
+                              "fill": [
+                                {
+                                  "type": "image",
+                                  "enabled": true,
+                                  "url": "https://images.unsplash.com/photo-1677145316529-a6e02cc8c504?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                                  "mode": "cover"
+                                },
+                                {
+                                  "type": "gradient",
+                                  "gradientType": "linear",
+                                  "enabled": true,
+                                  "rotation": 180,
+                                  "size": {
+                                    "height": 1
+                                  },
+                                  "colors": [
+                                    {
+                                      "color": "#00000000",
+                                      "position": 0
+                                    },
+                                    {
+                                      "color": "#00000000",
+                                      "position": 0.45
+                                    },
+                                    {
+                                      "color": "#000000B0",
+                                      "position": 0.78
+                                    },
+                                    {
+                                      "color": "#000000EE",
+                                      "position": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            "X0AKFs": {
+                              "content": "白日"
+                            },
+                            "TUdEz": {
+                              "content": "◆◇◇",
+                              "fill": "#CFC8DA"
+                            }
+                          }
+                        },
+                        {
+                          "id": "Q6aAQq",
+                          "type": "ref",
+                          "ref": "pSVC5",
+                          "name": "card-猫",
+                          "fill": {
+                            "type": "gradient",
+                            "gradientType": "linear",
+                            "enabled": true,
+                            "rotation": 160,
+                            "size": {
+                              "height": 1
+                            },
+                            "colors": [
+                              {
+                                "color": "#4A4555",
+                                "position": 0
+                              },
+                              {
+                                "color": "#24212C",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "descendants": {
+                            "HEB9b": {
+                              "fill": [
+                                {
+                                  "type": "image",
+                                  "enabled": true,
+                                  "url": "https://images.unsplash.com/photo-1590502593747-42a996133562?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                                  "mode": "cover"
+                                },
+                                {
+                                  "type": "gradient",
+                                  "gradientType": "linear",
+                                  "enabled": true,
+                                  "rotation": 180,
+                                  "size": {
+                                    "height": 1
+                                  },
+                                  "colors": [
+                                    {
+                                      "color": "#00000000",
+                                      "position": 0
+                                    },
+                                    {
+                                      "color": "#00000000",
+                                      "position": 0.45
+                                    },
+                                    {
+                                      "color": "#000000B0",
+                                      "position": 0.78
+                                    },
+                                    {
+                                      "color": "#000000EE",
+                                      "position": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            "X0AKFs": {
+                              "content": "猫"
+                            },
+                            "TUdEz": {
+                              "content": "◆◇◇",
+                              "fill": "#CFC8DA"
+                            }
+                          }
+                        },
+                        {
+                          "id": "FsOC7",
+                          "type": "ref",
+                          "ref": "pSVC5",
+                          "name": "card-晩餐歌",
+                          "fill": {
+                            "type": "gradient",
+                            "gradientType": "linear",
+                            "enabled": true,
+                            "rotation": 160,
+                            "size": {
+                              "height": 1
+                            },
+                            "colors": [
+                              {
+                                "color": "#4A4555",
+                                "position": 0
+                              },
+                              {
+                                "color": "#24212C",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "descendants": {
+                            "HEB9b": {
+                              "fill": [
+                                {
+                                  "type": "image",
+                                  "enabled": true,
+                                  "url": "https://images.unsplash.com/photo-1644705697675-8e13764dabc9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                                  "mode": "cover"
+                                },
+                                {
+                                  "type": "gradient",
+                                  "gradientType": "linear",
+                                  "enabled": true,
+                                  "rotation": 180,
+                                  "size": {
+                                    "height": 1
+                                  },
+                                  "colors": [
+                                    {
+                                      "color": "#00000000",
+                                      "position": 0
+                                    },
+                                    {
+                                      "color": "#00000000",
+                                      "position": 0.45
+                                    },
+                                    {
+                                      "color": "#000000B0",
+                                      "position": 0.78
+                                    },
+                                    {
+                                      "color": "#000000EE",
+                                      "position": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            "X0AKFs": {
+                              "content": "晩餐歌"
+                            },
+                            "TUdEz": {
+                              "content": "◆◇◇",
+                              "fill": "#CFC8DA"
+                            },
+                            "fc7FS": {
+                              "enabled": true,
+                              "opacity": 0.35
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "fPIdH",
+                      "name": "gridRow",
+                      "width": "fill_container",
+                      "gap": 12,
+                      "children": [
+                        {
+                          "id": "PlcmA",
+                          "type": "ref",
+                          "ref": "pSVC5",
+                          "name": "card-ドライフラワー",
+                          "fill": {
+                            "type": "gradient",
+                            "gradientType": "linear",
+                            "enabled": true,
+                            "rotation": 160,
+                            "size": {
+                              "height": 1
+                            },
+                            "colors": [
+                              {
+                                "color": "#4A4555",
+                                "position": 0
+                              },
+                              {
+                                "color": "#24212C",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "descendants": {
+                            "HEB9b": {
+                              "fill": [
+                                {
+                                  "type": "image",
+                                  "enabled": true,
+                                  "url": "https://images.unsplash.com/photo-1716908331958-dfe8e734e560?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                                  "mode": "cover"
+                                },
+                                {
+                                  "type": "gradient",
+                                  "gradientType": "linear",
+                                  "enabled": true,
+                                  "rotation": 180,
+                                  "size": {
+                                    "height": 1
+                                  },
+                                  "colors": [
+                                    {
+                                      "color": "#00000000",
+                                      "position": 0
+                                    },
+                                    {
+                                      "color": "#00000000",
+                                      "position": 0.45
+                                    },
+                                    {
+                                      "color": "#000000B0",
+                                      "position": 0.78
+                                    },
+                                    {
+                                      "color": "#000000EE",
+                                      "position": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            "X0AKFs": {
+                              "content": "ドライフラワー"
+                            },
+                            "TUdEz": {
+                              "content": "◆◇◇",
+                              "fill": "#CFC8DA"
+                            }
+                          }
+                        },
+                        {
+                          "id": "O2kg9",
+                          "type": "ref",
+                          "ref": "pSVC5",
+                          "name": "card-水平線",
+                          "fill": {
+                            "type": "gradient",
+                            "gradientType": "linear",
+                            "enabled": true,
+                            "rotation": 160,
+                            "size": {
+                              "height": 1
+                            },
+                            "colors": [
+                              {
+                                "color": "#4A4555",
+                                "position": 0
+                              },
+                              {
+                                "color": "#24212C",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "descendants": {
+                            "HEB9b": {
+                              "fill": [
+                                {
+                                  "type": "image",
+                                  "enabled": true,
+                                  "url": "https://images.unsplash.com/photo-1707128551040-e512534e499d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                                  "mode": "cover"
+                                },
+                                {
+                                  "type": "gradient",
+                                  "gradientType": "linear",
+                                  "enabled": true,
+                                  "rotation": 180,
+                                  "size": {
+                                    "height": 1
+                                  },
+                                  "colors": [
+                                    {
+                                      "color": "#00000000",
+                                      "position": 0
+                                    },
+                                    {
+                                      "color": "#00000000",
+                                      "position": 0.45
+                                    },
+                                    {
+                                      "color": "#000000B0",
+                                      "position": 0.78
+                                    },
+                                    {
+                                      "color": "#000000EE",
+                                      "position": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            "X0AKFs": {
+                              "content": "水平線"
+                            },
+                            "TUdEz": {
+                              "content": "◆◇◇",
+                              "fill": "#CFC8DA"
+                            }
+                          }
+                        },
+                        {
+                          "id": "vfV8m",
+                          "type": "ref",
+                          "ref": "pSVC5",
+                          "name": "card-怪物",
+                          "fill": {
+                            "type": "gradient",
+                            "gradientType": "linear",
+                            "enabled": true,
+                            "rotation": 160,
+                            "size": {
+                              "height": 1
+                            },
+                            "colors": [
+                              {
+                                "color": "#4A4555",
+                                "position": 0
+                              },
+                              {
+                                "color": "#24212C",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "descendants": {
+                            "HEB9b": {
+                              "fill": [
+                                {
+                                  "type": "image",
+                                  "enabled": true,
+                                  "url": "https://images.unsplash.com/photo-1696671498745-5fddd32f0dab?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                                  "mode": "cover"
+                                },
+                                {
+                                  "type": "gradient",
+                                  "gradientType": "linear",
+                                  "enabled": true,
+                                  "rotation": 180,
+                                  "size": {
+                                    "height": 1
+                                  },
+                                  "colors": [
+                                    {
+                                      "color": "#00000000",
+                                      "position": 0
+                                    },
+                                    {
+                                      "color": "#00000000",
+                                      "position": 0.45
+                                    },
+                                    {
+                                      "color": "#000000B0",
+                                      "position": 0.78
+                                    },
+                                    {
+                                      "color": "#000000EE",
+                                      "position": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            "X0AKFs": {
+                              "content": "怪物"
+                            },
+                            "TUdEz": {
+                              "content": "◆◇◇",
+                              "fill": "#CFC8DA"
+                            },
+                            "fc7FS": {
+                              "enabled": true,
+                              "opacity": 1
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "ZL22X",
+          "name": "tabBar",
+          "width": "fill_container",
+          "fill": "#FFFFFF00",
+          "children": [
+            {
+              "id": "yE8kn",
+              "type": "ref",
+              "ref": "anPPw",
+              "x": 0,
+              "y": 0,
+              "theme": {
+                "selected-tab": "mypage"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "fpzE1",
+      "x": 3802,
+      "y": 5937,
+      "name": "P3b. Profile — 학습 탭",
+      "clip": true,
+      "width": 402,
+      "fill": "$surface.secondary",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "vuCix",
+          "name": "status",
+          "width": "fill_container",
+          "height": 62,
+          "padding": [
+            20,
+            24,
+            0,
+            24
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "cRZO1",
+              "name": "timeLabel",
+              "fill": "$foreground.primary",
+              "content": "9:41",
+              "fontFamily": "$font.body",
+              "fontSize": 15,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "lGx1X",
+              "name": "iconsR",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "qX65T",
+                  "name": "sigIco",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "signal",
+                  "library": "lucide",
+                  "fill": "$foreground.primary"
+                },
+                {
+                  "type": "icon",
+                  "id": "O2fpLx",
+                  "name": "wifiIco",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "wifi",
+                  "library": "lucide",
+                  "fill": "$foreground.primary"
+                },
+                {
+                  "type": "icon",
+                  "id": "VBnhY",
+                  "name": "batIco",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "battery-full",
+                  "library": "lucide",
+                  "fill": "$foreground.primary"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "vEZec",
+          "name": "content",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 24,
+          "padding": [
+            0,
+            24,
+            24,
+            24
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "CW80j",
+              "name": "profHeader",
+              "width": "fill_container",
+              "padding": [
+                8,
+                4
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "hSgVK",
+                  "name": "phHandle",
+                  "fill": "$foreground.primary",
+                  "content": "@eastshine",
+                  "fontFamily": "$font.headings",
+                  "fontSize": 18,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "HOBU0",
+                  "name": "menuBtn",
+                  "width": 36,
+                  "height": 36,
+                  "cornerRadius": 9999,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "FmSXg",
+                      "name": "menuIco",
+                      "width": 22,
+                      "height": 22,
+                      "icon": "menu",
+                      "library": "lucide",
+                      "fill": "$foreground.primary"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "kyTTV",
+              "name": "profileCard",
+              "width": "fill_container",
+              "fill": "#FFFFFF00",
+              "gap": 14,
+              "padding": [
+                12,
+                0
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Pya98",
+                  "name": "avatar",
+                  "width": 56,
+                  "height": 56,
+                  "fill": "$surface.primary",
+                  "cornerRadius": 9999,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "MnTBp",
+                      "name": "avatarIco",
+                      "width": 28,
+                      "height": 28,
+                      "icon": "user",
+                      "library": "lucide",
+                      "fill": "$foreground.muted"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "p4NDi",
+                  "name": "nameRow",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 3,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "b0UBG",
+                      "name": "profName",
+                      "fill": "$foreground.primary",
+                      "content": "김동빛",
+                      "fontFamily": "$font.headings",
+                      "fontSize": 18,
+                      "fontWeight": "800"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "G9KyVp",
+                  "name": "editBtn",
+                  "width": 36,
+                  "height": 36,
+                  "fill": "$bg-elevated",
+                  "cornerRadius": 9999,
+                  "gap": 6,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "o964lX",
+                      "name": "pIco",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "pencil",
+                      "library": "lucide",
+                      "fill": "$foreground.secondary"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "J7nOE",
+              "name": "profileTabs",
+              "width": "fill_container",
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "a4U0Cx",
+                  "name": "tabRow",
+                  "width": "fill_container",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "qylHw",
+                      "name": "tab-카드",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": [
+                        10,
+                        0,
+                        0,
+                        0
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "AHvAp",
+                          "name": "tabLabel",
+                          "fill": "$foreground.muted",
+                          "content": "카드",
+                          "fontFamily": "$font.headings",
+                          "fontSize": 15,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "whAbH",
+                          "name": "indicator",
+                          "width": "fill_container",
+                          "height": 2,
+                          "fill": "#FFFFFF00"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "lu4KE",
+                      "name": "tab-학습",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": [
+                        10,
+                        0,
+                        0,
+                        0
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "wVtBc",
+                          "name": "tabLabel",
+                          "fill": "$foreground.primary",
+                          "content": "학습",
+                          "fontFamily": "$font.headings",
+                          "fontSize": 15,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "YZ7pW",
+                          "name": "indicator",
+                          "width": "fill_container",
+                          "height": 2,
+                          "fill": "$foreground.primary"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Iopwj",
+                  "name": "divider",
+                  "width": "fill_container",
+                  "height": 1,
+                  "fill": "$border-default"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "r8u0w8",
+              "name": "heroBlock",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 10,
+              "padding": [
+                6,
+                0,
+                0,
+                0
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "pI1tl",
+                  "name": "heroLine",
+                  "gap": 7,
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "nhQWu",
+                      "name": "heroVal",
+                      "fill": "$foreground.primary",
+                      "content": "68",
+                      "lineHeight": 1,
+                      "fontFamily": "Geist Mono",
+                      "fontSize": 52,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ZKtSq",
+                      "name": "heroTailWrap",
+                      "padding": [
+                        0,
+                        0,
+                        7,
+                        0
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "c72XiJ",
+                          "name": "heroTail",
+                          "fill": "$foreground.muted",
+                          "content": "/ 128 단어",
+                          "lineHeight": 1,
+                          "fontFamily": "Geist Mono",
+                          "fontSize": 17,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "n24oRX",
+                  "name": "heroCaption",
+                  "fill": "$foreground.secondary",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "128단어 중 68개를 외웠어요",
+                  "fontFamily": "$font.body",
+                  "fontSize": 13,
+                  "fontWeight": "500"
+                },
+                {
+                  "type": "frame",
+                  "id": "H9T4r",
+                  "name": "heroSegBar",
+                  "clip": true,
+                  "width": "fill_container",
+                  "height": 8,
+                  "fill": "$bg-card",
+                  "cornerRadius": "$rounded.full",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "zbl30",
+                      "name": "장기기억 Segment",
+                      "width": 181,
+                      "height": "fill_container",
+                      "fill": "$accent.primary"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "dYIru",
+                      "name": "단기기억 Segment",
+                      "width": 95,
+                      "height": "fill_container",
+                      "fill": "$state-learning"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "lzzVF",
+                  "name": "heroLegend",
+                  "width": "fill_container",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "SbNt1",
+                      "name": "legendLongTerm",
+                      "gap": 5,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "ellipse",
+                          "id": "AZkDq",
+                          "name": "Dot",
+                          "fill": "$accent.primary",
+                          "width": 7,
+                          "height": 7
+                        },
+                        {
+                          "type": "text",
+                          "id": "e6jIaB",
+                          "name": "Label",
+                          "fill": "$foreground.muted",
+                          "content": "장기기억",
+                          "fontFamily": "$font.body",
+                          "fontSize": 11.5,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "M3f9Xo",
+                          "name": "Value",
+                          "fill": "$foreground.secondary",
+                          "content": "68",
+                          "fontFamily": "$font.body",
+                          "fontSize": 11.5,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "gLCNV",
+                      "name": "legendShortTerm",
+                      "gap": 5,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "ellipse",
+                          "id": "mnpwG",
+                          "name": "Dot",
+                          "fill": "$state-learning",
+                          "width": 7,
+                          "height": 7
+                        },
+                        {
+                          "type": "text",
+                          "id": "Auzv4",
+                          "name": "Label",
+                          "fill": "$foreground.muted",
+                          "content": "단기기억",
+                          "fontFamily": "$font.body",
+                          "fontSize": 11.5,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "pQOaL",
+                          "name": "Value",
+                          "fill": "$foreground.secondary",
+                          "content": "36",
+                          "fontFamily": "$font.body",
+                          "fontSize": 11.5,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "E3NICl",
+                      "name": "legendRemaining",
+                      "gap": 5,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "ellipse",
+                          "id": "z3j1K",
+                          "name": "Dot",
+                          "fill": "$border-strong",
+                          "width": 7,
+                          "height": 7
+                        },
+                        {
+                          "type": "text",
+                          "id": "Qa2Zr",
+                          "name": "Label",
+                          "fill": "$foreground.muted",
+                          "content": "남음",
+                          "fontFamily": "$font.body",
+                          "fontSize": 11.5,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "xfVoZ",
+                          "name": "Value",
+                          "fill": "$foreground.muted",
+                          "content": "24",
+                          "fontFamily": "$font.body",
+                          "fontSize": 11.5,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "sseRZ",
+              "name": "progressSection",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 6,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "yeclM",
+                  "name": "head",
+                  "width": "fill_container",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "i0HT4i",
+                      "name": "headTitle",
+                      "fill": "$foreground.primary",
+                      "content": "곡별 진도",
+                      "fontFamily": "$font.headings",
+                      "fontSize": 17,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "d1C68",
+                      "name": "spacer",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "icon",
+                      "id": "XvLP1",
+                      "name": "more",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "chevron-right",
+                      "library": "lucide",
+                      "fill": "$foreground.muted"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "GuRlz",
+                  "name": "progressList",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "id": "OiVNN",
+                      "type": "ref",
+                      "ref": "mTllO",
+                      "name": "progress-群青",
+                      "width": "fill_container",
+                      "descendants": {
+                        "mJz3y": {
+                          "fill": {
+                            "type": "image",
+                            "enabled": true,
+                            "url": "https://images.unsplash.com/photo-1716809699704-209488bbac53?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                            "mode": "cover"
+                          }
+                        },
+                        "xsHSs": {
+                          "content": "群青"
+                        },
+                        "o46Y4l": {
+                          "content": "32단어",
+                          "fill": "$foreground.muted",
+                          "fontWeight": "500"
+                        },
+                        "KcdiK": {
+                          "width": 150,
+                          "fill": "$accent.primary"
+                        },
+                        "GcuGS": {
+                          "width": 60,
+                          "enabled": true
+                        }
+                      }
+                    },
+                    {
+                      "id": "kT4he",
+                      "type": "ref",
+                      "ref": "mTllO",
+                      "name": "progress-アイドル",
+                      "width": "fill_container",
+                      "descendants": {
+                        "mJz3y": {
+                          "fill": {
+                            "type": "image",
+                            "enabled": true,
+                            "url": "images/generated-1788364170560.png",
+                            "mode": "cover"
+                          }
+                        },
+                        "xsHSs": {
+                          "content": "アイドル"
+                        },
+                        "o46Y4l": {
+                          "content": "41단어",
+                          "fill": "$foreground.muted",
+                          "fontWeight": "500"
+                        },
+                        "KcdiK": {
+                          "width": 196,
+                          "fill": "$accent.primary"
+                        },
+                        "GcuGS": {
+                          "width": 44,
+                          "enabled": true
+                        }
+                      }
+                    },
+                    {
+                      "id": "sCSJN",
+                      "type": "ref",
+                      "ref": "mTllO",
+                      "name": "progress-マリーゴールド",
+                      "width": "fill_container",
+                      "descendants": {
+                        "mJz3y": {
+                          "fill": {
+                            "type": "image",
+                            "enabled": true,
+                            "url": "https://images.unsplash.com/photo-1769430724125-96853e0eadbb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                            "mode": "cover"
+                          }
+                        },
+                        "xsHSs": {
+                          "content": "マリーゴールド"
+                        },
+                        "o46Y4l": {
+                          "content": "28단어",
+                          "fill": "$foreground.muted",
+                          "fontWeight": "500"
+                        },
+                        "KcdiK": {
+                          "width": 112,
+                          "fill": "$accent.primary"
+                        },
+                        "GcuGS": {
+                          "width": 58,
+                          "enabled": true
+                        }
+                      }
+                    },
+                    {
+                      "id": "HhN3T",
+                      "type": "ref",
+                      "ref": "mTllO",
+                      "name": "progress-ベテルギウス",
+                      "width": "fill_container",
+                      "descendants": {
+                        "mJz3y": {
+                          "fill": {
+                            "type": "image",
+                            "enabled": true,
+                            "url": "https://images.unsplash.com/photo-1716908331958-dfe8e734e560?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+                            "mode": "cover"
+                          }
+                        },
+                        "xsHSs": {
+                          "content": "ベテルギウス"
+                        },
+                        "o46Y4l": {
+                          "content": "19단어",
+                          "fill": "$foreground.muted",
+                          "fontWeight": "500"
+                        },
+                        "KcdiK": {
+                          "width": 40,
+                          "fill": "$accent.primary"
+                        },
+                        "GcuGS": {
+                          "width": 34,
+                          "enabled": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "ZOydj",
+              "name": "heatmapSection",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 14,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "YXH9Y",
+                  "name": "hmHdr",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "XHbeH",
+                      "name": "hmTitle",
+                      "fill": "$foreground.primary",
+                      "content": "학습 기록",
+                      "fontFamily": "$font.headings",
+                      "fontSize": 17,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rWHzn",
+                      "name": "hmMore",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "A2EHMc",
+                          "name": "hmFzIco",
+                          "width": 18,
+                          "height": 18,
+                          "icon": "chevron-right",
+                          "library": "lucide",
+                          "fill": "$foreground.muted"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "script",
+                  "id": "lsg09",
+                  "name": "hmGrid",
+                  "width": "fill_container",
+                  "height": 116,
+                  "scriptUri": "heatmap.js",
+                  "inputs": {
+                    "selectedCol": 12,
+                    "selectedRow": 2
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "M0dVoR",
+          "name": "tabBar",
+          "width": "fill_container",
+          "fill": "#FFFFFF00",
+          "children": [
+            {
+              "id": "q9Cps",
+              "type": "ref",
+              "ref": "anPPw",
+              "x": 0,
+              "y": 0,
+              "theme": {
+                "selected-tab": "mypage"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
       "id": "B42UAn",
       "x": 6190,
       "y": 16400,
@@ -123497,6 +127069,22 @@
     "forecast-skipped": {
       "type": "color",
       "value": "#F97316"
+    },
+    "grade-gold": {
+      "type": "color",
+      "value": "#D9A520"
+    },
+    "grade-silver": {
+      "type": "color",
+      "value": "#9AA4AE"
+    },
+    "grade-bronze": {
+      "type": "color",
+      "value": "#B5763A"
+    },
+    "grade-locked": {
+      "type": "color",
+      "value": "#DADADA"
     },
     "reel-highlight": {
       "type": "color",

@@ -21,6 +21,9 @@ dependencies {
     implementation(project(":domains:notification"))
     implementation(project(":domains:featureflag"))
     implementation(project(":domains:user"))
+    // 보상 카드 채우기(reward-card-backfill)가 곡 단어장과 단계 분류로 등급을 잰다.
+    implementation(project(":domains:word"))
+    implementation(project(":domains:rewardcard"))
     implementation(project(":integrations:song-search"))
     implementation(project(":integrations:karaoke-listing"))
     // 노래방 신곡의 분석 요청을 worker 큐로 넘긴다.
@@ -43,6 +46,9 @@ dependencies {
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation(testFixtures(project(":common")))
+    testImplementation(testFixtures(project(":domains:user")))
+    testImplementation(testFixtures(project(":domains:song")))
+    testImplementation(testFixtures(project(":domains:word")))
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {

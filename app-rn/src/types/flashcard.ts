@@ -1,7 +1,8 @@
+import type { RewardCardRevealDto } from './rewardCard';
 import { WordSense } from './word';
 
 /**
- * 카드 하나의 기억 칸. 서버 `FlashcardMemory` 와 1:1 — 판정 기준(장기기억 = stability >= 7일)은
+ * 카드 하나의 기억 칸. 서버 `FlashcardMemory` 와 1:1 — 판정 기준(장기기억 = stability >= 14일)은
  * 서버에만 있고 앱은 결과만 받는다. 곡 상세 이해도와 완주 카드의 기억 이동이 같은 기준을 쓴다.
  */
 export type FlashcardMemory = 'LONG_TERM' | 'SHORT_TERM' | 'REMAINING';
@@ -33,7 +34,7 @@ export interface FlashcardStatsResponse {
   /** 구버전 앱용 FSRS state 기준 값. 진행 바는 longTermCount/shortTermCount 를 쓴다. */
   learning: number;
   review: number;
-  /** 장기기억 — 7일 뒤 90% 이상 회상. */
+  /** 장기기억 — 14일 뒤 90% 이상 회상. */
   longTermCount: number;
   /** 단기기억 — 리뷰 이력이 있으나 장기기억이 아닌 카드. */
   shortTermCount: number;
@@ -51,6 +52,8 @@ export interface ReviewResponse {
   difficulty: number;
   /** 이 리뷰를 반영한 뒤의 기억 칸. */
   memory: FlashcardMemory;
+  /** 이 rating 으로 생긴 카드 연출. 곡 카드 → 아티스트 카드 순. */
+  rewardCards?: RewardCardRevealDto[];
 }
 
 export interface UserSettingsDTO {

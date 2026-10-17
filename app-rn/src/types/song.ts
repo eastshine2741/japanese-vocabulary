@@ -1,3 +1,4 @@
+import type { RewardCardRevealDto } from './rewardCard';
 import { AddWordRequest, WordSense } from './word';
 import { FlashcardDTO, FlashcardMemory } from './flashcard';
 
@@ -155,6 +156,8 @@ export interface SongStudyBootstrapResponse {
   nextDueAt: string | null;
   /** 이 호출이 담으면서 바로 리뷰한 lead 단어의 리뷰 **후** 기억 칸. 리뷰 전 칸은 항상 `REMAINING` 이다. */
   reviewedMemory: FlashcardMemory;
+  /** 곡의 첫 rating 이라 대개 곡 카드(와 아티스트 카드) 획득이 실린다. */
+  rewardCards?: RewardCardRevealDto[];
 }
 
 /**
@@ -202,7 +205,7 @@ export interface SongWordTierDto {
   /** 구버전 앱용. 새 앱은 longTermCount/shortTermCount 를 쓴다. */
   knownCount: number;
   learningCount: number;
-  /** 7일 뒤 회상 확률 90% 이상 (FSRS stability >= 7일) */
+  /** 14일 뒤 회상 확률 90% 이상 (FSRS stability >= 14일) */
   longTermCount: number;
   /** 한 번이라도 리뷰했으나 장기기억이 아닌 단어 */
   shortTermCount: number;

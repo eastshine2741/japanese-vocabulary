@@ -11,11 +11,12 @@ import com.japanese.vocabulary.song.dto.songdetail.SongCoverageDto
 import com.japanese.vocabulary.song.dto.songdetail.SongLyricsDto
 import com.japanese.vocabulary.song.dto.songdetail.SongStudyBootstrapRequest
 import com.japanese.vocabulary.song.dto.songdetail.SongStudyBootstrapResponse
-import com.japanese.vocabulary.song.dto.songdetail.SongWordTierKey
 import com.japanese.vocabulary.song.dto.songdetail.SongWordTierStudyResponse
 import com.japanese.vocabulary.song.dto.songdetail.SongWordTiersDto
-import com.japanese.vocabulary.song.dto.songdetail.WordsInSongDto
 import com.japanese.vocabulary.songsearch.dto.SongSearchResponse
+import com.japanese.vocabulary.word.dto.songword.WordsInSongDto
+import com.japanese.vocabulary.word.model.SongWordTierKey
+import com.japanese.vocabulary.word.service.songword.SongWordQueryService
 import com.japanese.vocabulary.songanalysis.dto.SongAnalysisWorkDto
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.repository.SongRepository
@@ -48,6 +49,7 @@ class SongController(
     private val songRepository: SongRepository,
     private val lyricRepository: LyricRepository,
     private val songDetailQueryService: SongDetailQueryService,
+    private val songWordQueryService: SongWordQueryService,
     private val songStudyBootstrapService: SongStudyBootstrapService,
     private val songWordTierService: SongWordTierService,
     private val analysisNotificationService: AnalysisNotificationService,
@@ -154,7 +156,7 @@ class SongController(
     @GetMapping("/{id}/words")
     fun getSongWords(@PathVariable id: Long): ResponseEntity<WordsInSongDto> {
         val response = try {
-            songDetailQueryService.words(id, currentUserId())
+            songWordQueryService.words(id, currentUserId())
         } catch (e: com.japanese.vocabulary.common.exception.BusinessException) {
             return ResponseEntity.status(e.errorCode.status).build()
         }

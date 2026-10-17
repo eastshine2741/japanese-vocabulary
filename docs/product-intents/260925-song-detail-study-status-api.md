@@ -32,21 +32,21 @@ Pencil 프레임 `jBwuD`(17a 0%) · `uGG5c`(17b 진행 중) · `i7qEd`(17c 완�
 
 | 분류 | 정의 |
 |---|---|
-| 장기기억 | 지금부터 7일 뒤에 떠올릴 확률이 90% 이상인 단어 |
+| 장기기억 | 지금부터 14일 뒤에 떠올릴 확률이 90% 이상인 단어 |
 | 단기기억 | 한 번이라도 리뷰한 적 있으나 장기기억이 아닌 단어 |
 | 남음 | 한 번도 리뷰하지 않은 단어 (아직 곡 단어장에 담기지 않은 단어 포함) |
 
 FSRS 에서 stability `S` 는 정의상 **retrievability 가 0.9 로 떨어지는 경과일수**다
 (`R(t) = (1 + FACTOR·t/S)^DECAY`, `R(S) = 0.9`). 따라서
 
-> 장기기억 ⟺ `flashcards.stability >= 7.0` (일) 이고 리뷰 이력(`last_review`)이 있음
+> 장기기억 ⟺ `flashcards.stability >= 14.0` (일) 이고 리뷰 이력(`last_review`)이 있음
 
-으로 한 줄 비교로 판정된다. 임계값은 상수 하나로 뺀다 (`LONG_TERM_STABILITY_DAYS = 7.0`).
+으로 한 줄 비교로 판정된다. 임계값은 상수 하나로 뺀다 (`LONG_TERM_STABILITY_DAYS = 14.0`).
 
 - flashcard 가 없거나 리뷰 이력이 없는 단어 → 남음.
-- `stability < 7.0` 인 모든 리뷰 경험 단어 → 단기기억 (LEARNING·RELEARNING·REVIEW 무관).
+- `stability < 14.0` 인 모든 리뷰 경험 단어 → 단기기억 (LEARNING·RELEARNING·REVIEW 무관).
 - 기존 `knownCount`(= FSRS REVIEW) / `learningCount` 와 **판정 기준이 다르다**. REVIEW 라도
-  stability 가 7일 미만이면 단기기억이다.
+  stability 가 14일 미만이면 단기기억이다.
 
 ## 1. tier 단어 집합
 

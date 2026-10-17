@@ -60,6 +60,18 @@ enum class ErrorCode(val status: HttpStatus, val message: String) {
     // Recommendation
     SONG_ALREADY_RECOMMENDED(HttpStatus.CONFLICT, "Song is already recommended"),
 
+    // Reward card
+    REWARD_CARD_NOT_FOUND(HttpStatus.NOT_FOUND, "Reward card not found"),
+    REWARD_CARD_ALREADY_ISSUED(HttpStatus.CONFLICT, "Reward card already issued"),
+    REWARD_CARD_NOT_ISSUED(HttpStatus.CONFLICT, "Reward card not issued yet"),
+    INVALID_SIGNATURE(HttpStatus.BAD_REQUEST, "Signature must have 1-200 non-blank strokes"),
+    INVALID_CARD_LYRIC(HttpStatus.BAD_REQUEST, "lyricLineIndexes must be up to 2 distinct lines of the song"),
+    REWARD_CARD_SHARE_NOT_FOUND(HttpStatus.NOT_FOUND, "Share link not found"),
+    SHARE_IMAGE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "Share image upload is unavailable"),
+    INVALID_SHARE_IMAGE_TYPE(HttpStatus.BAD_REQUEST, "Share image must be image/png"),
+    SHARE_IMAGE_NOT_UPLOADED(HttpStatus.BAD_REQUEST, "Share image has not been uploaded"),
+    SHARE_IMAGE_TOO_LARGE(HttpStatus.BAD_REQUEST, "Share image must be at most 5MB"),
+
     // Common
     FORBIDDEN(HttpStatus.FORBIDDEN, "Access denied"),
 }

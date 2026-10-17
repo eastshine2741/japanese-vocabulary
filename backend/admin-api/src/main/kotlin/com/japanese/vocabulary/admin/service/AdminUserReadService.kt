@@ -17,7 +17,7 @@ import com.japanese.vocabulary.admin.repository.AdminWordRepository
 import com.japanese.vocabulary.deck.entity.DeckEntity
 import com.japanese.vocabulary.deck.repository.DeckRepository
 import com.japanese.vocabulary.flashcard.entity.FlashcardEntity
-import com.japanese.vocabulary.flashcard.model.FlashcardMemory
+import com.japanese.vocabulary.flashcard.service.LongTermThreshold
 import com.japanese.vocabulary.song.entity.SongEntity
 import com.japanese.vocabulary.user.entity.UserEntity
 import com.japanese.vocabulary.word.entity.WordEntity
@@ -46,6 +46,7 @@ class AdminUserReadService(
     private val songRepository: AdminSongRepository,
     private val deckStatsRepository: DeckRepository,
     private val clock: Clock,
+    private val longTermThreshold: LongTermThreshold,
 ) {
     fun listUsers(query: String?, pageable: Pageable): Page<AdminUserResponse> {
         val sorted = PageRequest.of(pageable.pageNumber, pageable.pageSize, Sort.by(Sort.Direction.DESC, "id"))
@@ -68,7 +69,7 @@ class AdminUserReadService(
         val activity = activitiesFor(listOf(id))[id] ?: UserActivity.EMPTY
         val now = Instant.now(clock)
 
-        val stats = deckStatsRepository.findAllDeckDetailStats(id, now, FlashcardMemory.LONG_TERM_STABILITY_DAYS)
+        val stats = deckStatsRepository.findAllDeckDetailStats(id, now, longTermThreshold.days())
         val recent = userRepository.summarizeRecentStudy(id, studyDate(now).minusDays(RECENT_STUDY_DAYS - 1))
         val learning = AdminUserLearningResponse(
             wordCount = activity.wordCount,
@@ -107,7 +108,7 @@ class AdminUserReadService(
     private fun decksOf(userId: Long, now: Instant): List<AdminUserDeckResponse> {
         val decks = deckRepository.findByUserIdOrderByIdDesc(userId)
         if (decks.isEmpty()) return emptyList()
-        val stats = deckStatsRepository.findDeckStats(userId, decks.mapNotNull { it.id }, now, FlashcardMemory.LONG_TERM_STABILITY_DAYS).associateBy { it.getDeckId() }
+        val stats = deckStatsRepository.findDeckStats(userId, decks.mapNotNull { it.id }, now, longTermThreshold.days()).associateBy { it.getDeckId() }
         val songs = songsById(decks.mapNotNull { it.songId }.toSet())
         return decks.map { deck ->
             val stat = stats[deck.id]

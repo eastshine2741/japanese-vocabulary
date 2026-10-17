@@ -20,7 +20,11 @@ type AnalyticsEvent =
   | { name: 'song_analyze_result'; params: { outcome: AnalyzeOutcome } }
   | { name: 'card_reveal'; params: StudyCardParams }
   | { name: 'card_rate'; params: StudyCardParams & { rating: number } }
-  | { name: 'review_exit'; params: ReviewExitParams };
+  | { name: 'review_exit'; params: ReviewExitParams }
+  | { name: 'card_share'; params: { kind: ShareCardKind; method: 'x' | 'instagram_story' | 'instagram_dm' | 'link' } }
+  | { name: 'share_link_open'; params: { kind: ShareCardKind } };
+
+export type ShareCardKind = 'song' | 'artist';
 
 export type AnalyzeOutcome = 'success' | 'lyrics_not_found' | 'failed';
 
@@ -28,7 +32,7 @@ export type AnalyzeOutcome = 'success' | 'lyrics_not_found' | 'failed';
  * 복습 화면을 연 버튼. 곡 상세의 cta: 상단 학습 버튼, tier: 단계 학습 카드, word: 단어 탭.
  * streak/schedule: 연속 학습·복습 스케줄 화면의 CTA(전체 단어장). SongReview screen_view 파라미터.
  */
-export type StudyEntryTrigger = 'cta' | 'tier' | 'word' | 'streak' | 'schedule';
+export type StudyEntryTrigger = 'cta' | 'tier' | 'word' | 'streak' | 'schedule' | 'reward_card';
 
 /** position: 이번 세션에서 이 카드 앞에 평가를 마친 카드 수 (첫 카드면 0). */
 export interface StudyCardParams {
@@ -91,6 +95,14 @@ export function trackCardRate(params: StudyCardParams, rating: number): void {
 
 export function trackReviewExit(params: ReviewExitParams): void {
   track({ name: 'review_exit', params });
+}
+
+export function trackCardShare(kind: ShareCardKind, method: 'x' | 'instagram_story' | 'instagram_dm' | 'link'): void {
+  track({ name: 'card_share', params: { kind, method } });
+}
+
+export function trackShareLinkOpen(kind: ShareCardKind): void {
+  track({ name: 'share_link_open', params: { kind } });
 }
 
 export type ScreenViewParams = Record<string, string | number>;

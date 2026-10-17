@@ -3,6 +3,7 @@ import type { SongWordTierDto, SongWordTierKey } from '../../types/song';
 import {
   buildTierSegments,
   estimateStudyMinutes,
+  getSongCardProgress,
   getTierStatus,
   selectCurrentTier,
   selectExpandedTierKey,
@@ -113,5 +114,23 @@ describe('buildTierSegments', () => {
     expect(segments.longTermRatio).toBe(0);
     expect(segments.shortTermRatio).toBe(0);
     expect(segments.remainingCount).toBe(0);
+  });
+});
+
+describe('getSongCardProgress', () => {
+  it('앞에서부터 이어진 완료 단계만 레벨로 센다', () => {
+    expect(getSongCardProgress([tier(1, 10, 2, 8), tier(2, 10, 0), tier(3, 10, 10)]).level).toBe(1);
+    expect(getSongCardProgress([tier(1, 10, 0), tier(2, 10, 10), tier(3, 10, 10)]).level).toBe(0);
+  });
+
+  it('완곡까지 끝내고 곡 단어 90% 가 장기기억이면 마스터다', () => {
+    const almost = getSongCardProgress([tier(1, 10, 10), tier(2, 10, 9, 1), tier(3, 10, 8, 2)]);
+    expect(almost.level).toBe(3);
+    expect(almost.mastered).toBe(true);
+    expect(getSongCardProgress([tier(1, 10, 10), tier(2, 10, 8, 2), tier(3, 10, 8, 2)]).mastered).toBe(false);
+  });
+
+  it('장기기억이 90% 여도 완곡 전이면 마스터가 아니다', () => {
+    expect(getSongCardProgress([tier(1, 10, 10), tier(2, 10, 10), tier(3, 1, 0)]).mastered).toBe(false);
   });
 });

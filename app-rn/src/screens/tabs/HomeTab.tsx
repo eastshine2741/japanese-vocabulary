@@ -25,6 +25,7 @@ import {
   useStudyStack,
 } from '../../components/studyStack';
 import { useHomeChromeStore } from '../../stores/homeChromeStore';
+import { useRewardCardStore } from '../../stores/rewardCardStore';
 import { useDeleteSongDeck, useSongDeckActionSheet } from '../../hooks/useDeleteSongDeck';
 import { Colors } from '../../theme/theme';
 import { RootStackParamList, TabParamList } from '../../navigation/AppNavigator';
@@ -72,6 +73,11 @@ export default function HomeTab() {
   canPullRef.current = status !== 'loading' && !refreshing;
   const insetTopRef = useRef(insets.top);
   insetTopRef.current = insets.top;
+
+  // 서명 전에 앱을 끈 카드는 홈에 처음 들어올 때 다시 띄운다.
+  useEffect(() => {
+    useRewardCardStore.getState().checkPendingOnce();
+  }, []);
 
   useEffect(() => navigation.addListener('tabPress', () => {
     if (!focusedRef.current) return;

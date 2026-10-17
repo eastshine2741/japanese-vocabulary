@@ -19,6 +19,7 @@ import com.japanese.vocabulary.observability.HttpClientMetricsConfig
 import com.japanese.vocabulary.api.recommendation.service.SongRecommendationHomeService
 import com.japanese.vocabulary.karaoke.controller.KaraokeSongController
 import com.japanese.vocabulary.recommendation.controller.SongRecommendationController
+import com.japanese.vocabulary.rewardcard.controller.RewardCardController
 import com.japanese.vocabulary.song.cache.SongSearchCache
 import com.japanese.vocabulary.song.controller.SearchHistoryController
 import com.japanese.vocabulary.song.controller.SongController
@@ -56,6 +57,7 @@ import org.springframework.context.annotation.Import
     AnalysisNotificationController::class,
     AnalysisNotificationService::class,
     SongRecommendationController::class,
+    RewardCardController::class,
     KaraokeSongController::class,
     SongRecommendationHomeService::class,
     SearchHistoryController::class,

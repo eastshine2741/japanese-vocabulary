@@ -32,6 +32,7 @@ class FlashcardService(
     private val songRepository: SongRepository,
     private val eventPublisher: ApplicationEventPublisher,
     private val clock: Clock,
+    private val longTermThreshold: LongTermThreshold,
 ) {
 
     /**
@@ -146,6 +147,7 @@ class FlashcardService(
         val wordIds = dueEntities.map { it.wordId }
         val words = wordRepository.findAllById(wordIds).associateBy { it.id }
         val songMap = SenseEnricher.loadSongs(words.values.flatMap { it.senses }, songRepository)
+        val longTermDays = longTermThreshold.days()
 
         val desiredRetention = 0.9
 
@@ -173,7 +175,7 @@ class FlashcardService(
                 state = entity.state,
                 due = entity.due.toString(),
                 intervals = intervals,
-                memory = FlashcardMemory.of(entity),
+                memory = FlashcardMemory.of(entity, longTermDays),
             )
         }
 
@@ -225,11 +227,12 @@ class FlashcardService(
 
         return ReviewResultDto(
             id = savedFlashcardId,
+            wordId = entity.wordId,
             state = entity.state,
             due = entity.due.toString(),
             stability = entity.stability,
             difficulty = entity.difficulty,
-            memory = FlashcardMemory.ofReviewed(entity.stability),
+            memory = FlashcardMemory.ofReviewed(entity.stability, longTermThreshold.days()),
         )
     }
 
@@ -244,7 +247,7 @@ class FlashcardService(
         val review = flashcardRepository.countByUserIdAndState(userId, 1) // REVIEW
         val longTerm = flashcardRepository.countByUserIdAndLastReviewIsNotNullAndStabilityGreaterThanEqual(
             userId,
-            FlashcardMemory.LONG_TERM_STABILITY_DAYS,
+            longTermThreshold.days(),
         )
 
         return FlashcardStatsDto(

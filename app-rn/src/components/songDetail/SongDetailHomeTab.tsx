@@ -2,12 +2,13 @@ import React from 'react';
 import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import type { SongCoverageDto, SongWordTierDto } from '../../types/song';
 import { SongDetailCoverageSection } from './SongDetailCoverageSection';
+import type { PreviewSong } from '../rewardCards/cardPreview';
 import { SongDetailJlptChart } from './SongDetailJlptChart';
 import { SongDetailTierJourney } from './SongDetailTierJourney';
 import { SongDetailWordItem } from './types';
 
 interface SongDetailHomeTabProps {
-  songId: number;
+  song: PreviewSong;
   words: readonly SongDetailWordItem[];
   /** 서버가 이해도를 못 주면 null 이고 그 섹션은 그리지 않는다. */
   coverage: SongCoverageDto | null;
@@ -21,7 +22,7 @@ interface SongDetailHomeTabProps {
 }
 
 export const SongDetailHomeTab = React.memo(function SongDetailHomeTab({
-  songId,
+  song,
   words,
   coverage,
   tiers,
@@ -38,7 +39,8 @@ export const SongDetailHomeTab = React.memo(function SongDetailHomeTab({
       )}
       {tiers != null && (
         <SongDetailTierJourney
-          key={songId}
+          key={song.id}
+          song={song}
           tiers={tiers}
           isStartingLearning={isStartingLearning}
           onStartTier={onStartTier}

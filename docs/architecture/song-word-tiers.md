@@ -6,7 +6,7 @@
 단어 집합과 기억 상태로 계산한다.
 
 서버는 `GET /api/songs/{id}/word-tiers` 로 분류와 단계별 기억 상태를, `GET /api/songs/{id}/coverage`
-로 이해도를 준다. 분류는 `SongWordTierClassifier`(api 모듈), 집계는 `SongWordTierService`,
+로 이해도를 준다. 곡 단어 목록은 `SongWordQueryService`, 분류는 `SongWordTierClassifier`(둘 다 domains:word — 보상 카드 batch 도 쓴다), 집계는 `SongWordTierService`(api),
 기억 상태 판정은 `FlashcardMemory`(domains:word). 앱은 `songDetailStore.tiers` / `coverage` 에 둔다.
 
 관련 Pencil 프레임: `jBwuD`(17a 0%) · `uGG5c`(17b 진행 중) · `i7qEd`(17c 완곡 선택) ·
@@ -22,7 +22,7 @@
 
 | 분류 | 정의 |
 |---|---|
-| 장기기억 | 리뷰 이력이 있고 `stability >= 7.0` (`LONG_TERM_STABILITY_DAYS`) |
+| 장기기억 | 리뷰 이력이 있고 `stability >= 14.0` (`LONG_TERM_STABILITY_DAYS`) |
 | 단기기억 | 리뷰 이력이 있고 장기기억이 아님 (FSRS state 무관) |
 | 남음 | flashcard 가 없거나 리뷰 이력(`last_review`)이 없음 |
 
@@ -37,7 +37,7 @@
 FSRS state 기준이라 판정이 다르다 — 구버전 앱용으로만 남아 있다. `남음` 은 어느 API 도 내려주지
 않고 앱이 `총합 - 장기 - 단기` 로 구한다.
 
-FSRS stability `S` 는 정의상 retrievability 가 0.9 로 떨어지는 경과일수라, "7일 뒤 떠올릴 확률
+FSRS stability `S` 는 정의상 retrievability 가 0.9 로 떨어지는 경과일수라, "14일 뒤 떠올릴 확률
 90% 이상" 이 한 줄 비교가 된다. 기준은 **유저의 단어**다 — 다른 곡에서 담아 익힌 단어도 이 곡에서
 센다. 단어는 저장 키(`addRequest.japanese`)로 먼저 찾고 없으면 `japanese` 로 찾는다.
 

@@ -13,6 +13,9 @@ interface LyricRepository : JpaRepository<LyricEntity, Long> {
     @Query("SELECT l FROM LyricEntity l, SongEntity s WHERE s.id = :songId AND l.id = s.activeLyricId")
     fun findActiveBySongId(@Param("songId") songId: Long): LyricEntity?
 
+    @Query("SELECT l FROM LyricEntity l, SongEntity s WHERE s.id IN :songIds AND l.id = s.activeLyricId")
+    fun findActiveBySongIdIn(@Param("songIds") songIds: Collection<Long>): List<LyricEntity>
+
     fun findAllBySongIdOrderByCreatedAtDesc(songId: Long): List<LyricEntity>
 
     @Query("SELECT l FROM LyricEntity l WHERE l.wordCandidates IS NULL AND l.analyzedContent IS NOT NULL ORDER BY l.id ASC")

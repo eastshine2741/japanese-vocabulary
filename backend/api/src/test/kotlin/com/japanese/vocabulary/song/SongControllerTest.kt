@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.japanese.vocabulary.auth.jwt.JwtUtil
 import com.japanese.vocabulary.common.exception.BusinessException
+import com.japanese.vocabulary.featureflag.FeatureFlagKeys
 import com.japanese.vocabulary.song.dto.AnalyzeSongRequest
 import com.japanese.vocabulary.song.model.AnalyzedLine
 import com.japanese.vocabulary.song.model.LyricLineData
@@ -18,10 +19,10 @@ import com.japanese.vocabulary.song.dto.songdetail.SongCoverageDto
 import com.japanese.vocabulary.song.dto.songdetail.SongLyricsDto
 import com.japanese.vocabulary.song.dto.songdetail.SongStudyBootstrapRequest
 import com.japanese.vocabulary.song.dto.songdetail.SongStudyBootstrapResponse
-import com.japanese.vocabulary.song.dto.songdetail.SongWordTierKey
+import com.japanese.vocabulary.word.model.SongWordTierKey
 import com.japanese.vocabulary.song.dto.songdetail.SongWordTierStudyResponse
 import com.japanese.vocabulary.song.dto.songdetail.SongWordTiersDto
-import com.japanese.vocabulary.song.dto.songdetail.WordsInSongDto
+import com.japanese.vocabulary.word.dto.songword.WordsInSongDto
 import com.japanese.vocabulary.songsearch.dto.SongSearchItemDto
 import com.japanese.vocabulary.songsearch.dto.SongSearchResponse
 import com.japanese.vocabulary.song.model.Token
@@ -1006,7 +1007,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             // 胸: 장기기억(REVIEW) / 雨: 단기기억, 아직 due 아님 / 輪郭: 담기만 함 / する: 안 담음
             val longTerm = TestWordBuilder(entityManager).forUser(me).withJapaneseText("胸").build()
             TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(longTerm)
-                .withState(1).withStability(10.0).lastReviewedAt(clock.instant()).dueAt(later).build()
+                .withState(1).withStability(20.0).lastReviewedAt(clock.instant()).dueAt(later).build()
             val shortTerm = TestWordBuilder(entityManager).forUser(me).withJapaneseText("雨").build()
             TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(shortTerm)
                 .withState(1).withStability(2.0).lastReviewedAt(clock.instant()).dueAt(later).build()
@@ -1031,7 +1032,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             assertThat(chorus.dueCount).isZero()
             assertThat(chorus.duePreviewWords).isEmpty()
 
-            // REVIEW 라도 stability 가 7일 미만이면 단기기억이다.
+            // REVIEW 라도 stability 가 14일 미만이면 단기기억이다.
             val singalong = byKey.getValue(SongWordTierKey.SINGALONG)
             assertThat(singalong.wordJapanese).containsExactly("する", "雨")
             assertThat(singalong.longTermCount).isZero()
@@ -1090,6 +1091,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
 
         @Test
         fun `coverage counts lines whose tier words are all long-term and skips lines without tier words`() {
+            turnOn(FeatureFlagKeys.REWARD_CARD)
             val me = newUser()
             val song = newSong()
             newLyric(
@@ -1111,10 +1113,10 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             )
             val longTerm = TestWordBuilder(entityManager).forUser(me).withJapaneseText("胸").build()
             TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(longTerm)
-                .withState(1).withStability(7.0).lastReviewedAt(clock.instant()).dueAt(later).build()
+                .withState(1).withStability(14.0).lastReviewedAt(clock.instant()).dueAt(later).build()
             val shortTerm = TestWordBuilder(entityManager).forUser(me).withJapaneseText("雨").build()
             TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(shortTerm)
-                .withState(1).withStability(6.9).lastReviewedAt(clock.instant()).dueAt(later).build()
+                .withState(1).withStability(13.9).lastReviewedAt(clock.instant()).dueAt(later).build()
             entityManager.flush()
 
             val dto = coverage(me, song.id!!)
