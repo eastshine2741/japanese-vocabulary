@@ -216,7 +216,12 @@ export default function AppNavigator({ initialRoute }: Props) {
       <Stack.Screen
         name="RewardCardReveal"
         component={RewardCardRevealScreen}
-        options={{ animation: 'fade', gestureEnabled: false, contentStyle: { backgroundColor: '#0E0D13' } }}
+        // Android fade 는 아래 화면도 같이 흐려져 그 사이로 흰 기본 배경이 비친다 — 상세 위 설명은 내용 페이드인만 쓴다.
+        options={({ route }) => ({
+          animation: route.params.wearOnly || route.params.intro ? 'none' : 'fade',
+          gestureEnabled: false,
+          contentStyle: { backgroundColor: '#0E0D13' },
+        })}
       />
       <Stack.Screen
         name="RewardCardLyricEdit"
