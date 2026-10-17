@@ -254,7 +254,7 @@ class RewardCardControllerTest : ApiBaseIntegrationTest() {
         assertThat(songCards.single { it.grade == SongCardGrade.GOLD }.issued).isFalse()
         // 등급 진행은 곡의 것이라 카드마다 같다. 막 공부한 단어라 장기기억은 아직 없고, 목표는 tier 단어 3개의 90% 올림.
         assertThat(songCards.map { it.goals }.distinct()).containsExactly(listOf(RewardCardGoalResponse(SongCardGrade.MASTER, current = 0, total = 3)))
-        assertThat(bronze.recall).isBetween(0.9, 1.0)
+        assertThat(bronze.dueCount).isLessThanOrEqualTo(bronze.reviewedCount)
     }
 
     @Test

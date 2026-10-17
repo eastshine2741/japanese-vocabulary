@@ -22,7 +22,7 @@ export interface RewardCardWordDto {
   meaning: string;
 }
 
-/** 등급마다 한 장. 같은 곡의 카드들은 id·grade·acquiredSeq·가사·서명·recall 만 다르다. */
+/** 등급마다 한 장. 같은 곡의 카드들은 id·grade·acquiredSeq·가사·서명·dueCount 만 다르다. */
 export interface SongCardDto {
   id: number;
   songId: number;
@@ -37,7 +37,10 @@ export interface SongCardDto {
   lyricLineIndexes: number[];
   lyric: SongLyricLineDto[];
   words: RewardCardWordDto[];
-  recall: number;
+  /** 이 카드를 받은 뒤 리뷰한 tier 단어 수. */
+  reviewedCount: number;
+  /** reviewedCount 중 지금 복습할 차례인 단어 수. */
+  dueCount: number;
   /** 곡의 받은 등급 위 등급마다의 진행, 등급 순서대로. 같은 곡의 카드는 모두 같다. */
   goals: { grade: SongCardGradeDto; current: number; total: number }[];
   signature: string[];

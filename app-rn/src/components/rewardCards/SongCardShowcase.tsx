@@ -13,7 +13,7 @@ import SignatureField from './SignatureField';
 import { CARD_RATIO, CardFonts, LEVEL_MATERIAL, MASTER_CHIP, MASTER_PIP } from './cardTheme';
 import { CardSignature } from './signature';
 import { cardArtist, cardTitle } from './cardCredit';
-import { coatingLeft, wearAge } from './cardWear';
+import { coatingLeft, dueRatio, wearAge } from './cardWear';
 import { lyricFitScale, lyricRowFitScale, lyricText, textFitScale } from './cardLyric';
 import { CardTilt } from './useCardTilt';
 import { SongRewardCard } from './types';
@@ -38,7 +38,7 @@ interface Props {
 function SongCardShowcase({ card, width, tilt, fonts, ownerName }: Props) {
   const height = width * CARD_RATIO;
   const u = width / 100;
-  const age = wearAge(card.recall);
+  const age = wearAge(dueRatio(card));
 
   const frontStyle = useAnimatedStyle(() => {
     const p = tilt.pose.value;
@@ -86,7 +86,7 @@ export default React.memo(SongCardShowcase);
 export const SongCardFront = React.memo(function SongCardFront({ card, width, fonts, thumb }: Omit<Props, 'tilt' | 'ownerName'> & { thumb?: boolean }) {
   const height = width * CARD_RATIO;
   const u = width / 100;
-  const age = wearAge(card.recall);
+  const age = wearAge(dueRatio(card));
   const Face = card.mastered ? FoilFrontFace : FrontFace;
   return (
     <View style={{ width, height }}>
@@ -119,7 +119,7 @@ export const SongCardBack = React.memo(function SongCardBack({
         width={width}
         height={height}
         u={width / 100}
-        age={wearAge(card.recall)}
+        age={wearAge(dueRatio(card))}
         fonts={fonts}
         ownerName={ownerName}
         signatureHint={signatureHint}

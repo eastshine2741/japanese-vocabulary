@@ -13,23 +13,15 @@ import Animated, {
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import SongCardShowcase from './SongCardShowcase';
 import { CardFonts, SHOWROOM } from './cardTheme';
-import { FRESH_RECALL } from './cardWear';
+import { FRESH_DUE } from './cardWear';
 import { SongRewardCard } from './types';
 import { useCardTilt } from './useCardTilt';
 
 // 왼쪽 끝은 새 카드, 오른쪽 끝은 다 낡은 카드(cardWear 의 age 1).
-const RECALL_MAX = 0.95;
-const RECALL_MIN = 0.5;
 const SWEEP_DELAY_MS = 500;
 const SWEEP_MS = 3200;
 const THUMB = 22;
 
-function recallAt(pos: number): number {
-  'worklet';
-  return RECALL_MAX - pos * (RECALL_MAX - RECALL_MIN);
-}
-
-const FRESH_POS = (RECALL_MAX - FRESH_RECALL) / (RECALL_MAX - RECALL_MIN);
 
 interface Props {
   card: SongRewardCard;
@@ -40,20 +32,20 @@ interface Props {
   onDone: () => void;
 }
 
-/** 첫 곡 카드를 받은 뒤 한 번 — 기억할 확률을 내리며 같은 카드가 낡아 가는 모습을 보여 준다. */
+/** 첫 곡 카드를 받은 뒤 한 번 — 밀린 복습을 늘리며 같은 카드가 낡아 가는 모습을 보여 준다. */
 function CardWearIntro({ card, fonts, previewWidth, accent, bottomInset, onDone }: Props) {
   const tilt = useCardTilt();
   const pos = useSharedValue(0);
   const trackW = useSharedValue(0);
   // 카드는 1% 단위로만 다시 그린다 — 매 프레임 그리기엔 무겁다.
-  const [percent, setPercent] = useState(Math.round(RECALL_MAX * 100));
+  const [percent, setPercent] = useState(0);
 
   useEffect(() => {
     pos.value = withDelay(SWEEP_DELAY_MS, withTiming(1, { duration: SWEEP_MS, easing: Easing.inOut(Easing.quad) }));
   }, [pos]);
 
   useAnimatedReaction(
-    () => Math.round(recallAt(pos.value) * 100),
+    () => Math.round(pos.value * 100),
     (next, prev) => {
       if (next !== prev) runOnJS(setPercent)(next);
     },
@@ -80,7 +72,7 @@ function CardWearIntro({ card, fonts, previewWidth, accent, bottomInset, onDone 
   const fillStyle = useAnimatedStyle(() => ({ width: pos.value * trackW.value }));
   const thumbStyle = useAnimatedStyle(() => ({ transform: [{ translateX: pos.value * trackW.value - THUMB / 2 }] }));
 
-  const preview = useMemo(() => ({ ...card, recall: percent / 100 }), [card, percent]);
+  const preview = useMemo(() => ({ ...card, reviewedCount: 100, dueCount: percent }), [card, percent]);
 
   return (
     <View style={[styles.root, { paddingBottom: bottomInset + 16 }]}>
@@ -95,22 +87,22 @@ function CardWearIntro({ card, fonts, previewWidth, accent, bottomInset, onDone 
       </View>
 
       <Text style={styles.value}>
-        기억할 확률 <Text style={{ color: accent }}>{percent}%</Text>
+        밀린 복습 <Text style={{ color: accent }}>{percent}%</Text>
       </Text>
       <GestureDetector gesture={gesture}>
         <View style={styles.hit}>
           <View style={styles.track} onLayout={handleTrackLayout}>
             <Animated.View style={[styles.fill, { backgroundColor: accent }, fillStyle]} />
-            <View style={[styles.tick, { left: `${FRESH_POS * 100}%` }]} />
+            <View style={[styles.tick, { left: `${FRESH_DUE * 100}%` }]} />
             <Animated.View style={[styles.thumb, thumbStyle]} />
           </View>
         </View>
       </GestureDetector>
 
       <Text style={styles.rule}>
-        <Text style={styles.ruleStrong}>기억할 확률</Text>: 이 곡에서 공부한 단어를 지금 떠올릴 수 있는 확률의 평균{'\n'}
-        시간이 지나면 떨어지고, 복습하면 다시 올라가요.{'\n'}
-        90% 아래로 떨어지면 카드가 낡기 시작해요.
+        <Text style={styles.ruleStrong}>밀린 복습</Text>: 이 곡에서 공부한 단어 중 복습할 때가 된 단어의 비율{'\n'}
+        복습할 때가 되면 오르고, 복습하면 다시 내려가요.{'\n'}
+        20%를 넘으면 카드가 낡기 시작해요.
       </Text>
 
       <Pressable onPress={onDone} style={({ pressed }) => [styles.cta, pressed && styles.pressed]}>

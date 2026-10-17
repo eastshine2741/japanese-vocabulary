@@ -34,7 +34,7 @@ const store = () => useRewardCardStore.getState();
 
 const songDto = (over: Partial<SongCardDto> = {}): SongCardDto => ({
   id: 90, songId: 12, title: '群青', artist: 'YOASOBI', artworkUrl: null, artistId: null, grade: 'BASIC',
-  acquiredSeq: 1, lyricLineIndexes: [], lyric: [], words: [], recall: 1, goals: [], signature: [],
+  acquiredSeq: 1, lyricLineIndexes: [], lyric: [], words: [], reviewedCount: 0, dueCount: 0, goals: [], signature: [],
   issued: false, createdAt: '2026-10-11T00:00:00Z', ...over,
 });
 

@@ -39,8 +39,9 @@ export interface SongRewardCard {
   level: CardLevel;
   /** 곡 단어의 90% 가 장기기억. 마스터 카드는 앞면이 바뀌고 아티스트 카드에 한 곡으로 세어진다. */
   mastered: boolean;
-  /** 완료한 단계 단어들의 평균 FSRS 기억 확률. 낡음은 이 값에서 나온다. */
-  recall: number;
+  /** 카드를 받은 뒤 리뷰한 곡 단어 수와 그중 지금 복습할 차례인 수. 낡음은 이 비율에서 나온다. */
+  reviewedCount: number;
+  dueCount: number;
   ownerNo: number;
   earnedAt: string;
   /** 주인이 고른 가사 1~2줄, 곡 순서대로. 앞면엔 세로로, 뒷면엔 후리가나와 번역을 붙여 쓴다. */

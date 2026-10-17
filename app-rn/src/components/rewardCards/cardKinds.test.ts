@@ -17,7 +17,7 @@ import type { ArtistRewardCard, CardLevel, SongRewardCard } from './types';
 function songCard(id: string, title: string, level: CardLevel, mastered = false): SongRewardCard {
   return {
     id, songId: null, title, artist: 'A', artworkUrl: '', accent: '', ink: '', level, mastered,
-    recall: 0.7, ownerNo: 1, earnedAt: '2026-10-01', lyric: [], signature: null, words: [], goals: {},
+    reviewedCount: 10, dueCount: 3, ownerNo: 1, earnedAt: '2026-10-01', lyric: [], signature: null, words: [], goals: {},
   };
 }
 
@@ -43,7 +43,7 @@ describe('곡 카드 종류', () => {
   });
 
   it('견본은 그 등급으로 돌리고 새것으로 비운다', () => {
-    expect(songCardSample(cards[0], SONG_CARD_KINDS[3])).toMatchObject({ id: 'b0', level: 3, mastered: false, sample: true, recall: 1 });
+    expect(songCardSample(cards[0], SONG_CARD_KINDS[3])).toMatchObject({ id: 'b0', level: 3, mastered: false, sample: true, reviewedCount: 0, dueCount: 0 });
   });
 });
 

@@ -8,7 +8,6 @@ import com.japanese.vocabulary.song.model.Token
 import com.japanese.vocabulary.word.dto.AddWordRequest
 import com.japanese.vocabulary.word.dto.songword.WordInSongItemDto
 import org.assertj.core.api.Assertions.assertThat
-import org.assertj.core.api.Assertions.within
 import org.junit.jupiter.api.Test
 import java.time.Duration
 import java.time.Instant
@@ -67,19 +66,16 @@ class SongCardFaceTest {
     }
 
     @Test
-    fun `recall ignores reviews before the card was issued`() {
+    fun `reviewedSince ignores reviews before the card was issued`() {
         val stale = reviewed(issuedAt.minus(Duration.ofDays(60)))
-        val now = issuedAt.plusSeconds(1)
-        assertThat(SongCardFace.recall(listOf(listOf(stale, null)), issuedAt, now)).isEqualTo(1.0)
+        assertThat(SongCardFace.reviewedSince(listOf(listOf(stale, null)), issuedAt)).isEmpty()
     }
 
     @Test
-    fun `recall averages every tier word reviewed after issue`() {
-        val now = issuedAt.plus(Duration.ofDays(30))
+    fun `reviewedSince counts each tier word reviewed after issue once`() {
         val early = reviewed(issuedAt.plus(Duration.ofDays(1)))
-        val fresh = reviewed(now)
-        val recall = SongCardFace.recall(listOf(listOf(early), emptyList(), listOf(fresh, null)), issuedAt, now)
-        assertThat(recall).isLessThan(1.0).isGreaterThan(0.0)
-        assertThat(recall).isCloseTo((SongCardFace.recall(listOf(listOf(early)), issuedAt, now) + 1.0) / 2, within(0.01))
+        val later = reviewed(issuedAt.plus(Duration.ofDays(5)))
+        val reviewed = SongCardFace.reviewedSince(listOf(listOf(early), emptyList(), listOf(later, early, null)), issuedAt)
+        assertThat(reviewed).containsExactly(early, later)
     }
 }

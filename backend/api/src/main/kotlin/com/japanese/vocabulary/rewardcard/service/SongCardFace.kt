@@ -2,7 +2,6 @@ package com.japanese.vocabulary.rewardcard.service
 
 import com.japanese.vocabulary.flashcard.entity.FlashcardEntity
 import com.japanese.vocabulary.flashcard.model.FlashcardMemory
-import com.japanese.vocabulary.flashcard.model.FlashcardRecall
 import com.japanese.vocabulary.rewardcard.dto.RewardCardGoalResponse
 import com.japanese.vocabulary.rewardcard.dto.RewardCardWordResponse
 import com.japanese.vocabulary.rewardcard.model.SongCardGrade
@@ -11,7 +10,7 @@ import com.japanese.vocabulary.word.dto.songword.WordInSongItemDto
 import java.time.Instant
 import kotlin.math.ceil
 
-/** 카드 면에 싣는 곡 데이터. 단계 진행·기억 확률은 조회 때 계산한다. */
+/** 카드 면에 싣는 곡 데이터. 단계 진행·밀린 복습은 조회 때 계산한다. */
 object SongCardFace {
     private const val WORD_COUNT = 5
 
@@ -35,15 +34,9 @@ object SongCardFace {
             .take(WORD_COUNT)
             .map { RewardCardWordResponse(japanese = it.japanese, reading = it.reading.orEmpty(), meaning = it.senses.firstOrNull()?.meaning ?: it.koreanText!!) }
 
-    /**
-     * 평균 기억 확률. 곡의 tier 단어 중 카드를 받은 뒤 리뷰한 카드로 잰다 — 다른 곡에서 공부하고 밀린 단어가 받자마자 카드를 낡게 하지 않게.
-     * 잴 단어가 없으면 새것이다. 카드를 받게 한 리뷰는 카드보다 먼저 저장돼 빠지지만, 그래서 받는 순간은 새것이다.
-     */
-    fun recall(tiers: List<List<FlashcardEntity?>>, issuedAt: Instant, now: Instant): Double {
-        val measured = tiers.flatten().filterNotNull().filter { card -> card.lastReview?.let { it >= issuedAt } == true }.distinctBy { it.id }
-        if (measured.isEmpty()) return 1.0
-        return measured.map { FlashcardRecall.of(it, now) }.average()
-    }
+    /** 곡의 tier 단어 중 카드를 받은 뒤 리뷰한 카드. 받기 전 리뷰는 빼서, 다른 곡에서 공부하고 밀린 단어가 받자마자 카드를 낡게 하지 않는다. */
+    fun reviewedSince(tiers: List<List<FlashcardEntity?>>, issuedAt: Instant): List<FlashcardEntity> =
+        tiers.flatten().filterNotNull().filter { card -> card.lastReview?.let { it >= issuedAt } == true }.distinctBy { it.id }
 
     /** 받은 등급 위 등급마다의 진행, 등급 순서대로: 단계 등급은 그 단계의 공부한 단어 수, 마스터는 90% 목표까지의 장기기억 수. */
     fun goals(top: SongCardGrade, tiers: List<List<FlashcardEntity?>>): List<RewardCardGoalResponse> =

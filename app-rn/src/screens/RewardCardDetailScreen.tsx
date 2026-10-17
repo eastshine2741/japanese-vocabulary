@@ -69,7 +69,7 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
     () => owned ?? (opened ? songCardSample(opened, SONG_CARD_KINDS[viewRung]) : undefined),
     [owned, opened, viewRung],
   );
-  // 견본엔 기억할 확률이 맞지 않는다.
+  // 견본엔 밀린 복습이 맞지 않는다.
   const isSample = owned == null;
   const { width: screenW } = useWindowDimensions();
   const fonts = useCardFonts();
@@ -265,12 +265,12 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
 
           <Animated.View style={chromeStyle} pointerEvents={focused ? 'none' : 'auto'}>
             <Animated.View style={[styles.info, infoIn]}>
-              <View style={[styles.recall, isSample && styles.recallMuted]}>
-                <Pressable onPress={handleWearInfo} hitSlop={10} style={styles.recallInfo}>
-                  <Text style={styles.recallLabel}>기억할 확률</Text>
+              <View style={[styles.wear, isSample && styles.wearMuted]}>
+                <Pressable onPress={handleWearInfo} hitSlop={10} style={styles.wearInfo}>
+                  <Text style={styles.wearLabel}>복습할 단어</Text>
                   <Feather name="info" size={13} color={SHOWROOM.fgDim} />
                 </Pressable>
-                <Text style={styles.recallValue}>{Math.round((owned ?? opened ?? card).recall * 100)}%</Text>
+                <Text style={styles.wearValue}>{(owned ?? opened ?? card).dueCount}개</Text>
               </View>
 
               <GradePanel
@@ -318,11 +318,11 @@ const styles = StyleSheet.create({
   stage: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   stageCenter: { alignItems: 'center', justifyContent: 'center' },
   info: { paddingHorizontal: 24, paddingBottom: 8, gap: 8 },
-  recall: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 4 },
-  recallInfo: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  recallMuted: { opacity: 0.35 },
-  recallLabel: { color: SHOWROOM.fgDim, fontSize: 13, fontWeight: '500' },
-  recallValue: { color: SHOWROOM.fg, fontSize: 17, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  wear: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 4 },
+  wearInfo: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  wearMuted: { opacity: 0.35 },
+  wearLabel: { color: SHOWROOM.fgDim, fontSize: 13, fontWeight: '500' },
+  wearValue: { color: SHOWROOM.fg, fontSize: 17, fontWeight: '700', fontVariant: ['tabular-nums'] },
   ctaRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
   subCta: { height: 44, paddingHorizontal: 18, borderRadius: 14, backgroundColor: SHOWROOM.glass, alignItems: 'center', justifyContent: 'center' },
   subCtaText: { color: SHOWROOM.fg, fontSize: 15, fontWeight: '600' },

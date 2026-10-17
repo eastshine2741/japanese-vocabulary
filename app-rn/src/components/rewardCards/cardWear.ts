@@ -1,14 +1,18 @@
 import { SongRewardCard } from './types';
 
-/** FSRS 목표 기억률. due 를 매일 치우면 모든 단어가 이 위라서 카드가 낡지 않는다. */
-export const FRESH_RECALL = 0.9;
-const TATTERED_RECALL = 0.5;
+/** 밀린 복습 비율이 이 아래면 새것이다. */
+export const FRESH_DUE = 0.2;
 
 export type WearState = 'fresh' | 'faded' | 'worn' | 'tattered';
 
+/** 카드를 받은 뒤 리뷰한 단어 중 지금 복습할 차례인 비율. 잴 단어가 없으면 0. */
+export function dueRatio(card: Pick<SongRewardCard, 'dueCount' | 'reviewedCount'>): number {
+  return card.reviewedCount > 0 ? card.dueCount / card.reviewedCount : 0;
+}
+
 /** 0 = 새것, 1 = 완전히 낡음. */
-export function wearAge(recall: number): number {
-  const age = (FRESH_RECALL - recall) / (FRESH_RECALL - TATTERED_RECALL);
+export function wearAge(due: number): number {
+  const age = (due - FRESH_DUE) / (1 - FRESH_DUE);
   return Math.min(1, Math.max(0, age));
 }
 
@@ -17,10 +21,10 @@ export function coatingLeft(age: number): number {
   return Math.pow(1 - age, 1.6);
 }
 
-export function wearState(recall: number): WearState {
-  if (recall >= FRESH_RECALL) return 'fresh';
-  if (recall >= 0.8) return 'faded';
-  if (recall >= 0.65) return 'worn';
+export function wearState(due: number): WearState {
+  if (due < FRESH_DUE) return 'fresh';
+  if (due < 0.5) return 'faded';
+  if (due < 0.9) return 'worn';
   return 'tattered';
 }
 
@@ -43,6 +47,6 @@ export function sortCards(cards: SongRewardCard[], sort: CardSort): SongRewardCa
   const sorted = [...cards];
   if (sort === 'level') sorted.sort((a, b) => rank(b) - rank(a) || byRecent(a, b));
   if (sort === 'recent') sorted.sort(byRecent);
-  if (sort === 'worn') sorted.sort((a, b) => a.recall - b.recall || byRecent(a, b));
+  if (sort === 'worn') sorted.sort((a, b) => dueRatio(b) - dueRatio(a) || byRecent(a, b));
   return sorted;
 }

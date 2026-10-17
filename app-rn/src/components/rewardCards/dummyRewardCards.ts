@@ -32,7 +32,7 @@ const seeds: Seed[] = [
   {
     id: 'lemon', songId: null, title: 'Lemon', artist: '米津玄師',
     artworkUrl: unsplash('1682946543931-2c0dded9ba65'), accent: '#E8C547', ink: '#1C1A12',
-    level: 3, mastered: true, recall: 0.96, ownerNo: 47, earnedAt: '2026-09-21',
+    level: 3, mastered: true, reviewedCount: 20, dueCount: 0, ownerNo: 47, earnedAt: '2026-09-21',
     lyrics: [
       ['{雨|あめ}が{降|ふ}り{止|や}まない', '비가 그치지 않아'],
       ['{古|ふる}い{傷|きず}が{痛|いた}む', '오래된 상처가 아파'],
@@ -49,7 +49,7 @@ const seeds: Seed[] = [
     id: 'zamza', songId: null, title: 'ザムザ', artist: '25時、ナイトコードで。',
     artworkUrl: appleArtwork('Music126/v4/dc/75/73/dc75730f-d84b-3c77-dba8-3e070bc66937/4511820-96201.jpg'),
     accent: '#5EC4C0', ink: '#08191B',
-    level: 3, mastered: true, recall: 0.95, ownerNo: 764, earnedAt: '2026-10-05',
+    level: 3, mastered: true, reviewedCount: 20, dueCount: 0, ownerNo: 764, earnedAt: '2026-10-05',
     lyrics: [
       ['{窓|まど}の{外|そと}は{灰色|はいいろ}', '창밖은 잿빛'],
       ['{目覚|めざ}めた{朝|あさ}の{僕|ぼく}は', '눈을 뜬 아침의 나는'],
@@ -64,7 +64,7 @@ const seeds: Seed[] = [
   {
     id: 'idol', songId: null, title: 'アイドル', artist: 'YOASOBI',
     artworkUrl: unsplash('1701762292571-2875f1e522b6'), accent: '#FF5FA2', ink: '#1E0E1A',
-    level: 3, mastered: false, recall: 0.93, ownerNo: 312, earnedAt: '2026-10-02',
+    level: 3, mastered: false, reviewedCount: 20, dueCount: 0, ownerNo: 312, earnedAt: '2026-10-02',
     lyrics: [
       ['{完璧|かんぺき}な{笑顔|えがお}で', '완벽한 미소로'],
       ['{誰|だれ}もが{目|め}を{奪|うば}われる', '모두가 눈을 빼앗겨'],
@@ -79,7 +79,7 @@ const seeds: Seed[] = [
   {
     id: 'yoru', songId: null, title: '夜に駆ける', artist: 'YOASOBI',
     artworkUrl: unsplash('1716908331958-dfe8e734e560'), accent: '#7FA8FF', ink: '#0E1222',
-    level: 3, mastered: false, recall: 0.84, ownerNo: 4021, earnedAt: '2026-09-08',
+    level: 3, mastered: false, reviewedCount: 20, dueCount: 6, ownerNo: 4021, earnedAt: '2026-09-08',
     lyrics: [
       ['{君|きみ}の{手|て}を{取|と}って', '너의 손을 잡고'],
       ['{沈|しず}む{街|まち}を{抜|ぬ}けて', '가라앉는 거리를 빠져나와'],
@@ -94,7 +94,7 @@ const seeds: Seed[] = [
   {
     id: 'marigold', songId: null, title: 'マリーゴールド', artist: 'あいみょん',
     artworkUrl: unsplash('1769430724125-96853e0eadbb'), accent: '#FF9F43', ink: '#21140A',
-    level: 2, mastered: false, recall: 0.95, ownerNo: 902, earnedAt: '2026-09-30',
+    level: 2, mastered: false, reviewedCount: 20, dueCount: 0, ownerNo: 902, earnedAt: '2026-09-30',
     lyrics: [
       ['{遠|とお}くの{空|そら}を{見|み}る', '먼 하늘을 봐'],
       ['{麦|むぎ}わらの{帽子|ぼうし}', '밀짚모자'],
@@ -109,7 +109,7 @@ const seeds: Seed[] = [
   {
     id: 'gunjo', songId: null, title: '群青', artist: 'YOASOBI',
     artworkUrl: unsplash('1716809699704-209488bbac53'), accent: '#4FB3D9', ink: '#0B1820',
-    level: 2, mastered: false, recall: 0.72, ownerNo: 1180, earnedAt: '2026-08-14',
+    level: 2, mastered: false, reviewedCount: 20, dueCount: 11, ownerNo: 1180, earnedAt: '2026-08-14',
     lyrics: [
       ['{嘘|うそ}じゃない{気持|きも}ち', '거짓 아닌 마음'],
       ['{青|あお}い{波|なみ}の{向|む}こう', '푸른 파도 너머'],
@@ -124,7 +124,7 @@ const seeds: Seed[] = [
   {
     id: 'kaiju', songId: null, title: '怪獣の花唄', artist: 'Vaundy',
     artworkUrl: unsplash('1506105524407-94b39b1e7415'), accent: '#8E7CFF', ink: '#120F22',
-    level: 2, mastered: false, recall: 0.91, ownerNo: 655, earnedAt: '2026-09-25',
+    level: 2, mastered: false, reviewedCount: 20, dueCount: 0, ownerNo: 655, earnedAt: '2026-09-25',
     lyrics: [
       ['{眠|ねむ}れない{夜|よる}に', '잠 못 드는 밤에'],
       ['{星|ほし}の{下|した}で{歌|うた}えば', '별 아래서 노래하면'],
@@ -140,7 +140,7 @@ const seeds: Seed[] = [
     id: 'netsuijou', songId: null, title: '熱異常', artist: 'いよわ',
     artworkUrl: appleArtwork('Music112/v4/b9/9c/bd/b99cbdd3-bac5-88f7-d3cf-713c42c40386/859758874797_cover.jpg'),
     accent: '#FF5A2A', ink: '#210A04',
-    level: 2, mastered: false, recall: 0.88, ownerNo: 1437, earnedAt: '2026-09-27',
+    level: 2, mastered: false, reviewedCount: 20, dueCount: 5, ownerNo: 1437, earnedAt: '2026-09-27',
     lyrics: [
       ['{壊|こわ}れた{時計|とけい}の{針|はり}', '고장 난 시계 바늘'],
       ['{熱|ねつ}を{帯|お}びた{空|そら}に', '열을 띤 하늘에'],
@@ -155,7 +155,7 @@ const seeds: Seed[] = [
   {
     id: 'hakujitsu', songId: null, title: '白日', artist: 'King Gnu',
     artworkUrl: unsplash('1677145316529-a6e02cc8c504'), accent: '#C9D2E3', ink: '#101216',
-    level: 1, mastered: false, recall: 0.94, ownerNo: 88, earnedAt: '2026-10-06',
+    level: 1, mastered: false, reviewedCount: 20, dueCount: 0, ownerNo: 88, earnedAt: '2026-10-06',
     lyrics: [
       ['{雪|ゆき}が{全|すべ}てを{隠|かく}す', '눈이 모든 걸 숨겨'],
       ['{白|しろ}い{日差|ひざ}しの{中|なか}', '하얀 햇살 속'],
@@ -170,7 +170,7 @@ const seeds: Seed[] = [
   {
     id: 'neko', songId: null, title: '猫', artist: 'DISH//',
     artworkUrl: unsplash('1590502593747-42a996133562'), accent: '#F2D03B', ink: '#1F1A08',
-    level: 1, mastered: false, recall: 0.92, ownerNo: 230, earnedAt: '2026-10-04',
+    level: 1, mastered: false, reviewedCount: 20, dueCount: 0, ownerNo: 230, earnedAt: '2026-10-04',
     lyrics: [
       ['{気|き}まぐれな{君|きみ}', '변덕스러운 너'],
       ['{夕焼|ゆうや}けの{帰|かえ}り{道|みち}', '노을 진 귀갓길'],
@@ -185,7 +185,7 @@ const seeds: Seed[] = [
   {
     id: 'bansanka', songId: null, title: '晩餐歌', artist: 'tuki.',
     artworkUrl: unsplash('1644705697675-8e13764dabc9'), accent: '#FF6B3D', ink: '#200C06',
-    level: 1, mastered: false, recall: 0.62, ownerNo: 511, earnedAt: '2026-09-12',
+    level: 1, mastered: false, reviewedCount: 20, dueCount: 15, ownerNo: 511, earnedAt: '2026-09-12',
     lyrics: [
       ['{二人|ふたり}{分|ぶん}の{皿|さら}', '두 사람 몫의 접시'],
       ['{温|あたた}かい{食卓|しょくたく}に', '따뜻한 식탁에'],
@@ -200,7 +200,7 @@ const seeds: Seed[] = [
   {
     id: 'dryflower', songId: null, title: 'ドライフラワー', artist: '優里',
     artworkUrl: unsplash('1696671498745-5fddd32f0dab'), accent: '#D9A07A', ink: '#1E140F',
-    level: 1, mastered: false, recall: 0.9, ownerNo: 1022, earnedAt: '2026-10-07',
+    level: 1, mastered: false, reviewedCount: 20, dueCount: 0, ownerNo: 1022, earnedAt: '2026-10-07',
     lyrics: [
       ['{部屋|へや}の{隅|すみ}に{置|お}いた', '방 구석에 둔'],
       ['{色褪|いろあ}せた{花束|はなたば}', '빛바랜 꽃다발'],
@@ -215,7 +215,7 @@ const seeds: Seed[] = [
   {
     id: 'suiheisen', songId: null, title: '水平線', artist: 'back number',
     artworkUrl: unsplash('1707128551040-e512534e499d'), accent: '#9FB8C8', ink: '#0E1418',
-    level: 1, mastered: false, recall: 0.91, ownerNo: 377, earnedAt: '2026-10-03',
+    level: 1, mastered: false, reviewedCount: 20, dueCount: 0, ownerNo: 377, earnedAt: '2026-10-03',
     lyrics: [
       ['{波|なみ}の{音|おと}を{聞|き}く', '파도 소리를 들어'],
       ['{遠|とお}い{水平線|すいへいせん}へ', '먼 수평선으로'],
@@ -230,7 +230,7 @@ const seeds: Seed[] = [
   {
     id: 'kaibutsu', songId: null, title: '怪物', artist: 'YOASOBI',
     artworkUrl: unsplash('1543276169-235d78f9d79e'), accent: '#E04848', ink: '#1C0A0A',
-    level: 1, mastered: false, recall: 0.55, ownerNo: 2033, earnedAt: '2026-07-19',
+    level: 1, mastered: false, reviewedCount: 20, dueCount: 18, ownerNo: 2033, earnedAt: '2026-07-19',
     lyrics: [
       ['{夜|よる}の{街|まち}を{見下|みお}ろす', '밤거리를 내려다봐'],
       ['{牙|きば}を{隠|かく}したまま', '송곳니를 숨긴 채'],
@@ -245,7 +245,7 @@ const seeds: Seed[] = [
   {
     id: 'hadakanokokoro', songId: null, title: '裸の心', artist: 'あいみょん',
     artworkUrl: appleArtwork('Music124/v4/85/0b/1b/850b1b4c-f529-6828-4b2b-a5a187ec61c6/190295235017.jpg'), accent: '#F2A65A', ink: '#1C1008',
-    level: 0, mastered: false, recall: 0.97, ownerNo: 1290, earnedAt: '2026-10-09',
+    level: 0, mastered: false, reviewedCount: 20, dueCount: 0, ownerNo: 1290, earnedAt: '2026-10-09',
     lyrics: [
       ['{風|かぜ}の{強|つよ}さがちょっと', '바람의 세기가 조금'],
       ['{麦|むぎ}わらの{帽子|ぼうし}', '밀짚모자'],
@@ -259,7 +259,7 @@ const seeds: Seed[] = [
   {
     id: 'odoriko', songId: null, title: '踊り子', artist: 'Vaundy',
     artworkUrl: appleArtwork('Music126/v4/f1/cd/f7/f1cdf773-5dca-3d6d-6c14-2fb9871a83a9/197189838330.jpg'), accent: '#8FD16A', ink: '#0B140A',
-    level: 0, mastered: false, recall: 0.95, ownerNo: 3318, earnedAt: '2026-10-10',
+    level: 0, mastered: false, reviewedCount: 20, dueCount: 0, ownerNo: 3318, earnedAt: '2026-10-10',
     lyrics: [
       ['{回|まわ}る{回|まわ}る{夜|よる}に', '돌고 도는 밤에'],
       ['{君|きみ}と{踊|おど}りたい', '너와 춤추고 싶어'],
@@ -275,7 +275,7 @@ const seeds: Seed[] = [
 const zamza: Omit<Seed, 'id' | 'level' | 'mastered' | 'nextGoal'> = {
   songId: null, title: 'ザムザ', artist: '25時、ナイトコードで。',
   artworkUrl: appleArtwork('Music126/v4/dc/75/73/dc75730f-d84b-3c77-dba8-3e070bc66937/4511820-96201.jpg'),
-  accent: '#B07AE8', ink: '#110A1C', recall: 0.94, ownerNo: 764, earnedAt: '2026-10-08',
+  accent: '#B07AE8', ink: '#110A1C', reviewedCount: 20, dueCount: 0, ownerNo: 764, earnedAt: '2026-10-08',
   lyrics: [
     ['{目|め}が{覚|さ}めたら{虫|むし}になっていた', '눈을 뜨니 벌레가 되어 있었어'],
     ['{誰|だれ}にも{言|い}えない{姿|すがた}', '누구에게도 말할 수 없는 모습'],

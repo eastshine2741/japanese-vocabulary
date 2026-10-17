@@ -53,7 +53,7 @@ export function findSongCard(cards: readonly SongRewardCard[], songId: number | 
 
 /** 아직 얻지 않은 등급의 견본. 같은 곡의 카드를 그 등급으로 돌리고 주인 정보를 비운다. */
 export function songCardSample(card: SongRewardCard, kind: SongCardGrade): SongRewardCard {
-  return { ...card, level: kind.level, mastered: kind.mastered, sample: true, recall: 1 };
+  return { ...card, level: kind.level, mastered: kind.mastered, sample: true, reviewedCount: 0, dueCount: 0 };
 }
 
 // 더미 아티스트 카드는 artistId 가 없어 이름으로 맞춘다.

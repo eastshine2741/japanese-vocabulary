@@ -23,7 +23,8 @@ const songDto = (over: Partial<SongCardDto> = {}): SongCardDto => ({
   lyricLineIndexes: [],
   lyric: [{ index: 4, originalText: '青い', startTimeMs: null, koreanLyrics: '푸른', tokens: [] }],
   words: [{ japanese: '波', reading: 'ナミ', meaning: '파도' }],
-  recall: 0.82,
+  reviewedCount: 12,
+  dueCount: 4,
   goals: [{ grade: 'SILVER', current: 3, total: 9 }],
   signature: [],
   issued: true,
@@ -35,7 +36,7 @@ describe('serverRewardCards', () => {
   it('maps a song card to the card model', () => {
     const card = toSongCard(songDto());
     expect(card.id).toBe('srv-song-90');
-    expect(card).toMatchObject({ songId: 12, issued: true, level: 2, mastered: false, ownerNo: 41, recall: 0.82, artworkUrl: '', signature: null });
+    expect(card).toMatchObject({ songId: 12, issued: true, level: 2, mastered: false, ownerNo: 41, reviewedCount: 12, dueCount: 4, artworkUrl: '', signature: null });
     // 16:30 UTC 는 KST 로 다음 날이다.
     expect(card.earnedAt).toBe('2026-10-11');
     expect(card.words[0].reading).toBe('なみ');
