@@ -49,5 +49,4 @@ GoogleService-Info.plist
 native-build.json
 
 # fastlane run outputs (CI)
-/fastlane/metadata-empty/
 /fastlane/report.xml
