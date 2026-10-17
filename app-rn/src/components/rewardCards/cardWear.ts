@@ -1,6 +1,6 @@
 import { SongRewardCard } from './types';
 
-/** 밀린 복습 비율이 이 아래면 새것이다. */
+/** 복습할 때가 된 단어 비율이 이 아래면 새것이다. */
 export const FRESH_DUE = 0.2;
 
 export type WearState = 'fresh' | 'faded' | 'worn' | 'tattered';

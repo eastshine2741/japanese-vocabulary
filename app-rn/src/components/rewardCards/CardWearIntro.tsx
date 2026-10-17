@@ -32,7 +32,7 @@ interface Props {
   onDone: () => void;
 }
 
-/** 첫 곡 카드를 받은 뒤 한 번 — 밀린 복습을 늘리며 같은 카드가 낡아 가는 모습을 보여 준다. */
+/** 첫 곡 카드를 받은 뒤 한 번 — 복습할 때가 된 단어를 늘리며 같은 카드가 낡아 가는 모습을 보여 준다. */
 function CardWearIntro({ card, fonts, previewWidth, accent, bottomInset, onDone }: Props) {
   const tilt = useCardTilt();
   const pos = useSharedValue(0);
@@ -87,7 +87,7 @@ function CardWearIntro({ card, fonts, previewWidth, accent, bottomInset, onDone 
       </View>
 
       <Text style={styles.value}>
-        밀린 복습 <Text style={{ color: accent }}>{percent}%</Text>
+        복습할 때가 된 단어 <Text style={{ color: accent }}>{percent}%</Text>
       </Text>
       <GestureDetector gesture={gesture}>
         <View style={styles.hit}>
@@ -100,9 +100,8 @@ function CardWearIntro({ card, fonts, previewWidth, accent, bottomInset, onDone 
       </GestureDetector>
 
       <Text style={styles.rule}>
-        <Text style={styles.ruleStrong}>밀린 복습</Text>: 이 곡에서 공부한 단어 중 복습할 때가 된 단어의 비율{'\n'}
-        복습할 때가 되면 오르고, 복습하면 다시 내려가요.{'\n'}
-        20%를 넘으면 카드가 낡기 시작해요.
+        공부한 단어는 며칠 뒤 다시 복습할 때가 와요.{'\n'}
+        그런 단어가 쌓일수록 카드가 낡고, 복습하면 다시 새것이 돼요.
       </Text>
 
       <Pressable onPress={onDone} style={({ pressed }) => [styles.cta, pressed && styles.pressed]}>
@@ -131,7 +130,6 @@ const styles = StyleSheet.create({
     backgroundColor: SHOWROOM.fg,
   },
   rule: { color: SHOWROOM.fgDim, fontSize: 13, lineHeight: 20, textAlign: 'center', marginTop: 8 },
-  ruleStrong: { color: SHOWROOM.fg, fontWeight: '700' },
   cta: {
     height: 52,
     borderRadius: 16,

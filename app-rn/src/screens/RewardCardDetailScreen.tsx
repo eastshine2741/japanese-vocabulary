@@ -71,7 +71,7 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
     () => owned ?? (opened ? songCardSample(opened, SONG_CARD_KINDS[viewRung]) : undefined),
     [owned, opened, viewRung],
   );
-  // 견본엔 밀린 복습이 맞지 않는다.
+  // 견본엔 복습할 때가 된 단어 수가 맞지 않는다.
   const isSample = owned == null;
   const { width: screenW } = useWindowDimensions();
   const fonts = useCardFonts();
@@ -289,7 +289,7 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
             <Animated.View style={[styles.info, infoIn]}>
               <View style={[styles.wear, isSample && styles.wearMuted]}>
                 <Pressable onPress={handleWearInfo} hitSlop={10} style={styles.wearInfo}>
-                  <Text style={styles.wearLabel}>복습할 단어</Text>
+                  <Text style={styles.wearLabel}>복습할 때가 된 단어</Text>
                   <Feather name="info" size={13} color={SHOWROOM.fgDim} />
                 </Pressable>
                 <Text style={styles.wearValue}>{(owned ?? opened ?? card).dueCount}개</Text>

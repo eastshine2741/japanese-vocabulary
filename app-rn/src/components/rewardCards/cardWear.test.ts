@@ -36,7 +36,7 @@ describe('dueRatio', () => {
 });
 
 describe('wearAge', () => {
-  it('밀린 복습이 20% 아래면 새것이다', () => {
+  it('복습할 때가 된 단어가 20% 아래면 새것이다', () => {
     expect(wearAge(0)).toBe(0);
     expect(wearAge(0.2)).toBe(0);
   });
@@ -48,7 +48,7 @@ describe('wearAge', () => {
 });
 
 describe('wearState', () => {
-  it('밀린 복습 비율 구간으로 나눈다', () => {
+  it('복습할 때가 된 단어 비율 구간으로 나눈다', () => {
     expect(wearState(0.1)).toBe('fresh');
     expect(wearState(0.3)).toBe('faded');
     expect(wearState(0.7)).toBe('worn');
@@ -72,7 +72,7 @@ describe('sortCards', () => {
     expect(sortCards(cards, 'recent').map((c) => c.id)).toEqual(['c', 'd', 'a', 'b']);
   });
 
-  it('낡은순은 밀린 복습 비율이 높은 카드부터다', () => {
+  it('낡은순은 복습할 때가 된 단어 비율이 높은 카드부터다', () => {
     expect(sortCards(cards, 'worn').map((c) => c.id)).toEqual(['c', 'd', 'a', 'b']);
   });
 });
