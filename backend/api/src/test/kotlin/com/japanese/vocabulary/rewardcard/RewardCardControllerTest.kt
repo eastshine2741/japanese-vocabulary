@@ -249,15 +249,16 @@ class RewardCardControllerTest : ApiBaseIntegrationTest() {
         assertThat(bronze.signature).isEqualTo(signature)
         assertThat(bronze.lyricLineIndexes).containsExactly(0)
         assertThat(bronze.lyric.map { it.index }).containsExactly(0)
-        assertThat(bronze.words.map { it.japanese }).containsExactly("胸", "雨", "輪郭")
+        // 뒷면 단어는 카드에 실린 줄의 단어만.
+        assertThat(bronze.words.map { it.japanese }).containsExactly("胸")
         assertThat(songCards.single { it.grade == SongCardGrade.GOLD }.issued).isFalse()
-        // 다음 등급 진행은 곡의 것이라 카드마다 같다. 막 공부한 단어라 장기기억은 아직 없고, 목표는 tier 단어 3개의 90% 올림.
-        assertThat(songCards.map { it.nextGoal }.distinct()).containsExactly(RewardCardGoalResponse(current = 0, total = 3))
+        // 등급 진행은 곡의 것이라 카드마다 같다. 막 공부한 단어라 장기기억은 아직 없고, 목표는 tier 단어 3개의 90% 올림.
+        assertThat(songCards.map { it.goals }.distinct()).containsExactly(listOf(RewardCardGoalResponse(SongCardGrade.MASTER, current = 0, total = 3)))
         assertThat(bronze.recall).isBetween(0.9, 1.0)
     }
 
     @Test
-    fun `basic card reports progress toward the chorus tier`() {
+    fun `basic card reports progress toward every grade above it`() {
         val me = newUser()
         val song = newSong(artist = null)
         review(me, studyWord(me, song, "輪郭"))
@@ -265,7 +266,12 @@ class RewardCardControllerTest : ApiBaseIntegrationTest() {
 
         val songCard = cards(me).songCards.single()
         assertThat(songCard.grade).isEqualTo(SongCardGrade.BASIC)
-        assertThat(songCard.nextGoal).isEqualTo(RewardCardGoalResponse(current = 0, total = 1))
+        assertThat(songCard.goals).containsExactly(
+            RewardCardGoalResponse(SongCardGrade.BRONZE, current = 0, total = 1),
+            RewardCardGoalResponse(SongCardGrade.SILVER, current = 0, total = 1),
+            RewardCardGoalResponse(SongCardGrade.GOLD, current = 1, total = 1),
+            RewardCardGoalResponse(SongCardGrade.MASTER, current = 0, total = 3),
+        )
     }
 
     @Test
@@ -361,6 +367,6 @@ class RewardCardControllerTest : ApiBaseIntegrationTest() {
         // 팬 번호는 BRONZE 부터 붙는다.
         assertThat(artistCards.single { it.grade.name == "BASIC" }.fanNo).isNull()
         assertThat(artistCards.single { it.grade.name == "BRONZE" }.fanNo).isEqualTo(1)
-        assertThat(cards(me).songCards.map { it.nextGoal }.distinct()).containsExactly(null)
+        assertThat(cards(me).songCards.map { it.goals }.distinct()).containsExactly(emptyList<RewardCardGoalResponse>())
     }
 }

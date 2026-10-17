@@ -26,6 +26,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { SONG_CARD_KINDS, songCardOfKind, songCardSample, songCardsOf, songRung } from '../components/rewardCards/cardKinds';
 import { serverTargetId } from '../components/rewardCards/serverRewardCards';
 import { songGradeCondition } from '../components/rewardCards/songGradeCondition';
+import type { CardGoal } from '../components/rewardCards/types';
 import { useRewardCardStore } from '../stores/rewardCardStore';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RewardCardDetail'>;
@@ -40,6 +41,8 @@ interface Box {
 const STAGE_INSET = 16;
 const FOCUS_INSET = 24;
 
+
+const NO_GOALS: Partial<Record<number, CardGoal>> = {};
 
 const SONG_TABS: readonly GradeTab[] = SONG_CARD_KINDS.map((kind) => {
   const material = kind.mastered ? MASTER_CHIP : LEVEL_MATERIAL[kind.level];
@@ -214,7 +217,7 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
     );
   }
 
-  const goal = opened?.nextGoal ?? null;
+  const goals = opened?.goals ?? NO_GOALS;
 
   return (
     <View style={styles.root}>
@@ -274,7 +277,7 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
                 tabs={SONG_TABS}
                 owned={ownedRung}
                 selected={viewRung}
-                progress={goal}
+                goals={goals}
                 condition={songCondition}
                 onSelect={handleSelectRung}
               />

@@ -22,8 +22,8 @@ data class SongCardResponse(
     val words: List<RewardCardWordResponse>,
     /** 이 카드를 받은 뒤 리뷰한 tier 단어들의 평균 FSRS 기억 확률. 낡음은 이 값에서 나온다. */
     val recall: Double,
-    /** 곡의 다음 등급까지 진행. 같은 곡의 카드는 모두 같은 값이다. */
-    val nextGoal: RewardCardGoalResponse?,
+    /** 곡의 받은 등급 위 등급마다의 진행, 등급 순서대로. 같은 곡의 카드는 모두 같은 값이다. */
+    val goals: List<RewardCardGoalResponse>,
     val signature: List<String>,
     /** false 면 아직 서명 전. */
     val issued: Boolean,

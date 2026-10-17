@@ -24,7 +24,7 @@ const songDto = (over: Partial<SongCardDto> = {}): SongCardDto => ({
   lyric: [{ index: 4, originalText: '青い', startTimeMs: null, koreanLyrics: '푸른', tokens: [] }],
   words: [{ japanese: '波', reading: 'ナミ', meaning: '파도' }],
   recall: 0.82,
-  nextGoal: { current: 3, total: 9 },
+  goals: [{ grade: 'SILVER', current: 3, total: 9 }],
   signature: [],
   issued: true,
   createdAt: '2026-10-10T16:30:00Z',

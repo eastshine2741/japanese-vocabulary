@@ -19,7 +19,8 @@ import ArtistCardShowcase from '../components/rewardCards/ArtistCardShowcase';
 import CardShareButton from '../components/rewardCards/CardShareButton';
 import GradePanel, { GradeTab } from '../components/rewardCards/GradePanel';
 import { useShallow } from 'zustand/react/shallow';
-import { ARTIST_GRADE_STEPS, nextArtistGradeStep } from '../components/rewardCards/artistGrade';
+import { ARTIST_GRADE_STEPS } from '../components/rewardCards/artistGrade';
+import type { CardGoal } from '../components/rewardCards/types';
 import { artistCardOfStep, artistCardSample, artistCardsOf, artistRung } from '../components/rewardCards/cardKinds';
 import { serverTargetId } from '../components/rewardCards/serverRewardCards';
 import { ARTIST_CARD_RATIO, ARTIST_MATERIAL, SHOWROOM, useCardFonts } from '../components/rewardCards/cardTheme';
@@ -52,6 +53,14 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
     [siblings, opened],
   );
   const ownedRung = top ? artistRung(top) : 0;
+  const goals = useMemo(() => {
+    const byRung: Partial<Record<number, CardGoal>> = {};
+    if (top == null) return byRung;
+    for (let rung = ownedRung + 1; rung < ARTIST_GRADE_STEPS.length; rung++) {
+      byRung[rung] = { current: top.masteredCount, total: ARTIST_GRADE_STEPS[rung].from };
+    }
+    return byRung;
+  }, [top, ownedRung]);
   const [pickedRung, setPickedRung] = useState<number | null>(null);
   const viewRung = pickedRung ?? (opened ? artistRung(opened) : 0);
   const owned = pickedRung == null ? opened : artistCardOfStep(siblings, ARTIST_GRADE_STEPS[viewRung]) ?? undefined;
@@ -108,8 +117,6 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
   }
 
   const cardW = Math.min(screenW - 40, 400);
-  const next = top ? nextArtistGradeStep(top.masteredCount) : null;
-  const progress = top && next ? { current: top.masteredCount, total: next.from } : null;
 
   return (
     <View style={styles.root}>
@@ -146,7 +153,7 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
             tabs={ARTIST_TABS}
             owned={ownedRung}
             selected={viewRung}
-            progress={progress}
+            goals={goals}
             condition={artistCondition}
             onSelect={handleSelectRung}
           />

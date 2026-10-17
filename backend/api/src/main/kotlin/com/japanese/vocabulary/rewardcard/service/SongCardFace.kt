@@ -45,16 +45,18 @@ object SongCardFace {
         return measured.map { FlashcardRecall.of(it, now) }.average()
     }
 
-    /** 다음 등급까지: 다음 단계의 공부한 단어 수, 완곡 뒤엔 90% 목표까지의 장기기억 수. 마스터면 없다. */
-    fun nextGoal(grade: SongCardGrade, tiers: List<List<FlashcardEntity?>>): RewardCardGoalResponse? {
-        if (grade == SongCardGrade.MASTER) return null
-        if (grade < SongCardGrade.GOLD) {
-            val tier = tiers.getOrNull(grade.ordinal) ?: return null
-            return RewardCardGoalResponse(current = tier.count { FlashcardMemory.of(it) != FlashcardMemory.REMAINING }, total = tier.size)
+    /** 받은 등급 위 등급마다의 진행, 등급 순서대로: 단계 등급은 그 단계의 공부한 단어 수, 마스터는 90% 목표까지의 장기기억 수. */
+    fun goals(top: SongCardGrade, tiers: List<List<FlashcardEntity?>>): List<RewardCardGoalResponse> =
+        SongCardGrade.entries.filter { it > top }.mapNotNull { goal(it, tiers) }
+
+    private fun goal(grade: SongCardGrade, tiers: List<List<FlashcardEntity?>>): RewardCardGoalResponse? {
+        if (grade != SongCardGrade.MASTER) {
+            val tier = tiers.getOrNull(grade.ordinal - 1) ?: return null
+            return RewardCardGoalResponse(grade, current = tier.count { FlashcardMemory.of(it) != FlashcardMemory.REMAINING }, total = tier.size)
         }
         val all = tiers.flatten()
         val target = ceil(all.size * SongCardGradeRule.MASTER_PERCENT / 100.0).toInt()
         val longTerm = all.count { FlashcardMemory.of(it) == FlashcardMemory.LONG_TERM }
-        return RewardCardGoalResponse(current = minOf(longTerm, target), total = target)
+        return RewardCardGoalResponse(grade, current = minOf(longTerm, target), total = target)
     }
 }

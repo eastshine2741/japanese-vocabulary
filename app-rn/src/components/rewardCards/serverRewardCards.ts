@@ -41,6 +41,11 @@ export function songGradeOf(grade: string): SongCardGrade {
   return { level: Math.max(0, level) as CardLevel, mastered: false };
 }
 
+function songGradeRung(grade: string): number {
+  const { level, mastered } = songGradeOf(grade);
+  return mastered ? 4 : level;
+}
+
 /** 그 등급이 되는 마스터 곡 수. */
 export function artistGradeFrom(grade: string): number {
   const index = ARTIST_GRADES.indexOf(grade as (typeof ARTIST_GRADES)[number]);
@@ -62,7 +67,7 @@ export function toSongCard(dto: SongCardDto): SongRewardCard {
     lyric: dto.lyric.map(toCardLine),
     signature: dto.signature.length > 0 ? dto.signature : null,
     words: dto.words.map((word) => ({ ...word, reading: katakanaToHiragana(word.reading) })),
-    nextGoal: dto.nextGoal,
+    goals: Object.fromEntries(dto.goals.map(({ grade, current, total }) => [songGradeRung(grade), { current, total }])),
     picked: dto.lyricLineIndexes,
     issued: dto.issued,
   };

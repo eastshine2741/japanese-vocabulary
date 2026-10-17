@@ -31,7 +31,7 @@ export function songCardPreview(song: PreviewSong, level: CardLevel, mastered: b
     lyric: song.lyric,
     signature: null,
     words: song.words,
-    nextGoal: null,
+    goals: {},
     sample: true,
   };
 }

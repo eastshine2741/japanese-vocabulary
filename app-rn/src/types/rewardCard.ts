@@ -38,8 +38,8 @@ export interface SongCardDto {
   lyric: SongLyricLineDto[];
   words: RewardCardWordDto[];
   recall: number;
-  /** 곡의 다음 등급까지 진행. 같은 곡의 카드는 모두 같다. */
-  nextGoal: { current: number; total: number } | null;
+  /** 곡의 받은 등급 위 등급마다의 진행, 등급 순서대로. 같은 곡의 카드는 모두 같다. */
+  goals: { grade: SongCardGradeDto; current: number; total: number }[];
   signature: string[];
   /** false 면 아직 서명 전. */
   issued: boolean;

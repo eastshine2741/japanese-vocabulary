@@ -19,7 +19,7 @@ function card(id: string, patch: Partial<SongRewardCard>): SongRewardCard {
     lyric: [],
     signature: null,
     words: [],
-    nextGoal: null,
+    goals: {},
     ...patch,
   };
 }

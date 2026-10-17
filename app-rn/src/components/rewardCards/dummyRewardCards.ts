@@ -1,5 +1,5 @@
 import { ARTIST_GRADE_STEPS } from './artistGrade';
-import { ArtistRewardCard, CardLyricLine, CardWord, MasteredSong, RubySegment, SongRewardCard } from './types';
+import { ArtistRewardCard, CardGoal, CardLyricLine, CardWord, MasteredSong, RubySegment, SongRewardCard } from './types';
 import type { SongGradeRuleDto } from '../../types/rewardCard';
 
 // API 가 생기기 전 화면을 그리기 위한 더미. 가사는 실제 곡 가사가 아니라 지어낸 문장이다.
@@ -18,8 +18,15 @@ const w = (japanese: string, reading: string, meaning: string): CardWord => ({
   japanese, reading, meaning,
 });
 
-/** 가사는 곡 순서대로 [후리가나 원문, 번역]. pick 은 카드에 처음 실리는 줄. */
-type Seed = Omit<SongRewardCard, 'lyric' | 'signature'> & { lyrics: [string, string][]; pick: number[] };
+/** 가사는 곡 순서대로 [후리가나 원문, 번역]. pick 은 카드에 처음 실리는 줄. 그 위 등급의 진행은 nextGoal 에서 지어낸다. */
+type Seed = Omit<SongRewardCard, 'lyric' | 'signature' | 'goals'> & { lyrics: [string, string][]; pick: number[]; nextGoal: CardGoal | null };
+
+function laterGoals(rung: number, next: CardGoal | null): SongRewardCard['goals'] {
+  if (next == null) return {};
+  const goals: SongRewardCard['goals'] = {};
+  for (let r = rung + 1, k = 0; r <= 4; r++, k++) goals[r] = { current: Math.floor(next.current / (k + 1)), total: next.total + k * 12 };
+  return goals;
+}
 
 const seeds: Seed[] = [
   {
@@ -292,8 +299,9 @@ const SONG_LYRICS: Record<string, CardLyricLine[]> = Object.fromEntries(
 
 export const DUMMY_SONG_GRADE_RULE: SongGradeRuleDto = { tierNames: ['후렴 정복', '따라 부르기', '완곡'], masterPercent: 90 };
 
-export const DUMMY_SONG_CARDS: SongRewardCard[] = seeds.map(({ lyrics: _lyrics, pick, ...card }) => ({
+export const DUMMY_SONG_CARDS: SongRewardCard[] = seeds.map(({ lyrics: _lyrics, pick, nextGoal, ...card }) => ({
   ...card,
+  goals: laterGoals(card.mastered ? 4 : card.level, nextGoal),
   lyric: SONG_LYRICS[card.id].filter((line) => pick.includes(line.index)),
   signature: null,
 }));

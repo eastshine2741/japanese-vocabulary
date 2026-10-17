@@ -94,7 +94,7 @@ class RewardCardQueryService(
         if (!lines.containsAll(lyricLineIndexes)) throw BusinessException(ErrorCode.INVALID_CARD_LYRIC)
     }
 
-    /** 곡마다 받은 가장 높은 등급. 다음 등급 진행은 카드가 아니라 곡의 것이다. */
+    /** 곡마다 받은 가장 높은 등급. 등급 진행은 카드가 아니라 곡의 것이다. */
     private fun topGrades(songCards: List<SongCardDto>): Map<Long, SongCardGrade> =
         songCards.groupBy { it.songId }.mapValues { (_, cards) -> cards.maxOf { it.grade } }
 
@@ -132,7 +132,7 @@ class RewardCardQueryService(
             lyric = lyric,
             words = tierCards?.let { SongCardFace.words(it.words.words, lyric.map { line -> line.index }) }.orEmpty(),
             recall = SongCardFace.recall(tiers, card.createdAt, now),
-            nextGoal = SongCardFace.nextGoal(topGrade, tiers),
+            goals = SongCardFace.goals(topGrade, tiers),
             signature = card.signature,
             issued = card.issued,
             createdAt = card.createdAt,

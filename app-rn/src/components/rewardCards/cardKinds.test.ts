@@ -17,7 +17,7 @@ import type { ArtistRewardCard, CardLevel, SongRewardCard } from './types';
 function songCard(id: string, title: string, level: CardLevel, mastered = false): SongRewardCard {
   return {
     id, songId: null, title, artist: 'A', artworkUrl: '', accent: '', ink: '', level, mastered,
-    recall: 0.7, ownerNo: 1, earnedAt: '2026-10-01', lyric: [], signature: null, words: [], nextGoal: null,
+    recall: 0.7, ownerNo: 1, earnedAt: '2026-10-01', lyric: [], signature: null, words: [], goals: {},
   };
 }
 

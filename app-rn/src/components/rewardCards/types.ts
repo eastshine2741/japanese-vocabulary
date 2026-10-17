@@ -48,8 +48,8 @@ export interface SongRewardCard {
   /** 발급 때 주인이 한 번 그린 서명. 서명 전이면 null. */
   signature: CardSignature | null;
   words: CardWord[];
-  /** 마스터 카드는 다음 목표가 없다. */
-  nextGoal: CardGoal | null;
+  /** 받은 등급 위 등급마다의 진행, songRung 자리로. 마스터 카드는 비어 있다. */
+  goals: Partial<Record<number, CardGoal>>;
   /** 아직 얻지 않은 레벨의 견본. 획득 순번·획득일을 — 로 비운다. */
   sample?: boolean;
   /** 서버 카드에서 주인이 고른 가사 줄. 비어 있으면 기본 줄이다. */

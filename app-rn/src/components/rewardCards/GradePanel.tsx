@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SHOWROOM } from './cardTheme';
+import type { CardGoal } from './types';
 
 export interface GradeTab {
   key: string;
@@ -18,17 +19,17 @@ interface Props {
   /** 내 카드의 등급. 이보다 위 칸은 아직 얻지 않은 견본이다. */
   owned: number;
   selected: number;
-  /** 다음 등급까지의 진행. 다음 칸을 이만큼 채운다. */
-  progress: { current: number; total: number } | null;
+  /** 얻지 않은 등급(칸 자리)마다의 진행. 다음 칸은 이만큼 채운다. */
+  goals: Partial<Record<number, CardGoal>>;
   condition: (rung: number) => string;
   onSelect: (index: number) => void;
 }
 
-/** 등급 칩 줄과 선택한 칩의 조건 한 줄. 다음 등급까지의 진행은 그 칩을 채워 보이고, 그 칩을 고르면 숫자로도 보인다. */
-function GradePanel({ tabs, owned, selected, progress, condition, onSelect }: Props) {
-  const next = owned + 1 < tabs.length ? owned + 1 : null;
-  const ratio = next != null && progress != null ? Math.min(1, progress.current / Math.max(1, progress.total)) : 0;
-  const showProgress = selected === next && progress != null;
+/** 등급 칩 줄과 선택한 칩의 조건 한 줄. 다음 등급까지의 진행은 그 칩을 채워 보이고, 얻지 않은 칩을 고르면 그 등급의 진행이 숫자로 보인다. */
+function GradePanel({ tabs, owned, selected, goals, condition, onSelect }: Props) {
+  const nextGoal = goals[owned + 1];
+  const ratio = nextGoal != null ? Math.min(1, nextGoal.current / Math.max(1, nextGoal.total)) : 0;
+  const progress = selected > owned ? goals[selected] : undefined;
 
   return (
     <View style={styles.panel}>
@@ -49,7 +50,7 @@ function GradePanel({ tabs, owned, selected, progress, condition, onSelect }: Pr
         <Text style={styles.goalText} numberOfLines={2}>
           {condition(selected)}
         </Text>
-        {showProgress && (
+        {progress != null && (
           <Text style={styles.value}>
             {progress.current}
             <Text style={styles.total}> / {progress.total}</Text>
