@@ -907,8 +907,6 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
   const wordsSheetRef = useRef<AppBottomSheetRef>(null);
   const wordsSheetIndexRef = useRef(0);
   const wordsSheetAnimatedIndex = useSharedValue(0);
-  const currentMs = usePlayerStore(s => s.currentMs);
-  const durationMs = usePlayerStore(s => s.durationMs);
   const setCurrentMs = usePlayerStore(s => s.setCurrentMs);
   const setDurationMs = usePlayerStore(s => s.setDurationMs);
   const handleSyncedPageChange = useCallback((line: React.ComponentProps<typeof CurrentPlayingWordsSheet>['lines'][number]) => {
@@ -931,8 +929,6 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
       artist={artist}
       youtubeUrl={youtubeUrl}
       initialSeekMs={initialSeekMs}
-      currentTimeMs={currentMs}
-      durationMs={durationMs}
       embedded
       expandProgress={wordsSheetAnimatedIndex}
       onCurrentTimeChange={setCurrentMs}
@@ -941,8 +937,6 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
     />
   ), [
     artist,
-    currentMs,
-    durationMs,
     handleToggleWordsSheet,
     initialSeekMs,
     wordsSheetAnimatedIndex,
@@ -961,7 +955,6 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
       words={words}
       lineWordIndexes={lineWordIndexes}
       lyricType={lyricType}
-      currentTimeMs={currentMs}
       fallbackLineIndex={initialLyricIndex}
       bottomInset={bottomInset}
       header={mvBarHeader}

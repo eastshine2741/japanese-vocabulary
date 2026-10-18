@@ -39,6 +39,7 @@ const DYNAMIC_OPACITY = 0.85;
 const DYNAMIC_HIGHLIGHT_OPACITY = 0.5;
 /** 포커스에서 멀어질수록 흐려진다. 마지막 값이 그 너머 전부. */
 const DISTANCE_OPACITY = [1, 0.44, 0.3, 0.23, 0.18, 0.15, 0.13];
+const DISTANCE_STEPS = DISTANCE_OPACITY.map((_, i) => i);
 
 /** 다이얼은 흐린 앨범 커버 위 어두운 바탕에 놓인다. */
 export const DarkText = {
@@ -189,10 +190,11 @@ const TokenCellView = React.memo(function TokenCellView({
 
 interface SlotProps {
   entry: SongLyricsDialEntry;
+  index: number;
   isFocused: boolean;
   slotTop: number;
-  baseOpacity: number;
   busyWordKey: string | null;
+  candidatePosition: SharedValue<number>;
   dynamicProgress: SharedValue<number>;
   onMeasured: (height: number) => void;
   onWordPress: (word: CurrentPlayingWord) => void;
@@ -200,22 +202,28 @@ interface SlotProps {
 
 const Slot = React.memo(function Slot({
   entry,
+  index,
   isFocused,
   slotTop,
-  baseOpacity,
   busyWordKey,
+  candidatePosition,
   dynamicProgress,
   onMeasured,
   onWordPress,
 }: SlotProps) {
   // 슬롯마다 자기 위쪽을 축으로 줄어든다 — 더미 전체를 한 점으로 모으면 먼 줄이 눈에
   // 띄게 밀린다. 흐리기는 거리에 따른 기본값과 드래그 중 물러남을 곱한다.
+  // 거리는 UI 스레드에서 잰다 — prop 으로 넘기면 줄이 바뀔 때마다 창 안 슬롯이 전부 다시 그려진다.
   const animStyle = useAnimatedStyle(() => ({
     transform: [{
       scale: interpolate(dynamicProgress.value, [0, 1], [1, DYNAMIC_SCALE], Extrapolation.CLAMP),
     }],
-    opacity: baseOpacity
-      * interpolate(dynamicProgress.value, [0, 1], [1, DYNAMIC_OPACITY], Extrapolation.CLAMP),
+    opacity: interpolate(
+      Math.abs(index - candidatePosition.value),
+      DISTANCE_STEPS,
+      DISTANCE_OPACITY,
+      Extrapolation.CLAMP,
+    ) * interpolate(dynamicProgress.value, [0, 1], [1, DYNAMIC_OPACITY], Extrapolation.CLAMP),
   }));
 
   const handleLayout = useCallback((event: LayoutChangeEvent) => {
@@ -289,6 +297,12 @@ function SongLyricsDial({
   const dynamicProgress = useSharedValue(0);
   const highlightTop = useSharedValue(candidateSlotTop);
   const highlightHeight = useSharedValue(candidateSlotHeight);
+  const candidatePosition = useSharedValue(candidateIndex);
+  // 제스처를 줄마다 다시 만들지 않도록 worklet 은 포커스 줄을 여기서 읽는다.
+  const focusIndex = useSharedValue(safeIndex);
+  useEffect(() => {
+    focusIndex.value = safeIndex;
+  }, [focusIndex, safeIndex]);
 
   const updatePreview = useCallback((index: number | null) => {
     setPreviewIndex(prev => (prev === index ? prev : index));
@@ -347,14 +361,21 @@ function SongLyricsDial({
     highlightHeight.value = withTiming(candidateSlotHeight, options);
   }, [candidateSlotHeight, candidateSlotTop, highlightHeight, highlightTop]);
 
+  useEffect(() => {
+    candidatePosition.value = withTiming(candidateIndex, {
+      duration: HIGHLIGHT_SLIDE_MS,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [candidateIndex, candidatePosition]);
+
   const panGesture = useMemo(
     () => Gesture.Pan()
       .activeOffsetY([-12, 12])
       .failOffsetX([-20, 20])
       .onStart(() => {
         'worklet';
-        dragStartIndex.value = safeIndex;
-        lastTarget.value = safeIndex;
+        dragStartIndex.value = focusIndex.value;
+        lastTarget.value = focusIndex.value;
         runOnJS(setIsDragging)(true);
       })
       .onChange((event) => {
@@ -388,11 +409,11 @@ function SongLyricsDial({
         if (dragOffset.value !== 0) {
           dragOffset.value = withTiming(0, { duration: 180, easing: Easing.out(Easing.cubic) });
         }
-        lastTarget.value = safeIndex;
+        lastTarget.value = focusIndex.value;
         runOnJS(updatePreview)(null);
         runOnJS(setIsDragging)(false);
       }),
-    [commitLine, dragOffset, dragStartIndex, lastTarget, lineCount, safeIndex, updatePreview],
+    [commitLine, dragOffset, dragStartIndex, focusIndex, lastTarget, lineCount, updatePreview],
   );
 
   const stackStyle = useAnimatedStyle(() => ({
@@ -435,15 +456,15 @@ function SongLyricsDial({
           {visibleIndexes.map((index) => {
             const entry = entries[index];
             if (!entry) return null;
-            const distance = Math.abs(index - candidateIndex);
             return (
               <Slot
                 key={entry.key}
                 entry={entry}
+                index={index}
                 isFocused={index === safeIndex}
                 slotTop={slotLayouts[index]?.top ?? index * DEFAULT_LINE_HEIGHT}
-                baseOpacity={DISTANCE_OPACITY[Math.min(distance, DISTANCE_OPACITY.length - 1)]}
                 busyWordKey={busyWordKey}
+                candidatePosition={candidatePosition}
                 dynamicProgress={dynamicProgress}
                 onMeasured={getOnMeasured(index)}
                 onWordPress={onWordPress}

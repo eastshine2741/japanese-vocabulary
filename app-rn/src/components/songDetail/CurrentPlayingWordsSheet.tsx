@@ -14,6 +14,7 @@ import {
   AppBottomSheetView,
 } from '../bottomSheet';
 import { useArtBackdrop } from '../rewardCards/artColors';
+import { usePlayerStore } from '../../stores/playerStore';
 import { Token } from '../../types/song';
 import SongLyricsDial, { SongLyricsDialEntry } from './SongLyricsDial';
 import { SongDetailWordItem } from './types';
@@ -51,7 +52,6 @@ export interface CurrentPlayingWordsSheetProps {
   words?: CurrentPlayingWord[];
   lineWordIndexes?: Record<string, number[]> | Map<number, number[]>;
   lyricType?: 'SYNCED' | 'PLAIN';
-  currentTimeMs: number;
   fallbackLineIndex?: number;
   bottomInset?: number;
   expandedHeight?: number;
@@ -122,7 +122,6 @@ const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, Cu
   words = [],
   lineWordIndexes,
   lyricType,
-  currentTimeMs,
   fallbackLineIndex = 0,
   bottomInset,
   expandedHeight,
@@ -164,9 +163,12 @@ const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, Cu
     };
   }), [lines, words, lineWordIndexes]);
 
-  const playingLineIndex = useMemo(
-    () => getCurrentLyricLineIndex(lines, currentTimeMs, fallbackLineIndex),
-    [lines, currentTimeMs, fallbackLineIndex],
+  // 재생 시각은 100ms 마다 바뀐다. 줄 번호로 좁혀 구독해야 시트 전체가 매 틱 다시 그려지지 않는다.
+  const playingLineIndex = usePlayerStore(
+    s => getCurrentLyricLineIndex(lines, s.currentMs, fallbackLineIndex),
+  );
+  const seekArrived = usePlayerStore(
+    s => pendingSync != null && s.currentMs !== pendingSync.seekMs,
   );
 
   const clampIndex = useCallback(
@@ -189,10 +191,10 @@ const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, Cu
   // 플레이어는 버퍼링이 끝날 때까지(수 초) seek 전 시각을 보낸다. seekMs 가 아닌 시각이 고른 줄 안에서 오면 seek 이 닿은 것이다.
   useEffect(() => {
     if (pendingSync == null) return;
-    if (playingLineIndex === pendingSync.index && currentTimeMs !== pendingSync.seekMs) {
+    if (playingLineIndex === pendingSync.index && seekArrived) {
       setPendingSync(null);
     }
-  }, [currentTimeMs, pendingSync, playingLineIndex]);
+  }, [pendingSync, playingLineIndex, seekArrived]);
 
   useEffect(() => {
     if (pendingSync == null) return undefined;
