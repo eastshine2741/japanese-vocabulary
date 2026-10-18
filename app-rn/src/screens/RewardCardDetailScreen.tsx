@@ -24,6 +24,7 @@ import { IntroDecision, reportIntroDecision } from '../components/rewardCards/Ca
 import { EXPLAINER_IN_MS, EXPLAINER_OUT_MS } from '../components/rewardCards/CardRevealStage';
 import { CARD_RATIO, LEVEL_MATERIAL, MASTER_CHIP, SHOWROOM, songTierName, useCardFonts } from '../components/rewardCards/cardTheme';
 import { useCardTilt } from '../components/rewardCards/useCardTilt';
+import { useRefreshCardsOnReturn } from '../components/rewardCards/useRefreshCardsOnReturn';
 import { useShallow } from 'zustand/react/shallow';
 import { SONG_CARD_KINDS, songCardOfKind, songCardSample, songCardsOf, songRung } from '../components/rewardCards/cardKinds';
 import { serverTargetId } from '../components/rewardCards/serverRewardCards';
@@ -94,15 +95,20 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
 
   // 설명 화면은 같은 아트 배경 위에 뜨므로, 화면 전환 대신 내용만 비우고 채운다.
   const away = useSharedValue(0);
+  // 가사 편집은 저장을 기다리지 않고 돌아와, 바로 다시 받으면 옛 가사로 덮인다. 설명 화면은 카드를 바꾸지 않는다.
+  const skipNextRefresh = useRefreshCardsOnReturn(navigation);
   const awayStyle = useAnimatedStyle(() => ({ opacity: 1 - away.value, transform: [{ scale: 1 - away.value * 0.04 }] }));
   const openExplainer = useCallback(
     (params: RootStackParamList['RewardCardReveal']) => {
-      const go = () => navigation.navigate('RewardCardReveal', params);
+      const go = () => {
+        skipNextRefresh();
+        navigation.navigate('RewardCardReveal', params);
+      };
       away.value = withTiming(1, { duration: EXPLAINER_OUT_MS, easing: Easing.in(Easing.quad) }, (finished) => {
         if (finished) runOnJS(go)();
       });
     },
-    [away, navigation],
+    [away, navigation, skipNextRefresh],
   );
   useEffect(
     () =>
@@ -184,8 +190,10 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
   }, [openExplainer, cardId]);
   const viewedId = owned?.id ?? null;
   const handleEditLyric = useCallback(() => {
-    if (viewedId != null) navigation.navigate('RewardCardLyricEdit', { cardId: viewedId });
-  }, [navigation, viewedId]);
+    if (viewedId == null) return;
+    skipNextRefresh();
+    navigation.navigate('RewardCardLyricEdit', { cardId: viewedId });
+  }, [navigation, skipNextRefresh, viewedId]);
 
   const songId = card?.songId ?? null;
   const shareId = owned?.issued === true ? serverTargetId(owned.id) : null;

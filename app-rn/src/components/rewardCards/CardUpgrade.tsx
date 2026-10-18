@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   FadeIn,
@@ -16,7 +16,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CardSerial, SerialCount } from './CardSigner';
+import CardShareButton from './CardShareButton';
+import { CardSerial, SerialCount, ShareableCard } from './CardSigner';
 import CardSpreadLayer from './CardSpreadLayer';
 import { hapticCrown, hapticGather, hapticHeartbeat, hapticRipple, hapticStamp } from './cardHaptics';
 import { SHOWROOM, SHOWROOM_HEADING_TOP } from './cardTheme';
@@ -247,6 +248,8 @@ interface Props {
   /** 승급 계단. 다 번지면 한 칸 오른다. */
   guide: React.ReactNode;
   onDone: () => void;
+  /** 있으면 다 번진 뒤 '친구에게 자랑하기'로 공유 메뉴를 연다. */
+  share?: ShareableCard | null;
 }
 
 /**
@@ -268,8 +271,18 @@ export const CardUpgrade = React.memo(function CardUpgrade({
   accent = SHOWROOM.fg,
   guide,
   onDone,
+  share = null,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const cardRef = useRef<View>(null);
+  const renderShareTrigger = useCallback(
+    (openShare: () => void, opening: boolean) => (
+      <Pressable onPress={openShare} disabled={opening} style={({ pressed }) => [styles.cta, pressed && styles.pressed]}>
+        {opening ? <ActivityIndicator color={SHOWROOM.bg} /> : <Text style={styles.ctaText}>친구에게 자랑하기</Text>}
+      </Pressable>
+    ),
+    [],
+  );
   const { rise, zoom, press, hint, sonar, spot, stamp, spread, shock, bump, copyIn, ctaIn, liveIn, armed, opened, live, settled, open } =
     motion;
   const height = width * ratio;
@@ -358,7 +371,9 @@ export const CardUpgrade = React.memo(function CardUpgrade({
             {live && (
               <Animated.View style={[settled ? null : styles.over, liveStyle]}>
                 <GestureDetector gesture={tilt.gesture}>
-                  <View>{showcase}</View>
+                  <View ref={cardRef} collapsable={false}>
+                    {showcase}
+                  </View>
                 </GestureDetector>
               </Animated.View>
             )}
@@ -382,9 +397,27 @@ export const CardUpgrade = React.memo(function CardUpgrade({
       <Animated.View style={[styles.guide, guideStyle]}>{guide}</Animated.View>
 
       <Animated.View pointerEvents={live ? 'auto' : 'none'} style={[styles.actions, ctaStyle]}>
-        <Pressable onPress={onDone} style={({ pressed }) => [styles.cta, pressed && styles.pressed]}>
-          <Text style={styles.ctaText}>확인</Text>
-        </Pressable>
+        {share ? (
+          <>
+            <CardShareButton
+              kind={share.kind}
+              cardId={share.cardId}
+              title={share.title}
+              tilt={tilt}
+              cardRef={cardRef}
+              accent={share.accent}
+              ink={share.ink}
+              renderTrigger={renderShareTrigger}
+            />
+            <Pressable onPress={onDone} hitSlop={8} style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}>
+              <Text style={styles.secondaryText}>확인</Text>
+            </Pressable>
+          </>
+        ) : (
+          <Pressable onPress={onDone} style={({ pressed }) => [styles.cta, pressed && styles.pressed]}>
+            <Text style={styles.ctaText}>확인</Text>
+          </Pressable>
+        )}
       </Animated.View>
     </Animated.View>
   );
@@ -417,5 +450,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ctaText: { color: SHOWROOM.bg, fontSize: 16, fontWeight: '700' },
+  secondary: { height: 44, marginTop: 4, alignItems: 'center', justifyContent: 'center' },
+  secondaryText: { color: SHOWROOM.fgDim, fontSize: 14, fontWeight: '600' },
   pressed: { opacity: 0.8 },
 });
