@@ -12,6 +12,7 @@ import com.japanese.vocabulary.song.dto.songdetail.SongStudyCardsResponse
 import com.japanese.vocabulary.song.dto.songdetail.SongWordReviewResponse
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.word.dto.AddWordDto
+import com.japanese.vocabulary.word.dto.WordSenseDto
 import com.japanese.vocabulary.word.dto.songword.WordInSongItemDto
 import com.japanese.vocabulary.word.repository.WordRepository
 import com.japanese.vocabulary.word.service.SenseEnricher
@@ -100,9 +101,22 @@ class SongStudyCardService(
                     inSongDeck = false,
                 )
                 dueOnly && card.memory != FlashcardMemory.REMAINING && Instant.parse(card.due) > now -> null
-                else -> SongStudyCardDto.of(card, inSongDeck = card.wordId in deckWordIds)
+                card.wordId in deckWordIds -> SongStudyCardDto.of(card, inSongDeck = true)
+                // 다른 곡에서 담은 단어는 이 곡 예문이 rating 때에야 저장된다 — 그 전에도 보이게 붙인다.
+                else -> SongStudyCardDto.of(card, inSongDeck = false)
+                    .let { it.copy(senses = it.senses.withSongExamples(word.addRequest.senses.toDtos(songs))) }
             }
         }
+    }
+
+    private fun List<WordSenseDto>.withSongExamples(songSenses: List<WordSenseDto>): List<WordSenseDto> {
+        val songByMeaning = songSenses.associateBy { it.meaning }
+        val merged = map { sense ->
+            val song = songByMeaning[sense.meaning] ?: return@map sense
+            sense.copy(examples = (song.examples + sense.examples).distinctBy { it.songId to it.lineIndex })
+        }
+        val savedMeanings = map { it.meaning }.toSet()
+        return merged + songSenses.filter { it.meaning !in savedMeanings }
     }
 
     /**

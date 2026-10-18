@@ -1654,6 +1654,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             val card = cards(me, song.id!!, leadJapanese = "雨").cards.single()
             assertThat(card.id).isNotNull()
             assertThat(card.inSongDeck).isFalse()
+            assertThat(card.senses.flatMap { it.examples }.map { it.songId }).containsExactly(song.id, other.id)
 
             val reviewed = readBody<SongWordReviewResponse>(review(me, song.id!!, "雨", rating = 3)
                 .andExpect { status { isOk() } }.andReturn().response.contentAsString)
