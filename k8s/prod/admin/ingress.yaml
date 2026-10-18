@@ -3,6 +3,7 @@
 #   /admin/*      -> admin-web  (prefix 제거: nginx 는 root 에서 서빙)
 #   /c/*, /.well-known/{apple-app-site-association,assetlinks.json} -> api  (카드 공유 랜딩·앱 링크 검증 파일)
 #   /share-assets/* -> share-web  (prefix 제거: 랜딩 HTML 이 부르는 카드 웹 화면 번들)
+#   그 밖의 모든 경로 -> landing-web  (서비스 소개 페이지, priority 1 로 가장 마지막에 매칭)
 #
 # IngressRoute 를 쓰는 이유: stripPrefix 는 admin-web 에만 걸려야 하는데, Ingress 는 미들웨어가
 # annotation 으로 오브젝트 전체에 적용돼 path 별로 나눌 수 없다 (admin-api 까지 벗기면 전부 404).
@@ -91,6 +92,23 @@ spec:
   tls:
     secretName: admin-tls
 ---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: landing
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`kotonoha.eastshine.dev`)
+      kind: Rule
+      priority: 1
+      services:
+        - name: landing-web
+          port: 80
+  tls:
+    secretName: admin-tls
+---
 # 브라우저로 http://kotonoha.eastshine.dev/admin 을 열어도 https 로 넘긴다.
 # /.well-known/acme-challenge/* 는 매칭하지 않으므로 cert-manager http01 solver 와 겹치지 않는다.
 apiVersion: traefik.io/v1alpha1
@@ -122,5 +140,23 @@ spec:
       services:
         - name: api
           port: 8080
+      middlewares:
+        - name: admin-https-redirect
+---
+# 검색 엔진·공유 링크로 http 루트에 들어와도 https 로 넘긴다. acme-challenge 는 cert-manager solver 몫이라 뺀다.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: landing-http-redirect
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`kotonoha.eastshine.dev`) && !PathPrefix(`/.well-known/acme-challenge/`)
+      kind: Rule
+      priority: 1
+      services:
+        - name: landing-web
+          port: 80
       middlewares:
         - name: admin-https-redirect

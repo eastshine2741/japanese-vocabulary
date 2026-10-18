@@ -1,6 +1,6 @@
 # k3s Deploy
 
-Deployment runs on a local k3s cluster. Backend (api, worker), DB, RabbitMQ, admin-api, admin-web, share-web (card share web page), and the batch CronJobs are deployed through `deploy.sh`.
+Deployment runs on a local k3s cluster. Backend (api, worker), DB, RabbitMQ, admin-api, admin-web, share-web (card share web page), landing-web (service intro page at `/`), and the batch CronJobs are deployed through `deploy.sh`.
 
 ```bash
 ./deploy.sh              # current branch name decides namespace

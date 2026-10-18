@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: landing-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: landing-web
+  template:
+    metadata:
+      labels:
+        app: landing-web
+    spec:
+      containers:
+        - name: landing-web
+          image: ${LANDING_WEB_IMAGE}
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /robots.txt
+              port: 80
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /robots.txt
+              port: 80
+            periodSeconds: 30
+            failureThreshold: 3

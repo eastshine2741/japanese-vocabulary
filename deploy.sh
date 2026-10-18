@@ -151,6 +151,7 @@ MIGRATION_IMAGE="${IMAGE_PREFIX}-migration:${GIT_SHA}"
 ADMIN_API_IMAGE="${IMAGE_PREFIX}-admin-api:${GIT_SHA}"
 ADMIN_WEB_IMAGE="${IMAGE_PREFIX}-admin-web:${GIT_SHA}"
 SHARE_WEB_IMAGE="${IMAGE_PREFIX}-share-web:${GIT_SHA}"
+LANDING_WEB_IMAGE="${IMAGE_PREFIX}-landing-web:${GIT_SHA}"
 WORKER_IMAGE="${IMAGE_PREFIX}-worker:${GIT_SHA}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-}"
 ADMIN_PASSWORD_SHA256="${ADMIN_PASSWORD_SHA256:-}"
@@ -214,7 +215,7 @@ build_boot_image() {
     -t "$image" \
     -f "$module_dir/Dockerfile" "$ctx/"
 }
-export API_IMAGE BATCH_IMAGE WORKER_IMAGE MIGRATION_IMAGE ADMIN_API_IMAGE ADMIN_WEB_IMAGE SHARE_WEB_IMAGE NS SENTRY_ENVIRONMENT SENTRY_RELEASE
+export API_IMAGE BATCH_IMAGE WORKER_IMAGE MIGRATION_IMAGE ADMIN_API_IMAGE ADMIN_WEB_IMAGE SHARE_WEB_IMAGE LANDING_WEB_IMAGE NS SENTRY_ENVIRONMENT SENTRY_RELEASE
 export ADMIN_PASSWORD ADMIN_PASSWORD_SHA256 ADMIN_TOKEN_SECRET SHARE_TOKEN_KEYS
 export SENTRY_DSN_WORKER
 
@@ -264,6 +265,7 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
     --build-arg DEPLOY_NS="$NS" \
     -t "$SHARE_WEB_IMAGE" \
     -f "$PROJECT_ROOT/share-web/Dockerfile" "$PROJECT_ROOT"
+  docker build -t "$LANDING_WEB_IMAGE" "$PROJECT_ROOT/landing-web"
 
   echo "[push] ghcr..."
   docker push "$API_IMAGE"
@@ -273,6 +275,7 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
   docker push "$ADMIN_API_IMAGE"
   docker push "$ADMIN_WEB_IMAGE"
   docker push "$SHARE_WEB_IMAGE"
+  docker push "$LANDING_WEB_IMAGE"
 else
   echo "[build] images..."
   build_boot_image api "$API_IMAGE"
@@ -290,9 +293,10 @@ else
     --build-arg DEPLOY_NS="$NS" \
     -t "$SHARE_WEB_IMAGE" \
     -f "$PROJECT_ROOT/share-web/Dockerfile" "$PROJECT_ROOT"
+  docker build -t "$LANDING_WEB_IMAGE" "$PROJECT_ROOT/landing-web"
 
   echo "[k3s] importing images..."
-  docker save "$API_IMAGE" "$BATCH_IMAGE" "$WORKER_IMAGE" "$MIGRATION_IMAGE" "$ADMIN_API_IMAGE" "$ADMIN_WEB_IMAGE" "$SHARE_WEB_IMAGE" | sudo k3s ctr images import -
+  docker save "$API_IMAGE" "$BATCH_IMAGE" "$WORKER_IMAGE" "$MIGRATION_IMAGE" "$ADMIN_API_IMAGE" "$ADMIN_WEB_IMAGE" "$SHARE_WEB_IMAGE" "$LANDING_WEB_IMAGE" | sudo k3s ctr images import -
 fi
 echo "  → $((SECONDS - STEP_START))s"
 
@@ -402,6 +406,13 @@ if [[ "$DEPLOY_ENV" == "dev" ]]; then
   envsubst < "$K8S_DIR/share-web/ingress.yaml" | kubectl apply -n "$NS" -f -
 fi
 
+echo "[apply] landing-web..."
+envsubst < "$K8S_DIR/landing-web/deployment.yaml" | kubectl apply -n "$NS" -f -
+kubectl apply -n "$NS" -f "$K8S_DIR/landing-web/service.yaml"
+if [[ "$DEPLOY_ENV" == "dev" ]]; then
+  envsubst < "$K8S_DIR/landing-web/ingress.yaml" | kubectl apply -n "$NS" -f -
+fi
+
 echo "[apply] api + batch cronjobs..."
 envsubst < "$K8S_DIR/api/secret.template.yaml" | kubectl apply -n "$NS" -f -
 envsubst < "$K8S_DIR/api/configmap.yaml" | kubectl apply -n "$NS" -f -
@@ -447,6 +458,7 @@ kubectl rollout status -n "$NS" deployment/api --timeout=120s
 kubectl rollout status -n "$NS" deployment/admin-api --timeout=120s
 kubectl rollout status -n "$NS" deployment/admin-web --timeout=120s
 kubectl rollout status -n "$NS" deployment/share-web --timeout=120s
+kubectl rollout status -n "$NS" deployment/landing-web --timeout=120s
 echo "  → $((SECONDS - STEP_START))s"
 
 echo ""
@@ -456,11 +468,13 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
   echo "  kubectl get certificate -n $NS"
   echo "  curl https://api.kotonoha.eastshine.dev/health"
   echo "  admin web: https://kotonoha.eastshine.dev/admin"
+  echo "  landing:   https://kotonoha.eastshine.dev/"
 else
   echo "  kubectl port-forward -n $NS svc/api 8080:8080"
   echo "  kubectl port-forward -n $NS svc/admin-api 8081:8081"
   echo "  rabbitmq ui: kubectl port-forward -n $NS svc/rabbitmq 15672:15672"
   echo "  admin web via ingress: http://localhost/$NS/admin"
+  echo "  landing via ingress:   http://localhost/$NS/landing/"
   echo ""
   echo "  CronJob 수동 실행:"
   echo "    kubectl create job --from=cronjob/freeze-consume fc-\$(date +%s) -n $NS"
