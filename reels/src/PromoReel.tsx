@@ -311,7 +311,7 @@ const SongLabel = ({song}: {song: PromoReelData['song']}) => (
   </div>
 );
 
-// 곡명 줄 오른쪽의 코토노하 광고 배너. 움직이는 배너 광고처럼 세 장면(단어 카드 → 무료 CTA → 이 곡 단어 수)이
+// 곡명 줄 오른쪽의 코토노하 광고 배너. 움직이는 배너 광고처럼 세 장면(단어 카드 → 앱 이름·프로필 링크 → 이 곡 단어 수)이
 // 영상 내내 돈다. 숫자와 카드 단어는 이 릴스의 실제 데이터라 아무 곡에나 붙는 광고로 보이지 않는다.
 const BANNER_TOP = 142;
 const BANNER_HEIGHT = 96;
@@ -323,7 +323,6 @@ const WIPE_FRAMES = 7;
 const COUNT_FRAMES = 24;
 const FLIP_START = 15;
 const FLIP_FRAMES = 14;
-const PRESS_START = 36;
 
 const PromoBanner = ({data}: {data: PromoReelData}) => {
   const frame = useCurrentFrame();
@@ -344,7 +343,7 @@ const PromoBanner = ({data}: {data: PromoReelData}) => {
   return (
     <div style={styles.banner}>
       {scene === 0 && <WordCardScene word={bannerWord(data.lyricLines, frame - local)} local={local} />}
-      {scene === 1 && <CtaScene local={local} />}
+      {scene === 1 && <CtaScene />}
       {scene === 2 && <WordCountScene total={data.wordCount ?? 0} local={local} />}
       {wipe > -100 && wipe < 100 && <div style={{...styles.bannerWipe, transform: `translateX(${wipe}%)`}} />}
     </div>
@@ -400,24 +399,17 @@ const WordCardScene = ({word, local}: {word: VocabularyWord | null; local: numbe
   );
 };
 
-const CtaScene = ({local}: {local: number}) => {
-  const press = interpolate(local, [PRESS_START, PRESS_START + 4, PRESS_START + 10], [1, 0.9, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  return (
-    <div style={styles.bannerRow}>
-      <div style={styles.brandMark}>
-        <LeafIcon />
-      </div>
-      <div style={styles.bannerCopy}>
-        <span style={styles.bannerTitle}>코토노하</span>
-        <span style={styles.bannerSub}>프로필 링크</span>
-      </div>
-      <span style={{...styles.ctaButton, transform: `scale(${press})`}}>무료로 시작</span>
+const CtaScene = () => (
+  <div style={styles.bannerRow}>
+    <div style={styles.brandMark}>
+      <LeafIcon />
     </div>
-  );
-};
+    <div style={styles.bannerCopy}>
+      <span style={styles.bannerTitle}>코토노하</span>
+      <span style={styles.bannerSub}>프로필 링크에서 다운로드</span>
+    </div>
+  </div>
+);
 
 // 인스타 릴스 UI 의 프로필 사진 바로 위. 화살표가 아바타(좌하단 x≈74~162)를 가리켜
 // 프로필 링크로 스토어 진입을 유도한다. 위치·문구는 Pen Reel v2 의 Profile Cue 와 같다.
@@ -1608,17 +1600,6 @@ const styles = {
     height: 58,
     justifyContent: 'center',
     width: 58,
-  },
-  ctaButton: {
-    backgroundColor: highlight,
-    borderRadius: 999,
-    color: '#000000',
-    flexShrink: 0,
-    fontSize: 24,
-    fontWeight: 800,
-    letterSpacing: -0.5,
-    padding: '14px 20px 11px',
-    whiteSpace: 'nowrap',
   },
   profileCue: {
     alignItems: 'center',
