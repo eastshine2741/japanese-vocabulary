@@ -472,8 +472,8 @@ function BackFace({
           ))}
         </View>
         <SignatureField
-          signature={signature === undefined ? card.signature : signature}
-          fallbackName={ownerName}
+          signature={card.sample ? null : signature === undefined ? card.signature : signature}
+          fallbackName={card.sample ? undefined : ownerName}
           hint={signatureHint}
           u={u}
           fonts={fonts}
