@@ -11,7 +11,6 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { Colors } from '../../theme/theme';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { convertLineReading } from '../../utils/readingConverter';
 import { getSongDetailWordKey } from './songDetailWordSave';
@@ -40,6 +39,13 @@ const DYNAMIC_OPACITY = 0.85;
 const DYNAMIC_HIGHLIGHT_OPACITY = 0.5;
 /** 포커스에서 멀어질수록 흐려진다. 마지막 값이 그 너머 전부. */
 const DISTANCE_OPACITY = [1, 0.44, 0.3, 0.23, 0.18, 0.15, 0.13];
+
+/** 다이얼은 흐린 앨범 커버 위 어두운 바탕에 놓인다. */
+export const DarkText = {
+  primary: '#FFFFFF',
+  secondary: '#FFFFFFB8',
+  muted: '#FFFFFF80',
+} as const;
 
 export interface SongLyricsDialEntry {
   key: string;
@@ -472,7 +478,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    backgroundColor: Colors.surfaceSubtle,
+    backgroundColor: '#FFFFFF14',
   },
   lineBand: {
     paddingVertical: 14,
@@ -483,7 +489,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     lineHeight: 28,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: DarkText.primary,
   },
   tokenRow: {
     flexDirection: 'row',
@@ -502,19 +508,19 @@ const styles = StyleSheet.create({
   furiganaText: {
     fontSize: 9,
     lineHeight: 10,
-    color: Colors.textSecondary,
+    color: DarkText.secondary,
   },
   tokenText: {
     fontSize: 20,
     lineHeight: 28,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: DarkText.primary,
   },
   tokenTextMuted: {
     fontSize: 20,
     lineHeight: 28,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: DarkText.secondary,
   },
   tokenBar: {
     alignSelf: 'stretch',
@@ -526,13 +532,13 @@ const styles = StyleSheet.create({
     marginTop: 1,
     fontSize: 11,
     lineHeight: 14,
-    color: Colors.textSecondary,
+    color: DarkText.secondary,
   },
   tokenMeaningTextMuted: {
     marginTop: 1,
     fontSize: 11,
     lineHeight: 14,
-    color: Colors.textMuted,
+    color: DarkText.muted,
   },
   lineMeaning: {
     gap: 2,
@@ -541,11 +547,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     letterSpacing: 0.2,
-    color: Colors.textSecondary,
+    color: DarkText.secondary,
   },
   lineKoreanText: {
     fontSize: 15,
     lineHeight: 21,
-    color: Colors.textSecondary,
+    color: DarkText.secondary,
   },
 });

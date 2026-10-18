@@ -150,3 +150,58 @@ export function paletteFromPixels(rgba: ArrayLike<number>): CardColors | null {
     ink: oklchToHex({ L: 0.19, C: Math.min(0.035, base.C * 0.4), h: base.h }),
   };
 }
+
+// 두 색 모두 흰 가사가 읽히는 어두운 밝기로 고정한다. 앞 색이 조금 밝아 그라데이션 방향이 보인다.
+const BACKDROP_L: readonly [number, number] = [0.4, 0.27];
+// 가장 넓은 색조에서 이만큼(칸 수) 떨어져야 두 번째 색으로 친다.
+const BACKDROP_MIN_GAP = 3;
+// 두 번째 색조가 아트에서 이보다 적게 깔리면 지어내지 않고 첫 색조 옆 색으로 둔다.
+const BACKDROP_MIN_SHARE = 0.06;
+const BACKDROP_NEIGHBOR_SHIFT = 35;
+
+const binGap = (a: number, b: number) => {
+  const d = Math.abs(a - b) % BINS;
+  return Math.min(d, BINS - d);
+};
+
+/** 아트 픽셀(RGBA)에서 가사 시트 바탕 두 색을 뽑는다 — 가장 넓게 깔린 색조와 그다음으로 넓은 다른 색조. */
+export function backdropFromPixels(rgba: ArrayLike<number>): [string, string] | null {
+  const pixels: Oklch[] = [];
+  for (let i = 0; i + 3 < rgba.length; i += 4) {
+    if (rgba[i + 3] < 128) continue;
+    pixels.push(rgbToOklch(rgba[i], rgba[i + 1], rgba[i + 2]));
+  }
+  if (pixels.length === 0) return null;
+
+  const area = new Float64Array(BINS);
+  let colorful = 0;
+  for (const p of pixels) {
+    if (p.C < NEUTRAL_C) continue;
+    colorful++;
+    area[binOf(p.h)] += 1;
+  }
+
+  if (colorful < pixels.length * 0.04) {
+    return [
+      oklchToHex({ L: BACKDROP_L[0] - 0.04, C: 0.012, h: 80 }),
+      oklchToHex({ L: BACKDROP_L[1] - 0.06, C: 0.008, h: 80 }),
+    ];
+  }
+
+  const weight = (p: Oklch) => (p.C < NEUTRAL_C ? 0 : 1);
+  const firstPeak = smoothedPeak(area);
+  const first = peakColor(pixels, firstPeak, weight);
+
+  const rest = area.map((v, i) => (binGap(i, firstPeak) < BACKDROP_MIN_GAP ? 0 : v));
+  const secondPeak = smoothedPeak(rest);
+  const secondShare = (rest[(secondPeak + BINS - 1) % BINS] + rest[secondPeak] + rest[(secondPeak + 1) % BINS]) / colorful;
+  const second = secondShare >= BACKDROP_MIN_SHARE
+    ? peakColor(pixels, secondPeak, weight)
+    : { h: (first.h + BACKDROP_NEIGHBOR_SHIFT) % 360, C: first.C };
+
+  const chroma = (c: number) => Math.min(0.13, Math.max(0.05, c));
+  return [
+    oklchToHex({ L: BACKDROP_L[0], C: chroma(first.C), h: first.h }),
+    oklchToHex({ L: BACKDROP_L[1], C: chroma(second.C), h: second.h }),
+  ];
+}
