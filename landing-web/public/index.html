@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>코토노하 · 노래 가사로 배우는 일본어 단어 앱</title>
-  <meta name="description" content="좋아하는 J-POP·애니 노래 가사로 일본어를 배우세요. 가사에 후리가나와 한국어 발음, 단어 뜻, 번역을 붙여 주고, 가사 속 단어를 FSRS 간격 반복 플래시카드로 잊기 전에 다시 복습합니다. iOS·Android 무료.">
+  <meta name="description" content="좋아하는 J-POP·애니 노래 가사로 일본어를 배우세요. 가사에 후리가나와 한국어 발음, 단어 뜻, 번역을 붙여 주고, 가사 속 단어를 플래시카드로 잊기 전에 다시 복습합니다. iOS·Android 무료.">
   <link rel="canonical" href="https://kotonoha.eastshine.dev/">
   <meta name="robots" content="index, follow, max-image-preview:large">
   <meta name="theme-color" content="#111418">
@@ -36,7 +36,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;800&family=Noto+Serif+JP:wght@600&display=swap">
-  <link rel="stylesheet" href="styles.css?v=4">
+  <link rel="stylesheet" href="styles.css?v=6">
   <script>document.documentElement.classList.add('js')</script>
 
   <script type="application/ld+json">
@@ -66,7 +66,7 @@
         "operatingSystem": "iOS, Android",
         "applicationCategory": "EducationalApplication",
         "inLanguage": "ko-KR",
-        "description": "J-POP·애니 노래 가사에 후리가나, 한국어 발음, 단어 뜻, 번역을 붙여 주고 가사 속 단어를 FSRS 간격 반복 플래시카드로 복습하는 일본어 학습 앱.",
+        "description": "J-POP·애니 노래 가사에 후리가나, 한국어 발음, 단어 뜻, 번역을 붙여 주고 가사 속 단어를 간격 반복 플래시카드로 복습하는 일본어 학습 앱.",
         "image": "https://kotonoha.eastshine.dev/assets/icon-512.png",
         "publisher": { "@id": "https://kotonoha.eastshine.dev/#org" },
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "KRW" },
@@ -82,7 +82,7 @@
           {
             "@type": "Question",
             "name": "일본어를 전혀 못 읽어도 쓸 수 있나요?",
-            "acceptedAnswer": { "@type": "Answer", "text": "네. 가사의 한자 위에 후리가나가, 줄 아래에 한국어 발음과 번역이 붙어 있어서 히라가나를 몰라도 노래를 따라 부르며 시작할 수 있어요. 단어마다 뜻도 바로 아래에 붙습니다." }
+            "acceptedAnswer": { "@type": "Answer", "text": "네. 줄 아래에 한국어 발음과 번역이 붙어 있어서 히라가나를 몰라도 노래를 따라 부르며 시작할 수 있어요. 한자 위에는 후리가나가, 단어 아래에는 뜻이 붙습니다." }
           },
           {
             "@type": "Question",
@@ -97,7 +97,7 @@
           {
             "@type": "Question",
             "name": "외운 단어는 어떻게 복습하나요?",
-            "acceptedAnswer": { "@type": "Answer", "text": "간격 반복 알고리즘 FSRS가 단어마다 잊어버릴 때쯤을 계산해 플래시카드로 다시 보여 줘요. 앱을 열면 오늘 복습할 카드부터 보이고 아는 단어는 뜸하게, 헷갈리는 단어는 자주 나와요." }
+            "acceptedAnswer": { "@type": "Answer", "text": "단어마다 잊어버릴 때쯤을 계산해 플래시카드로 다시 보여 줘요. 앱을 열면 오늘 복습할 카드부터 보이고 아는 단어는 뜸하게, 헷갈리는 단어는 자주 나와요." }
           },
           {
             "@type": "Question",
@@ -165,7 +165,7 @@
           <ul class="hero__facts" aria-label="특징 요약">
             <li>무료</li>
             <li>iPhone · Android</li>
-            <li>FSRS 간격 반복</li>
+            <li>간격 반복 복습</li>
           </ul>
         </div>
 
@@ -173,46 +173,54 @@
           <div class="phone" data-player>
             <div class="phone__notch"></div>
             <div class="phone__screen">
-              <div class="mv">
-                <div class="mv__sky">
-                  <i style="--x:12%;--y:22%;--d:0s"></i><i style="--x:28%;--y:58%;--d:.8s"></i>
-                  <i style="--x:46%;--y:16%;--d:1.6s"></i><i style="--x:63%;--y:40%;--d:.4s"></i>
-                  <i style="--x:78%;--y:20%;--d:1.2s"></i><i style="--x:88%;--y:62%;--d:2s"></i>
-                  <i style="--x:36%;--y:34%;--d:2.4s"></i><i style="--x:70%;--y:70%;--d:1s"></i>
+              <div class="ls">
+                <div class="mvbar">
+                  <span class="mvbar__thumb"></span>
+                  <span class="mvbar__text">
+                    <b lang="ja">夜空の約束</b>
+                    <small>샘플 곡 · <span data-time>0:12</span> / 3:48</small>
+                  </span>
+                  <span class="mvbar__pause"></span>
                 </div>
-                <div class="mv__hills"></div>
-                <div class="mv__meta">
-                  <span class="mv__title" lang="ja">夜空の約束</span>
-                  <span class="mv__artist">샘플 곡</span>
+                <div class="dial">
+                  <ol class="dial__list" data-lyrics></ol>
                 </div>
-                <div class="mv__bar"><span data-progress></span></div>
+                <span class="sync"><i></i>싱크 ON</span>
               </div>
 
-              <div class="coverage">
-                <span class="coverage__label">이 곡 이해도</span>
-                <span class="coverage__track"><span class="coverage__fill"></span></span>
-                <span class="coverage__value">38%</span>
-              </div>
-
-              <div class="lyrics">
-                <ol class="lyrics__list" data-lyrics></ol>
-              </div>
-
-              <div class="sheet" data-sheet>
-                <div class="sheet__head">
-                  <span class="sheet__word" lang="ja" data-sheet-word>星</span>
-                  <span class="sheet__reading" data-sheet-ko>호시</span>
-                  <span class="sheet__tags" data-sheet-tags>명사 · N5</span>
+              <div class="rv stage" data-review>
+                <div class="rv__top">
+                  <span class="rv__back"></span>
                 </div>
-                <p class="sheet__meaning" data-sheet-meaning>별, 별빛</p>
-                <small class="sheet__ask">얼마나 잘 기억했나요?</small>
-                <span class="sheet__rates" data-sheet-rates>
-                  <span class="rate rate--again"><b>다시</b>1분</span>
-                  <span class="rate rate--hard"><b>어려움</b>6분</span>
-                  <span class="rate rate--good"><b>알고 있음</b>10분</span>
-                  <span class="rate rate--easy"><b>쉬움</b>4일</span>
-                  <span class="rate__done" data-sheet-done></span>
-                </span>
+                <div class="src">
+                  <span class="src__thumb"></span>
+                  <span class="src__text"><b lang="ja">夜空の約束</b><small>샘플 곡</small></span>
+                </div>
+                <div class="rv__front">
+                  <b class="rv__head" lang="ja" data-rv-word>星</b>
+                  <small class="rv__ask">뜻을 먼저 떠올린 뒤 확인해 보세요</small>
+                  <span class="glass-pill">뜻 확인하기</span>
+                </div>
+                <div class="rv__back-face">
+                  <div class="rv__q">
+                    <b lang="ja" data-rv-word>星</b>
+                    <span class="rv__meta"><span data-rv-ko>호시</span><i data-rv-pos>명사</i>·<i data-rv-jlpt>N5</i></span>
+                  </div>
+                  <p class="rv__mean" data-rv-mean>별</p>
+                  <div class="rv__ex">
+                    <small class="rv__ex-src"><span class="src__thumb"></span><span lang="ja">夜空の約束</span></small>
+                    <span lang="ja" data-rv-ex></span>
+                    <small data-rv-tr></small>
+                  </div>
+                  <small class="rv__ask">얼마나 잘 기억했나요?</small>
+                  <span class="glass-rates" data-rv-rates>
+                    <span style="--c:#ef4444"><b>다시</b>1분</span>
+                    <span style="--c:#f97316"><b>어려움</b>6분</span>
+                    <span style="--c:#16b364"><b>알고 있음</b>10분</span>
+                    <span style="--c:#3b82f6"><b>쉬움</b>4일</span>
+                    <span class="glass-rates__hold" data-rv-hold></span>
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -234,23 +242,25 @@
     <section class="section section--paper" id="features" aria-labelledby="features-title">
       <div class="wrap">
         <h2 id="features-title" class="section__title reveal">재생하면,<br>가사가 따라 흐릅니다</h2>
-        <p class="section__lead">영상을 틀면 지금 부르는 줄이 가운데로 오고 그 줄에 읽는 법과 뜻, 번역이 붙어요.</p>
+        <p class="section__lead">영상을 틀면 지금 부르는 줄이 가운데로 오고 그 줄에 후리가나와 발음, 뜻, 번역이 붙어요.</p>
 
         <div class="anatomy">
           <figure class="anatomy__figure" role="img" aria-label="예시 가사 君の声を探して 한 줄에 단어마다 후리가나, 품사 색 밑줄, 뜻이 붙고, 줄 아래에 한국어 발음과 번역이 붙은 모습">
-            <div class="anatomy__line" lang="ja">
-              <span class="atok atok--noun"><span class="atok__furi">きみ</span><b>君</b><span class="atok__mean" lang="ko">너</span></span>
-              <span class="atok"><span class="atok__furi"></span><b>の</b><span class="atok__mean"></span></span>
-              <span class="atok atok--noun"><span class="atok__furi">こえ</span><b>声</b><span class="atok__mean" lang="ko">목소리</span></span>
-              <span class="atok"><span class="atok__furi"></span><b>を</b><span class="atok__mean"></span></span>
-              <span class="atok atok--verb atok--picked"><span class="atok__furi">さが</span><b>探して</b><span class="atok__mean" lang="ko">찾다</span></span>
+            <div class="anatomy__band">
+              <div class="anatomy__line" lang="ja">
+                <span class="atok atok--noun"><span class="atok__furi">きみ</span><b>君</b><i></i><span class="atok__mean" lang="ko">너</span></span>
+                <span class="atok"><span class="atok__furi"></span><b>の</b><i></i><span class="atok__mean"></span></span>
+                <span class="atok atok--noun"><span class="atok__furi">こえ</span><b>声</b><i></i><span class="atok__mean" lang="ko">목소리</span></span>
+                <span class="atok"><span class="atok__furi"></span><b>を</b><i></i><span class="atok__mean"></span></span>
+                <span class="atok atok--verb atok--picked"><span class="atok__furi">さがして</span><b>探して</b><i></i><span class="atok__mean" lang="ko">찾다</span></span>
+              </div>
+              <div class="anatomy__row"><span class="anatomy__tag">발음</span><span class="anatomy__ko">키미노 코에오 사가시테</span></div>
+              <div class="anatomy__row"><span class="anatomy__tag">번역</span><span class="anatomy__tr">너의 목소리를 찾아서</span></div>
             </div>
-            <div class="anatomy__row"><span class="anatomy__tag">발음</span><span class="anatomy__ko">키미노 코에오 사가시테</span></div>
-            <div class="anatomy__row"><span class="anatomy__tag">번역</span><span class="anatomy__tr">너의 목소리를 찾아서</span></div>
             <div class="anatomy__pop">
-              <small>누르면 이 단어부터 복습</small>
+              <small><span lang="ja">探して</span>를 누르면</small>
               <span class="anatomy__pop-word" lang="ja">探す</span>
-              <span class="anatomy__pop-btn">뜻 확인하기</span>
+              <span class="glass-pill">뜻 확인하기</span>
             </div>
           </figure>
 
@@ -269,17 +279,18 @@
               <h3>예문을 외울 필요가 없어요.<br>노래가 예문이니까.</h3>
               <p>카드 뒷면에는 그 단어가 나온 가사 줄이 번역과 함께 예문으로 붙어요. 뜻이 여러 개면 뜻마다 다른 줄이 붙습니다.</p>
             </div>
-            <div class="example-card">
-              <div class="example-card__head">
-                <span class="example-card__word" lang="ja">星</span>
-                <span class="example-card__kana"><b>호시</b><small>명사 · N5</small></span>
-                <span class="example-card__mean">별, 별빛</span>
+            <div class="example-card stage">
+              <div class="rv__q">
+                <b lang="ja">星</b>
+                <span class="rv__meta"><span>호시</span><i style="color:#368ee8">명사</i>·<i style="color:#5388f3">N5</i></span>
               </div>
-              <div class="example-card__quote">
-                <small>夜空の約束 · 샘플 곡</small>
-                <span lang="ja"><ruby>夜空<rt>よぞら</rt></ruby>に<b><ruby>星<rt>ほし</rt></ruby></b>がひとつ</span>
-                <em>밤하늘에 별이 하나</em>
+              <p class="rv__mean">별</p>
+              <div class="rv__ex">
+                <small class="rv__ex-src"><span class="src__thumb"></span><span lang="ja">夜空の約束</span></small>
+                <span lang="ja">夜空に<b>星</b>がひとつ</span>
+                <small>밤하늘에 별이 하나</small>
               </div>
+              <span class="ex-dots"><i class="is-on"></i><i></i></span>
             </div>
           </article>
         </div>
@@ -297,7 +308,9 @@
             <span class="step__num">1</span>
             <div class="step__screen step__screen--search" aria-hidden="true">
               <span class="search-box">노래, 아티스트 검색</span>
-              <span class="skel"></span><span class="skel"></span><span class="skel"></span>
+              <span class="song-row"><i style="--a:#3d5a8a;--b:#c99ab5"></i><span><b lang="ja">夜空の約束</b><small>샘플 곡</small></span></span>
+              <span class="song-row"><i style="--a:#e8a76b;--b:#f3d9a4"></i><span><b lang="ja">春風ラプソディ</b><small>샘플 곡</small></span></span>
+              <span class="song-row"><i style="--a:#4f8f7a;--b:#a9d8c3"></i><span><b lang="ja">きみの街まで</b><small>샘플 곡</small></span></span>
             </div>
             <h3>검색</h3>
             <p>듣고 있는 곡을 제목이나 가수로 찾아요.</p>
@@ -305,9 +318,16 @@
           <li class="step">
             <span class="step__num">2</span>
             <div class="step__screen step__screen--analyze" aria-hidden="true">
-              <span class="spinner"></span>
-              <b>분석하고 있어요</b>
-              <small>보통 2~3분 걸려요</small>
+              <span class="apill">
+                <i class="apill__art" style="--a:#e8a76b;--b:#f3d9a4"></i>
+                <span class="apill__text"><b>분석하고 있어요</b><small lang="ja">春風ラプソディ</small></span>
+                <span class="apill__spin"></span>
+              </span>
+              <span class="apill apill--done">
+                <i class="apill__art" style="--a:#3d5a8a;--b:#c99ab5"></i>
+                <span class="apill__text"><b>분석이 끝났어요</b><small><span lang="ja">夜空の約束</span> · 탭해서 학습 시작</small></span>
+                <span class="apill__chev"></span>
+              </span>
             </div>
             <h3>자동 분석</h3>
             <p>가사를 단어로 나누고 문맥에 맞는 뜻을 골라요.</p>
@@ -315,9 +335,10 @@
           <li class="step">
             <span class="step__num">3</span>
             <div class="step__screen step__screen--study" aria-hidden="true">
-              <span class="tier is-done"><b>후렴 정복</b><i style="--w:100%"></i></span>
-              <span class="tier"><b>따라 부르기</b><i style="--w:40%"></i></span>
-              <span class="tier"><b>완곡</b><i style="--w:0%"></i></span>
+              <b class="journey__title">완곡까지 3단계</b>
+              <span class="tier tier--done"><i class="tier__dot"></i><span class="tier__card"><b>후렴 정복</b><span class="track"><i style="width:78%"></i><i class="s" style="width:22%"></i></span></span></span>
+              <span class="tier tier--current"><i class="tier__dot"></i><span class="tier__card"><b>따라 부르기</b><span class="track"><i style="width:18%"></i><i class="s" style="width:24%"></i></span><span class="tier__cta">지금 학습할 단어 12개</span></span></span>
+              <span class="tier"><i class="tier__dot"></i><span class="tier__card"><b>완곡</b><span class="track"></span></span></span>
             </div>
             <h3>학습 시작</h3>
             <p>후렴의 핵심 단어부터 완곡까지, 세 단계로 나눠 공부해요.</p>
@@ -327,6 +348,18 @@
         <p class="genres">
           <span>최신곡도</span><span>인디도</span><span>애니 OP도</span><span>20년 된 명곡도</span>
         </p>
+
+        <article class="tile tile--dark tile--wide karaoke-tile">
+          <div class="tile__text">
+            <h3>노래방 일본 신곡</h3>
+            <p>TJ·금영에 새로 들어온 일본 노래를 모아 봐요. 알림을 켜 두면 신곡이 들어온 날 알려 드려요.</p>
+          </div>
+          <ul class="karaoke" aria-hidden="true">
+            <li><i style="--a:#3d5a8a;--b:#c99ab5"></i><span><b lang="ja">夜空の約束</b><small>샘플 곡</small></span><span class="brands"><em class="brand-tj">TJ</em><em class="brand-ky">금영</em></span></li>
+            <li><i style="--a:#e8a76b;--b:#f3d9a4"></i><span><b lang="ja">春風ラプソディ</b><small>샘플 곡</small></span><span class="brands"><em class="brand-ky">금영</em></span></li>
+            <li><i style="--a:#4f8f7a;--b:#a9d8c3"></i><span><b lang="ja">きみの街まで</b><small>샘플 곡</small></span><span class="brands"><em class="brand-tj">TJ</em></span></li>
+          </ul>
+        </article>
       </div>
     </section>
 
@@ -334,11 +367,11 @@
     <section class="section section--paper" id="review" aria-labelledby="review-title">
       <div class="wrap review">
         <div class="review__copy">
-          <p class="eyebrow">FSRS 간격 반복</p>
+          <p class="eyebrow">간격 반복</p>
           <h2 id="review-title" class="section__title reveal">잊어버릴 때쯤,<br>정확히 다시 물어봅니다</h2>
           <p class="section__lead">
-            Anki에도 들어간 간격 반복 알고리즘 FSRS가 단어마다 다음 복습 날짜를 계산해요.
-            앱을 열면 오늘 복습할 카드가 바로 떠 있어요. 매일 복습할 때와 쉴 때 1년 뒤 기억하는 단어 수가 얼마나 다른지도 보여 줘요.
+            단어마다 다음 복습 날짜를 따로 계산해요.
+            앱을 열면 오늘 복습할 카드부터 보여요.
           </p>
 
           <figure class="curve" data-curve>
@@ -362,29 +395,49 @@
         </div>
 
         <div class="review__card">
-          <button class="flash" type="button" data-flash aria-pressed="false" aria-label="플래시카드 뒤집기 예시">
-            <span class="flash__inner">
-              <span class="flash__face flash__front">
-                <small>오늘 복습할 단어 9개</small>
-                <b lang="ja">約束</b>
-                <span class="flash__hint">뜻 확인하기</span>
+          <div class="home">
+            <div class="home__bar" aria-hidden="true">
+              <span class="home__today"><small>오늘 복습할 단어가</small><span><b>9</b>개 남았어요</span></span>
+              <span class="streak-chip streak-chip--sm"><svg viewBox="0 0 24 24" width="14" height="14"><path fill="#FF9500" d="M12 2c.6 3.2-1.4 5-2.9 6.6C7.6 10.2 6.5 11.8 6.5 14a5.5 5.5 0 0 0 11 0c0-2.4-1.1-4.2-2.3-5.6-.2 1.3-.8 2.2-1.7 2.7.3-3.4-.5-6.6-1.5-9.1z"/></svg><b>23일</b>연속</span>
+            </div>
+            <div class="decks" aria-hidden="true">
+              <span class="deck deck--search"><i></i>좋아하는 곡</span>
+              <span class="deck is-on"><i style="--a:#3d5a8a;--b:#c99ab5"><em>5</em></i><span lang="ja">夜空の約束</span></span>
+              <span class="deck"><i style="--a:#e8a76b;--b:#f3d9a4"><em>3</em></i><span lang="ja">春風ラプソディ</span></span>
+              <span class="deck"><i style="--a:#4f8f7a;--b:#a9d8c3"><em>1</em></i><span lang="ja">きみの街まで</span></span>
+            </div>
+            <button class="flash stage" type="button" data-flash aria-pressed="false" aria-label="플래시카드 뒤집기 예시">
+              <span class="src">
+                <span class="src__thumb"></span>
+                <span class="src__text"><b lang="ja">夜空の約束</b><small>샘플 곡</small></span>
               </span>
-              <span class="flash__face flash__back">
-                <small>명사 · N4</small>
-                <b lang="ja">約束</b>
-                <span class="flash__kana">야쿠소쿠</span>
-                <span class="flash__mean">약속</span>
-                <span class="flash__ex" lang="ja">君との<em>約束</em>を忘れない</span>
+              <span class="flash__front">
+                <b class="rv__head" lang="ja">約束</b>
+                <small class="rv__ask">뜻을 먼저 떠올린 뒤 확인해 보세요</small>
+                <span class="glass-pill">뜻 확인하기</span>
               </span>
-            </span>
-          </button>
-          <div class="ratings" role="group" aria-label="복습 평가 버튼 예시">
-            <span class="rating rating--again"><b>다시</b>10분</span>
-            <span class="rating rating--hard"><b>어려움</b>2일</span>
-            <span class="rating rating--good"><b>알고 있음</b>5일</span>
-            <span class="rating rating--easy"><b>쉬움</b>12일</span>
+              <span class="flash__back">
+                <span class="rv__q">
+                  <b lang="ja">約束</b>
+                  <span class="rv__meta"><span>야쿠소쿠</span><i style="color:#368ee8">명사</i>·<i style="color:#2a9b8d">N4</i></span>
+                </span>
+                <span class="rv__mean">약속</span>
+                <span class="rv__ex">
+                  <small class="rv__ex-src"><span class="src__thumb"></span><span lang="ja">夜空の約束</span></small>
+                  <span lang="ja">君との<b>約束</b>を忘れない</span>
+                  <small>너와의 약속을 잊지 않아</small>
+                </span>
+                <small class="rv__ask">얼마나 잘 기억했나요?</small>
+                <span class="glass-rates">
+                  <span style="--c:#ef4444"><b>다시</b>10분</span>
+                  <span style="--c:#f97316"><b>어려움</b>2일</span>
+                  <span style="--c:#16b364"><b>알고 있음</b>5일</span>
+                  <span style="--c:#3b82f6"><b>쉬움</b>12일</span>
+                </span>
+              </span>
+            </button>
           </div>
-          <p class="review__note">버튼마다 다음 복습이 언제인지 적혀 있어요. 따로 저장할 필요 없이, 평가한 단어가 그 곡에 담겨요.</p>
+          <p class="review__note">버튼마다 다음 복습이 언제인지 적혀 있어요. 평가한 단어는 따로 저장하지 않아도 그 곡에 담겨요.</p>
         </div>
       </div>
     </section>
@@ -398,39 +451,36 @@
           <article class="tile habit__streak">
             <div class="streak-chip">
               <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#FF9500" d="M12 2c.6 3.2-1.4 5-2.9 6.6C7.6 10.2 6.5 11.8 6.5 14a5.5 5.5 0 0 0 11 0c0-2.4-1.1-4.2-2.3-5.6-.2 1.3-.8 2.2-1.7 2.7.3-3.4-.5-6.6-1.5-9.1z"/></svg>
-              <span><b data-count="23">23</b>일 연속</span>
+              <b><span data-count="23">23</span>일</b>연속
             </div>
             <h3>연속 학습 기록</h3>
-            <p>하루에 한 장이라도 복습하면 학습 달력이 한 칸 채워져요. 7일 연속마다 프리즈가 하나 생기는데 하루 빠져도 이 프리즈가 기록을 지켜 줘요. 아직 복습하지 않은 날엔 저녁 8시와 밤 11시에 알림을 보내요.</p>
-            <div class="heat" data-heat aria-hidden="true"></div>
+            <p>하루에 한 장이라도 복습하면 달력이 한 칸 채워져요. 하루쯤 놓쳐도 연속 기록이 바로 끊기지 않고, 복습을 잊은 날엔 저녁에 알림이 와요.</p>
+            <div class="cal" aria-hidden="true">
+              <div class="cal__head"><b>학습 달력</b><span>10월</span></div>
+              <div class="cal__week"><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span><span>일</span></div>
+              <div class="cal__grid" data-heat></div>
+            </div>
           </article>
 
           <article class="tile habit__card">
             <h3>곡 카드 수집</h3>
-            <p>단계를 하나 끝낼 때마다 BRONZE·SILVER·GOLD 카드를, 곡 단어의 90%를 오래 기억하게 되면 MASTER 카드를 받아요. 복습을 미루면 카드가 낡아요. 받은 카드는 X·인스타그램·링크로 자랑해 보세요.</p>
+            <p>곡을 한 단계씩 익힐 때마다 그 곡만의 카드를 받아요.</p>
             <div class="reward" data-tilt aria-hidden="true">
               <div class="reward__inner">
                 <div class="reward__art">
-                  <span lang="ja">夜空の約束</span>
+                  <span class="reward__lyric" lang="ja">夜空に星がひとつ</span>
+                  <span class="reward__lyric" lang="ja">君の声を探して</span>
                 </div>
                 <div class="reward__body">
                   <b lang="ja">夜空の約束</b>
                   <small>샘플 곡</small>
-                  <span class="reward__meter"><i style="--w:100%"></i><i style="--w:100%"></i><i style="--w:72%"></i></span>
-                  <span class="reward__meta"><span>GOLD</span><span>128번째 획득</span></span>
+                  <span class="reward__foot">
+                    <span class="reward__no"><b>128</b>번째 획득</span>
+                    <span class="pips"><i></i><i></i><i></i></span>
+                  </span>
                 </div>
               </div>
             </div>
-          </article>
-
-          <article class="tile tile--dark habit__karaoke">
-            <h3>노래방 일본 신곡</h3>
-            <p>TJ · 금영에 새로 들어온 일본 노래를 매일 모아 보여 드려요. 알림을 켜 두면 신곡이 올라온 날 알려 드려요.</p>
-            <ul class="karaoke" aria-hidden="true">
-              <li><span class="karaoke__no">TJ</span><span lang="ja">夜空の約束</span><span class="karaoke__new">오늘</span></li>
-              <li><span class="karaoke__no">금영</span><span lang="ja">春風ラプソディ</span><span class="karaoke__new">오늘</span></li>
-              <li><span class="karaoke__no">TJ</span><span lang="ja">きみの街まで</span><span class="karaoke__new">어제</span></li>
-            </ul>
           </article>
         </div>
       </div>
@@ -445,7 +495,7 @@
         <div class="faq__list">
           <details open>
             <summary>일본어를 전혀 못 읽어도 쓸 수 있나요?</summary>
-            <p>네. 가사의 한자 위에 후리가나가, 줄 아래에 한국어 발음과 번역이 붙어 있어서 히라가나를 몰라도 노래를 따라 부르며 시작할 수 있어요. 단어마다 뜻도 바로 아래에 붙습니다.</p>
+            <p>네. 줄 아래에 한국어 발음과 번역이 붙어 있어서 히라가나를 몰라도 노래를 따라 부르며 시작할 수 있어요. 한자 위에는 후리가나가, 단어 아래에는 뜻이 붙습니다.</p>
           </details>
           <details>
             <summary>어떤 노래로 공부할 수 있나요?</summary>
@@ -457,7 +507,7 @@
           </details>
           <details>
             <summary>외운 단어는 어떻게 복습하나요?</summary>
-            <p>간격 반복 알고리즘 FSRS가 단어마다 잊어버릴 때쯤을 계산해 플래시카드로 다시 보여 줘요. 앱을 열면 오늘 복습할 카드부터 보이고 아는 단어는 뜸하게, 헷갈리는 단어는 자주 나와요.</p>
+            <p>단어마다 잊어버릴 때쯤을 계산해 플래시카드로 다시 보여 줘요. 앱을 열면 오늘 복습할 카드부터 보이고 아는 단어는 뜸하게, 헷갈리는 단어는 자주 나와요.</p>
           </details>
           <details>
             <summary>무료인가요?</summary>
@@ -514,6 +564,6 @@
     </div>
   </footer>
 
-  <script src="main.js?v=3" defer></script>
+  <script src="main.js?v=4" defer></script>
 </body>
 </html>
