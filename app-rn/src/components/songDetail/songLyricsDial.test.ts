@@ -94,6 +94,19 @@ describe('buildTokenCells', () => {
     expect(cells[1].word).toBeNull();
   });
 
+  it('조사와 기호에는 뜻을 달지 않는다', () => {
+    const cells = buildTokenCells(
+      line('空が。', [
+        token({ surface: '空', charStart: 0, charEnd: 1, koreanText: '하늘' }),
+        token({ surface: 'が', charStart: 1, charEnd: 2, partOfSpeech: 'PARTICLE', koreanText: '~이/가' }),
+        token({ surface: '。', charStart: 2, charEnd: 3, partOfSpeech: 'SYMBOL', koreanText: '.' }),
+      ]),
+      [],
+    );
+
+    expect(cells.map(cell => cell.meaning)).toEqual(['하늘', null, null]);
+  });
+
   it('분석되지 않은 줄은 셀을 만들지 않는다 — 원문을 그대로 그린다', () => {
     expect(buildTokenCells(line('まだ分析前', []), [])).toEqual([]);
   });

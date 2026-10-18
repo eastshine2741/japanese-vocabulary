@@ -28,6 +28,8 @@ import type { CurrentPlayingLyricLine, CurrentPlayingWord } from './CurrentPlayi
 const FOCUS_CENTER_RATIO = 0.38;
 const TRANSITION_DURATION = 280;
 const MODE_DURATION = 200;
+/** 포커스가 옮겨 올 때 밑줄·단어 뜻·후리가나가 떠오르는 시간. */
+const DETAIL_FADE_MS = 200;
 /** 드래그 중 후보 줄로 띠가 미끄러지는 시간. */
 const HIGHLIGHT_SLIDE_MS = 150;
 const RENDER_RADIUS = 6;
@@ -45,32 +47,50 @@ export interface SongLyricsDialEntry {
   words: CurrentPlayingWord[];
 }
 
-interface FocusedLineProps {
+interface LyricLineProps {
   line: CurrentPlayingLyricLine;
+  isFocused: boolean;
   words: CurrentPlayingWord[];
   busyWordKey: string | null;
   onWordPress: (word: CurrentPlayingWord) => void;
 }
 
-const FocusedLine = React.memo(function FocusedLine({
+/**
+ * 밑줄·단어 뜻·후리가나는 모든 줄에서 자리를 차지하고 포커스 줄에서만 보인다 —
+ * 포커스가 옮겨 와도 높이와 글자 자리가 그대로다.
+ */
+const LyricLine = React.memo(function LyricLine({
   line,
+  isFocused,
   words,
   busyWordKey,
   onWordPress,
-}: FocusedLineProps) {
+}: LyricLineProps) {
   const showFurigana = useSettingsStore(s => s.showFurigana);
   const showKoreanPronunciation = useSettingsStore(s => s.showKoreanPronunciation);
   const cells = useMemo(() => buildTokenCells(line, words), [line, words]);
   // 토큰에서 조립한다 — 단어 사이는 띄고, 받침은 토큰 경계를 넘고, 장음은 넘지 않는다.
   const koreanPronunciation = useMemo(
-    () => convertLineReading(line.originalText, line.tokens ?? [], 'KOREAN'),
-    [line.originalText, line.tokens],
+    () => (showKoreanPronunciation
+      ? convertLineReading(line.originalText, line.tokens ?? [], 'KOREAN')
+      : ''),
+    [line.originalText, line.tokens, showKoreanPronunciation],
   );
   const hasFurigana = showFurigana && cells.some(cell => cell.furigana);
   const hasMeaning = cells.some(cell => cell.meaning);
 
+  // 처음 그려질 때는 제자리 값으로 시작한다 — 창 안으로 들어온 줄이 깜빡이지 않게.
+  const detailOpacity = useSharedValue(isFocused ? 1 : 0);
+  useEffect(() => {
+    detailOpacity.value = withTiming(isFocused ? 1 : 0, {
+      duration: DETAIL_FADE_MS,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [detailOpacity, isFocused]);
+  const detailStyle = useAnimatedStyle(() => ({ opacity: detailOpacity.value }));
+
   return (
-    <View style={styles.focusBand}>
+    <View style={styles.lineBand}>
       {cells.length > 0 ? (
         <View style={styles.tokenRow}>
           {cells.map(cell => (
@@ -79,18 +99,19 @@ const FocusedLine = React.memo(function FocusedLine({
               cell={cell}
               showFurigana={hasFurigana}
               showMeaning={hasMeaning}
+              detailStyle={detailStyle}
               isBusy={cell.word != null && busyWordKey === getSongDetailWordKey(cell.word)}
               onPress={onWordPress}
             />
           ))}
         </View>
       ) : (
-        <Text style={styles.focusPlainText}>{line.originalText}</Text>
+        <Text style={styles.plainText}>{line.originalText}</Text>
       )}
 
-      {(showKoreanPronunciation && koreanPronunciation) || line.koreanLyrics ? (
+      {koreanPronunciation || line.koreanLyrics ? (
         <View style={styles.lineMeaning}>
-          {showKoreanPronunciation && koreanPronunciation ? (
+          {koreanPronunciation ? (
             <Text style={styles.lineReadingText}>{koreanPronunciation}</Text>
           ) : null}
           {line.koreanLyrics ? (
@@ -106,6 +127,7 @@ interface TokenCellViewProps {
   cell: TokenCell;
   showFurigana: boolean;
   showMeaning: boolean;
+  detailStyle: ReturnType<typeof useAnimatedStyle>;
   isBusy: boolean;
   onPress: (word: CurrentPlayingWord) => void;
 }
@@ -114,6 +136,7 @@ const TokenCellView = React.memo(function TokenCellView({
   cell,
   showFurigana,
   showMeaning,
+  detailStyle,
   isBusy,
   onPress,
 }: TokenCellViewProps) {
@@ -124,14 +147,27 @@ const TokenCellView = React.memo(function TokenCellView({
   const body = (
     <View style={styles.tokenCell}>
       {showFurigana ? (
-        <Text style={styles.furiganaText} numberOfLines={1}>{cell.furigana ?? ' '}</Text>
+        <Animated.Text style={[styles.furiganaText, detailStyle]} numberOfLines={1}>
+          {cell.furigana ?? ' '}
+        </Animated.Text>
       ) : null}
       <Text style={cell.barColor ? styles.tokenText : styles.tokenTextMuted}>{cell.text}</Text>
-      <View style={[styles.tokenBar, cell.barColor ? { backgroundColor: cell.barColor } : null]} />
+      <Animated.View
+        style={[
+          styles.tokenBar,
+          cell.barColor ? { backgroundColor: cell.barColor } : null,
+          detailStyle,
+        ]}
+      />
       {showMeaning ? (
-        <Text style={cell.barColor ? styles.tokenMeaningText : styles.tokenMeaningTextMuted}>
+        <Animated.Text
+          style={[
+            cell.barColor ? styles.tokenMeaningText : styles.tokenMeaningTextMuted,
+            detailStyle,
+          ]}
+        >
           {cell.meaning ?? ' '}
-        </Text>
+        </Animated.Text>
       ) : null}
     </View>
   );
@@ -186,16 +222,13 @@ const Slot = React.memo(function Slot({
       onLayout={handleLayout}
       pointerEvents={isFocused ? 'auto' : 'none'}
     >
-      {isFocused ? (
-        <FocusedLine
-          line={entry.line}
-          words={entry.words}
-          busyWordKey={busyWordKey}
-          onWordPress={onWordPress}
-        />
-      ) : (
-        <Text style={styles.restLineText}>{entry.line.originalText}</Text>
-      )}
+      <LyricLine
+        line={entry.line}
+        isFocused={isFocused}
+        words={entry.words}
+        busyWordKey={isFocused ? busyWordKey : null}
+        onWordPress={onWordPress}
+      />
     </Animated.View>
   );
 });
@@ -441,20 +474,13 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: Colors.surfaceSubtle,
   },
-  restLineText: {
+  lineBand: {
+    paddingVertical: 14,
     paddingHorizontal: 20,
-    paddingVertical: 12,
-    fontSize: 18,
-    lineHeight: 26,
-    color: Colors.textPrimary,
+    gap: 6,
   },
-  focusBand: {
-    paddingVertical: 20,
-    paddingHorizontal: 20,
-    gap: 14,
-  },
-  focusPlainText: {
-    fontSize: 22,
+  plainText: {
+    fontSize: 20,
     lineHeight: 28,
     fontWeight: '600',
     color: Colors.textPrimary,
@@ -463,12 +489,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'flex-end',
-    columnGap: 2,
-    rowGap: 12,
+    columnGap: 1,
+    rowGap: 6,
   },
   tokenCell: {
     alignItems: 'center',
-    gap: 2,
+    gap: 1,
   },
   tokenCellBusy: {
     opacity: 0.5,
@@ -479,37 +505,37 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   tokenText: {
-    fontSize: 22,
+    fontSize: 20,
     lineHeight: 28,
     fontWeight: '600',
     color: Colors.textPrimary,
   },
   tokenTextMuted: {
-    fontSize: 22,
+    fontSize: 20,
     lineHeight: 28,
     fontWeight: '600',
     color: Colors.textSecondary,
   },
   tokenBar: {
     alignSelf: 'stretch',
-    height: 2.5,
-    borderRadius: 2,
+    height: 2,
+    borderRadius: 1,
     backgroundColor: 'transparent',
   },
   tokenMeaningText: {
-    marginTop: 2,
+    marginTop: 1,
     fontSize: 11,
     lineHeight: 14,
     color: Colors.textSecondary,
   },
   tokenMeaningTextMuted: {
-    marginTop: 2,
+    marginTop: 1,
     fontSize: 11,
     lineHeight: 14,
     color: Colors.textMuted,
   },
   lineMeaning: {
-    gap: 4,
+    gap: 2,
   },
   lineReadingText: {
     fontSize: 13,
@@ -518,9 +544,8 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   lineKoreanText: {
-    fontSize: 15.5,
-    lineHeight: 22,
-    fontWeight: '500',
-    color: Colors.textPrimary,
+    fontSize: 15,
+    lineHeight: 21,
+    color: Colors.textSecondary,
   },
 });
