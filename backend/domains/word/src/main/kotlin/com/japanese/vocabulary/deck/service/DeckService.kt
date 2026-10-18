@@ -168,9 +168,10 @@ class DeckService(
     /**
      * 전체 단어장을 빼면 이 단어장에만 속한 단어는 flashcard·모든 연결과 함께 지운다. 다른 단어장에도 속한 단어는
      * 손대지 않는다. 전체 단어장은 "모든 단어는 전체 단어장에 속한다"는 불변식의 담지자라 지울 수 없다.
+     * 곡 단어장이었으면 그 곡 id 를 돌려준다.
      */
     @Transactional
-    fun deleteDeck(userId: Long, deckId: Long) {
+    fun deleteDeck(userId: Long, deckId: Long): Long? {
         val deck = loadDeletableDeck(userId, deckId)
         val exclusiveWordIds = deckWordRepository.findExclusiveWordIds(deckId)
         deckWordRepository.deleteByDeckId(deckId)
@@ -181,12 +182,13 @@ class DeckService(
             wordRepository.deleteByIdIn(exclusiveWordIds)
         }
         deckRepository.delete(deck)
+        return deck.songId
     }
 
     @Transactional(readOnly = true)
     fun getDeletionPreview(userId: Long, deckId: Long): DeckDeletionPreviewDto {
-        loadDeletableDeck(userId, deckId)
-        return DeckDeletionPreviewDto(deletedWordCount = deckWordRepository.findExclusiveWordIds(deckId).size)
+        val deck = loadDeletableDeck(userId, deckId)
+        return DeckDeletionPreviewDto(songId = deck.songId, deletedWordCount = deckWordRepository.findExclusiveWordIds(deckId).size)
     }
 
     private fun loadDeletableDeck(userId: Long, deckId: Long): DeckEntity {

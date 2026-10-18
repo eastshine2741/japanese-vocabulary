@@ -14,7 +14,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.Table
 import java.time.Instant
 
-/** 유저·아티스트마다 한 장. 등급은 오르기만 한다. */
+/** 유저·아티스트마다 한 장. 등급은 마스터 곡 수를 따르고, 곡 학습을 그만둬 그 수가 줄면 내려간다. */
 @Entity
 @Table(name = "artist_card")
 class ArtistCardEntity(
@@ -37,7 +37,7 @@ class ArtistCardEntity(
     @Column(name = "seen_grade", length = 10)
     var seenGrade: ArtistCardGrade? = null,
 
-    /** 몇 번째 팬인지. BRONZE 에 닿을 때 아티스트마다 매기고 바뀌지 않는다. */
+    /** 몇 번째 팬인지. BRONZE 에 처음 닿을 때 아티스트마다 매기고 바뀌지 않는다. 기본으로 내려가도 남는다. */
     @Column(name = "fan_no")
     var fanNo: Int? = null,
 
@@ -53,6 +53,9 @@ class ArtistCardEntity(
     val createdAt: Instant,
 ) {
     val isIssued: Boolean get() = issuedAt != null
+
+    /** 기본 카드엔 팬 번호를 보이지 않는다. */
+    val shownFanNo: Int? get() = fanNo.takeIf { grade >= ArtistCardGrade.BRONZE }
 
     /** 서명 뒤 아직 못 본 강화가 있다. */
     val hasUnseenUpgrade: Boolean get() = isIssued && seenGrade != grade
@@ -71,6 +74,13 @@ class ArtistCardEntity(
 
     fun upgrade(to: ArtistCardGrade) {
         if (to > grade) grade = to
+    }
+
+    /** 내려간 등급은 연출하지 않는다. */
+    fun downgrade(to: ArtistCardGrade) {
+        if (to >= grade) return
+        grade = to
+        if (seenGrade != null && seenGrade!! > to) seenGrade = to
     }
 
     /** 앱이 강화 연출을 다 보여 줬다. 그 사이 또 오른 등급은 남긴다. */

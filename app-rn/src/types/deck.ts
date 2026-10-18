@@ -70,4 +70,6 @@ export interface DeckResponse {
 export interface DeckDeletionPreviewResponse {
   /** 덱과 함께 지워질 단어 수 — 이 덱에만 담긴 단어. */
   deletedWordCount: number;
+  /** 함께 지워질 그 곡의 보상 카드 수. */
+  deletedCardCount: number;
 }

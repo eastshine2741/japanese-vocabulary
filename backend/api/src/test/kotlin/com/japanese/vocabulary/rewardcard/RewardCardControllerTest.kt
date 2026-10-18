@@ -3,6 +3,7 @@ package com.japanese.vocabulary.rewardcard
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.japanese.vocabulary.auth.jwt.JwtUtil
+import com.japanese.vocabulary.deck.dto.DeckDeletionPreviewResponse
 import com.japanese.vocabulary.deck.entity.DeckEntity
 import com.japanese.vocabulary.deck.entity.DeckWordEntity
 import com.japanese.vocabulary.featureflag.FeatureFlagKeys
@@ -40,6 +41,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.ResultActionsDsl
+import org.springframework.test.web.servlet.delete
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.post
 import org.springframework.test.web.servlet.put
@@ -429,5 +431,47 @@ class RewardCardControllerTest : ApiBaseIntegrationTest() {
         assertThat(artistPending.fromGrade).isNull()
         assertThat(artistPending.grade).isEqualTo("BRONZE")
         assertThat(artistPending.acquiredSeq).isEqualTo(1)
+    }
+
+    @Test
+    fun `quitting a song deletes its cards and steps the artist card down, keeping the fan number for later`() {
+        val me = newUser()
+        val other = newUser()
+        val artist = newArtist()
+        val song = newSong(artist)
+        val nextSong = newSong(artist)
+        review(me, studyWord(me, song, "輪郭"))
+        rewardCardService.achieveSongs(me.id!!, listOf(SongAchievementDto(song.id!!, artist.id, SongCardGrade.MASTER)))
+        val artistCardId = cards(me).artistCards.single().id
+        postJson(me, "/api/reward-cards/artist-cards/$artistCardId/issue", mapOf("signature" to signature))
+            .andExpect { status { isNoContent() } }
+        val deckId = entityManager.createQuery(
+            "SELECT d.id FROM DeckEntity d WHERE d.userId = :u AND d.songId = :s", java.lang.Long::class.java,
+        ).setParameter("u", me.id).setParameter("s", song.id).singleResult.toLong()
+
+        val preview = readBody<DeckDeletionPreviewResponse>(
+            mockMvc.get("/api/decks/$deckId/deletion-preview") { header("Authorization", bearer(me)) }
+                .andExpect { status { isOk() } }.andReturn().response.contentAsString
+        )
+        assertThat(preview.deletedCardCount).isEqualTo(5)
+
+        mockMvc.delete("/api/decks/$deckId") { header("Authorization", bearer(me)) }
+            .andExpect { status { isNoContent() } }
+
+        val afterQuit = cards(me)
+        assertThat(afterQuit.songCards).isEmpty()
+        val artistCard = afterQuit.artistCards.single()
+        assertThat(artistCard.grade.name).isEqualTo("BASIC")
+        assertThat(artistCard.fanNo).isNull()
+        assertThat(artistCard.masteredSongs).isEmpty()
+        // 내려간 등급은 연출하지 않는다.
+        assertThat(pending(me)).isEmpty()
+
+        // 그 사이 다른 유저가 2번 팬이 돼도, 다시 BRONZE 에 닿으면 원래 번호를 쓴다.
+        rewardCardService.achieveSongs(other.id!!, listOf(SongAchievementDto(song.id!!, artist.id, SongCardGrade.MASTER)))
+        val reveals = rewardCardService.achieveSongs(me.id!!, listOf(SongAchievementDto(nextSong.id!!, artist.id, SongCardGrade.MASTER)))
+        assertThat(reveals.last().kind).isEqualTo(RewardCardKind.ARTIST)
+        assertThat(reveals.last().acquiredSeq).isEqualTo(1)
+        assertThat(cards(other).artistCards.single().fanNo).isEqualTo(2)
     }
 }

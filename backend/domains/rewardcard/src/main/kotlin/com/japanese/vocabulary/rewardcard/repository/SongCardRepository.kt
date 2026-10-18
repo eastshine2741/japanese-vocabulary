@@ -12,6 +12,8 @@ interface SongCardRepository : JpaRepository<SongCardEntity, Long> {
 
     fun findByUserIdAndSongIdIn(userId: Long, songIds: Collection<Long>): List<SongCardEntity>
 
+    fun countByUserIdAndSongId(userId: Long, songId: Long): Long
+
     fun findByUserIdOrderByCreatedAtDescIdDesc(userId: Long): List<SongCardEntity>
 
     @Query(

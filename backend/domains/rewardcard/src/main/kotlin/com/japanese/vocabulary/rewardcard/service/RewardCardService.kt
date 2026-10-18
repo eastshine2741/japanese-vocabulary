@@ -90,6 +90,24 @@ class RewardCardService(
     }
 
     @Transactional(readOnly = true)
+    fun songCardCount(userId: Long, songId: Long): Int = songCardRepository.countByUserIdAndSongId(userId, songId).toInt()
+
+    /**
+     * 곡 학습을 그만두면 그 곡 카드를 모두 지운다. 남겨 두면 복습할 단어가 사라져 낡지 않는 카드가 된다.
+     * 아티스트 카드는 줄어든 마스터 곡 수에 맞춰 등급을 내리고, 팬 번호는 남겨 다시 BRONZE 에 닿으면 같은 번호를 쓴다.
+     */
+    @Transactional
+    fun removeSongCards(userId: Long, songId: Long) {
+        val cards = songCardRepository.findByUserIdAndSongIdIn(userId, listOf(songId))
+        if (cards.isEmpty()) return
+        songCardRepository.deleteAll(cards)
+        songCardRepository.flush()
+        val artistId = cards.firstNotNullOfOrNull { it.artistId } ?: return
+        val card = artistCardRepository.findByUserIdAndArtistIdIn(userId, listOf(artistId)).singleOrNull() ?: return
+        card.downgrade(ArtistCardGrade.forMasterCount(masterCounts(userId, listOf(artistId))[artistId] ?: 0))
+    }
+
+    @Transactional(readOnly = true)
     fun pending(userId: Long): List<RewardCardRevealDto> =
         songCardRepository.findByUserIdAndIssuedAtIsNullOrderById(userId).map { it.toReveal() } +
             artistCardRepository.findPendingByUserId(userId).map { it.toReveal(fromGrade = if (it.isIssued) it.seenGrade ?: ArtistCardGrade.BASIC else null) }
@@ -221,7 +239,7 @@ class RewardCardService(
         cardId = id!!,
         targetId = artistId,
         grade = grade.name,
-        acquiredSeq = fanNo,
+        acquiredSeq = shownFanNo,
         fromGrade = fromGrade?.name,
     )
 
@@ -241,7 +259,7 @@ class RewardCardService(
         id = id!!,
         artistId = artistId,
         grade = grade,
-        fanNo = fanNo,
+        fanNo = shownFanNo,
         signature = signature,
         issued = isIssued,
         createdAt = createdAt,
