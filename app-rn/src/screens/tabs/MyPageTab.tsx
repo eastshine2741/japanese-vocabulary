@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Alert, Platform, useWindowDimensions } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { NavigationState, SceneRendererProps, TabBar, TabDescriptor, TabView } from 'react-native-tab-view';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
@@ -22,7 +22,6 @@ import ProfileAvatar from '../../components/ProfileAvatar';
 import { flashcardApi } from '../../api/flashcardApi';
 import { FlashcardStatsResponse } from '../../types/flashcard';
 import CardCollection from '../../components/rewardCards/CardCollection';
-import { previousArtistCard } from '../../components/rewardCards/cardKinds';
 import { useRewardCardStore } from '../../stores/rewardCardStore';
 import { ArtistRewardCard, SongRewardCard } from '../../components/rewardCards/types';
 
@@ -79,8 +78,6 @@ export default function MyPageTab() {
   const songCards = useRewardCardStore((s) => s.songCards);
   const artistCards = useRewardCardStore((s) => s.artistCards);
   const cardsLoading = useRewardCardStore((s) => s.source === 'server' && (s.serverStatus === 'idle' || s.serverStatus === 'loading'));
-  const revealCard = useRewardCardStore((s) => s.revealCard);
-  const upgradeArtistCard = useRewardCardStore((s) => s.upgradeArtistCard);
   const { deckStatus, songDecks, loadDecks } = useDeckListStore(
     useShallow((s) => ({
       deckStatus: s.status,
@@ -173,21 +170,6 @@ export default function MyPageTab() {
     navigation.navigate('RewardCardDetail', { cardId: card.id, ownerName: displayName });
   }, [navigation, displayName]);
 
-  // 개발 빌드에서만 카드를 길게 눌러 획득 화면을 다시 띄운다.
-  const handleLongPressCard = useCallback((card: SongRewardCard) => revealCard('song', card.id), [revealCard]);
-  const handleLongPressArtistCard = useCallback(
-    (card: ArtistRewardCard) => {
-      // 웹 Alert 는 버튼을 띄우지 못한다.
-      if (previousArtistCard(card) === null || Platform.OS === 'web') return revealCard('artist', card.id);
-      Alert.alert('카드 연출', undefined, [
-        { text: '새로 얻기', onPress: () => revealCard('artist', card.id) },
-        { text: '등급 오르기', onPress: () => upgradeArtistCard(card.id) },
-        { text: '취소', style: 'cancel' },
-      ]);
-    },
-    [revealCard, upgradeArtistCard],
-  );
-
   const handlePressArtistCard = useCallback((card: ArtistRewardCard) => {
     navigation.navigate('ArtistCardDetail', { cardId: card.id, ownerName: displayName });
   }, [navigation, displayName]);
@@ -212,9 +194,7 @@ export default function MyPageTab() {
           sidePadding={SIDE_PADDING}
           contentContainerStyle={sceneContentStyle}
           onPressCard={handlePressCard}
-          onLongPressCard={__DEV__ ? handleLongPressCard : undefined}
           onPressArtistCard={handlePressArtistCard}
-          onLongPressArtistCard={__DEV__ ? handleLongPressArtistCard : undefined}
           onOpenArtistCards={handleOpenArtistCards}
         />
       ) : (
@@ -265,7 +245,7 @@ export default function MyPageTab() {
       )
     ),
     [
-      sceneContentStyle, songCards, artistCards, cardsLoading, screenWidth, handlePressCard, handleLongPressCard, handlePressArtistCard, handleLongPressArtistCard, handleOpenArtistCards, totalWords, longTermWords, shortTermWords, showStatsFallback,
+      sceneContentStyle, songCards, artistCards, cardsLoading, screenWidth, handlePressCard, handlePressArtistCard, handleOpenArtistCards, totalWords, longTermWords, shortTermWords, showStatsFallback,
       handleOpenSongProgress, deckStatus, progressItems.length, representativeSongs, handleSongProgressPress, handleSongProgressLongPress, handleOpenStreak,
     ],
   );

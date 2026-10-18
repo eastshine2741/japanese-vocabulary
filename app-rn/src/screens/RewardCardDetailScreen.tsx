@@ -20,7 +20,6 @@ import { deckApi } from '../api/deckApi';
 import SongCardShowcase from '../components/rewardCards/SongCardShowcase';
 import CardShareButton from '../components/rewardCards/CardShareButton';
 import GradePanel, { GradeTab } from '../components/rewardCards/GradePanel';
-import { IntroDecision, reportIntroDecision } from '../components/rewardCards/CardIntroDebugOverlay';
 import { EXPLAINER_IN_MS, EXPLAINER_OUT_MS } from '../components/rewardCards/CardRevealStage';
 import { CARD_RATIO, LEVEL_MATERIAL, MASTER_CHIP, SHOWROOM, songTierName, useCardFonts } from '../components/rewardCards/cardTheme';
 import { useCardTilt } from '../components/rewardCards/useCardTilt';
@@ -159,31 +158,22 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
   // 아직 발급 전인 카드는 획득 화면이 곧 같은 설명을 하므로 건너뛴다.
   const issued = opened?.issued === true;
   const introCheckedRef = useRef(false);
-  const title = opened?.title ?? cardId;
-  const setIntroDecision = useCallback((decision: IntroDecision) => reportIntroDecision(cardId, title, decision), [cardId, title]);
-  useEffect(() => {
-    if (!introCheckedRef.current) setIntroDecision('waiting');
-  }, [setIntroDecision]);
   useEffect(() => {
     if (!issued || introCheckedRef.current) return;
     introCheckedRef.current = true;
-    setIntroDecision('checking');
     let cancelled = false;
     useRewardCardStore
       .getState()
       .loadWearIntroSeen()
       .finally(() => {
         const state = useRewardCardStore.getState();
-        if (cancelled) return;
-        if (state.wearIntroSeen) return setIntroDecision('seen');
-        if (state.active) return setIntroDecision('revealing');
-        setIntroDecision('shown');
+        if (cancelled || state.wearIntroSeen || state.active) return;
         openExplainer({ kind: 'song', cardId, intro: true });
       });
     return () => {
       cancelled = true;
     };
-  }, [issued, openExplainer, cardId, setIntroDecision]);
+  }, [issued, openExplainer, cardId]);
 
   const handleWearInfo = useCallback(() => {
     openExplainer({ kind: 'song', cardId, wearOnly: true });

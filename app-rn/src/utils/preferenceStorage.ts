@@ -25,9 +25,6 @@ export const preferenceStorage = Platform.OS === 'web'
       async saveCardWearIntroSeen(): Promise<void> {
         localStorage.setItem(CARD_WEAR_INTRO_SEEN_KEY, '1');
       },
-      async clearCardWearIntroSeen(): Promise<void> {
-        localStorage.removeItem(CARD_WEAR_INTRO_SEEN_KEY);
-      },
     }
   : {
       async getAnalysisPillDock(): Promise<AnalysisPillDock | null> {
@@ -42,8 +39,5 @@ export const preferenceStorage = Platform.OS === 'web'
       },
       async saveCardWearIntroSeen(): Promise<void> {
         await SecureStore.setItemAsync(CARD_WEAR_INTRO_SEEN_KEY, '1');
-      },
-      async clearCardWearIntroSeen(): Promise<void> {
-        await SecureStore.deleteItemAsync(CARD_WEAR_INTRO_SEEN_KEY);
       },
     };

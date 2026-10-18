@@ -34,8 +34,6 @@ import AppNavigator, { RootStackParamList } from './src/navigation/AppNavigator'
 import { AnalysisPillOverlay } from './src/components/analysisPill';
 import { StreakCelebrationHost } from './src/components/streak';
 import { RewardCardRevealHost } from './src/components/rewardCards/RewardCardReveal';
-import { RewardCardSourceToggle } from './src/components/rewardCards/RewardCardSourceToggle';
-import { CardIntroDebugOverlay } from './src/components/rewardCards/CardIntroDebugOverlay';
 import { navigationRef, flushPending } from './src/navigation/navigationRef';
 import { tokenStorage } from './src/utils/tokenStorage';
 import { isJwtExpired, getJwtUserId } from './src/utils/jwt';
@@ -193,8 +191,6 @@ function App() {
               <AnalysisPillOverlay />
               <StreakCelebrationHost />
               <RewardCardRevealHost />
-              <RewardCardSourceToggle />
-              <CardIntroDebugOverlay />
             </NavigationContainer>
           )}
         </BottomSheetModalProvider>
