@@ -1,9 +1,8 @@
-import React, { useEffect, useRef, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import {
   View,
   Text,
   Switch,
-  TextInput,
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
@@ -36,37 +35,24 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export default function SettingsScreen() {
   const navigation = useNavigation<Nav>();
   const {
-    status, showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, dailyGoal, karaokeNewSongNotifications, isSaving,
-    loadSettings, setShowIntervals, setReadingDisplay, setShowKoreanPronunciation, setShowFurigana, setDailyGoal, toggleKaraokeNewSongNotifications, save,
+    status, showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, karaokeNewSongNotifications, isSaving,
+    loadSettings, setShowIntervals, setReadingDisplay, setShowKoreanPronunciation, setShowFurigana, toggleKaraokeNewSongNotifications, save,
   } = useSettingsStore(
     useShallow(s => ({
       status: s.status,
       showIntervals: s.showIntervals, readingDisplay: s.readingDisplay,
       showKoreanPronunciation: s.showKoreanPronunciation, showFurigana: s.showFurigana,
-      dailyGoal: s.dailyGoal, karaokeNewSongNotifications: s.karaokeNewSongNotifications,
+      karaokeNewSongNotifications: s.karaokeNewSongNotifications,
       isSaving: s.isSaving, loadSettings: s.loadSettings,
       setShowIntervals: s.setShowIntervals, setReadingDisplay: s.setReadingDisplay,
       setShowKoreanPronunciation: s.setShowKoreanPronunciation, setShowFurigana: s.setShowFurigana,
-      setDailyGoal: s.setDailyGoal, toggleKaraokeNewSongNotifications: s.toggleKaraokeNewSongNotifications, save: s.save,
+      toggleKaraokeNewSongNotifications: s.toggleKaraokeNewSongNotifications, save: s.save,
     })),
   );
 
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showServerDialog, setShowServerDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [dailyGoalText, setDailyGoalText] = useState(String(dailyGoal));
-
-  useEffect(() => { setDailyGoalText(String(dailyGoal)); }, [dailyGoal]);
-
   useEffect(() => { loadSettings(); }, []);
-  useEffect(() => () => {
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-  }, []);
-
-  const debouncedSave = useCallback(() => {
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => { save(); }, 500);
-  }, [save]);
 
   const handleShowIntervalsChange = useCallback((value: boolean) => {
     setShowIntervals(value); setTimeout(() => save(), 0);
@@ -83,18 +69,6 @@ export default function SettingsScreen() {
   const handleReadingDisplayChange = useCallback((value: 'KATAKANA' | 'HIRAGANA' | 'KOREAN') => {
     setReadingDisplay(value); setTimeout(() => save(), 0);
   }, [setReadingDisplay, save]);
-
-  const handleDailyGoalTextChange = useCallback((text: string) => {
-    setDailyGoalText(text.replace(/[^0-9]/g, ''));
-  }, []);
-
-  const handleDailyGoalCommit = useCallback(() => {
-    const parsed = parseInt(dailyGoalText, 10);
-    const next = Number.isFinite(parsed) ? parsed : dailyGoal;
-    setDailyGoal(next);
-    setDailyGoalText(String(Math.max(1, Math.min(50000, Math.round(next)))));
-    debouncedSave();
-  }, [dailyGoalText, dailyGoal, setDailyGoal, debouncedSave]);
 
   const handleLogout = async () => {
     try {
@@ -147,24 +121,6 @@ export default function SettingsScreen() {
       <AppBar title="설정" onBack={() => navigation.goBack()} />
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         <Section title="학습 설정">
-          <View style={styles.row}>
-            <View style={styles.rowText}>
-              <Text style={styles.label}>일일 목표</Text>
-              <Text style={styles.description}>매일 리뷰할 카드 수 목표예요.</Text>
-            </View>
-            <TextInput
-              style={styles.numberInput}
-              value={dailyGoalText}
-              onChangeText={handleDailyGoalTextChange}
-              onBlur={handleDailyGoalCommit}
-              onSubmitEditing={handleDailyGoalCommit}
-              keyboardType="number-pad"
-              returnKeyType="done"
-              maxLength={5}
-              selectTextOnFocus
-            />
-          </View>
-
           <View style={styles.row}>
             <View style={styles.rowText}>
               <Text style={styles.label}>다음 복습 시점 노출</Text>
@@ -367,13 +323,6 @@ const styles = StyleSheet.create({
   block: { paddingVertical: 14, gap: 6 },
   label: { fontSize: 15, fontWeight: '500', color: Colors.textPrimary },
   description: { fontSize: 12, color: Colors.textMuted, lineHeight: 17 },
-
-  numberInput: {
-    minWidth: 64, paddingHorizontal: 12, paddingVertical: 8,
-    borderRadius: 12, backgroundColor: Colors.card,
-    fontSize: 16, fontWeight: '700', color: Colors.textPrimary,
-    textAlign: 'center', fontVariant: ['tabular-nums'],
-  },
 
   savingIndicator: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   savingText: { fontSize: 12, color: Colors.textMuted, marginLeft: 6 },
