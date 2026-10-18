@@ -73,6 +73,7 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
   );
   // 견본엔 복습할 때가 된 단어 수가 맞지 않는다.
   const isSample = owned == null;
+  const wearOf = owned ?? opened ?? card;
   const { width: screenW } = useWindowDimensions();
   const fonts = useCardFonts();
   const tilt = useCardTilt();
@@ -292,7 +293,7 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
                   <Text style={styles.wearLabel}>복습할 때가 된 단어</Text>
                   <Feather name="info" size={13} color={SHOWROOM.fgDim} />
                 </Pressable>
-                <Text style={styles.wearValue}>{(owned ?? opened ?? card).dueCount}개</Text>
+                <Text style={styles.wearValue}>{wearOf?.dueCount ?? 0}/{wearOf?.reviewedCount ?? 0}</Text>
               </View>
 
               <GradePanel

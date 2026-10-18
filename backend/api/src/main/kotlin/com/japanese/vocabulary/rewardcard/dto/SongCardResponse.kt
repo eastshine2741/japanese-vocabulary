@@ -4,7 +4,7 @@ import com.japanese.vocabulary.rewardcard.model.SongCardGrade
 import com.japanese.vocabulary.song.dto.songdetail.SongLyricLineDto
 import java.time.Instant
 
-/** 등급마다 한 장. 같은 곡의 카드들은 [id]·[grade]·[acquiredSeq]·가사·서명·[reviewedCount]·[dueCount] 만 다르다. */
+/** 등급마다 한 장. 같은 곡의 카드들은 [id]·[grade]·[acquiredSeq]·가사·서명만 다르다. */
 data class SongCardResponse(
     val id: Long,
     val songId: Long,
@@ -20,7 +20,7 @@ data class SongCardResponse(
     val lyric: List<SongLyricLineDto>,
     /** 뒷면 단어. 곡에서 중요한 단어부터 5개. */
     val words: List<RewardCardWordResponse>,
-    /** 이 카드를 받은 뒤 리뷰한 tier 단어 수. */
+    /** 한 번이라도 리뷰한 tier 단어 수. */
     val reviewedCount: Int,
     /** [reviewedCount] 중 지금 복습할 차례인 단어 수. 낡음은 이 비율에서 나온다. */
     val dueCount: Int,

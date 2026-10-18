@@ -66,16 +66,16 @@ class SongCardFaceTest {
     }
 
     @Test
-    fun `reviewedSince ignores reviews before the card was issued`() {
+    fun `reviewed counts each reviewed tier word once, including reviews before the card was issued`() {
         val stale = reviewed(issuedAt.minus(Duration.ofDays(60)))
-        assertThat(SongCardFace.reviewedSince(listOf(listOf(stale, null)), issuedAt)).isEmpty()
+        val later = reviewed(issuedAt.plus(Duration.ofDays(5)))
+        val reviewed = SongCardFace.reviewed(listOf(listOf(stale), emptyList(), listOf(later, stale, null)))
+        assertThat(reviewed).containsExactly(stale, later)
     }
 
     @Test
-    fun `reviewedSince counts each tier word reviewed after issue once`() {
-        val early = reviewed(issuedAt.plus(Duration.ofDays(1)))
-        val later = reviewed(issuedAt.plus(Duration.ofDays(5)))
-        val reviewed = SongCardFace.reviewedSince(listOf(listOf(early), emptyList(), listOf(later, early, null)), issuedAt)
-        assertThat(reviewed).containsExactly(early, later)
+    fun `reviewed skips words that were never reviewed`() {
+        val fresh = reviewed(issuedAt).apply { lastReview = null }
+        assertThat(SongCardFace.reviewed(listOf(listOf(fresh)))).isEmpty()
     }
 }

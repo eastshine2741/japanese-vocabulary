@@ -121,7 +121,7 @@ class RewardCardQueryService(
     ): SongCardResponse {
         val tiers = tierCards?.tiers?.values?.map { tier -> tier.map { it.second } }.orEmpty()
         val lyric = SongCardFace.lyric(lines, card.lyricLineIndexes)
-        val reviewed = SongCardFace.reviewedSince(tiers, card.createdAt)
+        val reviewed = SongCardFace.reviewed(tiers)
         return SongCardResponse(
             id = card.id,
             songId = card.songId,
