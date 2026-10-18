@@ -8,12 +8,12 @@ import {
   SongAnalysisWorkResponse,
   SongDto,
   SongLyricsDto,
-  SongStudyBootstrapResponse,
+  SongStudyCardsResponse,
+  SongWordReviewResponse,
   WordsInSongDto,
   StudyUnit,
   SongWordTiersDto,
   SongWordTierKey,
-  SongWordTierStudyResponse,
   SongCoverageDto,
 } from '../types/song';
 
@@ -118,17 +118,23 @@ export const songApi = {
   },
 
   /** 홈 콜드스타트 부트스트랩: 이 곡을 통째로 담고 rating 을 준 단어를 곧바로 리뷰한다. */
-  async studyBootstrap(songId: number, rating: number, leadJapanese?: string | null): Promise<SongStudyBootstrapResponse> {
-    const { data } = await client.post<SongStudyBootstrapResponse>(
-      `/api/songs/${songId}/study-bootstrap`,
-      { rating, leadJapanese: leadJapanese ?? null },
-    );
+  /** 곡 상세에서 고른 단어(`leadJapanese`)나 추천곡의 세션 카드. 아무것도 담지 않는다. */
+  async getStudyCards(songId: number, leadJapanese?: string | null): Promise<SongStudyCardsResponse> {
+    const { data } = await client.get<SongStudyCardsResponse>(`/api/songs/${songId}/study-cards`, {
+      params: leadJapanese != null ? { leadJapanese } : undefined,
+    });
     return data;
   },
 
-  /** 단계 학습: 그 단계의 due 단어를 곡 단어장에 담고 카드로 받는다. 카드 수 = `dueCount`. */
-  async studyWordTier(songId: number, key: SongWordTierKey): Promise<SongWordTierStudyResponse> {
-    const { data } = await client.post<SongWordTierStudyResponse>(`/api/songs/${songId}/word-tiers/${key}/study`);
+  /** 단계 학습 카드. 그 단계의 due 단어(카드 수 = `dueCount`)를 주되 담지 않는다. */
+  async getWordTierCards(songId: number, key: SongWordTierKey): Promise<SongStudyCardsResponse> {
+    const { data } = await client.get<SongStudyCardsResponse>(`/api/songs/${songId}/word-tiers/${key}/cards`);
+    return data;
+  },
+
+  /** 곡 단어장에 없는 카드의 rating. 그 단어 하나만 곡 단어장에 담고 리뷰한다. */
+  async reviewSongWord(songId: number, japanese: string, rating: number): Promise<SongWordReviewResponse> {
+    const { data } = await client.post<SongWordReviewResponse>(`/api/songs/${songId}/words/review`, { japanese, rating });
     return data;
   },
 

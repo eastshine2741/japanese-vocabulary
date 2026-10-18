@@ -11,6 +11,9 @@ import com.japanese.vocabulary.song.dto.songdetail.SongCoverageDto
 import com.japanese.vocabulary.song.dto.songdetail.SongLyricsDto
 import com.japanese.vocabulary.song.dto.songdetail.SongStudyBootstrapRequest
 import com.japanese.vocabulary.song.dto.songdetail.SongStudyBootstrapResponse
+import com.japanese.vocabulary.song.dto.songdetail.SongStudyCardsResponse
+import com.japanese.vocabulary.song.dto.songdetail.SongWordReviewRequest
+import com.japanese.vocabulary.song.dto.songdetail.SongWordReviewResponse
 import com.japanese.vocabulary.song.dto.songdetail.SongWordTierStudyResponse
 import com.japanese.vocabulary.song.dto.songdetail.SongWordTiersDto
 import com.japanese.vocabulary.songsearch.dto.SongSearchResponse
@@ -27,6 +30,7 @@ import com.japanese.vocabulary.song.service.SongSearchService
 import com.japanese.vocabulary.song.service.SongStudyViewService
 import com.japanese.vocabulary.song.service.songdetail.SongDetailQueryService
 import com.japanese.vocabulary.song.service.songdetail.SongStudyBootstrapService
+import com.japanese.vocabulary.song.service.songdetail.SongStudyCardService
 import com.japanese.vocabulary.song.service.songdetail.SongWordTierService
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
@@ -51,6 +55,7 @@ class SongController(
     private val songDetailQueryService: SongDetailQueryService,
     private val songWordQueryService: SongWordQueryService,
     private val songStudyBootstrapService: SongStudyBootstrapService,
+    private val songStudyCardService: SongStudyCardService,
     private val songWordTierService: SongWordTierService,
     private val analysisNotificationService: AnalysisNotificationService,
 ) {
@@ -185,8 +190,26 @@ class SongController(
         return ResponseEntity.ok().header("Cache-Control", "no-store").body(response)
     }
 
+    /** 단계 학습 카드. 그 단계의 due 단어를 주되 담지 않는다 — 단어는 rating 때 `words/review` 가 담는다. */
+    @GetMapping("/{id}/word-tiers/{key}/cards")
+    fun wordTierCards(@PathVariable id: Long, @PathVariable key: SongWordTierKey): SongStudyCardsResponse =
+        songWordTierService.cards(currentUserId(), id, key)
+
     /**
-     * 단계 학습. 그 단계 단어를 곡 단어장에 담고 카드로 준다. 현재 단계는 due 단어만, 구버전 단계
+     * 곡 상세에서 고른 단어([leadJapanese]) 또는 홈 콜드스타트 추천곡의 세션 카드. 아직 안 담은 단어도 카드로 주되
+     * 담지 않는다.
+     */
+    @GetMapping("/{id}/study-cards")
+    fun studyCards(@PathVariable id: Long, @RequestParam(required = false) leadJapanese: String?): SongStudyCardsResponse =
+        songStudyCardService.cards(currentUserId(), id, leadJapanese)
+
+    /** 곡 단어장에 없는 카드(`inSongDeck == false`)의 rating. 그 단어 하나만 곡 단어장에 담고 리뷰한다. */
+    @PostMapping("/{id}/words/review")
+    fun reviewSongWord(@PathVariable id: Long, @RequestBody request: SongWordReviewRequest): SongWordReviewResponse =
+        songStudyCardService.review(currentUserId(), id, request.japanese, request.rating)
+
+    /**
+     * 구버전 앱의 단계 학습. 그 단계 단어를 곡 단어장에 담고 카드로 준다. 현재 단계는 due 단어만, 구버전 단계
      * (핵심·입문·기초·심화)는 due 와 무관하게 전부.
      */
     @PostMapping("/{id}/word-tiers/{key}/study")
@@ -194,6 +217,7 @@ class SongController(
         songWordTierService.study(currentUserId(), id, key)
 
     /**
+     * 구버전 앱용 — 새 앱은 `study-cards` 와 `words/review` 를 쓴다.
      * 미리보기 카드(홈 콜드스타트의 추천곡 단어, 곡 상세에서 고른 아직 안 담긴 단어)에 rating 을
      * 주면 그 곡을 통째로 담고 그 단어를 곧바로 리뷰한다. 응답에 남은 due 카드까지 담아
      * 클라이언트가 별도 조회 없이 바로 이어서 복습하게 한다.

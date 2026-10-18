@@ -33,7 +33,6 @@ import {
 interface SongDetailTierJourneyProps {
   song: PreviewSong;
   tiers: readonly SongWordTierDto[];
-  isStartingLearning?: boolean;
   onStartTier: (tier: SongWordTierDto) => void;
 }
 
@@ -53,7 +52,6 @@ const contentFadeIn = FadeIn.duration(CONTENT_FADE_DURATION);
 export const SongDetailTierJourney = React.memo(function SongDetailTierJourney({
   song,
   tiers,
-  isStartingLearning = false,
   onStartTier,
 }: SongDetailTierJourneyProps) {
   const [pickedKey, setPickedKey] = useState<SongWordTierKey | null>(null);
@@ -98,7 +96,6 @@ export const SongDetailTierJourney = React.memo(function SongDetailTierJourney({
             isLast={index === tiers.length - 1}
             reward={rewardLevel(index)}
             isRewardReached={cardProgress.level > index}
-            isStartingLearning={isStartingLearning}
             onExpand={handleExpand}
             onStartTier={onStartTier}
             onRewardPress={handleOpenReward}
@@ -122,7 +119,6 @@ interface TierStepProps {
   isLast: boolean;
   reward: CardLevel | null;
   isRewardReached: boolean;
-  isStartingLearning: boolean;
   onExpand: (key: SongWordTierKey) => void;
   onStartTier: (tier: SongWordTierDto) => void;
   onRewardPress: (level: CardLevel) => void;
@@ -136,7 +132,6 @@ const TierStep = React.memo(function TierStep({
   isLast,
   reward,
   isRewardReached,
-  isStartingLearning,
   onExpand,
   onStartTier,
   onRewardPress,
@@ -177,7 +172,6 @@ const TierStep = React.memo(function TierStep({
                   song={song}
                   reward={reward}
                   isRewardReached={isRewardReached}
-                  isStartingLearning={isStartingLearning}
                   onStart={handleStart}
                   onRewardPress={onRewardPress}
                 />
@@ -371,18 +365,16 @@ const ExpandedTierCard = React.memo(function ExpandedTierCard({
   song,
   reward,
   isRewardReached,
-  isStartingLearning,
   onStart,
   onRewardPress,
 }: {
   tier: SongWordTierDto;
   song: PreviewSong;
-  isStartingLearning: boolean;
   onStart: () => void;
 } & TierRewardProps) {
   const { remainingCount } = buildTierSegments(tier);
   const dueCount = Math.max(0, tier.dueCount);
-  const isDisabled = dueCount === 0 || isStartingLearning;
+  const isDisabled = dueCount === 0;
   const minutes = estimateStudyMinutes(dueCount);
   const helpSheetRef = useRef<MemoryHelpSheetRef>(null);
   const handleOpenHelp = useCallback(() => helpSheetRef.current?.present(), []);

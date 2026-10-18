@@ -10,6 +10,7 @@ import com.japanese.vocabulary.flashcard.repository.FlashcardRepository
 import com.japanese.vocabulary.flashcard.service.FlashcardService
 import com.japanese.vocabulary.flashcard.service.LongTermThreshold
 import com.japanese.vocabulary.song.dto.songdetail.SongCoverageDto
+import com.japanese.vocabulary.song.dto.songdetail.SongStudyCardsResponse
 import com.japanese.vocabulary.song.dto.songdetail.SongWordTierDto
 import com.japanese.vocabulary.song.dto.songdetail.SongWordTierStudyResponse
 import com.japanese.vocabulary.song.dto.songdetail.SongWordTiersDto
@@ -38,6 +39,7 @@ class SongWordTierService(
     private val flashcardService: FlashcardService,
     private val wordService: WordService,
     private val deckService: DeckService,
+    private val songStudyCardService: SongStudyCardService,
     private val clock: Clock,
     private val longTermThreshold: LongTermThreshold,
 ) {
@@ -88,7 +90,21 @@ class SongWordTierService(
     }
 
     /**
-     * 단계 학습 진입. 현재 단계는 due 단어(한 번도 리뷰 안 했거나 due 가 지난 단어)만 연다 —
+     * 단계 학습 진입. [tiers] 의 `dueCount` 와 같은 집합·순서의 카드를 주되 담지는 않는다 — 단어는 rating 을
+     * 줄 때 [SongStudyCardService.review] 가 한 장씩 담는다.
+     */
+    @Transactional(readOnly = true)
+    fun cards(userId: Long, songId: Long, key: SongWordTierKey): SongStudyCardsResponse {
+        val song = load(songId, userId)
+        val now = Instant.now(clock)
+        val dueWords = song.tiers[key].orEmpty().filter { FlashcardMemory.isDue(song.cardOf(it), now) }
+        val deckId = deckService.findBySongId(userId, songId)?.id
+        val cards = songStudyCardService.assemble(userId, deckId, dueWords, dueOnly = false)
+        return SongStudyCardsResponse(deckId = deckId, cards = cards, totalCount = cards.size)
+    }
+
+    /**
+     * 구버전 앱의 단계 학습 진입 — 새 앱은 [cards] 를 쓴다. 현재 단계는 due 단어(한 번도 리뷰 안 했거나 due 가 지난 단어)만 연다 —
      * CTA 가 보여 준 `dueCount` 와 카드 수가 같아야 한다. 구버전 단계는 due 와 무관하게 전부 연다.
      *
      * 연 단어는 전부 다시 담는다. upsert 라 안전하고, 다른 곡에서 담은 단어도 이 곡 단어장에 연결된다.

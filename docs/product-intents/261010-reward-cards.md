@@ -207,7 +207,7 @@ age = clamp((due − 0.2) / 0.8, 0, 1)
   장기기억 기준 14일(꺼지면 7일, `LongTermThreshold`)과 rating 때 달성(꺼지면 `rewardCards` 가 비고 아무것도 쓰지 않는다). 새 `/api/reward-cards/**` 와 batch 채우기는 걸지 않는다(채우기는 늘 14일로 잰다).
 - **언제 다는가**: rating 직후, 같은 트랜잭션에서. 복습 세션은 탭만 바꿔도 끝나 경계가 없으므로 세션 끝에 몰아 띄우지 않는다.
   카드는 곡마다 다섯 장뿐이고, 연속 학습 축하도 이미 rating 직후에 뜬다. 원인(방금 이 단어로 단계를 끝냄)과 결과가 붙어 있어야 읽힌다.
-- **어느 경로에서**: `POST /api/flashcards/{id}/review` 와 곡의 첫 rating 인 `POST /api/songs/{id}/study-bootstrap` 둘 다. 응답의 `rewardCards[]` 를
+- **어느 경로에서**: `POST /api/flashcards/{id}/review` 와 곡 단어장에 없는 단어의 rating 인 `POST /api/songs/{id}/words/review`(구버전 앱은 `study-bootstrap`) 모두. 응답의 `rewardCards[]` 를
   앱이 카드를 다시 받은 뒤 차례로 띄운다(`rewardCardStore.receiveReveals`, 한 번에 하나, 닫히면 다음). 앱을 열면 홈에서 한 번 `pending` 을 받아 같은 차례에 넣는다.
 - **어느 곡을 재는가**: 방금 rating 한 단어가 담긴 곡 단어장의 곡들. 등급은 `/word-tiers` 응답 그대로 — 앞에서부터 끝낸 단계 수, 완곡 뒤 tier 단어 90% 장기기억이면 MASTER.
   잰 등급까지 아직 없는 등급의 카드를 낮은 등급부터 만든다. 담기지 않은 곡에 같은 단어가 있어 그 곡 단계가 끝나도, 그 곡 단어를 rating 할 때까지 카드는 나오지 않는다.

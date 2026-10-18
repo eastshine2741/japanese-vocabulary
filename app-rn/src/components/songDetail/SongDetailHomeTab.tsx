@@ -15,7 +15,6 @@ interface SongDetailHomeTabProps {
   /** 서버가 단계를 못 주면 null 이고 그 섹션은 그리지 않는다. */
   tiers: readonly SongWordTierDto[] | null;
   isLoadingWords?: boolean;
-  isStartingLearning?: boolean;
   onCoverageHelpPress: () => void;
   onStartTier: (tier: SongWordTierDto) => void;
   style?: StyleProp<ViewStyle>;
@@ -27,7 +26,6 @@ export const SongDetailHomeTab = React.memo(function SongDetailHomeTab({
   coverage,
   tiers,
   isLoadingWords = false,
-  isStartingLearning = false,
   onCoverageHelpPress,
   onStartTier,
   style,
@@ -42,7 +40,6 @@ export const SongDetailHomeTab = React.memo(function SongDetailHomeTab({
           key={song.id}
           song={song}
           tiers={tiers}
-          isStartingLearning={isStartingLearning}
           onStartTier={onStartTier}
         />
       )}

@@ -24,10 +24,8 @@ import { useHomeChromeStore } from '../stores/homeChromeStore';
 import { useDeleteSongDeck } from '../hooks/useDeleteSongDeck';
 import { deckApi } from '../api/deckApi';
 import { songApi } from '../api/songApi';
-import { wordApi } from '../api/wordApi';
 import SkeletonBox from '../components/SkeletonLoading';
 import SongInfoSheet from '../components/SongInfoSheet';
-import ErrorDialog from '../components/ErrorDialog';
 import { AppBottomSheet, AppBottomSheetRef, AppBottomSheetView } from '../components/bottomSheet';
 import {
   CurrentPlayingWordsSheet,
@@ -106,8 +104,6 @@ export default function SongDetailScreen({ navigation, route }: Props) {
 
   const [activeTab, setActiveTab] = useState<DetailTab>('home');
   const [songDeckDetail, setSongDeckDetail] = useState<DeckDetailResponse | null>(null);
-  const [isStartingLearning, setIsStartingLearning] = useState(false);
-  const [learningError, setLearningError] = useState<string | null>(null);
   const [isPinnedTabsVisible, setIsPinnedTabsVisible] = useState(false);
   const [tabPageHeights, setTabPageHeights] = useState<Record<DetailTab, number>>({
     home: 0,
@@ -296,17 +292,6 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     coverageHelpSheetOpenRef.current = index >= 0;
   }, []);
 
-  const ensureSongDeck = useCallback(async (): Promise<DeckDetailResponse | null> => {
-    if (songDeckDetail?.deckId != null) return songDeckDetail;
-    if (songId == null || defaultDeckWords.length === 0) return null;
-
-    await wordApi.batchAddWords({ words: defaultDeckWords });
-    const deck = await deckApi.getDeckBySongId(songId);
-    setSongDeckDetail(deck);
-    await refreshWords(songId).catch(() => undefined);
-    return deck;
-  }, [defaultDeckWords, refreshWords, songDeckDetail, songId]);
-
   const openSongReview = useCallback((deck: DeckDetailResponse, trigger: StudyEntryTrigger) => {
     if (songId == null || deck.deckId == null) return false;
     navigation.navigate('SongReview', {
@@ -327,10 +312,10 @@ export default function SongDetailScreen({ navigation, route }: Props) {
 
   /**
    * 그 단계의 due 단어만 연다(카드 수 = CTA 의 `dueCount`). 곡 덱 due 큐를 열면 다른 단계 단어가 섞인다.
-   * 담기와 카드 조회는 복습 화면이 `POST /api/songs/{id}/word-tiers/{key}/study` 로 한다.
+   * 카드 조회는 복습 화면이 `GET /api/songs/{id}/word-tiers/{key}/cards` 로 하고, 단어는 rating 때 한 장씩 담긴다.
    */
   const handleStartTier = useCallback((tier: SongWordTierDto, trigger: StudyEntryTrigger = 'tier') => {
-    if (songId == null || isStartingLearning) return;
+    if (songId == null) return;
     navigation.navigate('SongReview', {
       origin: 'SongDetail',
       trigger,
@@ -345,40 +330,46 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         tierKey: tier.key,
       },
     });
-  }, [data?.song, isStartingLearning, navigation, songDeckDetail?.deckId, songId]);
+  }, [data?.song, navigation, songDeckDetail?.deckId, songId]);
 
-  /** CTA 라벨 기준: due 가 있으면 곡 단어장 due 복습, 없으면 현재 단계, 단계가 없으면 곡 단어장을 연다. */
-  const handleStartLearning = useCallback(async () => {
-    if (songId == null || isStartingLearning) return;
-    if (songDeckDetail != null && songDeckDetail.dueCount > 0) {
-      if (!openSongReview(songDeckDetail, 'cta')) {
-        setLearningError('학습할 단어를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.');
-      }
+  /** 곡 단어장도 단계도 없을 때. 담지 않고 곡 세션(`study-cards`)을 열며, 단어는 rating 때 한 장씩 담긴다. */
+  const openSongSession = useCallback(() => {
+    if (songId == null) return;
+    navigation.navigate('SongReview', {
+      origin: 'SongDetail',
+      trigger: 'cta',
+      source: {
+        deckId: null,
+        songId,
+        title: data?.song.title ?? '',
+        artist: data?.song.artist ?? '',
+        artworkUrl: data?.song.artworkUrl ?? null,
+        dueCount: 0,
+        totalCount: 0,
+      },
+    });
+  }, [data?.song, navigation, songId]);
+
+  /** CTA 라벨 기준: due 가 있으면 곡 단어장 due 복습, 없으면 현재 단계, 단계가 없으면 곡 단어장이나 곡 세션을 연다. */
+  const handleStartLearning = useCallback(() => {
+    if (songId == null) return;
+    if (songDeckDetail != null && songDeckDetail.deckId != null && (songDeckDetail.dueCount > 0 || currentTier == null)) {
+      openSongReview(songDeckDetail, 'cta');
       return;
     }
     if (currentTier != null) {
       handleStartTier(currentTier, 'cta');
       return;
     }
-    setIsStartingLearning(true);
-    try {
-      const deck = await ensureSongDeck();
-      if (deck == null || !openSongReview(deck, 'cta')) {
-        setLearningError('학습할 단어를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.');
-      }
-    } catch (e: any) {
-      setLearningError(e?.message ?? '학습을 시작하지 못했어요. 잠시 후 다시 시도해 주세요.');
-    } finally {
-      setIsStartingLearning(false);
-    }
-  }, [currentTier, ensureSongDeck, handleStartTier, isStartingLearning, openSongReview, songDeckDetail, songId]);
+    openSongSession();
+  }, [currentTier, handleStartTier, openSongReview, openSongSession, songDeckDetail, songId]);
 
   /**
    * 누른 단어가 복습의 첫 카드여야 하고, 여기서 곡을 담지 않는다. 곡 덱 첫 카드로 세울 수 없으면 복습 화면이 그 단어를
-   * 미리보기로 띄우고 rating 확정 시 곡을 담는다(`study-bootstrap`). `savedWordId` 는 다른 곡에서 담은 단어에도 붙는다.
+   * 맨 앞에 둔 곡 세션(`study-cards`)을 열고, 단어는 rating 때 한 장씩 담긴다. `savedWordId` 는 다른 곡에서 담은 단어에도 붙는다.
    */
   const handleStartWordReview = useCallback((word: SongDetailWordItem) => {
-    if (songId == null || isStartingLearning) return;
+    if (songId == null) return;
     navigation.navigate('SongReview', {
       origin: 'SongDetail',
       trigger: 'word',
@@ -398,15 +389,11 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         },
       },
     });
-  }, [data?.song, isStartingLearning, navigation, songDeckDetail, songId]);
+  }, [data?.song, navigation, songDeckDetail, songId]);
 
   const handlePrimaryLearningPress = useCallback(() => {
     handleStartLearning();
   }, [handleStartLearning]);
-
-  const handleDismissLearningError = useCallback(() => {
-    setLearningError(null);
-  }, []);
 
   const artistId = data?.song.artistId ?? null;
   const handleArtistPress = useCallback(() => {
@@ -585,8 +572,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const learningActionIcon: keyof typeof Feather.glyphMap = actionMode === 'review'
     ? 'rotate-ccw'
     : actionMode === 'preparing' ? 'info' : 'layers';
-  const isLearningActionDisabled = isStartingLearning
-    || actionMode === 'preparing'
+  const isLearningActionDisabled = actionMode === 'preparing'
     || (songDeckDetail?.deckId == null && currentTier == null && defaultDeckWords.length === 0);
 
   return (
@@ -650,7 +636,6 @@ export default function SongDetailScreen({ navigation, route }: Props) {
                     words={words.words}
                     coverage={songCoverage}
                     tiers={songTiers}
-                    isStartingLearning={isStartingLearning}
                     onCoverageHelpPress={handleOpenCoverageHelp}
                     onStartTier={handleStartTier}
                   />
@@ -863,7 +848,6 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         </AppBottomSheetView>
       </AppBottomSheet>
 
-      <ErrorDialog message={learningError} onDismiss={handleDismissLearningError} />
       {songDeckDeletion.dialogs}
 
     </View>

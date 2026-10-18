@@ -148,26 +148,34 @@ export interface RecommendedSongItem {
   artworkUrl: string | null;
 }
 
-/** 홈 콜드스타트 부트스트랩 응답 — 방금 담은 곡의 남은 due 카드까지 한 번에 담겨 온다. */
-export interface SongStudyBootstrapResponse {
-  deckId: number;
-  cards: FlashcardDTO[];
-  totalCount: number;
-  nextDueAt: string | null;
-  /** 이 호출이 담으면서 바로 리뷰한 lead 단어의 리뷰 **후** 기억 칸. 리뷰 전 칸은 항상 `REMAINING` 이다. */
-  reviewedMemory: FlashcardMemory;
-  /** 곡의 첫 rating 이라 대개 곡 카드(와 아티스트 카드) 획득이 실린다. */
-  rewardCards?: RewardCardRevealDto[];
+/**
+ * 곡 학습 세션의 카드. 아직 담지 않은 단어도 카드로 오고 `id`·`wordId` 가 null 이다.
+ * `inSongDeck` 이 false 면 rating 때 `POST /api/songs/{id}/words/review` 로 그 단어 하나만 담으면서 리뷰한다.
+ */
+export interface SongStudyCardDto extends Omit<FlashcardDTO, 'id' | 'wordId'> {
+  id: number | null;
+  wordId: number | null;
+  inSongDeck: boolean;
 }
 
 /**
- * `POST /api/songs/{id}/word-tiers/{key}/study`. 그 단계의 due 단어(한 번도 리뷰 안 했거나 due 가 지난
- * 단어)만 — 카드 수가 `SongWordTierDto.dueCount` 와 같다.
+ * `GET /api/songs/{id}/study-cards`(고른 단어·추천곡 세션), `GET /api/songs/{id}/word-tiers/{key}/cards`(단계 학습).
+ * 단계 학습은 카드 수가 `SongWordTierDto.dueCount` 와 같다. 둘 다 아무것도 담지 않는다.
  */
-export interface SongWordTierStudyResponse {
-  deckId: number;
-  cards: FlashcardDTO[];
+export interface SongStudyCardsResponse {
+  /** 이 곡을 아직 담은 적이 없으면 null. 첫 rating 이 만든다. */
+  deckId: number | null;
+  cards: SongStudyCardDto[];
   totalCount: number;
+}
+
+export interface SongWordReviewResponse {
+  deckId: number;
+  id: number;
+  wordId: number;
+  /** 리뷰 **후** 기억 칸. */
+  memory: FlashcardMemory;
+  rewardCards?: RewardCardRevealDto[];
 }
 
 export interface AnalyzeSongRequest {

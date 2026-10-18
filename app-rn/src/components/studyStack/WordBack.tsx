@@ -22,7 +22,7 @@ import { flattenExamples, joinMeanings, SenseExample } from '../../types/word';
 import ReadingText from '../ReadingText';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { formatInterval, holdLabel } from './intervalLabel';
-import { PREVIEW_FLASHCARD_ID, StudyCard } from './types';
+import { isUnsavedCard, StudyCard } from './types';
 
 export const RATINGS = [
   { rating: 1, label: '다시', color: Colors.ratingAgain },
@@ -96,7 +96,7 @@ export const WordBack = React.memo(function WordBack({
   onEditWord,
 }: WordBackProps) {
   const meaning = joinMeanings(card.senses);
-  const canEdit = onEditWord != null && card.id !== PREVIEW_FLASHCARD_ID;
+  const canEdit = onEditWord != null && !isUnsavedCard(card);
   const handleEditPress = useCallback(() => onEditWord?.(card), [card, onEditWord]);
   const handleDictionaryPress = useCallback(() => openDictionary(card.japanese), [card.japanese]);
   const firstSense = card.senses[0];
