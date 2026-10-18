@@ -2,18 +2,20 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { SharedValue, interpolate, useAnimatedStyle } from 'react-native-reanimated';
 import LenticularScene, { LenticularProps } from './LenticularScene';
+import { useArtColors } from './artColors';
 import { CardTilt } from './useCardTilt';
 
 // 웹(개발용)은 Skia 없이 장면을 띠로 잘라 흉내만 낸다. 앱은 LenticularLayer.native.tsx.
 const STRIPS = 22;
 
 export default function LenticularLayer({ tilt, ...scene }: LenticularProps & { tilt: CardTilt }) {
+  const card = useArtColors(scene.card, scene.card.artworkUrl) ?? scene.card;
   const stripW = scene.width / STRIPS;
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       {Array.from({ length: STRIPS }, (_, i) => (
         <Strip key={i} index={i} stripW={stripW} height={scene.height} x={tilt.x}>
-          <LenticularScene {...scene} />
+          <LenticularScene {...scene} card={card} />
         </Strip>
       ))}
     </View>
