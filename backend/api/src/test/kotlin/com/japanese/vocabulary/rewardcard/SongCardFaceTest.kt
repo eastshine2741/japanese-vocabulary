@@ -1,6 +1,5 @@
 package com.japanese.vocabulary.rewardcard
 
-import com.japanese.vocabulary.flashcard.entity.FlashcardEntity
 import com.japanese.vocabulary.rewardcard.service.SongCardFace
 import com.japanese.vocabulary.song.dto.songdetail.SongLyricLineDto
 import com.japanese.vocabulary.song.model.PartOfSpeech
@@ -9,8 +8,6 @@ import com.japanese.vocabulary.word.dto.AddWordRequest
 import com.japanese.vocabulary.word.dto.songword.WordInSongItemDto
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import java.time.Duration
-import java.time.Instant
 
 class SongCardFaceTest {
 
@@ -54,28 +51,5 @@ class SongCardFaceTest {
             word("星", 5.0, listOf(2), ko = null),
         )
         assertThat(SongCardFace.words(words, listOf(0, 2)).map { it.japanese }).containsExactly("風", "夜", "雨")
-    }
-
-    private val issuedAt = Instant.parse("2026-10-01T00:00:00Z")
-    private var nextId = 1L
-
-    private fun reviewed(at: Instant): FlashcardEntity {
-        val due = at.plus(Duration.ofDays(10))
-        val json = """{"due": "$due", "step": null, "state": "REVIEW", "cardId": ${nextId}, "stability": 10.0, "difficulty": 5.0, "lastReview": "$at"}"""
-        return FlashcardEntity(id = nextId++, wordId = 0, userId = 0, due = due, stability = 10.0, state = 2, lastReview = at, fsrsCardJson = json)
-    }
-
-    @Test
-    fun `reviewed counts each reviewed tier word once, including reviews before the card was issued`() {
-        val stale = reviewed(issuedAt.minus(Duration.ofDays(60)))
-        val later = reviewed(issuedAt.plus(Duration.ofDays(5)))
-        val reviewed = SongCardFace.reviewed(listOf(listOf(stale), emptyList(), listOf(later, stale, null)))
-        assertThat(reviewed).containsExactly(stale, later)
-    }
-
-    @Test
-    fun `reviewed skips words that were never reviewed`() {
-        val fresh = reviewed(issuedAt).apply { lastReview = null }
-        assertThat(SongCardFace.reviewed(listOf(listOf(fresh)))).isEmpty()
     }
 }

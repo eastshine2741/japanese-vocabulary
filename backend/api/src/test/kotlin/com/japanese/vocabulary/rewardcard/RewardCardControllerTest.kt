@@ -274,6 +274,21 @@ class RewardCardControllerTest : ApiBaseIntegrationTest() {
     }
 
     @Test
+    fun `wear counts only words reviewed in the song deck, not tier words learned in another song`() {
+        val me = newUser()
+        val song = newSong(artist = null)
+        val other = newSong(artist = null)
+        review(me, studyWord(me, song, "輪郭"))
+        // 이 곡 가사에도 나오지만 다른 곡 단어장에만 담긴 밀린 단어는 이 곡에서 복습할 수 없다.
+        studyWord(me, other, "雨").lastReview = clock.instant().minusSeconds(86_400)
+        entityManager.flush()
+
+        val songCard = cards(me).songCards.single { it.songId == song.id }
+        assertThat(songCard.reviewedCount).isEqualTo(1)
+        assertThat(songCard.dueCount).isZero()
+    }
+
+    @Test
     fun `basic card reports progress toward every grade above it`() {
         val me = newUser()
         val song = newSong(artist = null)

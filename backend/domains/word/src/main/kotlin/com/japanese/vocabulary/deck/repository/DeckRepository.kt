@@ -1,6 +1,7 @@
 package com.japanese.vocabulary.deck.repository
 
 import com.japanese.vocabulary.deck.dto.SongDeckRefDto
+import com.japanese.vocabulary.deck.dto.SongDeckReviewDto
 import com.japanese.vocabulary.deck.entity.DeckEntity
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
@@ -27,6 +28,19 @@ interface DeckRepository : JpaRepository<DeckEntity, Long> {
             "WHERE d.songId IS NOT NULL ORDER BY d.createdAt, d.id"
     )
     fun findSongDecksInCreationOrder(): List<SongDeckRefDto>
+
+    @Query(
+        "SELECT new com.japanese.vocabulary.deck.dto.SongDeckReviewDto(d.songId, COUNT(f.id), " +
+            "SUM(CASE WHEN f.due <= :now THEN 1L ELSE 0L END)) " +
+            "FROM DeckEntity d, DeckWordEntity dw, FlashcardEntity f " +
+            "WHERE dw.deckId = d.id AND f.wordId = dw.wordId AND d.userId = :userId AND d.songId IN :songIds " +
+            "AND f.lastReview IS NOT NULL GROUP BY d.songId"
+    )
+    fun findSongDeckReviews(
+        @Param("userId") userId: Long,
+        @Param("songIds") songIds: Collection<Long>,
+        @Param("now") now: Instant,
+    ): List<SongDeckReviewDto>
 
     fun findByUserIdOrderByCreatedAtDesc(userId: Long, pageable: Pageable): List<DeckEntity>
 

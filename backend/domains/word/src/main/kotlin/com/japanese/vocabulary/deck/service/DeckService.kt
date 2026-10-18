@@ -10,6 +10,7 @@ import com.japanese.vocabulary.deck.dto.DeckDto
 import com.japanese.vocabulary.deck.dto.DeckDetailDto
 import com.japanese.vocabulary.deck.dto.DeckListDto
 import com.japanese.vocabulary.deck.dto.DeckSummaryDto
+import com.japanese.vocabulary.deck.dto.SongDeckReviewDto
 import com.japanese.vocabulary.deck.dto.toDto
 import com.japanese.vocabulary.deck.model.DeckTargets
 import com.japanese.vocabulary.deck.repository.DeckRepository
@@ -269,6 +270,12 @@ class DeckService(
             shortTermCount = stats.getShortTermCount(),
         )
     }
+
+    /** 곡마다 그 곡 단어장의 리뷰 현황. 단어장이 없거나 리뷰한 단어가 없는 곡은 빠진다. */
+    @Transactional(readOnly = true)
+    fun songDeckReviews(userId: Long, songIds: Collection<Long>, now: Instant): Map<Long, SongDeckReviewDto> =
+        if (songIds.isEmpty()) emptyMap()
+        else deckRepository.findSongDeckReviews(userId, songIds, now).associateBy { it.songId }
 
     @Transactional(readOnly = true)
     fun findBySongId(userId: Long, songId: Long): DeckDto? =

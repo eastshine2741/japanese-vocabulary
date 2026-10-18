@@ -2,6 +2,8 @@ package com.japanese.vocabulary.rewardcard.service
 
 import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
+import com.japanese.vocabulary.deck.dto.SongDeckReviewDto
+import com.japanese.vocabulary.deck.service.DeckService
 import com.japanese.vocabulary.flashcard.service.LongTermThreshold
 import com.japanese.vocabulary.rewardcard.dto.ArtistCardDto
 import com.japanese.vocabulary.rewardcard.dto.ArtistCardResponse
@@ -34,6 +36,7 @@ class RewardCardQueryService(
     private val lyricRepository: LyricRepository,
     private val songDetailQueryService: SongDetailQueryService,
     private val songTierCardService: SongTierCardService,
+    private val deckService: DeckService,
     private val clock: Clock,
     private val longTermThreshold: LongTermThreshold,
 ) {
@@ -46,6 +49,7 @@ class RewardCardQueryService(
         val lyrics = if (songs.isEmpty()) emptyList() else lyricRepository.findActiveBySongIdIn(songs.keys)
         val lines = lyrics.associate { it.songId to songDetailQueryService.lyricLines(it) }
         val tierCards = songTierCardService.tierCards(userId, lyrics)
+        val reviews = deckService.songDeckReviews(userId, songs.keys, now)
         val topGrades = topGrades(songCards)
         val artistCards = rewardCardService.artistCards(userId)
         val artists = artistRepository.findAllById(artistCards.map { it.artistId }.toSet()).associateBy { it.id!! }
@@ -54,7 +58,7 @@ class RewardCardQueryService(
         return RewardCardsResponse(
             songCards = songCards.mapNotNull { card ->
                 songs[card.songId]?.let {
-                    songCard(card, topGrades.getValue(card.songId), it, lines[card.songId].orEmpty(), tierCards[card.songId], now)
+                    songCard(card, topGrades.getValue(card.songId), it, lines[card.songId].orEmpty(), tierCards[card.songId], reviews[card.songId])
                 }
             },
             artistCards = artistCards.mapNotNull { card ->
@@ -73,7 +77,8 @@ class RewardCardQueryService(
         val lyric = lyricRepository.findActiveBySongId(card.songId)
         val lines = lyric?.let { songDetailQueryService.lyricLines(it) }.orEmpty()
         val tierCards = lyric?.let { songTierCardService.tierCards(userId, listOf(it))[card.songId] }
-        return songCard(card, topGrades(songCards).getValue(card.songId), song, lines, tierCards, Instant.now(clock))
+        val review = deckService.songDeckReviews(userId, listOf(card.songId), Instant.now(clock))[card.songId]
+        return songCard(card, topGrades(songCards).getValue(card.songId), song, lines, tierCards, review)
     }
 
     @Transactional(readOnly = true)
@@ -111,11 +116,10 @@ class RewardCardQueryService(
         song: SongEntity,
         lines: List<SongLyricLineDto>,
         tierCards: SongTierCards?,
-        now: Instant,
+        review: SongDeckReviewDto?,
     ): SongCardResponse {
         val tiers = tierCards?.tiers?.values?.map { tier -> tier.map { it.second } }.orEmpty()
         val lyric = SongCardFace.lyric(lines, card.lyricLineIndexes)
-        val reviewed = SongCardFace.reviewed(tiers)
         return SongCardResponse(
             id = card.id,
             songId = card.songId,
@@ -128,8 +132,8 @@ class RewardCardQueryService(
             lyricLineIndexes = card.lyricLineIndexes,
             lyric = lyric,
             words = tierCards?.let { SongCardFace.words(it.words.words, lyric.map { line -> line.index }) }.orEmpty(),
-            reviewedCount = reviewed.size,
-            dueCount = reviewed.count { !it.due.isAfter(now) },
+            reviewedCount = review?.reviewedCount?.toInt() ?: 0,
+            dueCount = review?.dueCount?.toInt() ?: 0,
             goals = SongCardFace.goals(topGrade, tiers, longTermThreshold.days()),
             signature = card.signature,
             issued = card.issued,
