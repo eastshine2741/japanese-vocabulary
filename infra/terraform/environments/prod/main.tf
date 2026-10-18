@@ -23,6 +23,13 @@ module "dns" {
       content = "65.109.222.159"
       proxied = false
     }
+    google_site_verification = {
+      name    = "kotonoha.eastshine.dev"
+      type    = "TXT"
+      ttl     = 1
+      content = "\"google-site-verification=dFeWr_PQ7K6N8pI1U1RBHxG96xdzHivvc8HyTEcd5k0\""
+      proxied = false
+    }
   }
 }
 
