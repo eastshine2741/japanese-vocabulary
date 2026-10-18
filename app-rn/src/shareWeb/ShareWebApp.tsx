@@ -12,7 +12,7 @@ import type { SharedRewardCardDto } from '../types/rewardCard';
 import FitText, { FitLines } from './FitText';
 import StoreBadge, { type Store } from './StoreBadge';
 import { readShareWebData, storeOf, type ShareWebData } from './shareWebData';
-import { shareCelebration, shareLadder, sharePitch, type RankLine } from './shareWebCopy';
+import { shareCelebration, shareLadder, sharePitch, shareWearNote, type RankLine, type ShareWearNote } from './shareWebCopy';
 
 const APP_ICON = require('../../assets/icon.png');
 const COLUMN_W = 440;
@@ -75,6 +75,7 @@ const Celebration = React.memo(function Celebration({ data }: { data: ShareWebDa
   const cards = useSharedCards(shared);
   const celebration = useMemo(() => shareCelebration(shared), [shared]);
   const ladder = useMemo(() => shareLadder(shared), [shared]);
+  const wearNote = useMemo(() => shareWearNote(shared), [shared]);
   const accent = cards.songCard?.accent ?? cards.artistCard?.accent ?? SHOWROOM.fg;
 
   const inner = Math.min(width, COLUMN_W) - 40;
@@ -122,11 +123,14 @@ const Celebration = React.memo(function Celebration({ data }: { data: ShareWebDa
         <FitText text="카드를 끌어 보세요. 옆으로 밀면 뒤집혀요" style={styles.hintText} boxStyle={styles.hintBox} />
       </View>
 
-      <Animated.View style={[styles.panel, panelStyle]}>
-        <View style={styles.meaning}>
-          <FitLines text={celebration.meaning} style={styles.meaningText} />
+      <Animated.View style={[styles.reveal, panelStyle]}>
+        {wearNote && <WearCallout note={wearNote} />}
+        <View style={styles.panel}>
+          <View style={styles.meaning}>
+            <FitLines text={celebration.meaning} style={styles.meaningText} />
+          </View>
+          <RevealGuide lines={[]} steps={ladder} current={celebration.rung} accent={accent} motion={guideMotion} />
         </View>
-        <RevealGuide lines={[]} steps={ladder} current={celebration.rung} accent={accent} motion={guideMotion} />
       </Animated.View>
     </View>
   );
@@ -138,6 +142,18 @@ const RankRow = React.memo(function RankRow({ line, accent }: { line: RankLine; 
       {line.lead && <Text style={styles.rankRest}>{line.lead}</Text>}
       <Text style={[styles.rankNo, { color: accent }]}>{line.no}</Text>
       <Text style={styles.rankRest}>{line.rest}</Text>
+    </View>
+  );
+});
+
+const WearCallout = React.memo(function WearCallout({ note }: { note: ShareWearNote }) {
+  return (
+    <View style={styles.wear}>
+      <View style={styles.wearTitle}>
+        <Feather name="alert-circle" size={16} color={SHOWROOM.fg} />
+        <FitText text={note.title} style={styles.wearTitleText} boxStyle={styles.wearTitleBox} />
+      </View>
+      <FitLines text={note.body} style={styles.wearBody} />
     </View>
   );
 });
@@ -208,9 +224,13 @@ const styles = StyleSheet.create({
   hintBox: { alignSelf: 'auto', flexShrink: 1 },
   hintText: { color: SHOWROOM.fgDim, fontSize: 12 },
 
+  reveal: { alignSelf: 'stretch', marginTop: 28, gap: 12 },
+  wear: { padding: 16, borderRadius: 16, backgroundColor: SHOWROOM.glass, borderWidth: 1, borderColor: SHOWROOM.line, gap: 4 },
+  wearTitle: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  wearTitleBox: { flex: 1 },
+  wearTitleText: { color: SHOWROOM.fg, fontSize: 16, fontWeight: '800' },
+  wearBody: { color: SHOWROOM.fgDim, fontSize: 14, lineHeight: 21 },
   panel: {
-    alignSelf: 'stretch',
-    marginTop: 28,
     padding: 20,
     borderRadius: 20,
     backgroundColor: SHOWROOM.glass,
