@@ -25,6 +25,7 @@ import { artistCardOfStep, artistCardSample, artistCardsOf, artistRung } from '.
 import { serverTargetId } from '../components/rewardCards/serverRewardCards';
 import { ARTIST_CARD_RATIO, ARTIST_MATERIAL, SHOWROOM, useCardFonts } from '../components/rewardCards/cardTheme';
 import { useCardTilt } from '../components/rewardCards/useCardTilt';
+import { useRefreshCardsOnReturn } from '../components/rewardCards/useRefreshCardsOnReturn';
 import { useRewardCardStore } from '../stores/rewardCardStore';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ArtistCardDetail'>;
@@ -89,6 +90,8 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
     opacity: info.value,
     transform: [{ translateY: (1 - info.value) * 12 }],
   }));
+
+  useRefreshCardsOnReturn(navigation);
 
   const handleClose = useCallback(() => navigation.goBack(), [navigation]);
   const artistId = card?.artistId ?? null;
