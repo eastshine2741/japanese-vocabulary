@@ -193,6 +193,7 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
       {!(overlay && frame >= lyricsEndFrame) && <div style={styles.activeLayer}>
         <HeadlineBlock data={data} />
         <SongLabel song={data.song} />
+        <PromoBanner data={data} />
         <ProfileCue />
         {activeIndex >= 0 && (
           <section style={{...styles.content, transform: `translateY(${data.lyricOffsetY ?? 0}px)`}}>
@@ -309,6 +310,114 @@ const SongLabel = ({song}: {song: PromoReelData['song']}) => (
     <span style={styles.songArtist}>{song.artist}</span>
   </div>
 );
+
+// 곡명 줄 오른쪽의 코토노하 광고 배너. 움직이는 배너 광고처럼 세 장면(단어 카드 → 무료 CTA → 이 곡 단어 수)이
+// 영상 내내 돈다. 숫자와 카드 단어는 이 릴스의 실제 데이터라 아무 곡에나 붙는 광고로 보이지 않는다.
+const BANNER_TOP = 142;
+const BANNER_HEIGHT = 96;
+const BANNER_RIGHT = 48;
+const BANNER_WIDTH = 430;
+const SCENE_FRAMES = 90;
+// 장면 경계 앞뒤로 이만큼씩 초록 띠가 배너를 덮고 지나간다. 띠가 다 덮은 순간에 장면이 바뀐다.
+const WIPE_FRAMES = 7;
+const COUNT_FRAMES = 24;
+const FLIP_START = 15;
+const FLIP_FRAMES = 14;
+const PRESS_START = 36;
+
+const PromoBanner = ({data}: {data: PromoReelData}) => {
+  const frame = useCurrentFrame();
+  const scene = Math.floor(frame / SCENE_FRAMES) % 3;
+  const local = frame % SCENE_FRAMES;
+  const wipeIn = interpolate(local, [SCENE_FRAMES - WIPE_FRAMES, SCENE_FRAMES], [-100, 0], {
+    easing: Easing.in(Easing.cubic),
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const wipeOut = interpolate(local, [0, WIPE_FRAMES], [0, 100], {
+    easing: Easing.out(Easing.cubic),
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 첫 프레임은 띠 없이 바로 보인다. 시청자 절반이 3초 안에 넘긴다.
+  const wipe = frame < SCENE_FRAMES ? wipeIn : local < WIPE_FRAMES ? wipeOut : wipeIn;
+  return (
+    <div style={styles.banner}>
+      {scene === 0 && <WordCardScene word={bannerWord(data.lyricLines, frame - local)} local={local} />}
+      {scene === 1 && <CtaScene local={local} />}
+      {scene === 2 && <WordCountScene total={data.wordCount ?? 0} local={local} />}
+      {wipe > -100 && wipe < 100 && <div style={{...styles.bannerWipe, transform: `translateX(${wipe}%)`}} />}
+    </div>
+  );
+};
+
+const WordCountScene = ({total, local}: {total: number; local: number}) => {
+  const count = Math.round(total * eased(local, WIPE_FRAMES, WIPE_FRAMES + COUNT_FRAMES));
+  return (
+    <div style={styles.bannerCopy}>
+      <span style={{...styles.bannerTitle, fontSize: 40}}>
+        이 곡 단어 <span style={styles.bannerNumber}>{count}</span>개
+      </span>
+    </div>
+  );
+};
+
+// 장면이 시작할 때 화면에 떠 있던 줄의 강조 단어. 장면 도중 줄이 바뀌어도 뒤집히던 카드가 바뀌지 않는다.
+const bannerWord = (lines: PromoLine[], sceneStart: number): VocabularyWord | null => {
+  const words = (from: PromoLine[]) => from.flatMap((line) => line.vocabulary.filter((word) => word.korean !== ''));
+  const shown = lines.filter((line) => line.startFrame <= sceneStart);
+  return words(shown.slice(-1))[0] ?? words(lines)[0] ?? null;
+};
+
+const WordCardScene = ({word, local}: {word: VocabularyWord | null; local: number}) => {
+  const flip = interpolate(local, [FLIP_START, FLIP_START + FLIP_FRAMES], [0, 180], {
+    easing: Easing.inOut(Easing.cubic),
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  // 뒤집히는 동안 카드가 살짝 들렸다 내려앉는다.
+  const lift = 1 + 0.12 * Math.sin((flip / 180) * Math.PI);
+  return (
+    <div style={styles.bannerRow}>
+      {word && (
+        <div style={styles.flipStage}>
+          <div style={{...styles.flipCard, transform: `scale(${lift}) rotateY(${flip}deg)`}}>
+            <div style={{...styles.cardFace, ...styles.cardFront}}>
+              <span style={styles.cardReading}>{katakanaToHiragana(word.reading)}</span>
+              <span style={styles.cardJapanese}>{word.japanese}</span>
+            </div>
+            <div style={{...styles.cardFace, ...styles.cardBack}}>
+              <span style={styles.cardKorean}>{word.korean}</span>
+            </div>
+          </div>
+        </div>
+      )}
+      <div style={styles.bannerCopy}>
+        <span style={styles.bannerTitle}>일본어 단어장 앱</span>
+        <span style={styles.bannerSub}>이 노래 단어가 다 있어요</span>
+      </div>
+    </div>
+  );
+};
+
+const CtaScene = ({local}: {local: number}) => {
+  const press = interpolate(local, [PRESS_START, PRESS_START + 4, PRESS_START + 10], [1, 0.9, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  return (
+    <div style={styles.bannerRow}>
+      <div style={styles.brandMark}>
+        <LeafIcon />
+      </div>
+      <div style={styles.bannerCopy}>
+        <span style={styles.bannerTitle}>코토노하</span>
+        <span style={styles.bannerSub}>프로필 링크</span>
+      </div>
+      <span style={{...styles.ctaButton, transform: `scale(${press})`}}>무료로 시작</span>
+    </div>
+  );
+};
 
 // 인스타 릴스 UI 의 프로필 사진 바로 위. 화살표가 아바타(좌하단 x≈74~162)를 가리켜
 // 프로필 링크로 스토어 진입을 유도한다. 위치·문구는 Pen Reel v2 의 Profile Cue 와 같다.
@@ -980,6 +1089,11 @@ const ChevronRightIcon = ({color, size}: {color: string; size: number}) => (
     <path d="M9 6l6 6-6 6" />
   </svg>
 );
+const LeafIcon = () => (
+  <svg fill="#FFFFFF" height={34} viewBox="0 0 512 512" width={34}>
+    <path d="M161.35 242a16 16 0 0122.62-.68c73.63 69.36 147.51 111.56 234.45 133.07 11.73-32 12.77-67.22 2.64-101.58-13.44-45.59-44.74-85.31-90.49-114.86-40.84-26.38-81.66-33.25-121.15-39.89-49.82-8.38-96.88-16.3-141.79-63.85-5-5.26-11.81-7.37-18.32-5.66-7.44 2-12.43 7.88-14.82 17.6-5.6 22.75-2 86.51 13.75 153.82 25.29 108.14 65.65 162.86 95.06 189.73 38 34.69 87.62 53.9 136.93 53.9a186 186 0 0027.77-2.04c41.71-6.32 76.43-27.27 96-57.75-89.49-23.28-165.94-67.55-242-139.16a16 16 0 01-.65-22.65zM467.43 384.19c-16.83-2.59-33.13-5.84-49-9.77a157.71 157.71 0 01-12.13 25.68c-.73 1.25-1.5 2.49-2.29 3.71a584.21 584.21 0 0058.56 12 16 16 0 104.87-31.62z" />
+  </svg>
+);
 const ArrowDownIcon = () => (
   <svg height={36} style={{flexShrink: 0}} viewBox="0 0 24 24" width={36} {...svgProps}>
     {/* 글자 외곽선처럼 검은 획을 먼저 깔아 밝은 MV 위에서도 보이게 한다 */}
@@ -1352,7 +1466,7 @@ const styles = {
     left: 60,
     paddingLeft: 18,
     position: 'absolute',
-    right: 60,
+    right: BANNER_RIGHT + BANNER_WIDTH + 28,
     top: SONG_LABEL_TOP,
     zIndex: 5,
   },
@@ -1374,6 +1488,136 @@ const styles = {
     lineHeight: 1.1,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  banner: {
+    alignItems: 'center',
+    backgroundColor: bandInk,
+    border: `3px solid ${highlight}`,
+    borderRadius: 20,
+    boxSizing: 'border-box',
+    display: 'flex',
+    height: BANNER_HEIGHT,
+    overflow: 'hidden',
+    padding: '0 20px',
+    position: 'absolute',
+    right: BANNER_RIGHT,
+    top: BANNER_TOP,
+    width: BANNER_WIDTH,
+    zIndex: 5,
+  },
+  bannerWipe: {
+    backgroundColor: highlight,
+    inset: 0,
+    position: 'absolute',
+  },
+  bannerRow: {
+    alignItems: 'center',
+    display: 'flex',
+    gap: 16,
+    width: '100%',
+  },
+  bannerCopy: {
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    gap: 6,
+    minWidth: 0,
+  },
+  bannerTitle: {
+    color: ink,
+    fontSize: 32,
+    fontWeight: 800,
+    letterSpacing: -0.8,
+    lineHeight: 1.05,
+    whiteSpace: 'nowrap',
+  },
+  bannerNumber: {
+    backgroundColor: highlight,
+    color: '#000000',
+    display: 'inline-block',
+    fontVariantNumeric: 'tabular-nums',
+    padding: '2px 8px 0',
+  },
+  bannerSub: {
+    color: '#FFFFFFB3',
+    fontSize: 22,
+    fontWeight: 700,
+    letterSpacing: -0.4,
+    lineHeight: 1.05,
+    whiteSpace: 'nowrap',
+  },
+  flipStage: {
+    flexShrink: 0,
+    height: 66,
+    perspective: 500,
+    width: 128,
+  },
+  flipCard: {
+    height: '100%',
+    position: 'relative',
+    transformStyle: 'preserve-3d',
+    width: '100%',
+  },
+  cardFace: {
+    alignItems: 'center',
+    backfaceVisibility: 'hidden',
+    borderRadius: 10,
+    display: 'flex',
+    flexDirection: 'column',
+    inset: 0,
+    justifyContent: 'center',
+    position: 'absolute',
+  },
+  cardFront: {
+    backgroundColor: '#FFFFFF',
+  },
+  cardBack: {
+    backgroundColor: highlight,
+    transform: 'rotateY(180deg)',
+  },
+  cardReading: {
+    color: '#00000099',
+    fontSize: 14,
+    fontWeight: 700,
+    lineHeight: 1,
+  },
+  cardJapanese: {
+    color: '#000000',
+    fontSize: 30,
+    fontWeight: 800,
+    lineHeight: 1.1,
+    whiteSpace: 'nowrap',
+  },
+  cardKorean: {
+    color: '#000000',
+    fontSize: 26,
+    fontWeight: 800,
+    letterSpacing: -0.6,
+    lineHeight: 1.1,
+    padding: '0 6px',
+    textAlign: 'center',
+    wordBreak: 'keep-all',
+  },
+  brandMark: {
+    alignItems: 'center',
+    backgroundColor: app.primary,
+    borderRadius: 16,
+    display: 'flex',
+    flexShrink: 0,
+    height: 58,
+    justifyContent: 'center',
+    width: 58,
+  },
+  ctaButton: {
+    backgroundColor: highlight,
+    borderRadius: 999,
+    color: '#000000',
+    flexShrink: 0,
+    fontSize: 24,
+    fontWeight: 800,
+    letterSpacing: -0.5,
+    padding: '14px 20px 11px',
     whiteSpace: 'nowrap',
   },
   profileCue: {

@@ -115,6 +115,7 @@ export type PromoReelData = {
   lyricsEndFrame: number;
   /** 곡 전체 가사 줄 수. 엔드카드 앱 목업의 "n/전체" 표시용. */
   totalLineCount?: number;
+  /** 곡 전체 가사의 외울 단어 수(조사·조동사·기호 빼고 표제형 기준). 상단 배너의 "이 곡 단어 N개". */
   wordCount?: number;
   lyricLines: PromoLine[];
   /**
