@@ -18,7 +18,7 @@ import { ArtworkThumb } from './CardStage';
 import { Colors } from '../../theme/theme';
 import { getJlptColor } from '../Badges';
 import { getPosColor, getPosLabel } from '../../types/pos';
-import { flattenExamples, joinMeanings, SenseExample } from '../../types/word';
+import { flattenExamplesForSong, joinMeanings, SenseExample } from '../../types/word';
 import ReadingText from '../ReadingText';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { formatInterval, holdLabel } from './intervalLabel';
@@ -102,7 +102,10 @@ export const WordBack = React.memo(function WordBack({
   const firstSense = card.senses[0];
   const pos = firstSense?.partOfSpeech;
   const jlpt = firstSense?.jlpt;
-  const examples = useMemo(() => flattenExamples(card.senses), [card.senses]);
+  const examples = useMemo(
+    () => flattenExamplesForSong(card.senses, card.source.songId),
+    [card.senses, card.source.songId],
+  );
 
   // '복습 주기 보여주기' 설정은 rating 버튼의 주기 표시만 가린다 — 선택 후 "N일 뒤에 다시 만나요" 문구엔 그대로 보인다.
   const showIntervals = useSettingsStore(s => s.showIntervals);
