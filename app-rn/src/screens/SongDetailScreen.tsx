@@ -8,6 +8,7 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -111,6 +112,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     cards: 0,
   });
   const [busyWordKey, setBusyWordKey] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const notifiedSongIdRef = useRef<number | null>(null);
   const isPinnedTabsVisibleRef = useRef(false);
 
@@ -417,6 +419,18 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     load(songId);
   }, [load, songId]);
 
+  // loadSong 은 재생 위치를 되돌리므로 쓰지 않는다. 같은 곡이면 load 가 화면 데이터를 유지한 채 다시 받는다.
+  const handlePullRefresh = useCallback(() => {
+    if (songId == null) return;
+    setRefreshing(true);
+    Promise.all([
+      load(songId),
+      deckApi.getDeckBySongId(songId)
+        .then(deck => setSongDeckDetail(deck))
+        .catch(() => setSongDeckDetail(null)),
+    ]).finally(() => setRefreshing(false));
+  }, [load, songId]);
+
   const handleWordsChanged = useCallback(() => {
     if (songId == null) return;
     refreshWords(songId).catch(() => undefined);
@@ -597,6 +611,14 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         style={styles.scroll}
         onScroll={handleScroll}
         scrollEventThrottle={16}
+        refreshControl={(
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handlePullRefresh}
+            tintColor="#FFFFFF"
+            progressViewOffset={insets.top}
+          />
+        )}
         contentContainerStyle={[
           styles.scrollContent,
           { paddingBottom: activeTab === 'words' ? 0 : bottomReserve },
