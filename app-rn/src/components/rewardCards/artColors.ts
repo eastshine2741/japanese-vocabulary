@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { paletteFromPixels, type CardColors } from './artPalette';
+import { backdropFromPixels, paletteFromPixels, type CardColors } from './artPalette';
 import { readArtPixels } from './artPixels';
 
 const cache = new Map<string, Promise<CardColors | null>>();
@@ -33,4 +33,26 @@ export function useArtColors<T extends CardColors>(card: T | null, uri: string |
     };
   }, [uri]);
   return useMemo(() => (card && colors ? { ...card, ...colors } : card), [card, colors]);
+}
+
+const backdropCache = new Map<string, Promise<[string, string] | null>>();
+
+/** 아트에서 뽑은 바탕 두 색. 뽑기 전이나 못 뽑으면 null. */
+export function useArtBackdrop(uri: string | null | undefined): [string, string] | null {
+  const [colors, setColors] = useState<[string, string] | null>(null);
+  useEffect(() => {
+    let alive = true;
+    setColors(null);
+    if (!uri) return undefined;
+    let pending = backdropCache.get(uri);
+    if (!pending) {
+      pending = readArtPixels(uri).then(backdropFromPixels).catch(() => null);
+      backdropCache.set(uri, pending);
+    }
+    pending.then((c) => alive && setColors(c));
+    return () => {
+      alive = false;
+    };
+  }, [uri]);
+  return colors;
 }

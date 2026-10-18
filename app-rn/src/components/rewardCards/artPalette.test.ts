@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { oklchToHex, paletteFromPixels } from './artPalette';
+import { backdropFromPixels, oklchToHex, paletteFromPixels } from './artPalette';
 
 function image(...parts: [count: number, rgb: [number, number, number]][]): number[] {
   return parts.flatMap(([count, rgb]) => Array.from({ length: count }, () => [...rgb, 255]).flat());
@@ -54,5 +54,41 @@ describe('paletteFromPixels', () => {
 describe('oklchToHex', () => {
   it('sRGB 밖의 채도는 깎는다', () => {
     expect(oklchToHex({ L: 0.8, C: 0.4, h: 264 })).toMatch(/^#[0-9A-F]{6}$/);
+  });
+});
+
+describe('backdropFromPixels', () => {
+  const contrastWithWhite = (s: string) => {
+    const [r, g, b] = hex(s).map((c) => {
+      const v = c / 255;
+      return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    });
+    return 1.05 / (0.2126 * r + 0.7152 * g + 0.0722 * b + 0.05);
+  };
+
+  it('넓은 남색과 그다음 주황은 남색 → 주황 두 색', () => {
+    const [first, second] = backdropFromPixels(image([700, [20, 30, 120]], [300, [250, 140, 30]]))!;
+    const [fr, , fb] = hex(first);
+    expect(fb).toBeGreaterThan(fr);
+    const [sr, , sb] = hex(second);
+    expect(sr).toBeGreaterThan(sb);
+  });
+
+  it('한 색조뿐인 아트도 서로 다른 두 색을 낸다', () => {
+    const [first, second] = backdropFromPixels(image([100, [220, 40, 40]]))!;
+    expect(first).not.toBe(second);
+  });
+
+  it('밝은 노랑 아트에서도 흰 글자가 읽힌다', () => {
+    for (const c of backdropFromPixels(image([600, [250, 230, 60]], [400, [120, 230, 90]]))!) {
+      expect(contrastWithWhite(c)).toBeGreaterThan(4.5);
+    }
+  });
+
+  it('흑백 아트는 색을 지어내지 않는다', () => {
+    for (const c of backdropFromPixels(image([500, [30, 30, 30]], [500, [230, 230, 230]]))!) {
+      const [r, g, b] = hex(c);
+      expect(Math.max(r, g, b) - Math.min(r, g, b)).toBeLessThan(20);
+    }
   });
 });

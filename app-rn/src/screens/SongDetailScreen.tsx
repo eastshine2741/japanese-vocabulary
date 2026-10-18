@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, FontAwesome6 } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
@@ -722,6 +723,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
       <PlaybackOverlays
         title={song.title}
         artist={song.artist}
+        artworkUrl={song.artworkUrl}
         youtubeUrl={song.youtubeUrl}
         initialSeekMs={route.params?.initialSeekMs}
         initialLyricIndex={route.params?.initialLyricIndex}
@@ -879,6 +881,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
 interface PlaybackOverlaysProps {
   title: string;
   artist: string;
+  artworkUrl: string | null;
   youtubeUrl: string | null;
   initialSeekMs?: number;
   initialLyricIndex?: number;
@@ -894,6 +897,7 @@ interface PlaybackOverlaysProps {
 const PlaybackOverlays = React.memo(function PlaybackOverlays({
   title,
   artist,
+  artworkUrl,
   youtubeUrl,
   initialSeekMs,
   initialLyricIndex,
@@ -908,8 +912,7 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
   const mvBarRef = useRef<SongDetailMvBarRef>(null);
   const wordsSheetRef = useRef<AppBottomSheetRef>(null);
   const wordsSheetIndexRef = useRef(0);
-  const currentMs = usePlayerStore(s => s.currentMs);
-  const durationMs = usePlayerStore(s => s.durationMs);
+  const wordsSheetAnimatedIndex = useSharedValue(0);
   const setCurrentMs = usePlayerStore(s => s.setCurrentMs);
   const setDurationMs = usePlayerStore(s => s.setDurationMs);
   const handleSyncedPageChange = useCallback((line: React.ComponentProps<typeof CurrentPlayingWordsSheet>['lines'][number]) => {
@@ -932,19 +935,17 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
       artist={artist}
       youtubeUrl={youtubeUrl}
       initialSeekMs={initialSeekMs}
-      currentTimeMs={currentMs}
-      durationMs={durationMs}
       embedded
+      expandProgress={wordsSheetAnimatedIndex}
       onCurrentTimeChange={setCurrentMs}
       onDurationChange={setDurationMs}
       onBarPress={handleToggleWordsSheet}
     />
   ), [
     artist,
-    currentMs,
-    durationMs,
     handleToggleWordsSheet,
     initialSeekMs,
+    wordsSheetAnimatedIndex,
     setCurrentMs,
     setDurationMs,
     title,
@@ -954,11 +955,12 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
   return (
     <CurrentPlayingWordsSheet
       ref={wordsSheetRef}
+      artworkUrl={artworkUrl}
+      animatedIndex={wordsSheetAnimatedIndex}
       lines={lines}
       words={words}
       lineWordIndexes={lineWordIndexes}
       lyricType={lyricType}
-      currentTimeMs={currentMs}
       fallbackLineIndex={initialLyricIndex}
       bottomInset={bottomInset}
       header={mvBarHeader}
