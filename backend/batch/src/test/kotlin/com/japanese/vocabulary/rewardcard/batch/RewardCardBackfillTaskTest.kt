@@ -25,10 +25,12 @@ import com.japanese.vocabulary.user.entity.UserEntity
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import java.time.Duration
 
 class RewardCardBackfillTaskTest : BatchBaseIntegrationTest() {
 
     @Autowired private lateinit var task: RewardCardBackfillTask
+    @Autowired private lateinit var pushTask: RewardCardBackfillPushTask
     @Autowired private lateinit var rewardCardService: RewardCardService
     @Autowired private lateinit var songCardRepository: SongCardRepository
     @Autowired private lateinit var artistCardRepository: ArtistCardRepository
@@ -45,7 +47,7 @@ class RewardCardBackfillTaskTest : BatchBaseIntegrationTest() {
         val dry = task.dryRun()
         assertThat(songCards(early, song)).isEmpty()
 
-        val result = task.backfill(push = false)
+        val result = task.backfill()
         assertThat(dry.newSongCards).isEqualTo(result.newSongCards)
         assertThat(dry.newArtistCards).isEqualTo(result.newArtistCards)
 
@@ -63,8 +65,33 @@ class RewardCardBackfillTaskTest : BatchBaseIntegrationTest() {
         assertThat(artistCard.isIssued).isTrue()
         assertThat(result.failed).isZero()
 
-        // 다시 돌려도 새 카드가 없어 알리지 않는다.
-        assertThat(task.backfill(push = false).newSongCards).isZero()
+        assertThat(task.backfill().newSongCards).isZero()
+    }
+
+    @Test
+    fun `push targets only users whose cards came from backfill, with songs in fill order`() {
+        val first = newSong(artist = null)
+        val second = newSong(artist = null)
+        val filled = TestUserBuilder(entityManager).build()
+        studyWord(filled, first, "胸", reviewed = true)
+        studyWord(filled, second, "雨", reviewed = false)
+        val rated = TestUserBuilder(entityManager).build()
+        val ratedSong = newSong(artist = null)
+        // 플래그를 켠 뒤 rating 으로 받아 서명까지 한 카드는 채운 카드가 아니다.
+        rewardCardService.achieveSongs(rated.id!!, listOf(SongAchievementDto(ratedSong.id!!, null, SongCardGrade.BASIC)))
+        entityManager.flush()
+        val ratedCard = songCardRepository.findByUserIdAndSongIdIn(rated.id!!, listOf(ratedSong.id!!)).single()
+        clock.advance(Duration.ofMinutes(1))
+        rewardCardService.issueSongCard(rated.id!!, ratedCard.id!!, listOf("M0 0"), emptyList())
+
+        task.backfill()
+
+        val backfilled = rewardCardService.backfilledSongs()
+        assertThat(backfilled).doesNotContainKey(rated.id!!)
+        assertThat(backfilled.getValue(filled.id!!).map { it.songId }).containsExactly(first.id!!, second.id!!)
+        val message = pushTask.messages().single { it.userId == filled.id }
+        assertThat(message.songId).isEqualTo(RewardCardBackfillPushTask.headline(backfilled.getValue(filled.id!!)))
+        assertThat(message.body).contains("외 1곡을 카드로")
     }
 
     @Test
@@ -82,7 +109,7 @@ class RewardCardBackfillTaskTest : BatchBaseIntegrationTest() {
         }
         entityManager.flush()
 
-        task.backfill(push = false)
+        task.backfill()
 
         assertThat(songCards(me, song).map { it.grade }.last()).isEqualTo(SongCardGrade.GOLD)
     }
@@ -94,12 +121,12 @@ class RewardCardBackfillTaskTest : BatchBaseIntegrationTest() {
             SongAchievementDto(2, null, SongCardGrade.SILVER),
             SongAchievementDto(3, null, SongCardGrade.SILVER),
         )
-        assertThat(RewardCardBackfillTask.headline(cards)).isEqualTo(3)
-        assertThat(RewardCardBackfillTask.body("하루", "夜に駆ける", 2))
+        assertThat(RewardCardBackfillPushTask.headline(cards)).isEqualTo(3)
+        assertThat(RewardCardBackfillPushTask.body("하루", "夜に駆ける", 2))
             .isEqualTo("하루님께 「夜に駆ける」 외 2곡을 카드로 만들어드렸어요. 최신 버전으로 업데이트 후 확인해보세요")
-        assertThat(RewardCardBackfillTask.body("하루", "夜に駆ける", 0))
+        assertThat(RewardCardBackfillPushTask.body("하루", "夜に駆ける", 0))
             .isEqualTo("하루님께 「夜に駆ける」 카드를 만들어드렸어요. 최신 버전으로 업데이트 후 확인해보세요")
-        assertThat(RewardCardBackfillTask.body("하루", "あ".repeat(25), 0)).contains("「${"あ".repeat(20)}…」")
+        assertThat(RewardCardBackfillPushTask.body("하루", "あ".repeat(25), 0)).contains("「${"あ".repeat(20)}…」")
     }
 
     @Test
@@ -115,7 +142,7 @@ class RewardCardBackfillTaskTest : BatchBaseIntegrationTest() {
         assertThat(task.dryRun().silencedReveals).isGreaterThanOrEqualTo(1)
         assertThat(rewardCardService.pending(user.id!!)).isNotEmpty()
 
-        task.backfill(push = false)
+        task.backfill()
 
         assertThat(rewardCardService.pending(user.id!!)).isEmpty()
         assertThat(songCards(user, song).map { it.signature }).containsOnly(emptyList())

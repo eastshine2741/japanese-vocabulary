@@ -89,6 +89,15 @@ class RewardCardService(
         artistCardRepository.findPendingByUserId(userId).forEach { it.issueSilently(now) }
     }
 
+    /** 유저마다 채우기로 카드가 생긴 곡을 채운 순서로, 곡마다 채운 가장 높은 등급과 함께. */
+    @Transactional(readOnly = true)
+    fun backfilledSongs(): Map<Long, List<SongAchievementDto>> =
+        songCardRepository.findBackfilled().groupBy { it.userId }.mapValues { (_, cards) ->
+            cards.groupBy { it.songId }.map { (songId, songCards) ->
+                SongAchievementDto(songId, songCards.firstNotNullOfOrNull { it.artistId }, songCards.maxOf { it.grade })
+            }
+        }
+
     @Transactional(readOnly = true)
     fun songCardCount(userId: Long, songId: Long): Int = songCardRepository.countByUserIdAndSongId(userId, songId).toInt()
 

@@ -27,4 +27,8 @@ interface SongCardRepository : JpaRepository<SongCardEntity, Long> {
     ): List<ArtistMasterCountDto>
 
     fun findByUserIdAndIssuedAtIsNullOrderById(userId: Long): List<SongCardEntity>
+
+    /** 채우기가 만든 카드. 만들면서 바로 발급하는 건 채우기뿐이라 발급 시각이 만든 시각과 같다. */
+    @Query("SELECT c FROM SongCardEntity c WHERE c.issuedAt = c.createdAt ORDER BY c.id")
+    fun findBackfilled(): List<SongCardEntity>
 }
