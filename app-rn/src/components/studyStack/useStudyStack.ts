@@ -3,7 +3,7 @@ import { Animated, Easing, GestureResponderHandlers, PanResponder } from 'react-
 import { deckApi } from '../../api/deckApi';
 import { flashcardApi } from '../../api/flashcardApi';
 import { songApi } from '../../api/songApi';
-import { trackCardRate, trackCardReveal } from '../../services/analytics';
+import { trackCardRate, trackCardReveal, trackReviewComplete } from '../../services/analytics';
 import { studyStatsApi } from '../../api/studyStatsApi';
 import { wordApi } from '../../api/wordApi';
 import { useStreakStore } from '../../stores/streakStore';
@@ -201,6 +201,20 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       queueProgress: queueTotal === 0 ? 0 : Math.min(1, position / queueTotal),
     };
   }, [sessionDueTotal, distinctReviewedCount, completedSource, currentCard, reviewedCount]);
+
+  // 첫 진입부터 due 가 없어 바로 뜬 완주 카드는 복습을 마친 게 아니라 세지 않는다.
+  useEffect(() => {
+    if (!isComplete || reviewedCountRef.current === 0) return;
+    trackReviewComplete({
+      mode,
+      ...(completedSource?.songId != null && { song_id: completedSource.songId }),
+      ...(completedSource?.deckId != null && { deck_id: completedSource.deckId }),
+      ...(completedSource?.tierKey != null && { tier_key: completedSource.tierKey }),
+      reviewed: reviewedCountRef.current,
+    });
+    // 완주로 넘어가는 순간 한 번만 남긴다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isComplete]);
 
   const showCompletion = useCallback((completed: StudySource | null, dueDecks: SongDeckSummary[]) => {
     const nextDeck = dueDecks

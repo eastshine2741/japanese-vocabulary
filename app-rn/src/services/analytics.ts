@@ -21,6 +21,7 @@ type AnalyticsEvent =
   | { name: 'card_reveal'; params: StudyCardParams }
   | { name: 'card_rate'; params: StudyCardParams & { rating: number } }
   | { name: 'review_exit'; params: ReviewExitParams }
+  | { name: 'review_complete'; params: ReviewCompleteParams }
   | { name: 'card_share'; params: { kind: ShareCardKind; method: 'x' | 'instagram_story' | 'instagram_dm' | 'link' } }
   | { name: 'share_link_open'; params: { kind: ShareCardKind } };
 
@@ -53,6 +54,15 @@ export interface ReviewExitParams {
   completed: boolean;
   status: 'loading' | 'ready' | 'error';
   dwell_sec: number;
+}
+
+/** 한 장 이상 평가한 세션이 완주 카드에 닿음. song_id·deck_id 는 완주한 곡 단어장, 전체 단어장이면 없다. */
+export interface ReviewCompleteParams {
+  mode: 'home' | 'source';
+  song_id?: number;
+  deck_id?: number;
+  tier_key?: string;
+  reviewed: number;
 }
 
 // 모든 발화는 best-effort. 로깅 실패가 화면 동작을 막아선 안 된다.
@@ -95,6 +105,10 @@ export function trackCardRate(params: StudyCardParams, rating: number): void {
 
 export function trackReviewExit(params: ReviewExitParams): void {
   track({ name: 'review_exit', params });
+}
+
+export function trackReviewComplete(params: ReviewCompleteParams): void {
+  track({ name: 'review_complete', params });
 }
 
 export function trackCardShare(kind: ShareCardKind, method: 'x' | 'instagram_story' | 'instagram_dm' | 'link'): void {

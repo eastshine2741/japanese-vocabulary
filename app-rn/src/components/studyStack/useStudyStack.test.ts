@@ -6,6 +6,7 @@ import { flashcardApi } from '../../api/flashcardApi';
 import { songApi } from '../../api/songApi';
 import { studyStatsApi } from '../../api/studyStatsApi';
 import { wordApi } from '../../api/wordApi';
+import { trackReviewComplete } from '../../services/analytics';
 import { RATING_HOLD_MS, useStudyStack, StudyStackState } from './useStudyStack';
 import { StudySource } from './types';
 import { FlashcardDTO, FlashcardMemory } from '../../types/flashcard';
@@ -45,7 +46,7 @@ vi.mock('../../api/songApi', () => ({
 }));
 vi.mock('../../api/studyStatsApi', () => ({ studyStatsApi: { getHome: vi.fn() } }));
 vi.mock('../../api/wordApi', () => ({ wordApi: { getById: vi.fn() } }));
-vi.mock('../../services/analytics', () => ({ trackCardReveal: vi.fn(), trackCardRate: vi.fn() }));
+vi.mock('../../services/analytics', () => ({ trackCardReveal: vi.fn(), trackCardRate: vi.fn(), trackReviewComplete: vi.fn() }));
 vi.mock('../../stores/studyStatsStore', () => ({ useStudyStatsStore: { getState: () => ({ invalidate: vi.fn() }) } }));
 const receiveReveals = vi.fn();
 vi.mock('../../stores/rewardCardStore', () => ({ useRewardCardStore: { getState: () => ({ receiveReveals }) } }));
@@ -261,6 +262,15 @@ it('studies tier cards without saving them up front and ends when the list runs 
   expect(songApi.reviewSongWord).toHaveBeenCalledWith(3, '雨', 3);
   expect(stack.isComplete).toBe(true);
   expect(flashcardApi.getDueCards).not.toHaveBeenCalled();
+  expect(trackReviewComplete).toHaveBeenCalledTimes(1);
+  expect(trackReviewComplete).toHaveBeenCalledWith(expect.objectContaining({ song_id: 3, tier_key: 'SINGALONG', reviewed: 1 }));
+});
+
+it('does not log review_complete when the session opens with nothing due', async () => {
+  vi.mocked(songApi.getWordTierCards).mockResolvedValue(studyCards([]));
+  await mount({ ...source, deckId: null, tierKey: 'SINGALONG' });
+  expect(stack.isComplete).toBe(true);
+  expect(trackReviewComplete).not.toHaveBeenCalled();
 });
 
 it('refreshCurrentCard refetches only the current word and keeps the queue in place', async () => {
