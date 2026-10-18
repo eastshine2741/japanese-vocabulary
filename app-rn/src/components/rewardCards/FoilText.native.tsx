@@ -81,8 +81,9 @@ function SkiaFoilText({ text, colors, fontFamily, fontSize, lineHeight = fontSiz
 
   return (
     <View style={style} onLayout={onLayout}>
+      {/* Android 는 color 'transparent'(0)를 색 없음으로 보고 기본 검정으로 그려, Skia 글자와 폭이 다른 검은 글씨가 그림자처럼 비친다. */}
       <Text
-        style={{ fontFamily, fontSize, lineHeight, letterSpacing, color: face ? 'transparent' : colors[1] }}
+        style={{ fontFamily, fontSize, lineHeight, letterSpacing, color: colors[1], opacity: face ? 0 : 1 }}
         numberOfLines={numberOfLines}
       >
         {text}
