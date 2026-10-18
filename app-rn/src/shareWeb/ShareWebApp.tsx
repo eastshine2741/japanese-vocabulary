@@ -12,7 +12,7 @@ import type { SharedRewardCardDto } from '../types/rewardCard';
 import FitText, { FitLines } from './FitText';
 import StoreBadge, { type Store } from './StoreBadge';
 import { readShareWebData, storeOf, type ShareWebData } from './shareWebData';
-import { rankLine, shareCelebration, shareLadder, sharePitch } from './shareWebCopy';
+import { shareCelebration, shareLadder, sharePitch, type RankLine } from './shareWebCopy';
 
 const APP_ICON = require('../../assets/icon.png');
 const COLUMN_W = 440;
@@ -112,7 +112,7 @@ const Celebration = React.memo(function Celebration({ data }: { data: ShareWebDa
       </View>
       <FitText text={celebration.subject} style={styles.headline} boxStyle={styles.subjectBox} minFontSize={18} />
       <FitText text={celebration.headline} style={styles.headline} />
-      <RankLine no={celebration.rankNo} accent={accent} />
+      {celebration.rank && <RankRow line={celebration.rank} accent={accent} />}
 
       <Animated.View style={[styles.stage, cardStyle]}>
         <SharedCardShowcase {...cards} width={cardW} ownerName={name} />
@@ -132,8 +132,7 @@ const Celebration = React.memo(function Celebration({ data }: { data: ShareWebDa
   );
 });
 
-const RankLine = React.memo(function RankLine({ no, accent }: { no: number; accent: string }) {
-  const line = rankLine(no);
+const RankRow = React.memo(function RankRow({ line, accent }: { line: RankLine; accent: string }) {
   return (
     <View style={styles.rank}>
       <Text style={[styles.rankNo, { color: accent }]}>{line.no}</Text>

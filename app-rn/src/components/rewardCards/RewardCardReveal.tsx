@@ -69,7 +69,15 @@ export const RewardCardRevealHost = React.memo(function RewardCardRevealHost() {
       if (!pending) return;
       pending = false;
       const target = useRewardCardStore.getState().openNextReveal();
-      if (target) navigate('RewardCardReveal', { kind: target.kind, cardId: target.cardId, queued: true });
+      if (target) {
+        navigate('RewardCardReveal', {
+          kind: target.kind,
+          cardId: target.cardId,
+          queued: true,
+          upgrade: target.upgrade,
+          fromGrade: target.fromGrade,
+        });
+      }
     };
     // 회전 도중 아트가 늦게 받아져 튀어나오지 않도록 미리 받아 둔다.
     const timer = setTimeout(open, PREFETCH_TIMEOUT_MS);
@@ -204,8 +212,7 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({
       accent: card.accent,
       ratio: CARD_RATIO,
       radius: SONG_RADIUS,
-      subject: `이 곡의 ${songTierName(card.level, card.mastered)}`,
-      serialNo: card.ownerNo,
+      serial: { lead: `이 곡의 ${songTierName(card.level, card.mastered)} 카드를 전체 유저 중`, no: card.ownerNo, tail: '로 획득했어요' },
       renderBack,
       renderFront,
     }),

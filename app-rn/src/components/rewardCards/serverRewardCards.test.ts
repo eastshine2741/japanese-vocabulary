@@ -55,7 +55,6 @@ describe('serverRewardCards', () => {
       name: 'YOASOBI',
       artworkUrl: 'a.jpg',
       grade: 'BRONZE',
-      acquiredSeq: 7,
       fanNo: 7,
       signature: [],
       issued: false,
@@ -67,7 +66,6 @@ describe('serverRewardCards', () => {
       artistId: 3,
       masteredCount: 1,
       issued: false,
-      ownerNo: 7,
       fanNo: 7,
       since: '2026-10-01',
       masteredSongs: [{ title: '群青', artworkUrl: '' }],
@@ -76,19 +74,25 @@ describe('serverRewardCards', () => {
 
   it('an artist card keeps its grade material even if mastered songs are missing', () => {
     const dto: ArtistCardDto = {
-      id: 56, artistId: 3, name: 'YOASOBI', artworkUrl: null, grade: 'SILVER', acquiredSeq: 1, fanNo: 9,
+      id: 56, artistId: 3, name: 'YOASOBI', artworkUrl: null, grade: 'SILVER', fanNo: 9,
       signature: [], issued: true, masteredSongs: [], createdAt: '2026-10-01T00:00:00Z',
     };
-    expect(toArtistCard(dto)).toMatchObject({ masteredCount: 3, ownerNo: 1, fanNo: 9 });
+    expect(toArtistCard(dto)).toMatchObject({ masteredCount: 3, fanNo: 9 });
   });
 
   it('reveal targets point at the card of that grade', () => {
     expect(toRevealTarget({ kind: 'SONG', cardId: 90, targetId: 12, grade: 'GOLD', acquiredSeq: 1 })).toEqual({
-      kind: 'song', cardId: 'srv-song-90', server: true,
+      kind: 'song', cardId: 'srv-song-90', server: true, grade: 'GOLD', upgrade: false, fromGrade: null,
     });
-    expect(toRevealTarget({ kind: 'ARTIST', cardId: 55, targetId: 3, grade: 'BASIC', acquiredSeq: 1 })).toMatchObject({
-      kind: 'artist', cardId: 'srv-artist-55',
+    expect(toRevealTarget({ kind: 'ARTIST', cardId: 55, targetId: 3, grade: 'BASIC', acquiredSeq: null })).toMatchObject({
+      kind: 'artist', cardId: 'srv-artist-55', upgrade: false,
     });
+  });
+
+  it('an artist reveal with the grade seen before is an upgrade of the same card', () => {
+    expect(
+      toRevealTarget({ kind: 'ARTIST', cardId: 55, targetId: 3, grade: 'SILVER', acquiredSeq: 7, fromGrade: 'BRONZE' }),
+    ).toMatchObject({ kind: 'artist', cardId: 'srv-artist-55', upgrade: true, grade: 'SILVER', fromGrade: 'BRONZE' });
   });
 
   it('server ids never collide with dummy ids', () => {

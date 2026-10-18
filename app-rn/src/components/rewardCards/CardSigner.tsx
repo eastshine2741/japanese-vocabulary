@@ -25,12 +25,20 @@ export interface SignableCard {
   ratio: number;
   /** 모서리 반경, 카드 폭 비율. */
   radius: number;
-  /** 획득 순번 문구의 주어. '이 곡' · '이 아티스트'. */
-  subject: string;
-  serialNo: number;
+  /** 앞면으로 돌아선 뒤 순번 줄. 없으면 '카드를 획득했어요!' 만 띄운다. */
+  serial: CardSerial | null;
+  /** 앞면으로 돌아선 뒤 맨 아래 한 줄. */
+  note?: string;
   /** hint 가 있으면 빈 서명 칸을 그 색 점선으로 짚는다. */
   renderBack: (width: number, signature: CardSignature | null, hint?: string) => React.ReactNode;
   renderFront: (width: number) => React.ReactNode;
+}
+
+/** '{lead}' 아래 '{no}번째{tail}'. */
+export interface CardSerial {
+  lead: string;
+  no: number;
+  tail: string;
 }
 
 /** 발급된 서버 카드면 공유할 수 있다. */
@@ -149,6 +157,10 @@ const CardSeal = React.memo(function CardSeal({ card, signature, width, onDone, 
   const [counting, setCounting] = useState(false);
   const [done, setDone] = useState(false);
   const handleCounted = useCallback(() => setDone(true), []);
+  // 셀 순번이 없으면 앞면으로 돌아선 순간 끝난다.
+  useEffect(() => {
+    if (counting && card.serial == null) setDone(true);
+  }, [counting, card.serial]);
   const renderShareTrigger = useCallback(
     (open: () => void, opening: boolean) => (
       <Pressable onPress={open} disabled={!done || opening} style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}>
@@ -195,8 +207,13 @@ const CardSeal = React.memo(function CardSeal({ card, signature, width, onDone, 
         <Text style={styles.owner} numberOfLines={1}>
           카드를 획득했어요!
         </Text>
-        <Text style={styles.meta}>{card.subject} 카드를 전체 유저 중</Text>
-        <SerialCount to={card.serialNo} run={counting} color={card.accent} onDone={handleCounted} />
+        {card.serial && (
+          <>
+            <Text style={styles.meta}>{card.serial.lead}</Text>
+            <SerialCount to={card.serial.no} tail={card.serial.tail} run={counting} color={card.accent} onDone={handleCounted} />
+          </>
+        )}
+        {card.note && <Text style={styles.meta}>{card.note}</Text>}
       </Animated.View>
 
       <Animated.View style={[styles.footer, { paddingBottom: bottomInset + (share ? 4 : 16) }, captionStyle]}>
@@ -229,13 +246,14 @@ const CardSeal = React.memo(function CardSeal({ card, signature, width, onDone, 
 
 interface CountProps {
   to: number;
+  tail: string;
   run: boolean;
   color: string;
   onDone: () => void;
 }
 
 /** 획득 순번이 0 부터 올라가며 살짝 커지다가 멈추는 순간 제 크기로 돌아온다. */
-const SerialCount = React.memo(function SerialCount({ to, run, color, onDone }: CountProps) {
+export const SerialCount = React.memo(function SerialCount({ to, tail, run, color, onDone }: CountProps) {
   const [n, setN] = useState(0);
   const grow = useSharedValue(0);
 
@@ -275,7 +293,7 @@ const SerialCount = React.memo(function SerialCount({ to, run, color, onDone }: 
   return (
     <View style={styles.serialRow}>
       <Animated.Text style={[styles.serial, { color }, numberStyle]}>{n.toLocaleString('ko-KR')}번째</Animated.Text>
-      <Text style={styles.serialTail}>로 획득했어요</Text>
+      <Text style={styles.serialTail}>{tail}</Text>
     </View>
   );
 });

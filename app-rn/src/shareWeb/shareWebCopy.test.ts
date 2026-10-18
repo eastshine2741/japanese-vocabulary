@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ArtistCardDto, SharedRewardCardDto, SongCardDto } from '../types/rewardCard';
-import { rankLine, shareCelebration, shareLadder } from './shareWebCopy';
+import { fanLine, rankLine, shareCelebration, shareLadder } from './shareWebCopy';
 
 const rule = { tierNames: ['후렴 정복', '따라 부르기', '완곡'], masterPercent: 90 };
 
@@ -21,7 +21,7 @@ function artistShared(grade: ArtistCardDto['grade'], fanNo: number | null): Shar
     ...songShared('BASIC'),
     kind: 'ARTIST',
     songCard: null,
-    artistCard: { name: 'YOASOBI', grade, fanNo, acquiredSeq: 3 } as ArtistCardDto,
+    artistCard: { name: 'YOASOBI', grade, fanNo } as ArtistCardDto,
   };
 }
 
@@ -54,6 +54,12 @@ describe('shareCelebration', () => {
     expect(c.subject).toBe('「YOASOBI」');
     expect(c.headline).toBe('아티스트 카드를 얻었어요');
     expect(c.meaning).toBe('YOASOBI 노래 7곡의 가사 단어를\n완전히 외워야 받는 카드예요');
+    expect(c.rank).toEqual(fanLine(7));
+    expect(fanLine(1234)).toEqual({ no: '1,234번째', rest: ' 팬이에요' });
+  });
+
+  it('기본 아티스트 카드는 팬 번호가 없어 순번 줄도 없다', () => {
+    expect(shareCelebration(artistShared('BASIC', null))!.rank).toBeNull();
   });
 
   it('계단 조건에 앱 단계 이름을 쓰지 않는다', () => {

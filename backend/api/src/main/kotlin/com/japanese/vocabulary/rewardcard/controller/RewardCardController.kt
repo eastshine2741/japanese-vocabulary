@@ -2,6 +2,7 @@ package com.japanese.vocabulary.rewardcard.controller
 
 import com.japanese.vocabulary.rewardcard.dto.IssueArtistCardRequest
 import com.japanese.vocabulary.rewardcard.dto.IssueSongCardRequest
+import com.japanese.vocabulary.rewardcard.dto.MarkArtistCardSeenRequest
 import com.japanese.vocabulary.rewardcard.dto.PendingRewardCardsResponse
 import com.japanese.vocabulary.rewardcard.dto.RewardCardsResponse
 import com.japanese.vocabulary.rewardcard.dto.UpdateSongCardLyricRequest
@@ -27,7 +28,7 @@ class RewardCardController(
     @GetMapping
     fun cards(): RewardCardsResponse = rewardCardQueryService.cards(currentUserId())
 
-    /** 앱을 열 때 남은 연출. 서명 전에 앱을 끈 카드가 여기 남는다. */
+    /** 앱을 열 때 남은 연출. 서명 전에 앱을 끈 카드와 못 본 아티스트 카드 강화가 여기 남는다. */
     @GetMapping("/pending")
     fun pending(): PendingRewardCardsResponse = PendingRewardCardsResponse(rewardCardService.pending(currentUserId()))
 
@@ -43,6 +44,12 @@ class RewardCardController(
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun issueArtistCard(@PathVariable cardId: Long, @RequestBody request: IssueArtistCardRequest) {
         rewardCardService.issueArtistCard(currentUserId(), cardId, request.signature)
+    }
+
+    @PostMapping("/artist-cards/{cardId}/seen")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun markArtistCardSeen(@PathVariable cardId: Long, @RequestBody request: MarkArtistCardSeenRequest) {
+        rewardCardService.markArtistCardSeen(currentUserId(), cardId, request.grade)
     }
 
     @PutMapping("/song-cards/{cardId}/lyric")

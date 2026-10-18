@@ -3,10 +3,12 @@ import { ARTIST_GRADE_STEPS } from './artistGrade';
 import {
   SONG_CARD_KINDS,
   artistCardOfStep,
+  artistCardReaching,
   artistCardSample,
   artistCardStacks,
   artistCardsOf,
   findSongCard,
+  previousArtistCard,
   songCardOfKind,
   songCardSample,
   songCardStacks,
@@ -23,7 +25,7 @@ function songCard(id: string, title: string, level: CardLevel, mastered = false)
 
 function artistCard(id: string, masteredCount: number): ArtistRewardCard {
   return {
-    id, artistId: null, name: 'A', imageUrl: '', accent: '', ink: '', masteredCount, ownerNo: 1, fanNo: masteredCount >= 1 ? 1 : null, since: '2026-10-01',
+    id, artistId: null, name: 'A', imageUrl: '', accent: '', ink: '', masteredCount, fanNo: masteredCount >= 1 ? 1 : null, since: '2026-10-01',
     masteredSongs: Array.from({ length: masteredCount }, (_, i) => ({ title: `곡${i}`, artworkUrl: '' })),
     signature: null,
   };
@@ -48,9 +50,18 @@ describe('곡 카드 종류', () => {
 });
 
 describe('아티스트 카드 등급', () => {
-  it('등급마다 받은 카드가 따로 있다', () => {
-    const mine = artistCardsOf([artistCard('p', 0), artistCard('s', 4)], null, 'A');
-    expect(ARTIST_GRADE_STEPS.map(step => artistCardOfStep(mine, step)?.id ?? null)).toEqual(['p', null, 's', null, null, null]);
+  it('카드 한 장이 지금 등급에 있고, 지나온 등급까지 닿아 있다', () => {
+    const mine = artistCardsOf([artistCard('s', 4)], null, 'A');
+    expect(ARTIST_GRADE_STEPS.map(step => artistCardOfStep(mine, step)?.id ?? null)).toEqual([null, null, 's', null, null, null]);
+    expect(ARTIST_GRADE_STEPS.map(step => artistCardReaching(mine, step)?.id ?? null)).toEqual(['s', 's', 's', null, null, null]);
+  });
+
+  it('강화 전 카드는 지금 등급이 시작되는 곡 수에서 한 곡 모자라고, BRONZE 전이면 팬 번호가 없다', () => {
+    const silver = previousArtistCard(artistCard('s', 4))!;
+    expect(silver.masteredCount).toBe(2);
+    expect(silver.fanNo).toBe(1);
+    expect(previousArtistCard(artistCard('b', 1))).toMatchObject({ masteredCount: 0, fanNo: null });
+    expect(previousArtistCard(artistCard('p', 0))).toBeNull();
   });
 
   it('견본은 그 등급이 되는 마스터 곡 수로 돌린다', () => {

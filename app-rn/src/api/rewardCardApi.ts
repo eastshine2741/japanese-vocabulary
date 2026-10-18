@@ -14,7 +14,7 @@ export const rewardCardApi = {
     return data;
   },
 
-  /** 서명 전에 앱을 끈 카드. */
+  /** 서명 전에 앱을 끈 카드와 못 본 아티스트 카드 강화. */
   async getPending(): Promise<RewardCardRevealDto[]> {
     const { data } = await client.get<{ reveals: RewardCardRevealDto[] }>('/api/reward-cards/pending');
     return data.reveals;
@@ -26,6 +26,11 @@ export const rewardCardApi = {
 
   async issueArtistCard(cardId: number, signature: string[]): Promise<void> {
     await client.post(`/api/reward-cards/artist-cards/${cardId}/issue`, { signature });
+  },
+
+  /** 강화 연출을 이 등급까지 봤다. */
+  async markArtistCardSeen(cardId: number, grade: string): Promise<void> {
+    await client.post(`/api/reward-cards/artist-cards/${cardId}/seen`, { grade });
   },
 
   async updateSongCardLyric(cardId: number, lyricLineIndexes: number[]): Promise<void> {

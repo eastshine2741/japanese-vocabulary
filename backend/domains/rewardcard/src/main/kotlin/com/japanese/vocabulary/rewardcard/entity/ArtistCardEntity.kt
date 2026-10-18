@@ -14,6 +14,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.Table
 import java.time.Instant
 
+/** 유저·아티스트마다 한 장. 등급은 오르기만 한다. */
 @Entity
 @Table(name = "artist_card")
 class ArtistCardEntity(
@@ -28,12 +29,17 @@ class ArtistCardEntity(
     val artistId: Long,
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "grade", nullable = false, updatable = false, length = 10)
-    val grade: ArtistCardGrade,
+    @Column(name = "grade", nullable = false, length = 10)
+    var grade: ArtistCardGrade,
 
-    /** 아티스트·등급마다 따로 센다. */
-    @Column(name = "acquired_seq", nullable = false)
-    val acquiredSeq: Int,
+    /** 유저가 마지막으로 본 등급. [grade] 와 다르면 강화 연출이 남았다. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "seen_grade", length = 10)
+    var seenGrade: ArtistCardGrade? = null,
+
+    /** 몇 번째 팬인지. BRONZE 에 닿을 때 아티스트마다 매기고 바뀌지 않는다. */
+    @Column(name = "fan_no")
+    var fanNo: Int? = null,
 
     @Convert(converter = StringListConverter::class)
     @Column(name = "signature", columnDefinition = "JSON", nullable = false)
@@ -48,13 +54,28 @@ class ArtistCardEntity(
 ) {
     val isIssued: Boolean get() = issuedAt != null
 
+    /** 서명 뒤 아직 못 본 강화가 있다. */
+    val hasUnseenUpgrade: Boolean get() = isIssued && seenGrade != grade
+
     fun issue(signature: List<String>, now: Instant) {
         if (isIssued) throw BusinessException(ErrorCode.REWARD_CARD_ALREADY_ISSUED)
         this.signature = signature
         issuedAt = now
+        seenGrade = grade
     }
 
     fun issueSilently(now: Instant) {
         if (issuedAt == null) issuedAt = now
+        seenGrade = grade
+    }
+
+    fun upgrade(to: ArtistCardGrade) {
+        if (to > grade) grade = to
+    }
+
+    /** 앱이 강화 연출을 다 보여 줬다. 그 사이 또 오른 등급은 남긴다. */
+    fun markSeen(seen: ArtistCardGrade) {
+        if (!isIssued || seen > grade) return
+        if (seenGrade == null || seen > seenGrade!!) seenGrade = seen
     }
 }

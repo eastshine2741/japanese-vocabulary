@@ -97,6 +97,10 @@ export type RootStackParamList = {
     intro?: boolean;
     /** 연출 차례에서 열었다. 닫히면 다음 연출을 연다. */
     queued?: boolean;
+    /** 아티스트 카드 강화. 봉투·서명 없이 새 등급이 번진다. */
+    upgrade?: boolean;
+    /** 강화 전에 본 등급(서버). 없으면 한 단계 아래에서 오른다. */
+    fromGrade?: string | null;
   };
   /** 프로필 카드 탭에서 아티스트 카드를 누르면 열리는 전시 화면. */
   ArtistCardDetail: { cardId: string; ownerName: string };
