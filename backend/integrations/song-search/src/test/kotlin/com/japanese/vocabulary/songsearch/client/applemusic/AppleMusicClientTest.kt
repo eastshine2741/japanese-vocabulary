@@ -77,8 +77,29 @@ class AppleMusicClientTest {
         val server = MockRestServiceServer.bindTo(builder).build()
         server.expect(requestTo(startsWith("https://api.music.apple.com/v1/catalog/jp/search")))
             .andRespond(withSuccess(SEARCH_RESPONSE, MediaType.APPLICATION_JSON))
+        server.expect(requestTo(startsWith("https://api.music.apple.com/v1/catalog/jp/search")))
+            .andExpect(queryParam("term", "Ado"))
+            .andRespond(withSuccess(SEARCH_RESPONSE, MediaType.APPLICATION_JSON))
 
         assertThat(AppleMusicClient(builder, tokenProvider).findSongArtist("夜に駆ける", "Ado")).isNull()
+        server.verify()
+    }
+
+    @Test
+    fun `findSongArtist falls back to the artist name when the combined term misses`() {
+        val builder = RestClient.builder()
+        val server = MockRestServiceServer.bindTo(builder).build()
+        server.expect(requestTo(startsWith("https://api.music.apple.com/v1/catalog/jp/search")))
+            .andRespond(withSuccess("""{"results":{},"meta":{"results":{"order":[]}}}""", MediaType.APPLICATION_JSON))
+        server.expect(requestTo(startsWith("https://api.music.apple.com/v1/catalog/jp/search")))
+            .andExpect(queryParam("term", "YOASOBI"))
+            .andRespond(withSuccess(SEARCH_RESPONSE, MediaType.APPLICATION_JSON))
+        server.expect(requestTo("https://api.music.apple.com/v1/catalog/jp/songs/1490256995/artists"))
+            .andRespond(withSuccess(ARTISTS_RESPONSE, MediaType.APPLICATION_JSON))
+
+        val artist = AppleMusicClient(builder, tokenProvider).findSongArtist("夜に駆ける", "YOASOBI")
+
+        assertThat(artist?.id).isEqualTo("1490256993")
         server.verify()
     }
 
