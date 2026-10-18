@@ -21,9 +21,7 @@ interface Props {
   sidePadding: number;
   contentContainerStyle?: StyleProp<ViewStyle>;
   onPressCard: (card: SongRewardCard) => void;
-  onLongPressCard?: (card: SongRewardCard) => void;
   onPressArtistCard: (card: ArtistRewardCard) => void;
-  onLongPressArtistCard?: (card: ArtistRewardCard) => void;
   onOpenArtistCards: () => void;
 }
 
@@ -49,9 +47,7 @@ function CardCollection({
   sidePadding,
   contentContainerStyle,
   onPressCard,
-  onLongPressCard,
   onPressArtistCard,
-  onLongPressArtistCard,
   onOpenArtistCards,
 }: Props) {
   const fonts = useCardFonts();
@@ -74,10 +70,9 @@ function CardCollection({
         fonts={fonts}
         stacked={songStacks.stackedIds.has(item.id)}
         onPress={onPressCard}
-        onLongPress={onLongPressCard}
       />
     ),
-    [thumbWidth, fonts, songStacks, onPressCard, onLongPressCard],
+    [thumbWidth, fonts, songStacks, onPressCard],
   );
 
   const songEmpty = loading ? <Loading /> : <SongCardSlots width={thumbWidth} gap={GRID_GAP} />;
@@ -94,7 +89,6 @@ function CardCollection({
       fonts={fonts}
       onSort={handleSort}
       onPressArtistCard={onPressArtistCard}
-      onLongPressArtistCard={onLongPressArtistCard}
       onOpenArtistCards={onOpenArtistCards}
     />
   );
@@ -143,7 +137,6 @@ const CollectionHeader = React.memo(function CollectionHeader({
   fonts,
   onSort,
   onPressArtistCard,
-  onLongPressArtistCard,
   onOpenArtistCards,
 }: {
   artistCount: number;
@@ -156,7 +149,6 @@ const CollectionHeader = React.memo(function CollectionHeader({
   fonts: CardFonts;
   onSort: () => void;
   onPressArtistCard: (card: ArtistRewardCard) => void;
-  onLongPressArtistCard?: (card: ArtistRewardCard) => void;
   onOpenArtistCards: () => void;
 }) {
   return (
@@ -184,7 +176,6 @@ const CollectionHeader = React.memo(function CollectionHeader({
               fonts={fonts}
               stacked={artistStackedIds.has(card.id)}
               onPress={onPressArtistCard}
-              onLongPress={onLongPressArtistCard}
             />
           ))}
           <Pressable onPress={onOpenArtistCards} style={({ pressed }) => [styles.seeAll, pressed && styles.pressed]}>

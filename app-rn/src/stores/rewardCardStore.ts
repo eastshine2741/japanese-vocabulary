@@ -70,8 +70,6 @@ interface RewardCardState extends CardSet {
   closeReveal: () => void;
   markWearIntroSeen: () => void;
   loadWearIntroSeen: () => Promise<void>;
-  /** 개발용 — 카드 규칙 설명을 다시 처음처럼 띄우게 한다. */
-  resetWearIntroSeen: () => void;
   loadLyricLines: (cardId: string) => Promise<void>;
   /** 카드에 실을 가사 줄을 바꾼다. 빈 배열은 무시한다. */
   setLyric: (cardId: string, picked: number[]) => void;
@@ -192,11 +190,6 @@ export const useRewardCardStore = create<RewardCardState>((set, get) => {
 
     loadWearIntroSeen: async () => {
       if (await preferenceStorage.getCardWearIntroSeen().catch(() => false)) set({ wearIntroSeen: true });
-    },
-
-    resetWearIntroSeen: () => {
-      set({ wearIntroSeen: false });
-      preferenceStorage.clearCardWearIntroSeen().catch(() => undefined);
     },
 
     loadLyricLines: async (cardId) => {
