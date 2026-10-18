@@ -150,6 +150,11 @@ export const ArtistCardUpgrade = React.memo(function ArtistCardUpgrade({ card, f
     const count = artistGradeFrom(fromGrade);
     return { ...card, masteredCount: count, masteredSongs: card.masteredSongs.slice(0, count), fanNo: count >= 1 ? card.fanNo : null };
   }, [card, fromGrade]);
+  const shareId = card.issued === true ? serverTargetId(card.id) : null;
+  const share = useMemo<ShareableCard | null>(
+    () => (shareId == null ? null : { kind: 'artist', cardId: shareId, title: card.name, accent: card.accent, ink: card.ink }),
+    [shareId, card.name, card.accent, card.ink],
+  );
   const cardW = Math.min(screenW - 56, (screenH * 0.36) / ARTIST_CARD_RATIO, 380);
 
   return (
@@ -169,6 +174,7 @@ export const ArtistCardUpgrade = React.memo(function ArtistCardUpgrade({ card, f
         accent={card.accent}
         guide={<RevealGuide lines={[]} steps={ARTIST_LADDER} from={artistRung(before)} current={artistRung(card)} accent={card.accent} motion={motion} />}
         onDone={onClose}
+        share={share}
       />
     </RevealShell>
   );
