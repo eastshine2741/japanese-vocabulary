@@ -2,8 +2,7 @@
 
 Pen `app-rn/japanese-vocabulary.pen` 의 `P3a. Profile — 카드 탭` / `P3b. Profile — 학습 탭`,
 `component/songCard` · `component/artistCard`, `spec/songCard states` 가 원본이다.
-앱은 서버 카드(`GET /api/reward-cards`)를 그린다. 개발 빌드에선 화면 왼쪽 위 `카드: 서버|더미` 칩으로 더미 데이터
-(`app-rn/src/components/rewardCards/dummyRewardCards.ts`, 모든 등급 견본)로 바꿔 볼 수 있다. 더미를 보는 동안엔 서버 연출을 띄우지 않는다(서버에 남아 나중에 뜬다).
+앱은 서버 카드(`GET /api/reward-cards`)를 그린다.
 
 ## 곡 카드 — 등급마다 새로 발급하고, 순번도 등급마다 센다
 
