@@ -8,12 +8,16 @@ import Animated, {
   interpolate,
   runOnJS,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
+  withDelay,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { convertLineReading } from '../../utils/readingConverter';
 import { getSongDetailWordKey } from './songDetailWordSave';
+import { hapticLineTick } from './lyricsHaptics';
 import {
   DEFAULT_LINE_HEIGHT,
   TokenCell,
@@ -25,18 +29,30 @@ import type { CurrentPlayingLyricLine, CurrentPlayingWord } from './CurrentPlayi
 
 /** 포커스 줄의 중심이 다이얼 높이의 어디에 오는지 — 위로 한 줄쯤, 아래로 다음 줄들. */
 const FOCUS_CENTER_RATIO = 0.38;
-const TRANSITION_DURATION = 280;
-const MODE_DURATION = 200;
-/** 포커스가 옮겨 올 때 밑줄·단어 뜻·후리가나가 떠오르는 시간. */
-const DETAIL_FADE_MS = 200;
+/** 줄이 넘어갈 때 더미를 끄는 스프링 — 살짝 지나쳤다 돌아와 앉는다. */
+const LINE_SPRING = { damping: 22, stiffness: 170, mass: 1 };
+/** 아래 줄들이 한 박자 늦게 따라오게 하는 느슨한 스프링. */
+const TRAIL_SPRING = { damping: 17, stiffness: 90, mass: 1 };
+/** 포커스 아래 몇 줄에 걸쳐 꼬리가 다 늘어지는지. */
+const TRAIL_SPREAD = 4;
+const MODE_TIMING = { duration: 200, easing: Easing.out(Easing.cubic) };
+/** 포커스가 옮겨 올 때 밑줄·단어 뜻·후리가나가 떠오르는 시간. 줄이 거의 앉은 뒤에 떠오른다. */
+const DETAIL_FADE_IN_MS = 260;
+const DETAIL_FADE_IN_DELAY_MS = 90;
+const DETAIL_FADE_OUT_MS = 160;
+/** 줄이 넘어갈 때 밝기가 옮겨 가는 시간. */
+const LINE_FADE_MS = 360;
 /** 드래그 중 후보 줄로 띠가 미끄러지는 시간. */
 const HIGHLIGHT_SLIDE_MS = 150;
+const HIGHLIGHT_TIMING = { duration: HIGHLIGHT_SLIDE_MS, easing: Easing.out(Easing.cubic) };
 const RENDER_RADIUS = 6;
 /** 드래그하는 동안 가사 더미가 뒤로 물러나는 정도. */
 const DYNAMIC_SCALE = 0.92;
 const DYNAMIC_OPACITY = 0.85;
 /** 앵커가 풀린 동안 띠는 옅어져 후보만 약하게 가리킨다. */
 const DYNAMIC_HIGHLIGHT_OPACITY = 0.5;
+/** 물러난 띠는 모서리를 둥글려 카드처럼 보이게 한다. */
+const DYNAMIC_HIGHLIGHT_RADIUS = 14;
 /** 포커스에서 멀어질수록 흐려진다. 마지막 값이 그 너머 전부. */
 const DISTANCE_OPACITY = [1, 0.44, 0.3, 0.23, 0.18, 0.15, 0.13];
 const DISTANCE_STEPS = DISTANCE_OPACITY.map((_, i) => i);
@@ -47,6 +63,26 @@ export const DarkText = {
   secondary: '#FFFFFFB8',
   muted: '#FFFFFF80',
 } as const;
+
+/** 진행 중인 애니메이션과 같은 곳으로 다시 보내면 건너뛴다 — 손 뗀 순간 UI 스레드가 먼저 출발시킨 걸 React 가 따라잡으며 다시 시작하지 않게. */
+function springTo(
+  value: SharedValue<number>,
+  target: SharedValue<number>,
+  to: number,
+  config: typeof LINE_SPRING,
+) {
+  'worklet';
+  if (Math.abs(target.value - to) < 0.5) return;
+  target.value = to;
+  value.value = withSpring(to, config);
+}
+
+function timeTo(value: SharedValue<number>, target: SharedValue<number>, to: number, duration: number) {
+  'worklet';
+  if (Math.abs(target.value - to) < 0.001) return;
+  target.value = to;
+  value.value = withTiming(to, { duration, easing: Easing.out(Easing.cubic) });
+}
 
 export interface SongLyricsDialEntry {
   key: string;
@@ -89,10 +125,12 @@ const LyricLine = React.memo(function LyricLine({
   // 처음 그려질 때는 제자리 값으로 시작한다 — 창 안으로 들어온 줄이 깜빡이지 않게.
   const detailOpacity = useSharedValue(isFocused ? 1 : 0);
   useEffect(() => {
-    detailOpacity.value = withTiming(isFocused ? 1 : 0, {
-      duration: DETAIL_FADE_MS,
-      easing: Easing.out(Easing.cubic),
-    });
+    detailOpacity.value = isFocused
+      ? withDelay(
+        DETAIL_FADE_IN_DELAY_MS,
+        withTiming(1, { duration: DETAIL_FADE_IN_MS, easing: Easing.out(Easing.cubic) }),
+      )
+      : withTiming(0, { duration: DETAIL_FADE_OUT_MS, easing: Easing.out(Easing.quad) });
   }, [detailOpacity, isFocused]);
   const detailStyle = useAnimatedStyle(() => ({ opacity: detailOpacity.value }));
 
@@ -196,6 +234,8 @@ interface SlotProps {
   busyWordKey: string | null;
   candidatePosition: SharedValue<number>;
   dynamicProgress: SharedValue<number>;
+  stackY: SharedValue<number>;
+  trailY: SharedValue<number>;
   onMeasured: (height: number) => void;
   onWordPress: (word: CurrentPlayingWord) => void;
 }
@@ -208,14 +248,25 @@ const Slot = React.memo(function Slot({
   busyWordKey,
   candidatePosition,
   dynamicProgress,
+  stackY,
+  trailY,
   onMeasured,
   onWordPress,
 }: SlotProps) {
   // 슬롯마다 자기 위쪽을 축으로 줄어든다 — 더미 전체를 한 점으로 모으면 먼 줄이 눈에
   // 띄게 밀린다. 흐리기는 거리에 따른 기본값과 드래그 중 물러남을 곱한다.
   // 거리는 UI 스레드에서 잰다 — prop 으로 넘기면 줄이 바뀔 때마다 창 안 슬롯이 전부 다시 그려진다.
+  // 포커스 아래 줄일수록 느슨한 스프링 쪽으로 섞어 한 박자씩 늦게 따라온다. 두 스프링은 같은 자리에서
+  // 떠나 같은 자리에 앉으므로 줄 사이가 벌어진 채로 남지 않는다.
   const animStyle = useAnimatedStyle(() => ({
     transform: [{
+      translateY: (trailY.value - stackY.value) * interpolate(
+        index - candidatePosition.value,
+        [0, TRAIL_SPREAD],
+        [0, 1],
+        Extrapolation.CLAMP,
+      ),
+    }, {
       scale: interpolate(dynamicProgress.value, [0, 1], [1, DYNAMIC_SCALE], Extrapolation.CLAMP),
     }],
     opacity: interpolate(
@@ -289,6 +340,9 @@ function SongLyricsDial({
   const candidateSlotHeight = slotLayouts[candidateIndex]?.height ?? DEFAULT_LINE_HEIGHT;
 
   const stackY = useSharedValue(0);
+  const trailY = useSharedValue(0);
+  const stackTarget = useSharedValue(0);
+  const trailTarget = useSharedValue(0);
   const dragOffset = useSharedValue(0);
   // 드래그를 시작한 줄. 싱크 중엔 드래그하는 동안에도 포커스가 넘어가므로 그 기준을 붙잡아 둔다.
   const dragStartIndex = useSharedValue(safeIndex);
@@ -298,6 +352,16 @@ function SongLyricsDial({
   const highlightTop = useSharedValue(candidateSlotTop);
   const highlightHeight = useSharedValue(candidateSlotHeight);
   const candidatePosition = useSharedValue(candidateIndex);
+  const candidateTarget = useSharedValue(candidateIndex);
+  // 손을 떼는 순간 UI 스레드에서 바로 다음 줄로 출발시키려고 배치를 그쪽에도 둔다.
+  const slotLayoutsSV = useSharedValue(slotLayouts);
+  const focusCenterSV = useSharedValue(focusCenterY);
+  useEffect(() => {
+    slotLayoutsSV.value = slotLayouts;
+  }, [slotLayouts, slotLayoutsSV]);
+  useEffect(() => {
+    focusCenterSV.value = focusCenterY;
+  }, [focusCenterSV, focusCenterY]);
   // 제스처를 줄마다 다시 만들지 않도록 worklet 은 포커스 줄을 여기서 읽는다.
   const focusIndex = useSharedValue(safeIndex);
   useEffect(() => {
@@ -308,7 +372,9 @@ function SongLyricsDial({
     setPreviewIndex(prev => (prev === index ? prev : index));
   }, []);
 
+  // 후보 지우기와 줄 넘기기를 한 번에 해야 한 번에 그려진다 — 따로 하면 띠가 옛 줄로 갔다가 돌아온다.
   const commitLine = useCallback((index: number) => {
+    setPreviewIndex(null);
     onStepLine(index);
   }, [onStepLine]);
 
@@ -332,13 +398,6 @@ function SongLyricsDial({
     setLineHeights({});
   }, [lineCount]);
 
-  useEffect(() => {
-    dynamicProgress.value = withTiming(isDragging ? 1 : 0, {
-      duration: MODE_DURATION,
-      easing: Easing.out(Easing.cubic),
-    });
-  }, [dynamicProgress, isDragging]);
-
   // 첫 자리잡기만 애니메이션 없이 바로 앉힌다.
   const hasPositionedRef = useRef(false);
   useEffect(() => {
@@ -347,26 +406,34 @@ function SongLyricsDial({
     if (!hasPositionedRef.current) {
       hasPositionedRef.current = true;
       stackY.value = target;
+      trailY.value = target;
+      stackTarget.value = target;
+      trailTarget.value = target;
       return;
     }
-    stackY.value = withTiming(target, {
-      duration: TRANSITION_DURATION,
-      easing: Easing.out(Easing.cubic),
-    });
-  }, [dialHeight, focusCenterY, safeSlotHeight, safeSlotTop, stackY]);
+    springTo(stackY, stackTarget, target, LINE_SPRING);
+    springTo(trailY, trailTarget, target, TRAIL_SPRING);
+    // 드래그가 끝날 때도 다시 맞춘다 — 손 뗀 줄을 부모가 받지 않았으면(싱크 시각 없는 줄) 제자리로 돌아온다.
+  }, [
+    isDragging,
+    dialHeight,
+    focusCenterY,
+    safeSlotHeight,
+    safeSlotTop,
+    stackTarget,
+    stackY,
+    trailTarget,
+    trailY,
+  ]);
 
   useEffect(() => {
-    const options = { duration: HIGHLIGHT_SLIDE_MS, easing: Easing.out(Easing.cubic) };
-    highlightTop.value = withTiming(candidateSlotTop, options);
-    highlightHeight.value = withTiming(candidateSlotHeight, options);
-  }, [candidateSlotHeight, candidateSlotTop, highlightHeight, highlightTop]);
-
-  useEffect(() => {
-    candidatePosition.value = withTiming(candidateIndex, {
-      duration: HIGHLIGHT_SLIDE_MS,
-      easing: Easing.out(Easing.cubic),
-    });
-  }, [candidateIndex, candidatePosition]);
+    timeTo(
+      candidatePosition,
+      candidateTarget,
+      candidateIndex,
+      isDragging ? HIGHLIGHT_SLIDE_MS : LINE_FADE_MS,
+    );
+  }, [candidateIndex, candidatePosition, candidateTarget, isDragging]);
 
   const panGesture = useMemo(
     () => Gesture.Pan()
@@ -376,6 +443,13 @@ function SongLyricsDial({
         'worklet';
         dragStartIndex.value = focusIndex.value;
         lastTarget.value = focusIndex.value;
+        // 띠·물러남은 JS 를 거치지 않고 여기서 바로 움직인다 — 다시 그리기를 기다리면 띠가 늦게 따라온다.
+        const slot = slotLayoutsSV.value[focusIndex.value];
+        if (slot) {
+          highlightTop.value = slot.top;
+          highlightHeight.value = slot.height;
+        }
+        dynamicProgress.value = withTiming(1, MODE_TIMING);
         runOnJS(setIsDragging)(true);
       })
       .onChange((event) => {
@@ -385,7 +459,15 @@ function SongLyricsDial({
         const target = stepTargetIndex(startIndex, event.translationY, lineCount);
         if (target !== lastTarget.value) {
           lastTarget.value = target;
+          const slot = slotLayoutsSV.value[target];
+          if (slot) {
+            highlightTop.value = withTiming(slot.top, HIGHLIGHT_TIMING);
+            highlightHeight.value = withTiming(slot.height, HIGHLIGHT_TIMING);
+          }
+          timeTo(candidatePosition, candidateTarget, target, HIGHLIGHT_SLIDE_MS);
           runOnJS(updatePreview)(target === startIndex ? null : target);
+          // 손으로 넘길 때만 울린다. 재생으로 넘어가는 줄은 조용히 지나간다.
+          runOnJS(hapticLineTick)();
         }
       })
       .onEnd((event) => {
@@ -393,13 +475,24 @@ function SongLyricsDial({
         const startIndex = dragStartIndex.value;
         const target = stepTargetIndex(startIndex, event.translationY, lineCount);
         lastTarget.value = startIndex;
-        runOnJS(updatePreview)(null);
         if (target !== startIndex) {
           // 드래그 값을 stackY 에 흡수시켜 손을 뗀 자리에서 이어 움직인다. 안 그러면 다이얼이 흔들린다.
           stackY.value = stackY.value + dragOffset.value;
+          trailY.value = trailY.value + dragOffset.value;
           dragOffset.value = 0;
+          // JS 가 다시 그릴 때까지 기다리지 않고 여기서 바로 다음 줄로 출발한다.
+          const slot = slotLayoutsSV.value[target];
+          if (slot) {
+            const to = focusCenterSV.value - slot.top - slot.height / 2;
+            stackTarget.value = to;
+            trailTarget.value = to;
+            stackY.value = withSpring(to, LINE_SPRING);
+            trailY.value = withSpring(to, TRAIL_SPRING);
+          }
+          timeTo(candidatePosition, candidateTarget, target, LINE_FADE_MS);
           runOnJS(commitLine)(target);
         } else {
+          runOnJS(updatePreview)(null);
           dragOffset.value = withTiming(0, { duration: 180, easing: Easing.out(Easing.cubic) });
         }
       })
@@ -410,20 +503,54 @@ function SongLyricsDial({
           dragOffset.value = withTiming(0, { duration: 180, easing: Easing.out(Easing.cubic) });
         }
         lastTarget.value = focusIndex.value;
-        runOnJS(updatePreview)(null);
+        dynamicProgress.value = withTiming(0, MODE_TIMING);
         runOnJS(setIsDragging)(false);
       }),
-    [commitLine, dragOffset, dragStartIndex, focusIndex, lastTarget, lineCount, updatePreview],
+    [
+      candidatePosition,
+      candidateTarget,
+      commitLine,
+      dragOffset,
+      dragStartIndex,
+      focusCenterSV,
+      dynamicProgress,
+      focusIndex,
+      highlightHeight,
+      highlightTop,
+      lastTarget,
+      lineCount,
+      slotLayoutsSV,
+      stackTarget,
+      stackY,
+      trailTarget,
+      trailY,
+      updatePreview,
+    ],
   );
 
   const stackStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: stackY.value + dragOffset.value }],
   }));
 
+  // 가만히 있을 때 띠 높이 — 밝기가 옮겨 가는 만큼 두 줄 높이 사이를 오간다.
+  const restHeight = useDerivedValue(() => {
+    const layouts = slotLayoutsSV.value;
+    const p = candidatePosition.value;
+    const from = layouts[Math.floor(p)]?.height ?? DEFAULT_LINE_HEIGHT;
+    const to = layouts[Math.ceil(p)]?.height ?? from;
+    return from + (to - from) * (p - Math.floor(p));
+  });
+
   // 위치와 크기는 top/height 로 넣는다 — transform 의 translateY 는 transformOrigin 에 말려 어긋난다.
+  // 가만히 있을 땐 더미 위치에서 거꾸로 셈해 늘 화면 가운데에 둔다 — 따로 굴린 띠 값은 빠르게 넘길 때
+  // 스레드 사이 순서가 엇갈려 옛 줄에 남을 수 있다. 드래그 중에만 후보 줄을 따라간다.
   const highlightStyle = useAnimatedStyle(() => ({
-    top: highlightTop.value,
-    height: highlightHeight.value,
+    top: interpolate(
+      dynamicProgress.value,
+      [0, 1],
+      [focusCenterSV.value - stackY.value - restHeight.value / 2, highlightTop.value],
+    ),
+    height: interpolate(dynamicProgress.value, [0, 1], [restHeight.value, highlightHeight.value]),
     transform: [{
       scale: interpolate(dynamicProgress.value, [0, 1], [1, DYNAMIC_SCALE], Extrapolation.CLAMP),
     }],
@@ -431,6 +558,12 @@ function SongLyricsDial({
       dynamicProgress.value,
       [0, 1],
       [1, DYNAMIC_HIGHLIGHT_OPACITY],
+      Extrapolation.CLAMP,
+    ),
+    borderRadius: interpolate(
+      dynamicProgress.value,
+      [0, 1],
+      [0, DYNAMIC_HIGHLIGHT_RADIUS],
       Extrapolation.CLAMP,
     ),
   }));
@@ -466,6 +599,8 @@ function SongLyricsDial({
                 busyWordKey={busyWordKey}
                 candidatePosition={candidatePosition}
                 dynamicProgress={dynamicProgress}
+                stackY={stackY}
+                trailY={trailY}
                 onMeasured={getOnMeasured(index)}
                 onWordPress={onWordPress}
               />
