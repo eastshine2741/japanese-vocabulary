@@ -7,7 +7,6 @@ import com.japanese.vocabulary.rewardcard.dto.RewardCardWordResponse
 import com.japanese.vocabulary.rewardcard.model.SongCardGrade
 import com.japanese.vocabulary.song.dto.songdetail.SongLyricLineDto
 import com.japanese.vocabulary.word.dto.songword.WordInSongItemDto
-import java.time.Instant
 import kotlin.math.ceil
 
 /** 카드 면에 싣는 곡 데이터. 단계 진행·복습할 때가 된 단어 수는 조회 때 계산한다. */
@@ -34,9 +33,9 @@ object SongCardFace {
             .take(WORD_COUNT)
             .map { RewardCardWordResponse(japanese = it.japanese, reading = it.reading.orEmpty(), meaning = it.senses.firstOrNull()?.meaning ?: it.koreanText!!) }
 
-    /** 곡의 tier 단어 중 카드를 받은 뒤 리뷰한 카드. 받기 전 리뷰는 빼서, 다른 곡에서 공부하고 밀린 단어가 받자마자 카드를 낡게 하지 않는다. */
-    fun reviewedSince(tiers: List<List<FlashcardEntity?>>, issuedAt: Instant): List<FlashcardEntity> =
-        tiers.flatten().filterNotNull().filter { card -> card.lastReview?.let { it >= issuedAt } == true }.distinctBy { it.id }
+    /** 곡의 tier 단어 중 한 번이라도 리뷰한 카드. 다른 곡에서 리뷰한 것도 센다 — 단어 기억은 곡마다가 아니라 하나다. */
+    fun reviewed(tiers: List<List<FlashcardEntity?>>): List<FlashcardEntity> =
+        tiers.flatten().filterNotNull().filter { it.lastReview != null }.distinctBy { it.id }
 
     /** 받은 등급 위 등급마다의 진행, 등급 순서대로: 단계 등급은 그 단계의 공부한 단어 수, 마스터는 90% 목표까지의 장기기억 수. */
     fun goals(top: SongCardGrade, tiers: List<List<FlashcardEntity?>>, longTermDays: Double): List<RewardCardGoalResponse> =

@@ -148,6 +148,7 @@ const titleWidths = new Map<string, number>();
 /**
  * 제목이 폭 avail 안에 한 줄로 들도록 글자 크기에 곱할 배율과, 그 폭을 재는 숨은 글자.
  * 어림은 썸네일·시스템 글자 배율에서 어긋나 실제로 잰다. 재기 전엔 말줄임이 비치지 않게 제목을 숨긴다.
+ * 웹폰트는 대체 글꼴로 먼저 그려졌다 바뀌므로, 숨은 글자를 계속 두어 바뀐 폭을 다시 잰다.
  */
 function useTitleFit(title: string, avail: number, fontSize: number, fontFamily: string) {
   const key = `${fontFamily}|${fontSize}|${title}`;
@@ -158,14 +159,13 @@ function useTitleFit(title: string, avail: number, fontSize: number, fontFamily:
     titleWidths.set(key, w);
     setNatural(w);
   };
-  const measure =
-    width == null ? (
-      <View pointerEvents="none" style={styles.titleMeasure}>
-        <Text style={{ fontFamily, fontSize }} numberOfLines={1} onLayout={onLayout}>
-          {title}
-        </Text>
-      </View>
-    ) : null;
+  const measure = (
+    <View pointerEvents="none" style={styles.titleMeasure}>
+      <Text style={{ fontFamily, fontSize }} numberOfLines={1} onLayout={onLayout}>
+        {title}
+      </Text>
+    </View>
+  );
   return { scale: width ? Math.min(1, avail / width) : 1, hidden: width == null, measure };
 }
 
@@ -178,10 +178,12 @@ function FrontFace({ card, width, height, u, age, tilt, fonts, thumb }: FaceProp
   // 아트 위아래 여백(5u·4u)을 뺀 높이 안에서 세로 가사가 아트 밖으로 잘리지 않게 줄인다.
   const lyricScale = lyricFitScale(card.lyric, artSize - 9 * u, 6.4 * u, 7 * u);
   const { scale: titleScale, hidden: titleHidden, measure: titleMeasure } = useTitleFit(cardTitle(card.title), artSize - pad * 2 - TITLE_GAP_U * u, 6.8 * u, fonts.jpHeavy);
+  const artistFit = useTitleFit(cardArtist(card.artist), artSize - pad * 2, 3.4 * u, fonts.jp);
 
   return (
     <View style={[styles.clip, { borderRadius: 4.6 * u }]}>
       {titleMeasure}
+      {artistFit.measure}
       <LinearGradient colors={material.frame} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
       {/* 코팅이 벗겨지면 금속 테의 명암 띠가 사라지고 무광 단색만 남는다. */}
       <View style={[StyleSheet.absoluteFill, { backgroundColor: material.frame[1], opacity: (1 - foil) * 0.8 }]} />
@@ -254,7 +256,7 @@ function FrontFace({ card, width, height, u, age, tilt, fonts, thumb }: FaceProp
               {cardTitle(card.title)}
             </Text>
           )}
-          <Text style={[styles.artist, { fontFamily: fonts.jp, fontSize: 3.4 * u, color: material.tint ? card.accent : '#A8A194' }]} numberOfLines={1}>{cardArtist(card.artist)}</Text>
+          <Text style={[styles.artist, { fontFamily: fonts.jp, fontSize: 3.4 * u * artistFit.scale, color: material.tint ? card.accent : '#A8A194' }, artistFit.hidden && styles.hidden]} numberOfLines={1}>{cardArtist(card.artist)}</Text>
           <View style={styles.metaFoot}>
             <OwnerMark no={card.sample ? null : card.ownerNo} u={u} fonts={fonts} />
             <LevelPips level={card.level} color={material.pip} size={2.4 * u} />
@@ -281,10 +283,12 @@ function FoilFrontFace({ card, width, height, u, age, tilt, fonts, thumb }: Face
   // 아래 제목·아티스트·순번 묶음(약 26u)과 위아래 여백을 뺀 높이 안에 세로 가사를 넣는다.
   const lyricScale = lyricFitScale(card.lyric, height - 7 * u - 7 * u - 26 * u - 4 * u, 7.2 * u, 8 * u);
   const { scale: titleScale, hidden: titleHidden, measure: titleMeasure } = useTitleFit(cardTitle(card.title), width - 14 * u - TITLE_GAP_U * u, 8 * u, fonts.jpHeavy);
+  const artistFit = useTitleFit(cardArtist(card.artist), width - 14 * u, 3.6 * u, fonts.jp);
 
   return (
     <View style={[styles.clip, { borderRadius: 4.6 * u, backgroundColor: card.ink }]}>
       {titleMeasure}
+      {artistFit.measure}
       <Image source={{ uri: card.artworkUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
       <LinearGradient
         colors={['#08060C00', '#08060C80']}
@@ -316,7 +320,7 @@ function FoilFrontFace({ card, width, height, u, age, tilt, fonts, thumb }: Face
         <Text style={[styles.title, { fontFamily: fonts.jpHeavy, fontSize: 8 * u * titleScale, lineHeight: 10 * u }, titleHidden && styles.hidden]} numberOfLines={1}>
           {cardTitle(card.title)}
         </Text>
-        <Text style={[styles.artist, { fontFamily: fonts.jp, fontSize: 3.6 * u, color: card.accent }]} numberOfLines={1}>{cardArtist(card.artist)}</Text>
+        <Text style={[styles.artist, { fontFamily: fonts.jp, fontSize: 3.6 * u * artistFit.scale, color: card.accent }, artistFit.hidden && styles.hidden]} numberOfLines={1}>{cardArtist(card.artist)}</Text>
         <View style={[styles.metaFoot, { marginTop: 2.4 * u }]}>
           <OwnerMark no={card.sample ? null : card.ownerNo} u={u} fonts={fonts} />
         </View>

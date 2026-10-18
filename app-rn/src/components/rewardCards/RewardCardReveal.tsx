@@ -99,12 +99,14 @@ interface RevealProps {
 }
 
 export const RewardCardReveal = React.memo(function RewardCardReveal({
-  card,
+  card: received,
   started,
   onClose,
   wearOnly = false,
   intro = false,
 }: RevealProps) {
+  // 다른 곡에서 밀린 단어로 받자마자 낡아 보이지 않게, 받는 화면은 늘 새 카드로 그린다.
+  const card = useMemo(() => ({ ...received, dueCount: 0 }), [received]);
   const insets = useSafeAreaInsets();
   const { width: screenW, height: screenH } = useWindowDimensions();
   const fonts = useCardFonts();
