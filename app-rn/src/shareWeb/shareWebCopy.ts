@@ -22,13 +22,18 @@ export interface ShareCelebration {
 
 /** 숫자만 따로 강조하도록 둘로 나눈다. */
 export interface RankLine {
+  /** 숫자 앞 말. 곡 카드 순번은 무엇 중 몇 번째인지 밝혀야 '내가 얻은 몇 번째 카드'로 읽히지 않는다. */
+  lead?: string;
   no: string;
   rest: string;
 }
 
 /** 곡 카드: 같은 카드를 얻은 사람 중 몇 번째인지. */
 export function rankLine(no: number): RankLine {
-  return no === 1 ? { no: '처음', rest: '으로 얻은 카드예요' } : { no: `${no.toLocaleString('ko-KR')}번째`, rest: '로 얻은 카드예요' };
+  const lead = '모든 사용자 중 ';
+  return no === 1
+    ? { lead, no: '처음', rest: '으로 얻은 카드예요' }
+    : { lead, no: `${no.toLocaleString('ko-KR')}번째`, rest: '로 얻은 카드예요' };
 }
 
 /** 아티스트 카드: 몇 번째 팬인지. */
