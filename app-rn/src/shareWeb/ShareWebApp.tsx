@@ -135,6 +135,7 @@ const Celebration = React.memo(function Celebration({ data }: { data: ShareWebDa
 const RankRow = React.memo(function RankRow({ line, accent }: { line: RankLine; accent: string }) {
   return (
     <View style={styles.rank}>
+      {line.lead && <Text style={styles.rankRest}>{line.lead}</Text>}
       <Text style={[styles.rankNo, { color: accent }]}>{line.no}</Text>
       <Text style={styles.rankRest}>{line.rest}</Text>
     </View>

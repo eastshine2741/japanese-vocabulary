@@ -27,8 +27,8 @@ function artistShared(grade: ArtistCardDto['grade'], fanNo: number | null): Shar
 
 describe('rankLine', () => {
   it('첫 번째는 처음으로, 나머지는 천 단위 쉼표로 말한다', () => {
-    expect(rankLine(1)).toEqual({ no: '처음', rest: '으로 얻은 카드예요' });
-    expect(rankLine(1234)).toEqual({ no: '1,234번째', rest: '로 얻은 카드예요' });
+    expect(rankLine(1)).toEqual({ lead: '모든 사용자 중 ', no: '처음', rest: '으로 얻은 카드예요' });
+    expect(rankLine(1234)).toEqual({ lead: '모든 사용자 중 ', no: '1,234번째', rest: '로 얻은 카드예요' });
   });
 });
 
