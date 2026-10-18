@@ -31,6 +31,14 @@ export function songRung(card: SongRewardCard): number {
   return card.mastered ? 4 : card.level;
 }
 
+/** 지금 등급이 막 시작된 마스터 곡 수에서 한 곡 모자란 카드. 기본 카드면 null. */
+export function previousArtistCard(card: ArtistRewardCard): ArtistRewardCard | null {
+  const step = artistGradeStep(card.masteredCount);
+  if (step.from === 0) return null;
+  const count = step.from - 1;
+  return { ...card, masteredCount: count, masteredSongs: card.masteredSongs.slice(0, count), fanNo: count >= 1 ? card.fanNo : null };
+}
+
 export function artistRung(card: ArtistRewardCard): number {
   return ARTIST_GRADE_STEPS.indexOf(artistGradeStep(card.masteredCount));
 }
@@ -69,17 +77,22 @@ function sameArtist(card: ArtistRewardCard, artistId: number | null, name: strin
   return (artistId != null && card.artistId === artistId) || card.name === name;
 }
 
-/** 한 아티스트의 내 카드 전부(등급마다 한 장). */
+/** 한 아티스트의 내 카드. 아티스트마다 한 장이지만 더미는 이름으로 맞춰 여럿일 수 있다. */
 export function artistCardsOf(cards: readonly ArtistRewardCard[], artistId: number | null, name: string): ArtistRewardCard[] {
   return cards.filter((card) => sameArtist(card, artistId, name));
 }
 
-/** 그 등급의 내 카드. 아직 받지 않았으면 null. */
+/** 지금 그 등급인 내 카드. 지나온 등급이거나 아직이면 null. */
 export function artistCardOfStep(cards: readonly ArtistRewardCard[], step: ArtistGradeStep): ArtistRewardCard | null {
   return cards.find((card) => artistGradeStep(card.masteredCount).grade === step.grade) ?? null;
 }
 
-/** 아직 닿지 않은 등급의 견본. 그 등급이 되는 마스터 곡 수로 돌리고 주인 정보를 비운다. */
+/** 그 등급에 닿은 내 카드. 지나온 등급도 포함한다. */
+export function artistCardReaching(cards: readonly ArtistRewardCard[], step: ArtistGradeStep): ArtistRewardCard | null {
+  return cards.find((card) => card.masteredCount >= step.from) ?? null;
+}
+
+/** 아직 닿지 않았거나 지나온 등급의 견본. 그 등급이 되는 마스터 곡 수로 돌리고 주인 정보를 비운다. */
 export function artistCardSample(card: ArtistRewardCard, step: ArtistGradeStep): ArtistRewardCard {
   // 기본 카드엔 팬 번호가 없지만 BRONZE 부터는 번호 자리가 있다. 견본이라 값은 '—' 로 그린다.
   const fanNo = step.from >= 1 ? (card.fanNo ?? 0) : null;

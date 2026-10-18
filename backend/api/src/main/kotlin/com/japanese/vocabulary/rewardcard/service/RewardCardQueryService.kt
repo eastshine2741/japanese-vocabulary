@@ -2,6 +2,8 @@ package com.japanese.vocabulary.rewardcard.service
 
 import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
+import com.japanese.vocabulary.deck.dto.SongDeckReviewDto
+import com.japanese.vocabulary.deck.service.DeckService
 import com.japanese.vocabulary.flashcard.service.LongTermThreshold
 import com.japanese.vocabulary.rewardcard.dto.ArtistCardDto
 import com.japanese.vocabulary.rewardcard.dto.ArtistCardResponse
@@ -10,7 +12,6 @@ import com.japanese.vocabulary.rewardcard.dto.RewardCardsResponse
 import com.japanese.vocabulary.rewardcard.dto.SongCardDto
 import com.japanese.vocabulary.rewardcard.dto.SongCardResponse
 import com.japanese.vocabulary.rewardcard.dto.SongGradeRuleResponse
-import com.japanese.vocabulary.rewardcard.model.ArtistCardGrade
 import com.japanese.vocabulary.rewardcard.model.SongCardGrade
 import com.japanese.vocabulary.song.dto.songdetail.SongLyricLineDto
 import com.japanese.vocabulary.song.entity.ArtistEntity
@@ -35,6 +36,7 @@ class RewardCardQueryService(
     private val lyricRepository: LyricRepository,
     private val songDetailQueryService: SongDetailQueryService,
     private val songTierCardService: SongTierCardService,
+    private val deckService: DeckService,
     private val clock: Clock,
     private val longTermThreshold: LongTermThreshold,
 ) {
@@ -47,20 +49,20 @@ class RewardCardQueryService(
         val lyrics = if (songs.isEmpty()) emptyList() else lyricRepository.findActiveBySongIdIn(songs.keys)
         val lines = lyrics.associate { it.songId to songDetailQueryService.lyricLines(it) }
         val tierCards = songTierCardService.tierCards(userId, lyrics)
+        val reviews = deckService.songDeckReviews(userId, songs.keys, now)
         val topGrades = topGrades(songCards)
         val artistCards = rewardCardService.artistCards(userId)
         val artists = artistRepository.findAllById(artistCards.map { it.artistId }.toSet()).associateBy { it.id!! }
         val masteredByArtist = masteredByArtist(songCards)
-        val fanNos = fanNos(artistCards)
 
         return RewardCardsResponse(
             songCards = songCards.mapNotNull { card ->
                 songs[card.songId]?.let {
-                    songCard(card, topGrades.getValue(card.songId), it, lines[card.songId].orEmpty(), tierCards[card.songId], now)
+                    songCard(card, topGrades.getValue(card.songId), it, lines[card.songId].orEmpty(), tierCards[card.songId], reviews[card.songId])
                 }
             },
             artistCards = artistCards.mapNotNull { card ->
-                artists[card.artistId]?.let { artistCard(card, it, fanNos[card.artistId], masteredByArtist[card.artistId].orEmpty(), songs) }
+                artists[card.artistId]?.let { artistCard(card, it, masteredByArtist[card.artistId].orEmpty(), songs) }
             },
             songGradeRule = SONG_GRADE_RULE,
         )
@@ -75,7 +77,8 @@ class RewardCardQueryService(
         val lyric = lyricRepository.findActiveBySongId(card.songId)
         val lines = lyric?.let { songDetailQueryService.lyricLines(it) }.orEmpty()
         val tierCards = lyric?.let { songTierCardService.tierCards(userId, listOf(it))[card.songId] }
-        return songCard(card, topGrades(songCards).getValue(card.songId), song, lines, tierCards, Instant.now(clock))
+        val review = deckService.songDeckReviews(userId, listOf(card.songId), Instant.now(clock))[card.songId]
+        return songCard(card, topGrades(songCards).getValue(card.songId), song, lines, tierCards, review)
     }
 
     @Transactional(readOnly = true)
@@ -85,7 +88,7 @@ class RewardCardQueryService(
         val artist = artistRepository.findById(card.artistId).orElse(null) ?: return null
         val mastered = masteredByArtist(rewardCardService.songCards(userId))[card.artistId].orEmpty()
         val songs = songRepository.findAllById(mastered.map { it.songId }).associateBy { it.id!! }
-        return artistCard(card, artist, fanNos(artistCards)[card.artistId], mastered, songs)
+        return artistCard(card, artist, mastered, songs)
     }
 
     /** 고른 줄이 그 곡의 가사 줄인지. 줄 수·중복 검사는 [RewardCardService] 가 한다. */
@@ -100,10 +103,6 @@ class RewardCardQueryService(
     private fun topGrades(songCards: List<SongCardDto>): Map<Long, SongCardGrade> =
         songCards.groupBy { it.songId }.mapValues { (_, cards) -> cards.maxOf { it.grade } }
 
-    /** 팬 번호는 BRONZE 카드에서 매긴다 — 기본 카드는 단어 하나로 받아 팬이라 부르기엔 가볍다. */
-    private fun fanNos(artistCards: List<ArtistCardDto>): Map<Long, Int> =
-        artistCards.filter { it.grade == ArtistCardGrade.BRONZE }.associate { it.artistId to it.acquiredSeq }
-
     /** 아티스트마다 마스터 카드를 받은 순서대로. */
     private fun masteredByArtist(songCards: List<SongCardDto>): Map<Long, List<SongCardDto>> =
         songCards
@@ -117,11 +116,10 @@ class RewardCardQueryService(
         song: SongEntity,
         lines: List<SongLyricLineDto>,
         tierCards: SongTierCards?,
-        now: Instant,
+        review: SongDeckReviewDto?,
     ): SongCardResponse {
         val tiers = tierCards?.tiers?.values?.map { tier -> tier.map { it.second } }.orEmpty()
         val lyric = SongCardFace.lyric(lines, card.lyricLineIndexes)
-        val reviewed = SongCardFace.reviewed(tiers)
         return SongCardResponse(
             id = card.id,
             songId = card.songId,
@@ -134,8 +132,8 @@ class RewardCardQueryService(
             lyricLineIndexes = card.lyricLineIndexes,
             lyric = lyric,
             words = tierCards?.let { SongCardFace.words(it.words.words, lyric.map { line -> line.index }) }.orEmpty(),
-            reviewedCount = reviewed.size,
-            dueCount = reviewed.count { !it.due.isAfter(now) },
+            reviewedCount = review?.reviewedCount?.toInt() ?: 0,
+            dueCount = review?.dueCount?.toInt() ?: 0,
             goals = SongCardFace.goals(topGrade, tiers, longTermThreshold.days()),
             signature = card.signature,
             issued = card.issued,
@@ -143,11 +141,10 @@ class RewardCardQueryService(
         )
     }
 
-    /** [mastered] 는 마스터한 순서다. 지난 등급의 카드는 다음 등급에 닿기 전까지의 곡만 싣는다. */
+    /** [mastered] 는 마스터한 순서다. */
     private fun artistCard(
         card: ArtistCardDto,
         artist: ArtistEntity,
-        fanNo: Int?,
         mastered: List<SongCardDto>,
         songs: Map<Long, SongEntity>,
     ) =
@@ -157,15 +154,12 @@ class RewardCardQueryService(
             name = artist.name,
             artworkUrl = artist.artworkUrl,
             grade = card.grade,
-            acquiredSeq = card.acquiredSeq,
-            fanNo = fanNo.takeIf { card.grade >= ArtistCardGrade.BRONZE },
+            fanNo = card.fanNo,
             signature = card.signature,
             issued = card.issued,
-            masteredSongs = mastered
-                .take(card.grade.next?.let { it.minMasterCount - 1 } ?: mastered.size)
-                .mapNotNull { master ->
-                    songs[master.songId]?.let { MasteredSongResponse(songId = master.songId, title = it.title, artworkUrl = it.artworkUrl) }
-                },
+            masteredSongs = mastered.mapNotNull { master ->
+                songs[master.songId]?.let { MasteredSongResponse(songId = master.songId, title = it.title, artworkUrl = it.artworkUrl) }
+            },
             createdAt = card.createdAt,
         )
 }

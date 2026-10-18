@@ -75,7 +75,6 @@ class RewardCardShareControllerTest : ApiBaseIntegrationTest() {
                 artistId = artist.id!!,
                 grade = ArtistCardGrade.BASIC,
                 issuedAt = clock.instant(),
-                acquiredSeq = 1,
                 createdAt = clock.instant(),
             )
         )

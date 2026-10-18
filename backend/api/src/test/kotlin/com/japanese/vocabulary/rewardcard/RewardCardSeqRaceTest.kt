@@ -36,9 +36,9 @@ class RewardCardSeqRaceTest : ApiAfterCommitListenerTest() {
         val results = futures.map { it.get(30, TimeUnit.SECONDS) }
         pool.shutdown()
 
-        // 곡 BASIC~MASTER 다섯 장과 아티스트 BASIC·BRONZE 두 장, (종류, 등급)마다 1..8 이 한 번씩.
+        // 곡 BASIC~MASTER 다섯 장과 마스터 곡 하나로 BRONZE 에서 시작하는 아티스트 카드 한 장, (종류, 등급)마다 1..8 이 한 번씩.
         val seqsByGrade = results.flatten().groupBy({ it.kind to it.grade }, { it.acquiredSeq })
-        assertThat(seqsByGrade).hasSize(7)
+        assertThat(seqsByGrade).hasSize(6)
         seqsByGrade.values.forEach { assertThat(it).containsExactlyInAnyOrderElementsOf(1..users.size) }
         assertThat(inTx { rewardCardService.pending(users.first()) }.map { it.kind to it.grade }).containsExactly(
             RewardCardKind.SONG to "BASIC",
@@ -46,7 +46,6 @@ class RewardCardSeqRaceTest : ApiAfterCommitListenerTest() {
             RewardCardKind.SONG to "SILVER",
             RewardCardKind.SONG to "GOLD",
             RewardCardKind.SONG to "MASTER",
-            RewardCardKind.ARTIST to "BASIC",
             RewardCardKind.ARTIST to "BRONZE",
         )
     }

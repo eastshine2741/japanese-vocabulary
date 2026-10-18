@@ -4,7 +4,8 @@ export type SongCardGradeDto = 'BASIC' | 'BRONZE' | 'SILVER' | 'GOLD' | 'MASTER'
 export type ArtistCardGradeDto = 'BASIC' | 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND';
 
 /**
- * 띄울 획득 연출(봉투·서명) 하나. 카드는 등급마다 따로 나오므로 `cardId` 가 그 등급의 카드다.
+ * 띄울 연출 하나. 곡 카드는 등급마다 따로라 늘 획득(봉투·서명)이고 `cardId` 가 그 등급의 카드다.
+ * 아티스트 카드는 한 장이라 `fromGrade` 가 없으면 획득, 있으면 그 등급에서 `grade` 로 오르는 강화다.
  * 곡 카드는 `targetId` 가 songId, 아티스트 카드는 artistId.
  */
 export interface RewardCardRevealDto {
@@ -12,7 +13,9 @@ export interface RewardCardRevealDto {
   cardId: number;
   targetId: number;
   grade: string;
-  acquiredSeq: number;
+  /** 곡 카드는 등급별 획득 순번, 아티스트 카드는 팬 번호(기본 카드는 null). */
+  acquiredSeq: number | null;
+  fromGrade?: string | null;
 }
 
 export interface RewardCardWordDto {
@@ -49,20 +52,18 @@ export interface SongCardDto {
   createdAt: string;
 }
 
-/** 등급마다 한 장. */
+/** 아티스트마다 한 장. 마스터 곡이 늘면 등급이 오른다. */
 export interface ArtistCardDto {
   id: number;
   artistId: number;
   name: string;
   artworkUrl: string | null;
   grade: ArtistCardGradeDto;
-  /** 아티스트·등급마다 따로 센 획득 순번. */
-  acquiredSeq: number;
-  /** 몇 번째 팬인지. BRONZE 카드의 획득 순번이고, 기본 카드는 null. */
+  /** 몇 번째 팬인지. BRONZE 에 닿을 때 매기고, 기본 카드는 null. */
   fanNo: number | null;
   signature: string[];
   issued: boolean;
-  /** 마스터한 순서대로. 지난 등급의 카드는 다음 등급에 닿기 전까지의 곡만 온다. */
+  /** 마스터한 순서대로 전부. */
   masteredSongs: { songId: number; title: string; artworkUrl: string | null }[];
   createdAt: string;
 }

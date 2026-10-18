@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { Image, Platform, StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import Svg, { Circle, ClipPath, Defs, G, Image as SvgImage, Path } from 'react-native-svg';
 import { CardTilt } from './useCardTilt';
@@ -38,7 +38,7 @@ function CardWearLayer({ width, height, age, seed, side = 'front', tilt, lite }:
   const coating = coatingLeft(age);
 
   return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+    <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.blendThrough]}>
       <View style={[StyleSheet.absoluteFill, styles.desaturate, { opacity: age * 0.75 }]} />
       <View style={[StyleSheet.absoluteFill, styles.sepia, { opacity: age * 0.45 }]} />
       <View style={[StyleSheet.absoluteFill, styles.liftBlacks, { opacity: age * 0.55 }]} />
@@ -156,6 +156,8 @@ function ScratchShine({ tilt, width, height, strength, gloss }: {
 }
 
 const styles = StyleSheet.create({
+  // RN web 의 View 는 z-index:0 이라 감싸개가 혼합을 가둬, 아래 카드 대신 투명한 바탕과 섞여 카드를 덮어 버린다.
+  blendThrough: Platform.OS === 'web' ? ({ zIndex: 'auto' } as unknown as object) : {},
   desaturate: { backgroundColor: '#808080', mixBlendMode: 'saturation' },
   sepia: { backgroundColor: '#A07A3C', mixBlendMode: 'multiply' },
   liftBlacks: { backgroundColor: '#4A3B26', mixBlendMode: 'screen' },

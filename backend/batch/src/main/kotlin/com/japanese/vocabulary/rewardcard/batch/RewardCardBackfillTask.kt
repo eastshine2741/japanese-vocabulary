@@ -8,7 +8,6 @@ import com.japanese.vocabulary.notification.repository.DeviceTokenRepository
 import com.japanese.vocabulary.notification.service.PushNotificationService
 import com.japanese.vocabulary.rewardcard.service.RewardCardService
 import com.japanese.vocabulary.rewardcard.dto.SongAchievementDto
-import com.japanese.vocabulary.rewardcard.model.ArtistCardGrade
 import com.japanese.vocabulary.rewardcard.model.SongCardGrade
 import com.japanese.vocabulary.rewardcard.service.SongCardGrader
 import com.japanese.vocabulary.song.repository.SongRepository
@@ -88,8 +87,8 @@ class RewardCardBackfillTask(
     fun dryRun(): Result {
         val (decks, active) = targets()
         val newSongCards = mutableMapOf<Long, Int>()
-        // 유저 → 아티스트 → 채운 뒤의 마스터 곡 수에 더해질 곡 수
-        val newMasters = mutableMapOf<Long, MutableMap<Long, Int>>()
+        // 유저 → 채우는 곡의 아티스트
+        val artistsByUser = mutableMapOf<Long, MutableSet<Long>>()
         var failed = 0
         for (deck in decks) {
             try {
@@ -98,20 +97,16 @@ class RewardCardBackfillTask(
                 val missing = SongCardGrade.entries.count { it <= achievement.grade && it !in owned }
                 if (missing > 0) newSongCards.merge(deck.userId, missing, Int::plus)
                 val artistId = achievement.artistId ?: continue
-                val mastered = achievement.grade == SongCardGrade.MASTER && SongCardGrade.MASTER !in owned
-                newMasters.getOrPut(deck.userId) { mutableMapOf() }.merge(artistId, if (mastered) 1 else 0, Int::plus)
+                artistsByUser.getOrPut(deck.userId) { mutableSetOf() } += artistId
             } catch (e: Exception) {
                 failed++
                 logger.warn("rewardCardBackfill dryRun failed userId={} songId={}", deck.userId, deck.songId, e)
             }
         }
-        val newArtistCards = newMasters.entries.sumOf { (userId, added) ->
-            val counts = rewardCardService.masterCounts(userId, added.keys)
-            val owned = rewardCardService.ownedArtistGrades(userId, added.keys)
-            added.entries.sumOf { (artistId, extra) ->
-                val target = ArtistCardGrade.forMasterCount((counts[artistId] ?: 0) + extra)
-                ArtistCardGrade.entries.count { it <= target && it !in owned[artistId].orEmpty() }
-            }
+        // 아티스트 카드는 아티스트마다 한 장이라 아직 없는 아티스트만 센다. 강화는 카드 수를 늘리지 않는다.
+        val newArtistCards = artistsByUser.entries.sumOf { (userId, artistIds) ->
+            val owned = rewardCardService.artistGrades(userId, artistIds)
+            artistIds.count { it !in owned }
         }
         return Result(
             users = active.size,

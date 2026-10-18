@@ -5,7 +5,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ArtistCardFront } from './ArtistCardShowcase';
 import { SongCardFront } from './SongCardShowcase';
 import { ARTIST_GRADE_STEPS, type ArtistGradeStep } from './artistGrade';
-import { SONG_CARD_KINDS, artistCardOfStep, songCardOfKind, type SongCardKind } from './cardKinds';
+import { SONG_CARD_KINDS, artistCardOfStep, artistCardReaching, artistCardSample, songCardOfKind, type SongCardKind } from './cardKinds';
 import { artistCardPreview, songCardPreview, type PreviewArtist, type PreviewSong } from './cardPreview';
 import { CardFonts, songTierName } from './cardTheme';
 import type { ArtistRewardCard, SongRewardCard } from './types';
@@ -121,14 +121,14 @@ interface ArtistGridProps {
   fonts: CardFonts;
 }
 
-/** 이 아티스트 카드의 등급 전부. 받은 등급은 그 등급의 내 카드, 아직인 등급은 견본이다. */
+/** 이 아티스트 카드의 등급 전부. 지금 등급은 내 카드, 지나온 등급은 그 등급으로 돌린 내 카드, 아직인 등급은 견본이다. */
 export const ArtistCardKindGrid = React.memo(function ArtistCardKindGrid({ artist, cards, width, fonts }: ArtistGridProps) {
   const navigation = useNavigation<Navigation>();
   const ownerName = useOwnerName();
   const tileWidth = Math.floor((width - GAP * (ARTIST_COLUMNS - 1)) / ARTIST_COLUMNS);
 
   const handleOpen = useCallback((step: ArtistGradeStep) => {
-    const card = artistCardOfStep(cards, step);
+    const card = artistCardReaching(cards, step);
     if (card != null) {
       navigation.navigate('ArtistCardDetail', { cardId: card.id, ownerName });
       return;
@@ -148,6 +148,7 @@ export const ArtistCardKindGrid = React.memo(function ArtistCardKindGrid({ artis
           step={step}
           artist={artist}
           card={artistCardOfStep(cards, step)}
+          reached={artistCardReaching(cards, step)}
           width={tileWidth}
           fonts={fonts}
           onPress={handleOpen}
@@ -161,6 +162,7 @@ const ArtistKindTile = React.memo(function ArtistKindTile({
   step,
   artist,
   card,
+  reached,
   width,
   fonts,
   onPress,
@@ -168,12 +170,17 @@ const ArtistKindTile = React.memo(function ArtistKindTile({
   step: ArtistGradeStep;
   artist: PreviewArtist;
   card: ArtistRewardCard | null;
+  /** 이 등급을 지나온 내 카드. */
+  reached: ArtistRewardCard | null;
   width: number;
   fonts: CardFonts;
   onPress: (step: ArtistGradeStep) => void;
 }) {
-  const owned = card != null;
-  const shown = useMemo(() => card ?? artistCardPreview(artist, step.from), [card, step, artist]);
+  const owned = reached != null;
+  const shown = useMemo(
+    () => card ?? (reached ? artistCardSample(reached, step) : artistCardPreview(artist, step.from)),
+    [card, reached, step, artist],
+  );
   const handlePress = useCallback(() => onPress(step), [onPress, step]);
   return (
     <KindTile

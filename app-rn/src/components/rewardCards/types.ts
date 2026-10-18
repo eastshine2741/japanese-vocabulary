@@ -74,9 +74,7 @@ export interface ArtistRewardCard {
   ink: string;
   /** 이 아티스트의 마스터 곡 카드 수. 상한이 없고, 등급은 이 값에서 나온다 (artistGrade). */
   masteredCount: number;
-  /** 이 등급 카드를 몇 번째로 받았는지. 발급 때 고정. */
-  ownerNo: number;
-  /** 몇 번째 팬인지. BRONZE 카드에서 매겨 그 위 등급에도 이어지고, 기본 카드는 null. */
+  /** 몇 번째 팬인지. BRONZE 에 닿을 때 매겨 바뀌지 않고, 기본 카드는 null. */
   fanNo: number | null;
   /** 첫 곡 카드를 받은 날. 발급 때 고정. */
   since: string;

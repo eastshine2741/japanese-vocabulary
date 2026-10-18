@@ -20,7 +20,7 @@ data class SongCardResponse(
     val lyric: List<SongLyricLineDto>,
     /** 뒷면 단어. 곡에서 중요한 단어부터 5개. */
     val words: List<RewardCardWordResponse>,
-    /** 한 번이라도 리뷰한 tier 단어 수. */
+    /** 곡 단어장에서 한 번이라도 리뷰한 단어 수. 다른 곡에서만 공부한 단어는 이 곡에서 복습할 수 없어 세지 않는다. */
     val reviewedCount: Int,
     /** [reviewedCount] 중 지금 복습할 차례인 단어 수. 낡음은 이 비율에서 나온다. */
     val dueCount: Int,

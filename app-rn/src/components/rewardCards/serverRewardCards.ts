@@ -87,7 +87,6 @@ export function toArtistCard(dto: ArtistCardDto): ArtistRewardCard {
     ...cardPalette(dto.artistId),
     // 등급은 마스터 곡 수에서 나오므로, 곡 정보가 빠져도 카드의 등급 아래로 내려가지 않게 한다.
     masteredCount: Math.max(dto.masteredSongs.length, artistGradeFrom(dto.grade)),
-    ownerNo: dto.acquiredSeq,
     fanNo: dto.fanNo,
     since: kstDate(dto.createdAt),
     masteredSongs: dto.masteredSongs.map((song) => ({ title: song.title, artworkUrl: song.artworkUrl ?? '' })),
@@ -99,8 +98,13 @@ export function toArtistCard(dto: ArtistCardDto): ArtistRewardCard {
 export interface ServerRevealTarget {
   kind: 'song' | 'artist';
   cardId: string;
-  /** 서버가 준 연출. 서명하면 발급한다. */
+  /** 서버가 준 연출. 서명하면 발급하고, 강화는 닫을 때 이 등급까지 본 것으로 보낸다. */
   server: true;
+  grade: string;
+  /** 아티스트 카드 강화. 봉투·서명 없이 새 등급이 번진다. */
+  upgrade: boolean;
+  /** 강화 전에 본 등급. 획득이면 null. */
+  fromGrade: string | null;
 }
 
 export function toRevealTarget(dto: RewardCardRevealDto): ServerRevealTarget {
@@ -109,6 +113,9 @@ export function toRevealTarget(dto: RewardCardRevealDto): ServerRevealTarget {
     kind: song ? 'song' : 'artist',
     cardId: song ? songCardId(dto.cardId) : artistCardId(dto.cardId),
     server: true,
+    grade: dto.grade,
+    upgrade: dto.fromGrade != null,
+    fromGrade: dto.fromGrade ?? null,
   };
 }
 

@@ -16,13 +16,24 @@ export interface ShareCelebration {
   headline: string;
   /** 이 카드를 받으려면 무엇을 해야 하는지. 처음 보는 사람에게 카드의 무게를 알린다. */
   meaning: string;
-  /** 같은 카드를 얻은 사람 중 몇 번째인지. 카드에도 찍히지만 처음 보는 사람에겐 말로 축하한다. */
-  rankNo: number;
+  /** 순번 축하 한 줄. 카드에도 찍히지만 처음 보는 사람에겐 말로 축하한다. 기본 아티스트 카드는 팬 번호가 없어 null. */
+  rank: RankLine | null;
 }
 
-/** 순번 축하 한 줄. 숫자만 따로 강조하도록 둘로 나눈다. */
-export function rankLine(no: number): { no: string; rest: string } {
+/** 숫자만 따로 강조하도록 둘로 나눈다. */
+export interface RankLine {
+  no: string;
+  rest: string;
+}
+
+/** 곡 카드: 같은 카드를 얻은 사람 중 몇 번째인지. */
+export function rankLine(no: number): RankLine {
   return no === 1 ? { no: '처음', rest: '으로 얻은 카드예요' } : { no: `${no.toLocaleString('ko-KR')}번째`, rest: '로 얻은 카드예요' };
+}
+
+/** 아티스트 카드: 몇 번째 팬인지. */
+export function fanLine(no: number): RankLine {
+  return { no: `${no.toLocaleString('ko-KR')}번째`, rest: ' 팬이에요' };
 }
 
 /** 곡 카드 레벨 1~3 은 곡 상세 단계(후렴 정복 → 따라 부르기 → 완곡) 순서다. */
@@ -46,7 +57,7 @@ export function shareCelebration(shared: SharedRewardCardDto): ShareCelebration 
       meaning: mastered
         ? `이 노래 단어의 ${shared.songGradeRule.masterPercent}%를 몇 주 동안\n복습해 완전히 외워야 받는 마지막 카드예요`
         : SONG_TIER_MEANING[level],
-      rankNo: song.acquiredSeq,
+      rank: rankLine(song.acquiredSeq),
     };
   }
   const artist = shared.artistCard;
@@ -62,7 +73,7 @@ export function shareCelebration(shared: SharedRewardCardDto): ShareCelebration 
       rung === 0
         ? `${name} 노래로\n일본어 공부를 시작하면 받는 카드예요`
         : `${name} 노래 ${step.from}곡의 가사 단어를\n완전히 외워야 받는 카드예요`,
-    rankNo: artist.acquiredSeq,
+    rank: artist.fanNo == null ? null : fanLine(artist.fanNo),
   };
 }
 

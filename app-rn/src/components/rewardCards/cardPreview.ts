@@ -56,7 +56,6 @@ export function artistCardPreview(artist: PreviewArtist, masteredCount: number):
     accent: PREVIEW_ACCENT,
     ink: PREVIEW_INK,
     masteredCount,
-    ownerNo: 1,
     fanNo: masteredCount >= 1 ? 1 : null,
     since: new Date().toISOString().slice(0, 10),
     masteredSongs: [],

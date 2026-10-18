@@ -6,6 +6,7 @@ vi.mock('../api/rewardCardApi', () => ({
     getPending: vi.fn(),
     issueSongCard: vi.fn(),
     issueArtistCard: vi.fn(),
+    markArtistCardSeen: vi.fn(),
     updateSongCardLyric: vi.fn(),
   },
 }));
@@ -43,6 +44,7 @@ describe('rewardCardStore', () => {
     vi.clearAllMocks();
     api.issueSongCard.mockResolvedValue();
     api.updateSongCardLyric.mockResolvedValue();
+    api.markArtistCardSeen.mockResolvedValue();
   });
   afterEach(() => store().reset());
 
@@ -51,7 +53,7 @@ describe('rewardCardStore', () => {
 
     await store().receiveReveals([
       { kind: 'SONG', cardId: 90, targetId: 12, grade: 'BASIC', acquiredSeq: 1 },
-      { kind: 'ARTIST', cardId: 30, targetId: 3, grade: 'BASIC', acquiredSeq: 1 },
+      { kind: 'ARTIST', cardId: 30, targetId: 3, grade: 'BASIC', acquiredSeq: null },
     ]);
 
     expect(store().songCards.map((c) => c.id)).toEqual(['srv-song-90']);
@@ -115,6 +117,30 @@ describe('rewardCardStore', () => {
     store().sign('song', 'srv-song-90', ['N']);
 
     expect(api.issueSongCard).not.toHaveBeenCalled();
+  });
+
+  it('closing an artist upgrade marks the grade seen, an acquisition does not', async () => {
+    api.getCards.mockResolvedValue({ songCards: [], artistCards: [], songGradeRule: GRADE_RULE });
+    await store().receiveReveals([
+      { kind: 'ARTIST', cardId: 30, targetId: 3, grade: 'BASIC', acquiredSeq: null },
+      { kind: 'ARTIST', cardId: 31, targetId: 4, grade: 'BRONZE', acquiredSeq: 12, fromGrade: 'BASIC' },
+    ]);
+
+    store().openNextReveal();
+    store().closeReveal();
+    expect(api.markArtistCardSeen).not.toHaveBeenCalled();
+
+    expect(store().openNextReveal()).toMatchObject({ cardId: 'srv-artist-31', upgrade: true, fromGrade: 'BASIC' });
+    store().closeReveal();
+    expect(api.markArtistCardSeen).toHaveBeenCalledWith(31, 'BRONZE');
+  });
+
+  it('dev upgrade replay never calls the server', () => {
+    store().upgradeArtistCard('srv-artist-31');
+    store().openNextReveal();
+    store().closeReveal();
+
+    expect(api.markArtistCardSeen).not.toHaveBeenCalled();
   });
 
   it('dummy source shows dummy cards and ignores server reveals', async () => {

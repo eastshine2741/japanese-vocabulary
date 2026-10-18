@@ -22,8 +22,8 @@ import java.time.Instant
 import java.util.SortedSet
 
 /**
- * 곡·아티스트 카드의 달성과 발급. 카드는 등급마다 새로 나오고, 나온 카드의 등급은 바뀌지 않는다.
- * 달성(행 생성)은 rating 트랜잭션 안에서 일어나고, 발급(서명)은 앱이 연출을 마친 뒤 따로 부른다.
+ * 곡·아티스트 카드의 달성과 발급. 곡 카드는 등급마다 새로 나오고, 아티스트 카드는 아티스트마다 한 장이 강화된다.
+ * 달성(행 생성·강화)은 rating 트랜잭션 안에서 일어나고, 발급(서명)은 앱이 연출을 마친 뒤 따로 부른다.
  */
 @Service
 class RewardCardService(
@@ -41,13 +41,11 @@ class RewardCardService(
             .groupBy({ it.songId }, { it.grade })
             .mapValues { it.value.toSet() }
 
-    /** 아티스트마다 이미 받은 등급. */
+    /** 아티스트마다 지금 카드 등급. */
     @Transactional(readOnly = true)
-    fun ownedArtistGrades(userId: Long, artistIds: Collection<Long>): Map<Long, Set<ArtistCardGrade>> =
+    fun artistGrades(userId: Long, artistIds: Collection<Long>): Map<Long, ArtistCardGrade> =
         if (artistIds.isEmpty()) emptyMap()
-        else artistCardRepository.findByUserIdAndArtistIdIn(userId, artistIds)
-            .groupBy({ it.artistId }, { it.grade })
-            .mapValues { it.value.toSet() }
+        else artistCardRepository.findByUserIdAndArtistIdIn(userId, artistIds).associate { it.artistId to it.grade }
 
     @Transactional(readOnly = true)
     fun masterCounts(userId: Long, artistIds: Collection<Long>): Map<Long, Int> =
@@ -56,14 +54,16 @@ class RewardCardService(
 
     /**
      * 곡마다 잰 등급까지 아직 없는 등급의 카드를 낮은 등급부터 새로 만든다. 그 결과 생긴 연출을 곡 카드들 → 아티스트 카드들 순으로 돌려준다.
-     * 곡의 첫 카드가 생기거나, 처음 아티스트를 잇거나, 마스터 카드가 생기면 그 아티스트 카드를 맞춘다.
+     * 곡의 첫 카드가 생기거나, 처음 아티스트를 잇거나, 마스터 카드가 생기면 그 아티스트 카드를 만들거나 강화한다.
      *
-     * 순번 행 락은 (곡 id, 등급) → (아티스트 id, 등급) 오름차순으로만 잡는다. 카드 여러 장을 함께 만드는 rating 끼리 서로의 락을 엇갈려 기다리지 않게.
+     * 순번 행 락은 (곡 id, 등급) → 아티스트 id 오름차순으로만 잡는다. 카드 여러 장을 함께 만드는 rating 끼리 서로의 락을 엇갈려 기다리지 않게.
      */
     @Transactional
     fun achieveSongs(userId: Long, achievements: List<SongAchievementDto>): List<RewardCardRevealDto> {
-        val (songCards, artistCards) = achieve(userId, achievements, silent = false)
-        return songCards.map { it.toReveal() } + artistCards.map { it.toReveal() }
+        val (songCards, artistChanges) = achieve(userId, achievements, silent = false)
+        // 서명 전 카드가 강화되면 남아 있는 획득 연출이 오른 등급으로 뜬다.
+        return songCards.map { it.toReveal() } +
+            artistChanges.filter { it.created || it.card.isIssued }.map { it.card.toReveal(fromGrade = it.from) }
     }
 
     /**
@@ -72,8 +72,8 @@ class RewardCardService(
      */
     @Transactional
     fun backfillSong(userId: Long, achievement: SongAchievementDto): BackfilledCardsDto {
-        val (songCards, artistCards) = achieve(userId, listOf(achievement), silent = true)
-        return BackfilledCardsDto(songCards = songCards.size, artistCards = artistCards.size)
+        val (songCards, artistChanges) = achieve(userId, listOf(achievement), silent = true)
+        return BackfilledCardsDto(songCards = songCards.size, artistCards = artistChanges.count { it.created })
     }
 
     /**
@@ -86,13 +86,13 @@ class RewardCardService(
         val artistIds = songCardRepository.findByUserIdOrderByCreatedAtDescIdDesc(userId).mapNotNull { it.artistId }.toSortedSet()
         syncArtistCards(userId, artistIds, now, silent = true)
         songCardRepository.findByUserIdAndIssuedAtIsNullOrderById(userId).forEach { it.issueSilently(now) }
-        artistCardRepository.findByUserIdAndIssuedAtIsNullOrderById(userId).forEach { it.issueSilently(now) }
+        artistCardRepository.findPendingByUserId(userId).forEach { it.issueSilently(now) }
     }
 
     @Transactional(readOnly = true)
     fun pending(userId: Long): List<RewardCardRevealDto> =
         songCardRepository.findByUserIdAndIssuedAtIsNullOrderById(userId).map { it.toReveal() } +
-            artistCardRepository.findByUserIdAndIssuedAtIsNullOrderById(userId).map { it.toReveal() }
+            artistCardRepository.findPendingByUserId(userId).map { it.toReveal(fromGrade = if (it.isIssued) it.seenGrade ?: ArtistCardGrade.BASIC else null) }
 
     /** 최근 획득순. */
     @Transactional(readOnly = true)
@@ -121,6 +121,13 @@ class RewardCardService(
         return card.apply { issue(signature, Instant.now(clock)) }.toDto()
     }
 
+    /** 강화 연출을 [grade] 까지 봤다. */
+    @Transactional
+    fun markArtistCardSeen(userId: Long, cardId: Long, grade: ArtistCardGrade) {
+        val card = artistCardRepository.findByIdAndUserId(cardId, userId) ?: throw BusinessException(ErrorCode.REWARD_CARD_NOT_FOUND)
+        card.markSeen(grade)
+    }
+
     @Transactional
     fun updateSongCardLyric(userId: Long, cardId: Long, lyricLineIndexes: List<Int>): SongCardDto {
         validateLyricLineIndexes(lyricLineIndexes, allowEmpty = false)
@@ -130,12 +137,12 @@ class RewardCardService(
         return card.toDto()
     }
 
-    /** 새로 만든 곡 카드들(곡 id·등급 순)과 아티스트 카드들(아티스트 id·등급 순). */
+    /** 새로 만든 곡 카드들(곡 id·등급 순)과 새로 만들거나 강화한 아티스트 카드들(아티스트 id 순). */
     private fun achieve(
         userId: Long,
         achievements: List<SongAchievementDto>,
         silent: Boolean,
-    ): Pair<List<SongCardEntity>, List<ArtistCardEntity>> {
+    ): Pair<List<SongCardEntity>, List<ArtistCardChange>> {
         if (achievements.isEmpty()) return emptyList<SongCardEntity>() to emptyList()
         val now = Instant.now(clock)
         val existing = songCardRepository.findByUserIdAndSongIdIn(userId, achievements.map { it.songId }).groupBy { it.songId }
@@ -168,27 +175,35 @@ class RewardCardService(
         return created to syncArtistCards(userId, artistIds, now, silent)
     }
 
-    /** [artistIds] 는 오름차순이어야 한다. 곡 카드가 먼저 flush 돼 이번에 마스터한 곡도 센다. */
-    private fun syncArtistCards(userId: Long, artistIds: SortedSet<Long>, now: Instant, silent: Boolean): List<ArtistCardEntity> {
+    /**
+     * [artistIds] 는 오름차순이어야 한다. 곡 카드가 먼저 flush 돼 이번에 마스터한 곡도 센다.
+     * 팬 번호는 BRONZE 에 처음 닿을 때 매긴다 — 기본 카드는 단어 하나로 받아 팬이라 부르기엔 가볍다.
+     */
+    private fun syncArtistCards(userId: Long, artistIds: SortedSet<Long>, now: Instant, silent: Boolean): List<ArtistCardChange> {
         val masterCounts = masterCounts(userId, artistIds)
-        val owned = ownedArtistGrades(userId, artistIds)
-        return artistIds.flatMap { artistId ->
+        val existing = artistCardRepository.findByUserIdAndArtistIdIn(userId, artistIds).associateBy { it.artistId }
+        return artistIds.mapNotNull { artistId ->
             val target = ArtistCardGrade.forMasterCount(masterCounts[artistId] ?: 0)
-            val have = owned[artistId].orEmpty()
-            ArtistCardGrade.entries.filter { it <= target && it !in have }.map { grade ->
-                artistCardRepository.save(
-                    ArtistCardEntity(
-                        userId = userId,
-                        artistId = artistId,
-                        grade = grade,
-                        acquiredSeq = seqAllocator.next(RewardCardKind.ARTIST, artistId, grade.name),
-                        issuedAt = now.takeIf { silent },
-                        createdAt = now,
-                    )
+            val card = existing[artistId]
+            val change = when {
+                card == null -> ArtistCardChange(
+                    artistCardRepository.save(ArtistCardEntity(userId = userId, artistId = artistId, grade = target, createdAt = now)),
+                    from = null,
+                    created = true,
                 )
+                target > card.grade -> ArtistCardChange(card, from = card.seenGrade ?: card.grade, created = false).also { card.upgrade(target) }
+                else -> return@mapNotNull null
             }
+            if (change.card.fanNo == null && target >= ArtistCardGrade.BRONZE) {
+                change.card.fanNo = seqAllocator.next(RewardCardKind.ARTIST, artistId, ArtistCardGrade.BRONZE.name)
+            }
+            if (silent) change.card.issueSilently(now)
+            change
         }
     }
+
+    /** [from] 은 강화 전에 유저가 본 등급. 새로 만든 카드면 null. */
+    private class ArtistCardChange(val card: ArtistCardEntity, val from: ArtistCardGrade?, val created: Boolean)
 
     private fun songCardEntity(userId: Long, cardId: Long) =
         songCardRepository.findByIdAndUserId(cardId, userId) ?: throw BusinessException(ErrorCode.REWARD_CARD_NOT_FOUND)
@@ -201,12 +216,13 @@ class RewardCardService(
         acquiredSeq = acquiredSeq,
     )
 
-    private fun ArtistCardEntity.toReveal() = RewardCardRevealDto(
+    private fun ArtistCardEntity.toReveal(fromGrade: ArtistCardGrade?) = RewardCardRevealDto(
         kind = RewardCardKind.ARTIST,
         cardId = id!!,
         targetId = artistId,
         grade = grade.name,
-        acquiredSeq = acquiredSeq,
+        acquiredSeq = fanNo,
+        fromGrade = fromGrade?.name,
     )
 
     private fun SongCardEntity.toDto() = SongCardDto(
@@ -225,7 +241,7 @@ class RewardCardService(
         id = id!!,
         artistId = artistId,
         grade = grade,
-        acquiredSeq = acquiredSeq,
+        fanNo = fanNo,
         signature = signature,
         issued = isIssued,
         createdAt = createdAt,
