@@ -33,7 +33,8 @@ const LenticularScene = forwardRef<View, LenticularProps & { onReady?: () => voi
         resizeMode="cover"
         onLoadEnd={onReady}
       />
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: card.accent, mixBlendMode: 'color', opacity: 0.85 }]} />
+      {/* mixBlendMode 는 쓰지 않는다 — iOS 캡처만 섞기를 반영해 흑백처럼 뜨고, Android 캡처는 무시한다. */}
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: card.accent, opacity: 0.85 }]} />
       <LinearGradient colors={['#000000B0', '#00000010', '#000000D0']} locations={[0, 0.45, 1]} style={StyleSheet.absoluteFill} />
       <View style={[styles.lyric, { top: 9 * u, gap: 4 * u }]}>
         {card.lyric.map((line, i) => (
