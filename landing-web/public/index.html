@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>코토노하 · 노래 가사로 배우는 일본어 단어 앱</title>
+  <meta name="description" content="좋아하는 J-POP·애니 노래 가사로 일본어를 배우세요. 가사에 후리가나와 한국어 발음, 단어 뜻, 번역을 붙여 주고, 가사 속 단어를 플래시카드로 잊기 전에 다시 복습합니다. iOS·Android 무료.">
+  <link rel="canonical" href="https://kotonoha.eastshine.dev/">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <meta name="theme-color" content="#111418">
+  <meta name="color-scheme" content="light">
+  <meta name="apple-itunes-app" content="app-id=6806729387">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="코토노하 Kotonoha">
+  <meta property="og:locale" content="ko_KR">
+  <meta property="og:url" content="https://kotonoha.eastshine.dev/">
+  <meta property="og:title" content="코토노하 · 노래 가사로 배우는 일본어">
+  <meta property="og:description" content="듣던 노래 가사가 그대로 일본어 플래시카드가 됩니다. 후리가나·한국어 발음·단어 뜻·번역을 가사에 붙이고, 잊어버릴 때쯤 다시 복습해요.">
+  <meta property="og:image" content="https://kotonoha.eastshine.dev/assets/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="코토노하: 좋아하는 노래로 일본어를 배워보세요">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="코토노하 · 노래 가사로 배우는 일본어">
+  <meta name="twitter:description" content="듣던 노래 가사가 그대로 일본어 플래시카드가 됩니다.">
+  <meta name="twitter:image" content="https://kotonoha.eastshine.dev/assets/og.png">
+
+  <link rel="icon" href="assets/favicon.ico" sizes="any">
+  <link rel="icon" href="assets/icon-192.png" type="image/png" sizes="192x192">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;800&family=Noto+Serif+JP:wght@600&display=swap">
+  <link rel="stylesheet" href="styles.css?v=6">
+  <script>document.documentElement.classList.add('js')</script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://kotonoha.eastshine.dev/#website",
+        "url": "https://kotonoha.eastshine.dev/",
+        "name": "코토노하",
+        "alternateName": ["Kotonoha", "言の葉"],
+        "inLanguage": "ko-KR"
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://kotonoha.eastshine.dev/#org",
+        "name": "Kotonoha",
+        "url": "https://kotonoha.eastshine.dev/",
+        "logo": "https://kotonoha.eastshine.dev/assets/icon-512.png",
+        "sameAs": ["https://www.instagram.com/kotonoha.app/"]
+      },
+      {
+        "@type": "MobileApplication",
+        "name": "코토노하 - 노래로 배우는 일본어",
+        "alternateName": "Kotonoha",
+        "operatingSystem": "iOS, Android",
+        "applicationCategory": "EducationalApplication",
+        "inLanguage": "ko-KR",
+        "description": "J-POP·애니 노래 가사에 후리가나, 한국어 발음, 단어 뜻, 번역을 붙여 주고 가사 속 단어를 간격 반복 플래시카드로 복습하는 일본어 학습 앱.",
+        "image": "https://kotonoha.eastshine.dev/assets/icon-512.png",
+        "publisher": { "@id": "https://kotonoha.eastshine.dev/#org" },
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "KRW" },
+        "installUrl": "https://apps.apple.com/app/id6806729387",
+        "downloadUrl": [
+          "https://apps.apple.com/app/id6806729387",
+          "https://play.google.com/store/apps/details?id=dev.eastshine.kotonoha"
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "일본어를 전혀 못 읽어도 쓸 수 있나요?",
+            "acceptedAnswer": { "@type": "Answer", "text": "네. 줄 아래에 한국어 발음과 번역이 붙어 있어서 히라가나를 몰라도 노래를 따라 부르며 시작할 수 있어요. 한자 위에는 후리가나가, 단어 아래에는 뜻이 붙습니다." }
+          },
+          {
+            "@type": "Question",
+            "name": "어떤 노래로 공부할 수 있나요?",
+            "acceptedAnswer": { "@type": "Answer", "text": "최신 J-POP, 인디, 애니메이션 OP·ED, 오래된 명곡까지 검색해서 골라요. 아직 분석되지 않은 곡이라도 고르면 보통 2~3분 안에 가사·단어·예문이 만들어지고 끝나면 알림이 와요." }
+          },
+          {
+            "@type": "Question",
+            "name": "단어를 따로 저장해야 하나요?",
+            "acceptedAnswer": { "@type": "Answer", "text": "아니요. 플래시카드를 보고 얼마나 잘 기억했는지 고르면 그 단어가 곡에 담기고 그때부터 복습 일정이 잡혀요." }
+          },
+          {
+            "@type": "Question",
+            "name": "외운 단어는 어떻게 복습하나요?",
+            "acceptedAnswer": { "@type": "Answer", "text": "단어마다 잊어버릴 때쯤을 계산해 플래시카드로 다시 보여 줘요. 앱을 열면 오늘 복습할 카드부터 보이고 아는 단어는 뜸하게, 헷갈리는 단어는 자주 나와요." }
+          },
+          {
+            "@type": "Question",
+            "name": "무료인가요?",
+            "acceptedAnswer": { "@type": "Answer", "text": "네. 코토노하는 App Store와 Google Play에서 무료로 받을 수 있어요." }
+          },
+          {
+            "@type": "Question",
+            "name": "어떤 기기에서 쓸 수 있나요?",
+            "acceptedAnswer": { "@type": "Answer", "text": "iPhone(App Store)과 Android 폰(Google Play)에서 쓸 수 있어요. Google 또는 Apple 계정으로 로그인하면 기기를 바꿔도 공부하던 곡과 복습 기록이 그대로 이어집니다." }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <a class="skip" href="#main">본문으로 건너뛰기</a>
+
+  <header class="nav" data-nav>
+    <div class="nav__inner">
+      <a class="brand" href="./" aria-label="코토노하 홈">
+        <img class="brand__icon" src="assets/icon-64.png" width="32" height="32" alt="">
+        <span class="brand__name">코토노하</span>
+        <span class="brand__latin" lang="en">Kotonoha</span>
+      </a>
+      <nav class="nav__links" aria-label="주요 메뉴">
+        <a href="#features">기능</a>
+        <a href="#review">복습</a>
+        <a href="#faq">자주 묻는 질문</a>
+      </nav>
+      <a class="nav__cta" href="#download" data-get>앱 받기</a>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- HERO -->
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero__bg" aria-hidden="true">
+        <span class="hero__kanji" lang="ja">言の葉</span>
+      </div>
+      <div class="wrap hero__grid">
+        <div class="hero__copy">
+          <p class="eyebrow eyebrow--dark">노래로 배우는 일본어</p>
+          <h1 id="hero-title" class="hero__title">
+            <em>좋아하는 노래로</em><br>
+            일본어를 배워보세요
+          </h1>
+          <p class="hero__lead">
+            가사를 따라 부르다 보면 어느새 늘어 있는 일본어.
+            J-POP·애니 노래 가사에 후리가나와 한국어 발음, 단어 뜻, 번역을 붙여 드려요.
+          </p>
+          <div class="stores" data-stores>
+            <a class="store" href="https://apps.apple.com/app/id6806729387" rel="noopener" data-store="ios" aria-label="App Store에서 코토노하 다운로드">
+              <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>
+              <span><small lang="en">Download on the</small><strong lang="en">App Store</strong></span>
+            </a>
+            <a class="store" href="https://play.google.com/store/apps/details?id=dev.eastshine.kotonoha" rel="noopener" data-store="android" aria-label="Google Play에서 코토노하 다운로드">
+              <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="#00C3FF" d="M1.337.924a1.486 1.486 0 0 0-.112.568v21.017c0 .217.045.419.124.6l11.155-11.087L1.337.924z"/><path fill="#00E676" d="M13.544 10.989l3.258-3.238L3.45.195a1.466 1.466 0 0 0-.946-.179l11.04 10.973z"/><path fill="#FFD400" d="M22.018 13.298l-3.919 2.218-3.515-3.493 3.543-3.521 3.891 2.202a1.49 1.49 0 0 1 0 2.594z"/><path fill="#FF3A44" d="M13.544 13.056l-11 10.933c.298.036.612-.016.906-.183l13.324-7.54-3.23-3.21z"/></svg>
+              <span><small lang="en">GET IT ON</small><strong lang="en">Google Play</strong></span>
+            </a>
+          </div>
+          <ul class="hero__facts" aria-label="특징 요약">
+            <li>무료</li>
+            <li>iPhone · Android</li>
+            <li>간격 반복 복습</li>
+          </ul>
+        </div>
+
+        <div class="hero__device" aria-hidden="true">
+          <div class="phone" data-player>
+            <div class="phone__notch"></div>
+            <div class="phone__screen">
+              <div class="ls">
+                <div class="mvbar">
+                  <span class="mvbar__thumb"></span>
+                  <span class="mvbar__text">
+                    <b lang="ja">夜空の約束</b>
+                    <small>샘플 곡 · <span data-time>0:12</span> / 3:48</small>
+                  </span>
+                  <span class="mvbar__pause"></span>
+                </div>
+                <div class="dial">
+                  <ol class="dial__list" data-lyrics></ol>
+                </div>
+                <span class="sync"><i></i>싱크 ON</span>
+              </div>
+
+              <div class="rv stage" data-review>
+                <div class="rv__top">
+                  <span class="rv__back"></span>
+                </div>
+                <div class="src">
+                  <span class="src__thumb"></span>
+                  <span class="src__text"><b lang="ja">夜空の約束</b><small>샘플 곡</small></span>
+                </div>
+                <div class="rv__front">
+                  <b class="rv__head" lang="ja" data-rv-word>星</b>
+                  <small class="rv__ask">뜻을 먼저 떠올린 뒤 확인해 보세요</small>
+                  <span class="glass-pill">뜻 확인하기</span>
+                </div>
+                <div class="rv__back-face">
+                  <div class="rv__q">
+                    <b lang="ja" data-rv-word>星</b>
+                    <span class="rv__meta"><span data-rv-ko>호시</span><i data-rv-pos>명사</i>·<i data-rv-jlpt>N5</i></span>
+                  </div>
+                  <p class="rv__mean" data-rv-mean>별</p>
+                  <div class="rv__ex">
+                    <small class="rv__ex-src"><span class="src__thumb"></span><span lang="ja">夜空の約束</span></small>
+                    <span lang="ja" data-rv-ex></span>
+                    <small data-rv-tr></small>
+                  </div>
+                  <small class="rv__ask">얼마나 잘 기억했나요?</small>
+                  <span class="glass-rates" data-rv-rates>
+                    <span style="--c:#ef4444"><b>다시</b>1분</span>
+                    <span style="--c:#f97316"><b>어려움</b>6분</span>
+                    <span style="--c:#16b364"><b>알고 있음</b>10분</span>
+                    <span style="--c:#3b82f6"><b>쉬움</b>4일</span>
+                    <span class="glass-rates__hold" data-rv-hold></span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- STATEMENT -->
+    <section class="statement" aria-label="코토노하의 생각">
+      <div class="wrap">
+        <p class="statement__text" data-scrub>
+          단어장을 펴는 대신 노래를 트세요. 따라 부르던 그 줄의 단어가 그대로 오늘 복습할 카드가 됩니다.
+        </p>
+      </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="section section--paper" id="features" aria-labelledby="features-title">
+      <div class="wrap">
+        <h2 id="features-title" class="section__title reveal">재생하면,<br>가사가 따라 흐릅니다</h2>
+        <p class="section__lead">영상을 틀면 지금 부르는 줄이 가운데로 오고 그 줄에 후리가나와 발음, 뜻, 번역이 붙어요.</p>
+
+        <div class="anatomy">
+          <figure class="anatomy__figure" role="img" aria-label="예시 가사 君の声を探して 한 줄에 단어마다 후리가나, 품사 색 밑줄, 뜻이 붙고, 줄 아래에 한국어 발음과 번역이 붙은 모습">
+            <div class="anatomy__band">
+              <div class="anatomy__line" lang="ja">
+                <span class="atok atok--noun"><span class="atok__furi">きみ</span><b>君</b><i></i><span class="atok__mean" lang="ko">너</span></span>
+                <span class="atok"><span class="atok__furi"></span><b>の</b><i></i><span class="atok__mean"></span></span>
+                <span class="atok atok--noun"><span class="atok__furi">こえ</span><b>声</b><i></i><span class="atok__mean" lang="ko">목소리</span></span>
+                <span class="atok"><span class="atok__furi"></span><b>を</b><i></i><span class="atok__mean"></span></span>
+                <span class="atok atok--verb atok--picked"><span class="atok__furi">さがして</span><b>探して</b><i></i><span class="atok__mean" lang="ko">찾다</span></span>
+              </div>
+              <div class="anatomy__row"><span class="anatomy__tag">발음</span><span class="anatomy__ko">키미노 코에오 사가시테</span></div>
+              <div class="anatomy__row"><span class="anatomy__tag">번역</span><span class="anatomy__tr">너의 목소리를 찾아서</span></div>
+            </div>
+            <div class="anatomy__pop">
+              <small><span lang="ja">探して</span>를 누르면</small>
+              <span class="anatomy__pop-word" lang="ja">探す</span>
+              <span class="glass-pill">뜻 확인하기</span>
+            </div>
+          </figure>
+
+          <ol class="anatomy__notes">
+            <li><b>후리가나 · 한국어 발음</b>처음 보는 한자도 따라 부를 수 있어요. 익숙해지면 설정에서 하나씩 끄면 돼요.</li>
+            <li><b>단어마다 뜻</b>뜻은 단어 바로 아래에 있어서 사전을 따로 찾지 않아도 돼요.</li>
+            <li><b>품사별 색</b>명사·동사·형용사마다 밑줄 색이 달라서 문장 뼈대가 먼저 보여요.</li>
+            <li><b>줄마다 한국어 번역</b>단어를 몰라도 이 줄이 무슨 말인지 알아요.</li>
+            <li><b>누르면 그 단어부터 복습</b>모르는 단어를 누르면 그 단어의 플래시카드가 열려요.</li>
+          </ol>
+        </div>
+
+        <div class="feature-wide">
+          <article class="tile tile--mint tile--wide">
+            <div class="tile__text">
+              <h3>예문을 외울 필요가 없어요.<br>노래가 예문이니까.</h3>
+              <p>카드 뒷면에는 그 단어가 나온 가사 줄이 번역과 함께 예문으로 붙어요. 뜻이 여러 개면 뜻마다 다른 줄이 붙습니다.</p>
+            </div>
+            <div class="example-card stage">
+              <div class="rv__q">
+                <b lang="ja">星</b>
+                <span class="rv__meta"><span>호시</span><i style="color:#368ee8">명사</i>·<i style="color:#5388f3">N5</i></span>
+              </div>
+              <p class="rv__mean">별</p>
+              <div class="rv__ex">
+                <small class="rv__ex-src"><span class="src__thumb"></span><span lang="ja">夜空の約束</span></small>
+                <span lang="ja">夜空に<b>星</b>がひとつ</span>
+                <small>밤하늘에 별이 하나</small>
+              </div>
+              <span class="ex-dots"><i class="is-on"></i><i></i></span>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ANY SONG -->
+    <section class="section section--white" aria-labelledby="steps-title">
+      <div class="wrap">
+        <h2 id="steps-title" class="section__title reveal">찾는 곡이 없어서<br>접은 적, 있죠</h2>
+        <p class="section__lead">검색만 하면 됩니다. 아직 없는 곡이면 그 자리에서 가사를 분석하고 끝나면 알림을 보내요.</p>
+
+        <ol class="steps">
+          <li class="step">
+            <span class="step__num">1</span>
+            <div class="step__screen step__screen--search" aria-hidden="true">
+              <span class="search-box">노래, 아티스트 검색</span>
+              <span class="song-row"><i style="--a:#3d5a8a;--b:#c99ab5"></i><span><b lang="ja">夜空の約束</b><small>샘플 곡</small></span></span>
+              <span class="song-row"><i style="--a:#e8a76b;--b:#f3d9a4"></i><span><b lang="ja">春風ラプソディ</b><small>샘플 곡</small></span></span>
+              <span class="song-row"><i style="--a:#4f8f7a;--b:#a9d8c3"></i><span><b lang="ja">きみの街まで</b><small>샘플 곡</small></span></span>
+            </div>
+            <h3>검색</h3>
+            <p>듣고 있는 곡을 제목이나 가수로 찾아요.</p>
+          </li>
+          <li class="step">
+            <span class="step__num">2</span>
+            <div class="step__screen step__screen--analyze" aria-hidden="true">
+              <span class="apill">
+                <i class="apill__art" style="--a:#e8a76b;--b:#f3d9a4"></i>
+                <span class="apill__text"><b>분석하고 있어요</b><small lang="ja">春風ラプソディ</small></span>
+                <span class="apill__spin"></span>
+              </span>
+              <span class="apill apill--done">
+                <i class="apill__art" style="--a:#3d5a8a;--b:#c99ab5"></i>
+                <span class="apill__text"><b>분석이 끝났어요</b><small><span lang="ja">夜空の約束</span> · 탭해서 학습 시작</small></span>
+                <span class="apill__chev"></span>
+              </span>
+            </div>
+            <h3>자동 분석</h3>
+            <p>가사를 단어로 나누고 문맥에 맞는 뜻을 골라요.</p>
+          </li>
+          <li class="step">
+            <span class="step__num">3</span>
+            <div class="step__screen step__screen--study" aria-hidden="true">
+              <b class="journey__title">완곡까지 3단계</b>
+              <span class="tier tier--done"><i class="tier__dot"></i><span class="tier__card"><b>후렴 정복</b><span class="track"><i style="width:78%"></i><i class="s" style="width:22%"></i></span></span></span>
+              <span class="tier tier--current"><i class="tier__dot"></i><span class="tier__card"><b>따라 부르기</b><span class="track"><i style="width:18%"></i><i class="s" style="width:24%"></i></span><span class="tier__cta">지금 학습할 단어 12개</span></span></span>
+              <span class="tier"><i class="tier__dot"></i><span class="tier__card"><b>완곡</b><span class="track"></span></span></span>
+            </div>
+            <h3>학습 시작</h3>
+            <p>후렴의 핵심 단어부터 완곡까지, 세 단계로 나눠 공부해요.</p>
+          </li>
+        </ol>
+
+        <p class="genres">
+          <span>최신곡도</span><span>인디도</span><span>애니 OP도</span><span>20년 된 명곡도</span>
+        </p>
+
+        <article class="tile tile--dark tile--wide karaoke-tile">
+          <div class="tile__text">
+            <h3>노래방 일본 신곡</h3>
+            <p>TJ·금영에 새로 들어온 일본 노래를 모아 봐요. 알림을 켜 두면 신곡이 들어온 날 알려 드려요.</p>
+          </div>
+          <ul class="karaoke" aria-hidden="true">
+            <li><i style="--a:#3d5a8a;--b:#c99ab5"></i><span><b lang="ja">夜空の約束</b><small>샘플 곡</small></span><span class="brands"><em class="brand-tj">TJ</em><em class="brand-ky">금영</em></span></li>
+            <li><i style="--a:#e8a76b;--b:#f3d9a4"></i><span><b lang="ja">春風ラプソディ</b><small>샘플 곡</small></span><span class="brands"><em class="brand-ky">금영</em></span></li>
+            <li><i style="--a:#4f8f7a;--b:#a9d8c3"></i><span><b lang="ja">きみの街まで</b><small>샘플 곡</small></span><span class="brands"><em class="brand-tj">TJ</em></span></li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <!-- REVIEW -->
+    <section class="section section--paper" id="review" aria-labelledby="review-title">
+      <div class="wrap review">
+        <div class="review__copy">
+          <p class="eyebrow">간격 반복</p>
+          <h2 id="review-title" class="section__title reveal">잊어버릴 때쯤,<br>정확히 다시 물어봅니다</h2>
+          <p class="section__lead">
+            단어마다 다음 복습 날짜를 따로 계산해요.
+            앱을 열면 오늘 복습할 카드부터 보여요.
+          </p>
+
+          <figure class="curve" data-curve>
+            <figcaption>
+              <span>기억에 남는 정도</span>
+              <span class="curve__legend"><i class="dot dot--gray"></i>복습 없이 <i class="dot dot--green"></i>복습하며</span>
+            </figcaption>
+            <svg viewBox="0 0 520 220" role="img" aria-label="복습하지 않으면 기억이 빠르게 떨어지고, 간격을 두고 복습하면 높게 유지되는 그래프">
+              <g class="curve__grid">
+                <line x1="70" y1="20" x2="70" y2="190"/><line x1="160" y1="20" x2="160" y2="190"/>
+                <line x1="280" y1="20" x2="280" y2="190"/><line x1="420" y1="20" x2="420" y2="190"/>
+              </g>
+              <path class="curve__forget" pathLength="1" d="M10 30 C 40 70, 60 92, 70 100 S 160 150, 280 168 S 420 176, 510 178"/>
+              <path class="curve__review" pathLength="1" d="M10 30 C 40 70, 60 92, 70 100 L 70 36 C 110 52, 140 64, 160 72 L 160 30 C 210 38, 250 46, 280 52 L 280 28 C 340 32, 390 36, 420 40 L 420 26 C 460 27, 490 28, 510 29"/>
+              <g class="curve__labels">
+                <text x="70" y="212">1일</text><text x="160" y="212">3일</text>
+                <text x="280" y="212">8일</text><text x="420" y="212">3주</text>
+              </g>
+            </svg>
+          </figure>
+        </div>
+
+        <div class="review__card">
+          <div class="home">
+            <div class="home__bar" aria-hidden="true">
+              <span class="home__today"><small>오늘 복습할 단어가</small><span><b>9</b>개 남았어요</span></span>
+              <span class="streak-chip streak-chip--sm"><svg viewBox="0 0 24 24" width="14" height="14"><path fill="#FF9500" d="M12 2c.6 3.2-1.4 5-2.9 6.6C7.6 10.2 6.5 11.8 6.5 14a5.5 5.5 0 0 0 11 0c0-2.4-1.1-4.2-2.3-5.6-.2 1.3-.8 2.2-1.7 2.7.3-3.4-.5-6.6-1.5-9.1z"/></svg><b>23일</b>연속</span>
+            </div>
+            <div class="decks" aria-hidden="true">
+              <span class="deck deck--search"><i></i>좋아하는 곡</span>
+              <span class="deck is-on"><i style="--a:#3d5a8a;--b:#c99ab5"><em>5</em></i><span lang="ja">夜空の約束</span></span>
+              <span class="deck"><i style="--a:#e8a76b;--b:#f3d9a4"><em>3</em></i><span lang="ja">春風ラプソディ</span></span>
+              <span class="deck"><i style="--a:#4f8f7a;--b:#a9d8c3"><em>1</em></i><span lang="ja">きみの街まで</span></span>
+            </div>
+            <button class="flash stage" type="button" data-flash aria-pressed="false" aria-label="플래시카드 뒤집기 예시">
+              <span class="src">
+                <span class="src__thumb"></span>
+                <span class="src__text"><b lang="ja">夜空の約束</b><small>샘플 곡</small></span>
+              </span>
+              <span class="flash__front">
+                <b class="rv__head" lang="ja">約束</b>
+                <small class="rv__ask">뜻을 먼저 떠올린 뒤 확인해 보세요</small>
+                <span class="glass-pill">뜻 확인하기</span>
+              </span>
+              <span class="flash__back">
+                <span class="rv__q">
+                  <b lang="ja">約束</b>
+                  <span class="rv__meta"><span>야쿠소쿠</span><i style="color:#368ee8">명사</i>·<i style="color:#2a9b8d">N4</i></span>
+                </span>
+                <span class="rv__mean">약속</span>
+                <span class="rv__ex">
+                  <small class="rv__ex-src"><span class="src__thumb"></span><span lang="ja">夜空の約束</span></small>
+                  <span lang="ja">君との<b>約束</b>を忘れない</span>
+                  <small>너와의 약속을 잊지 않아</small>
+                </span>
+                <small class="rv__ask">얼마나 잘 기억했나요?</small>
+                <span class="glass-rates">
+                  <span style="--c:#ef4444"><b>다시</b>10분</span>
+                  <span style="--c:#f97316"><b>어려움</b>2일</span>
+                  <span style="--c:#16b364"><b>알고 있음</b>5일</span>
+                  <span style="--c:#3b82f6"><b>쉬움</b>12일</span>
+                </span>
+              </span>
+            </button>
+          </div>
+          <p class="review__note">버튼마다 다음 복습이 언제인지 적혀 있어요. 평가한 단어는 따로 저장하지 않아도 그 곡에 담겨요.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- HABIT -->
+    <section class="section section--white" aria-labelledby="habit-title">
+      <div class="wrap">
+        <h2 id="habit-title" class="section__title reveal">복습할수록<br>한 곡이 내 것이 됩니다</h2>
+
+        <div class="habit">
+          <article class="tile habit__streak">
+            <div class="streak-chip">
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#FF9500" d="M12 2c.6 3.2-1.4 5-2.9 6.6C7.6 10.2 6.5 11.8 6.5 14a5.5 5.5 0 0 0 11 0c0-2.4-1.1-4.2-2.3-5.6-.2 1.3-.8 2.2-1.7 2.7.3-3.4-.5-6.6-1.5-9.1z"/></svg>
+              <b><span data-count="23">23</span>일</b>연속
+            </div>
+            <h3>연속 학습 기록</h3>
+            <p>하루에 한 장이라도 복습하면 달력이 한 칸 채워져요. 하루쯤 놓쳐도 연속 기록이 바로 끊기지 않고, 복습을 잊은 날엔 저녁에 알림이 와요.</p>
+            <div class="cal" aria-hidden="true">
+              <div class="cal__head"><b>학습 달력</b><span>10월</span></div>
+              <div class="cal__week"><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span><span>일</span></div>
+              <div class="cal__grid" data-heat></div>
+            </div>
+          </article>
+
+          <article class="tile habit__card">
+            <h3>곡 카드 수집</h3>
+            <p>곡을 한 단계씩 익힐 때마다 그 곡만의 카드를 받아요.</p>
+            <div class="reward" data-tilt aria-hidden="true">
+              <div class="reward__inner">
+                <div class="reward__art">
+                  <span class="reward__lyric" lang="ja">夜空に星がひとつ</span>
+                  <span class="reward__lyric" lang="ja">君の声を探して</span>
+                </div>
+                <div class="reward__body">
+                  <b lang="ja">夜空の約束</b>
+                  <small>샘플 곡</small>
+                  <span class="reward__foot">
+                    <span class="reward__no"><b>128</b>번째 획득</span>
+                    <span class="pips"><i></i><i></i><i></i></span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section section--paper" id="faq" aria-labelledby="faq-title">
+      <div class="wrap faq">
+        <div>
+          <h2 id="faq-title" class="section__title reveal">자주 묻는 질문</h2>
+        </div>
+        <div class="faq__list">
+          <details open>
+            <summary>일본어를 전혀 못 읽어도 쓸 수 있나요?</summary>
+            <p>네. 줄 아래에 한국어 발음과 번역이 붙어 있어서 히라가나를 몰라도 노래를 따라 부르며 시작할 수 있어요. 한자 위에는 후리가나가, 단어 아래에는 뜻이 붙습니다.</p>
+          </details>
+          <details>
+            <summary>어떤 노래로 공부할 수 있나요?</summary>
+            <p>최신 J-POP, 인디, 애니메이션 OP·ED, 오래된 명곡까지 검색해서 골라요. 아직 분석되지 않은 곡이라도 고르면 보통 2~3분 안에 가사·단어·예문이 만들어지고 끝나면 알림이 와요.</p>
+          </details>
+          <details>
+            <summary>단어를 따로 저장해야 하나요?</summary>
+            <p>아니요. 플래시카드를 보고 얼마나 잘 기억했는지 고르면 그 단어가 곡에 담기고 그때부터 복습 일정이 잡혀요.</p>
+          </details>
+          <details>
+            <summary>외운 단어는 어떻게 복습하나요?</summary>
+            <p>단어마다 잊어버릴 때쯤을 계산해 플래시카드로 다시 보여 줘요. 앱을 열면 오늘 복습할 카드부터 보이고 아는 단어는 뜸하게, 헷갈리는 단어는 자주 나와요.</p>
+          </details>
+          <details>
+            <summary>무료인가요?</summary>
+            <p>네. 코토노하는 App Store와 Google Play에서 무료로 받을 수 있어요.</p>
+          </details>
+          <details>
+            <summary>어떤 기기에서 쓸 수 있나요?</summary>
+            <p>iPhone(App Store)과 Android 폰(Google Play)에서 쓸 수 있어요. Google 또는 Apple 계정으로 로그인하면 기기를 바꿔도 공부하던 곡과 복습 기록이 그대로 이어집니다.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta" id="download" aria-labelledby="cta-title">
+      <div class="wrap cta__inner">
+        <img class="cta__icon" src="assets/icon-192.png" width="96" height="96" alt="코토노하 앱 아이콘" loading="lazy">
+        <h2 id="cta-title" class="cta__title reveal">오늘 들은 그 노래로<br><em>시작하세요</em></h2>
+        <p class="cta__sub">코토노하 · 노래로 배우는 일본어</p>
+        <div class="cta__row">
+          <div class="stores stores--center">
+            <a class="store" href="https://apps.apple.com/app/id6806729387" rel="noopener" data-store="ios" aria-label="App Store에서 코토노하 다운로드">
+              <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>
+              <span><small lang="en">Download on the</small><strong lang="en">App Store</strong></span>
+            </a>
+            <a class="store" href="https://play.google.com/store/apps/details?id=dev.eastshine.kotonoha" rel="noopener" data-store="android" aria-label="Google Play에서 코토노하 다운로드">
+              <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="#00C3FF" d="M1.337.924a1.486 1.486 0 0 0-.112.568v21.017c0 .217.045.419.124.6l11.155-11.087L1.337.924z"/><path fill="#00E676" d="M13.544 10.989l3.258-3.238L3.45.195a1.466 1.466 0 0 0-.946-.179l11.04 10.973z"/><path fill="#FFD400" d="M22.018 13.298l-3.919 2.218-3.515-3.493 3.543-3.521 3.891 2.202a1.49 1.49 0 0 1 0 2.594z"/><path fill="#FF3A44" d="M13.544 13.056l-11 10.933c.298.036.612-.016.906-.183l13.324-7.54-3.23-3.21z"/></svg>
+              <span><small lang="en">GET IT ON</small><strong lang="en">Google Play</strong></span>
+            </a>
+          </div>
+          <figure class="qr">
+            <img src="assets/qr.svg" width="112" height="112" alt="휴대폰 카메라로 스캔하면 스토어로 이동하는 QR 코드" loading="lazy">
+            <figcaption>휴대폰으로 스캔</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer__inner">
+      <a class="brand brand--footer" href="./">
+        <img class="brand__icon" src="assets/icon-64.png" width="28" height="28" alt="" loading="lazy">
+        <span class="brand__name">코토노하</span>
+        <span class="brand__latin" lang="en">Kotonoha</span>
+      </a>
+      <nav class="footer__links" aria-label="정책 및 연락처">
+        <a href="https://eastshine2741.github.io/kotonoha-legal/terms" rel="noopener">이용약관</a>
+        <a href="https://eastshine2741.github.io/kotonoha-legal/privacy" rel="noopener">개인정보처리방침</a>
+        <a href="https://www.instagram.com/kotonoha.app/" rel="noopener me">Instagram</a>
+        <a href="mailto:eastshine200@gmail.com">문의</a>
+      </nav>
+      <p class="footer__copy">© 2026 Kotonoha. 화면 속 가사와 곡은 설명을 위한 예시입니다.</p>
+    </div>
+  </footer>
+
+  <script src="main.js?v=4" defer></script>
+</body>
+</html>

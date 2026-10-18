@@ -16,7 +16,7 @@ action — rating a card saves its song as a deck.
 `gradlew`는 `backend/` 디렉토리에 위치. 반드시 `backend/`에서 실행할 것.
 
 ```bash
-./deploy.sh                                   # k3s에 backend(api+worker+batch cronjob+admin-api+admin-web) + mysql + redis + rabbitmq 배포
+./deploy.sh                                   # k3s에 backend(api+worker+batch cronjob+admin-api+admin-web+landing-web) + mysql + redis + rabbitmq 배포
 cd backend && ./gradlew :admin-api:test       # Admin API tests
 cd backend && ./gradlew :worker:test          # 곡 분석 파이프라인 tests
 cd admin-web && npm run dev                   # Admin Web (local, http://localhost:5174)
@@ -36,6 +36,7 @@ cd app-rn && npx expo start --web             # App - Web (dev)
 - 곡 상세 이해도·word tier 3단계 개편 기획 배경: `docs/product-intents/260925-song-detail-study-status-api.md`
 - 오늘의 복습 스케줄(H6) `GET /api/study-schedule` — 1년 기억 단어 수 예보(매일 GOOD 복습 vs 쉼, FSRS 기억 확률 합): `docs/product-intents/261004-study-schedule-api.md`
 - 보상 카드: 곡 카드는 등급마다 새로 발급·등급별 순번, 아티스트 카드는 한 장 강화·BRONZE 부터 팬 번호, 레벨·마스터·낡음(복습할 때가 된 단어 비율)·아티스트 등급 규칙과 프로필 카드|학습 탭, rating 때 달성·서명 때 발급(`domains:rewardcard`), 개발 빌드는 더미/서버 전환 칩, 카드 공유 링크(서명 토큰 `/c/{token}`, share-web 카드 웹 화면, 앱 링크 검증 파일): `docs/product-intents/261010-reward-cards.md`
+- 서비스 소개 랜딩(`kotonoha.eastshine.dev/`, 정적 HTML·SEO·스토어 링크, `landing-web/`): `docs/landing-web.md`
 - Translation pipeline guardrails: `docs/translation-pipeline.md`
 - Feature flag(시작·종료 시각 구간으로 켜짐, 롤아웃 없이 30초 내 반영): `docs/architecture/feature-flag.md`
 - Push notification architecture: `docs/architecture/push-notification.md`
