@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ArtistCardDto, SharedRewardCardDto, SongCardDto } from '../types/rewardCard';
-import { fanLine, rankLine, shareCelebration, shareLadder } from './shareWebCopy';
+import { fanLine, rankLine, shareCelebration, shareLadder, shareWearNote } from './shareWebCopy';
 
 const rule = { tierNames: ['후렴 정복', '따라 부르기', '완곡'], masterPercent: 90 };
 
@@ -66,5 +66,20 @@ describe('shareCelebration', () => {
     const captions = shareLadder(songShared('GOLD')).map((s) => s.caption);
     expect(captions).toEqual(['첫 공부', '후렴 단어', '자주 나오는 단어', '가사 전부', '90% 외우기']);
     expect(shareLadder(artistShared('GOLD', 1)).map((s) => s.caption)[3]).toBe('7곡 외우기');
+  });
+});
+
+describe('shareWearNote', () => {
+  function withDue(dueCount: number, reviewedCount: number): SharedRewardCardDto {
+    const shared = songShared('GOLD');
+    return { ...shared, songCard: { ...shared.songCard!, dueCount, reviewedCount } };
+  }
+
+  it('낡은 곡 카드에만 주인에게 복습을 재촉하는 말을 단다', () => {
+    expect(shareWearNote(withDue(1, 10))).toBeNull();
+    expect(shareWearNote(withDue(0, 0))).toBeNull();
+    expect(shareWearNote(withDue(3, 10))?.title).toBe('카드가 더러워져 있나요?');
+    expect(shareWearNote(withDue(3, 10))?.body).toContain('하루님에게 복습하라고');
+    expect(shareWearNote(artistShared('GOLD', 1))).toBeNull();
   });
 });

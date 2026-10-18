@@ -3,6 +3,7 @@ import { ARTIST_GRADE_STEPS } from '../components/rewardCards/artistGrade';
 import { cardArtist, cardTitle } from '../components/rewardCards/cardCredit';
 import { SONG_CARD_KINDS, songTierName } from '../components/rewardCards/cardKinds';
 import type { LadderStep } from '../components/rewardCards/cardLadders';
+import { dueRatio, wearState } from '../components/rewardCards/cardWear';
 import { artistGradeIndex, songGradeOf } from '../components/rewardCards/serverRewardCards';
 
 // 이 화면을 보는 사람은 앱을 모른다. 앱 안의 단계·등급 이름 대신 무엇을 공부했는지로 말한다.
@@ -92,6 +93,21 @@ export function shareLadder(shared: SharedRewardCardDto): LadderStep[] {
     }));
   }
   return ARTIST_GRADE_STEPS.map((s) => ({ label: s.label, caption: s.from === 0 ? '첫 공부' : `${s.from}곡 외우기` }));
+}
+
+export interface ShareWearNote {
+  title: string;
+  body: string;
+}
+
+/** 낡은 곡 카드면 받은 사람이 주인에게 복습을 재촉하게 한다. */
+export function shareWearNote(shared: SharedRewardCardDto): ShareWearNote | null {
+  const song = shared.songCard;
+  if (!song || wearState(dueRatio(song)) === 'fresh') return null;
+  return {
+    title: '카드가 더러워져 있나요?',
+    body: `이 곡의 단어 복습을 미룰수록\n카드가 낡고 더러워져요\n${shared.owner.name}님에게 복습하라고 말해 주세요 :)`,
+  };
 }
 
 export function sharePitch(kind: SharedRewardCardDto['kind']): string {
