@@ -1,7 +1,6 @@
 import { AddWordRequest, WordSense } from '../../types/word';
 
 export type SongDetailJlptLevel = 'N1' | 'N2' | 'N3' | 'N4' | 'N5';
-export type SongDetailJlptBucket = SongDetailJlptLevel | 'UNKNOWN';
 export type SongDetailWordsSort = 'importance' | 'appearance';
 
 export interface SongDetailWordSummary {
@@ -44,12 +43,4 @@ export interface WordsInSongDto {
   wordSummary?: SongDetailWordSummary;
   filterDefaults?: SongDetailFilterDefaults;
   lineWordIndexes?: Record<string, number[]>;
-}
-
-export interface SongDetailJlptSlice {
-  key: SongDetailJlptBucket;
-  label: string;
-  count: number;
-  percent: number;
-  color: string;
 }

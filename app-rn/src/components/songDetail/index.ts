@@ -1,6 +1,5 @@
 export { SongDetailHomeTab } from './SongDetailHomeTab';
 export { SongDetailCardsTab } from './SongDetailCardsTab';
-export { SongDetailJlptChart } from './SongDetailJlptChart';
 export { SongDetailContributors } from './SongDetailContributors';
 export { SongDetailCoverageSection } from './SongDetailCoverageSection';
 export { SongDetailCoverageHelpSheet } from './SongDetailCoverageHelpSheet';
@@ -15,12 +14,6 @@ export {
   selectExpandedTierKey,
   type SongWordTierStatus,
 } from './songDetailTier';
-export {
-  buildJlptDistribution,
-  JLPT_COLORS,
-  JLPT_LEGEND_ORDER,
-  JLPT_LEVELS,
-} from './songDetailWordDerivation';
 export {
   default as SongDetailWordsTab,
   SongDetailWordsActionBar,
@@ -60,9 +53,7 @@ export {
 } from './useCurrentLyricLine';
 export type {
   SongDetailFilterDefaults,
-  SongDetailJlptBucket,
   SongDetailJlptLevel,
-  SongDetailJlptSlice,
   SongDetailWordItem,
   SongDetailWordSummary,
   SongDetailWordsSort,

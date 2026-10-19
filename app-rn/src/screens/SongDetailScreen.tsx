@@ -675,7 +675,6 @@ export default function SongDetailScreen({ navigation, route }: Props) {
                 >
                   <SongDetailHomeTab
                     song={cardSong ?? EMPTY_CARD_SONG}
-                    words={words.words}
                     coverage={songCoverage}
                     tiers={songTiers}
                     contributors={songContributors}
