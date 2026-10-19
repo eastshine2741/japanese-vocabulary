@@ -66,6 +66,20 @@ describe('buildTokenCells', () => {
     expect(cells[1].furigana).toBeNull();
   });
 
+  it('kanaReadings 면 글자와 다르게 읽히는 가나 토큰에도 읽기를 붙인다', () => {
+    const cells = buildTokenCells(
+      line('君はの', [
+        token({ surface: '君', charStart: 0, charEnd: 1, reading: 'キミ' }),
+        token({ surface: 'は', charStart: 1, charEnd: 2, reading: 'ワ', partOfSpeech: 'PARTICLE' }),
+        token({ surface: 'の', charStart: 2, charEnd: 3, reading: 'ノ', partOfSpeech: 'PARTICLE' }),
+      ]),
+      [],
+      { kanaReadings: true },
+    );
+
+    expect(cells.map(cell => cell.furigana)).toEqual(['きみ', 'わ', null]);
+  });
+
   it('조사와 기호는 품사 색 띠를 두르지 않는다', () => {
     expect(getTokenBarColor('PARTICLE')).toBeNull();
     expect(getTokenBarColor('SYMBOL')).toBeNull();

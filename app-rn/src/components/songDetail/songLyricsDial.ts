@@ -50,10 +50,19 @@ function plainCell(text: string, key: string): TokenCell | null {
   return { key, text, furigana: null, meaning: null, barColor: null, word: null };
 }
 
+function tokenFurigana(surface: string, reading: string | null | undefined, kanaReadings: boolean): string | null {
+  if (!reading) return null;
+  const hiragana = katakanaToHiragana(reading);
+  if (KANJI_RE.test(surface)) return hiragana;
+  return kanaReadings && hiragana !== katakanaToHiragana(surface) ? hiragana : null;
+}
+
 /** 토큰 사이에 분석되지 않은 글자가 있어도 원문 순서를 잃지 않게 메워 가며 자른다. */
+/** kanaReadings: 가나 단어도 글자와 다르게 읽히면(조사 は→わ 등) 읽기를 단다. */
 export function buildTokenCells(
   line: CurrentPlayingLyricLine,
   words: CurrentPlayingWord[],
+  { kanaReadings = false }: { kanaReadings?: boolean } = {},
 ): TokenCell[] {
   const text = line.originalText;
   const tokens = line.tokens ?? [];
@@ -76,7 +85,7 @@ export function buildTokenCells(
       cells.push({
         key: `token-${index}-${token.charStart}`,
         text: surface,
-        furigana: token.reading && KANJI_RE.test(surface) ? katakanaToHiragana(token.reading) : null,
+        furigana: tokenFurigana(surface, token.reading, kanaReadings),
         meaning: tokenMeaning(token, word),
         barColor: getTokenBarColor(token.partOfSpeech),
         word,

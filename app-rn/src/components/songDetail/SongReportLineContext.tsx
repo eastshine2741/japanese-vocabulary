@@ -31,7 +31,9 @@ const Cell = React.memo(function Cell({ cell, focus, showFurigana, showMeaning }
 /** 고른 문제 유형이 다루는 것(원문·발음·번역·단어 뜻·단어 나눔)만 가사 줄에 얹어 보여준다. */
 function SongReportLineContext({ line, focus }: SongReportLineContextProps) {
   const cells = useMemo(
-    () => (focus === 'READING' || focus === 'MEANING' || focus === 'SEGMENTS' ? buildTokenCells(line, []) : []),
+    () => (focus === 'READING' || focus === 'MEANING' || focus === 'SEGMENTS'
+      ? buildTokenCells(line, [], { kanaReadings: focus === 'READING' })
+      : []),
     [focus, line],
   );
   const showFurigana = focus === 'READING' && cells.some(cell => cell.furigana);

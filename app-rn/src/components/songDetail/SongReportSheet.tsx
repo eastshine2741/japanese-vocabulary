@@ -13,7 +13,6 @@ import {
   buildSongReportRequest,
   buildSongReportTokenChoices,
   canSubmitSongReport,
-  selectSongReportTokenChoices,
   selectSongReportTypes,
   songReportLineFocus,
   SONG_REPORT_SUGGESTION_MAX,
@@ -105,13 +104,11 @@ function SongReportSheet({
     [line?.tokens],
   );
 
-  // 고를 단어가 없는 줄(분석 전, 발음 제보인데 한자가 없는 줄)에서는 단어를 가리키는 유형을 내놓지 않는다.
-  const groupTypes = useMemo(
-    () => selectSongReportTypes(types, target.group).filter(option => (
-      option.targetKind !== 'LINE_TOKEN' || selectSongReportTokenChoices(tokenChoices, option.type).length > 0
-    )),
-    [target.group, tokenChoices, types],
-  );
+  // 분석 전 줄에는 고를 토큰이 없다. 서버가 어차피 되돌려 보낼 유형은 내놓지 않는다.
+  const groupTypes = useMemo(() => {
+    const all = selectSongReportTypes(types, target.group);
+    return tokenChoices.length > 0 ? all : all.filter(option => option.targetKind !== 'LINE_TOKEN');
+  }, [target.group, tokenChoices.length, types]);
 
   const selectedTypeDto = useMemo(
     () => groupTypes.find(option => option.type === selectedType) ?? null,
@@ -119,15 +116,11 @@ function SongReportSheet({
   );
 
   const detailType = step === 'detail' ? selectedTypeDto : null;
-  const typeTokenChoices = useMemo(
-    () => selectSongReportTokenChoices(tokenChoices, detailType?.type),
-    [detailType?.type, tokenChoices],
-  );
   const selectedToken = useMemo(
-    () => typeTokenChoices.find(choice => choice.key === selectedTokenKey) ?? null,
-    [selectedTokenKey, typeTokenChoices],
+    () => tokenChoices.find(choice => choice.key === selectedTokenKey) ?? null,
+    [selectedTokenKey, tokenChoices],
   );
-  const needsToken = detailType?.targetKind === 'LINE_TOKEN' && typeTokenChoices.length > 0;
+  const needsToken = detailType?.targetKind === 'LINE_TOKEN' && tokenChoices.length > 0;
   // 유형을 고르는 동안은 원문·번역을 두고, 고른 뒤에야 그 유형이 다루는 것으로 바꾼다 — 고르는 중에 목록이 밀리지 않게.
   const lineFocus = songReportLineFocus(detailType?.type);
   const canSubmit = !submitting && canSubmitSongReport(detailType, selectedToken, suggestion);
@@ -213,7 +206,7 @@ function SongReportSheet({
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>{detailType.tokenPrompt ?? '어떤 단어인가요?'}</Text>
               <View style={styles.chips}>
-                {typeTokenChoices.map(choice => (
+                {tokenChoices.map(choice => (
                   <TokenChip
                     key={choice.key}
                     choice={choice}

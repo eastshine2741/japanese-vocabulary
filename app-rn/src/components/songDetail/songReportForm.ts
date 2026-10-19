@@ -5,8 +5,6 @@ import type {
   SubmitSongReportRequest,
 } from '../../types/songReport';
 
-const KANJI_RE = /[一-鿿]/;
-
 /** 서버 `SongReportService.MAX_SUGGESTION_LENGTH` 와 같은 값. */
 export const SONG_REPORT_SUGGESTION_MAX = 1000;
 
@@ -49,15 +47,6 @@ const LINE_FOCUS_BY_TYPE: Record<string, SongReportLineFocus> = {
 
 export function songReportLineFocus(type: string | null | undefined): SongReportLineFocus {
   return (type != null ? LINE_FOCUS_BY_TYPE[type] : undefined) ?? 'TRANSLATION';
-}
-
-/** 가나만 있는 단어는 후리가나가 달리지 않으니 발음 제보에서 고를 수 없다. */
-export function selectSongReportTokenChoices(
-  choices: SongReportTokenChoice[],
-  type: string | null | undefined,
-): SongReportTokenChoice[] {
-  if (songReportLineFocus(type) !== 'READING') return choices;
-  return choices.filter(choice => KANJI_RE.test(choice.surface));
 }
 
 export function canSubmitSongReport(

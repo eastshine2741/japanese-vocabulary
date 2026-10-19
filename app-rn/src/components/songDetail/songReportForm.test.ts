@@ -5,7 +5,6 @@ import {
   buildSongReportRequest,
   buildSongReportTokenChoices,
   canSubmitSongReport,
-  selectSongReportTokenChoices,
   selectSongReportTypes,
   songReportLineFocus,
 } from './songReportForm';
@@ -67,21 +66,6 @@ describe('songReportLineFocus', () => {
     expect(songReportLineFocus('SEGMENTATION')).toBe('SEGMENTS');
     expect(songReportLineFocus('NEW_TYPE')).toBe('TRANSLATION');
     expect(songReportLineFocus(null)).toBe('TRANSLATION');
-  });
-});
-
-describe('selectSongReportTokenChoices', () => {
-  const choices = buildSongReportTokenChoices([
-    token({ surface: '日', charStart: 0, charEnd: 1 }),
-    token({ surface: 'が', charStart: 1, charEnd: 2 }),
-  ]);
-
-  it('발음 제보는 한자가 든 단어만 고를 수 있다', () => {
-    expect(selectSongReportTokenChoices(choices, 'FURIGANA').map(c => c.surface)).toEqual(['日']);
-  });
-
-  it('다른 유형은 모든 단어를 고를 수 있다', () => {
-    expect(selectSongReportTokenChoices(choices, 'WORD_MEANING').map(c => c.surface)).toEqual(['日', 'が']);
   });
 });
 
