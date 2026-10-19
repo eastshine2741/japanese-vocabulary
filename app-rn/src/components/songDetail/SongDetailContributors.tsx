@@ -1,5 +1,5 @@
-import React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback } from 'react';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Colors } from '../../theme/theme';
 import { Typography } from '../../theme/typography';
 import type { SongContributor, SongContributorsDto } from '../../types/songReport';
@@ -7,16 +7,24 @@ import { contributorColor, contributorInitial } from './songDetailContributors';
 
 interface SongDetailContributorsProps {
   contributors: SongContributorsDto;
+  onPressContributor: (contributor: SongContributor) => void;
 }
 
 interface ContributorFaceProps {
   contributor: SongContributor;
   index: number;
+  onPress: (contributor: SongContributor) => void;
 }
 
-const ContributorFace = React.memo(function ContributorFace({ contributor, index }: ContributorFaceProps) {
+const ContributorFace = React.memo(function ContributorFace({ contributor, index, onPress }: ContributorFaceProps) {
+  const handlePress = useCallback(() => onPress(contributor), [onPress, contributor]);
   return (
-    <View style={styles.faceCell}>
+    <Pressable
+      style={({ pressed }) => [styles.faceCell, pressed && styles.facePressed]}
+      onPress={handlePress}
+      accessibilityRole="button"
+      accessibilityLabel={contributor.name ?? contributor.username}
+    >
       {contributor.profileImageUrl ? (
         <Image source={{ uri: contributor.profileImageUrl }} style={styles.avatar} />
       ) : (
@@ -24,12 +32,13 @@ const ContributorFace = React.memo(function ContributorFace({ contributor, index
           <Text style={styles.initial}>{contributorInitial(contributor)}</Text>
         </View>
       )}
-    </View>
+    </Pressable>
   );
 });
 
 export const SongDetailContributors = React.memo(function SongDetailContributors({
   contributors,
+  onPressContributor,
 }: SongDetailContributorsProps) {
   if (contributors.contributors.length === 0) return null;
 
@@ -42,7 +51,7 @@ export const SongDetailContributors = React.memo(function SongDetailContributors
 
       <View style={styles.faceGrid}>
         {contributors.contributors.map((contributor, index) => (
-          <ContributorFace key={contributor.userId} contributor={contributor} index={index} />
+          <ContributorFace key={contributor.userId} contributor={contributor} index={index} onPress={onPressContributor} />
         ))}
       </View>
     </View>
@@ -78,6 +87,9 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  facePressed: {
+    opacity: 0.6,
   },
   avatar: {
     width: 36,

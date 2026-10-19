@@ -17,20 +17,19 @@ import {
 import { useCardFonts } from '../components/rewardCards/cardTheme';
 import { artistCardStacks } from '../components/rewardCards/cardKinds';
 import { ArtistRewardCard } from '../components/rewardCards/types';
-import { useRewardCardStore } from '../stores/rewardCardStore';
+import { useOwnerCards } from '../stores/userProfileStore';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ArtistCardList'>;
 
 const SIDE_PADDING = 24;
 
 export default function ArtistCardListScreen({ navigation, route }: Props) {
-  const { ownerName } = route.params;
+  const { ownerName, userId } = route.params;
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const fonts = useCardFonts();
   const [sort, setSort] = useState<ArtistCardSort>('level');
-  const artistCards = useRewardCardStore((s) => s.artistCards);
-  const loading = useRewardCardStore((s) => s.source === 'server' && (s.serverStatus === 'idle' || s.serverStatus === 'loading'));
+  const { artistCards, loading } = useOwnerCards(userId);
   // 등급마다 카드가 따로라 아티스트마다 가장 높은 등급 카드 한 장으로 묶는다.
   const stacks = useMemo(() => artistCardStacks(artistCards), [artistCards]);
   const stackedIds = useMemo(() => new Set(stacks.filter((stack) => stack.count > 1).map((stack) => stack.top.id)), [stacks]);
@@ -42,8 +41,8 @@ export default function ArtistCardListScreen({ navigation, route }: Props) {
   }, []);
 
   const handlePressCard = useCallback((card: ArtistRewardCard) => {
-    navigation.navigate('ArtistCardDetail', { cardId: card.id, ownerName });
-  }, [navigation, ownerName]);
+    navigation.navigate('ArtistCardDetail', { cardId: card.id, ownerName, userId });
+  }, [navigation, ownerName, userId]);
 
   const renderItem = useCallback(
     ({ item }: { item: ArtistRewardCard }) => (

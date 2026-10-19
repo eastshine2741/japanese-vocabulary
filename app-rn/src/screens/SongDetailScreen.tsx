@@ -64,7 +64,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import type { StudyEntryTrigger } from '../services/analytics';
 import type { DeckDetailResponse } from '../types/deck';
 import type { SongWordTierDto } from '../types/song';
-import type { SubmitSongReportRequest } from '../types/songReport';
+import type { SongContributor, SubmitSongReportRequest } from '../types/songReport';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SongDetail'>;
 type DetailTab = 'home' | 'words' | 'cards';
@@ -300,6 +300,10 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     coverageHelpSheetOpenRef.current = true;
     coverageHelpSheetRef.current?.expand();
   }, []);
+
+  const handlePressContributor = useCallback((contributor: SongContributor) => {
+    navigation.navigate('UserProfile', { userId: contributor.userId });
+  }, [navigation]);
 
   const handleCloseCoverageHelp = useCallback(() => {
     coverageHelpSheetOpenRef.current = false;
@@ -677,6 +681,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
                     contributors={songContributors}
                     onCoverageHelpPress={handleOpenCoverageHelp}
                     onStartTier={handleStartTier}
+                    onPressContributor={handlePressContributor}
                   />
                 </View>
                 <View

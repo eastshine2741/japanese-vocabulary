@@ -10,6 +10,7 @@ enum class ErrorCode(val status: HttpStatus, val message: String) {
     INVALID_USERNAME(HttpStatus.BAD_REQUEST, "Username must match ^[a-z0-9_]{3,20}$"),
     RESERVED_USERNAME(HttpStatus.BAD_REQUEST, "Username is reserved"),
     USERNAME_TAKEN(HttpStatus.CONFLICT, "Username already taken"),
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "User not found"),
 
     // Song / Lyrics
     LYRICS_NOT_FOUND(HttpStatus.NOT_FOUND, "Could not find lyrics for this song"),

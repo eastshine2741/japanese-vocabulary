@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import type { SongCoverageDto, SongWordTierDto } from '../../types/song';
-import type { SongContributorsDto } from '../../types/songReport';
+import type { SongContributor, SongContributorsDto } from '../../types/songReport';
 import { SongDetailContributors } from './SongDetailContributors';
 import { SongDetailCoverageSection } from './SongDetailCoverageSection';
 import type { PreviewSong } from '../rewardCards/cardPreview';
@@ -21,6 +21,7 @@ interface SongDetailHomeTabProps {
   isLoadingWords?: boolean;
   onCoverageHelpPress: () => void;
   onStartTier: (tier: SongWordTierDto) => void;
+  onPressContributor: (contributor: SongContributor) => void;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -33,6 +34,7 @@ export const SongDetailHomeTab = React.memo(function SongDetailHomeTab({
   isLoadingWords = false,
   onCoverageHelpPress,
   onStartTier,
+  onPressContributor,
   style,
 }: SongDetailHomeTabProps) {
   return (
@@ -49,7 +51,7 @@ export const SongDetailHomeTab = React.memo(function SongDetailHomeTab({
         />
       )}
       <SongDetailJlptChart words={words} isLoading={isLoadingWords} />
-      {contributors != null && <SongDetailContributors contributors={contributors} />}
+      {contributors != null && <SongDetailContributors contributors={contributors} onPressContributor={onPressContributor} />}
     </View>
   );
 });

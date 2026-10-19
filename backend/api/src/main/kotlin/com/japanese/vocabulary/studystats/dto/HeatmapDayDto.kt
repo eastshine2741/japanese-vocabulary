@@ -5,3 +5,9 @@ data class HeatmapDayDto(
     val reviewCount: Int,
     val freezeUsed: Boolean,
 )
+
+fun DailyStudySummaryDto.toHeatmapDay() = HeatmapDayDto(
+    date = dateKst.toString(),
+    reviewCount = reviewCount,
+    freezeUsed = freezeUsed,
+)

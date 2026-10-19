@@ -9,7 +9,7 @@ import { CardSignature } from '../components/rewardCards/signature';
 import { ArtistRewardCard, CardLyricLine, SongRewardCard } from '../components/rewardCards/types';
 import { type LineWord, pickLineWords, toCardLine } from '../components/songDetail/songCardSample';
 import { preferenceStorage } from '../utils/preferenceStorage';
-import type { RewardCardRevealDto, SongGradeRuleDto } from '../types/rewardCard';
+import type { RewardCardRevealDto, RewardCardsResponse, SongGradeRuleDto } from '../types/rewardCard';
 
 export type RewardCardKind = 'song' | 'artist';
 
@@ -30,7 +30,7 @@ export interface RewardCardRevealTarget {
   fromGrade?: string | null;
 }
 
-interface CardSet {
+export interface CardSet {
   songCards: SongRewardCard[];
   artistCards: ArtistRewardCard[];
   songGradeRule: SongGradeRuleDto | null;
@@ -78,6 +78,15 @@ interface RewardCardState extends CardSet {
   reset: () => void;
 }
 
+/** 서버 카드를 앱 카드로 바꾸고 아트에서 색을 뽑는다. 남의 프로필 카드도 같은 모양이다. */
+export async function toCardSet(res: RewardCardsResponse): Promise<CardSet> {
+  const [songCards, artistCards] = await Promise.all([
+    Promise.all(res.songCards.map(toSongCard).map((card) => paintFromArt(card, card.artworkUrl))),
+    Promise.all(res.artistCards.map(toArtistCard).map((card) => paintFromArt(card, card.imageUrl))),
+  ]);
+  return { songCards, artistCards, songGradeRule: res.songGradeRule };
+}
+
 const DUMMY: CardSet = { songCards: DUMMY_SONG_CARDS, artistCards: DUMMY_ARTIST_CARDS, songGradeRule: DUMMY_SONG_GRADE_RULE };
 const EMPTY: CardSet = { songCards: [], artistCards: [], songGradeRule: null };
 
@@ -120,12 +129,7 @@ export const useRewardCardStore = create<RewardCardState>((set, get) => {
     loadServerCards: async () => {
       set({ serverStatus: 'loading' });
       try {
-        const res = await rewardCardApi.getCards();
-        const [songCards, artistCards] = await Promise.all([
-          Promise.all(res.songCards.map(toSongCard).map((card) => paintFromArt(card, card.artworkUrl))),
-          Promise.all(res.artistCards.map(toArtistCard).map((card) => paintFromArt(card, card.imageUrl))),
-        ]);
-        const server = { songCards, artistCards, songGradeRule: res.songGradeRule };
+        const server = await toCardSet(await rewardCardApi.getCards());
         set((state) => ({ server, serverStatus: 'ready', ...(state.source === 'server' ? server : {}) }));
       } catch {
         set({ serverStatus: 'error' });

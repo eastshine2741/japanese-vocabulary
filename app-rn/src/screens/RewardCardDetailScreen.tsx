@@ -24,12 +24,12 @@ import { EXPLAINER_IN_MS, EXPLAINER_OUT_MS } from '../components/rewardCards/Car
 import { CARD_RATIO, LEVEL_MATERIAL, MASTER_CHIP, SHOWROOM, songTierName, useCardFonts } from '../components/rewardCards/cardTheme';
 import { useCardTilt } from '../components/rewardCards/useCardTilt';
 import { useRefreshCardsOnReturn } from '../components/rewardCards/useRefreshCardsOnReturn';
-import { useShallow } from 'zustand/react/shallow';
 import { SONG_CARD_KINDS, songCardOfKind, songCardSample, songCardsOf, songRung } from '../components/rewardCards/cardKinds';
 import { serverTargetId } from '../components/rewardCards/serverRewardCards';
 import { songGradeCondition } from '../components/rewardCards/songGradeCondition';
 import type { CardGoal } from '../components/rewardCards/types';
 import { useRewardCardStore } from '../stores/rewardCardStore';
+import { useOwnerCards } from '../stores/userProfileStore';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RewardCardDetail'>;
 
@@ -52,15 +52,17 @@ const SONG_TABS: readonly GradeTab[] = SONG_CARD_KINDS.map((kind) => {
 });
 
 export default function RewardCardDetailScreen({ navigation, route }: Props) {
-  const { cardId } = route.params;
-  const opened = useRewardCardStore((s) => s.songCards.find((c) => c.id === cardId));
-  // 등급마다 카드가 따로라, 다른 칸을 누르면 그 등급의 내 카드로 바꿔 보여 준다.
-  const siblings = useRewardCardStore(
-    useShallow((s) => (opened ? songCardsOf(s.songCards, opened.songId, opened.title) : [])),
-  );
+  const { cardId, userId } = route.params;
+  // 남의 카드는 보기만 한다. 공유·가사 편집·복습·낡음 설명이 모두 내 카드 기준이다.
+  const readOnly = userId != null;
   // 푸시로 들어오면 카드를 아직 받는 중일 수 있다.
-  const loading = useRewardCardStore((s) => s.serverStatus === 'loading');
-  const gradeRule = useRewardCardStore((s) => s.songGradeRule);
+  const { songCards, songGradeRule: gradeRule, loading } = useOwnerCards(userId);
+  const opened = useMemo(() => songCards.find((c) => c.id === cardId), [songCards, cardId]);
+  // 등급마다 카드가 따로라, 다른 칸을 누르면 그 등급의 카드로 바꿔 보여 준다.
+  const siblings = useMemo(
+    () => (opened ? songCardsOf(songCards, opened.songId, opened.title) : []),
+    [songCards, opened],
+  );
   const songCondition = useCallback((rung: number) => songGradeCondition(rung, gradeRule).full, [gradeRule]);
   const ownedRung = siblings.reduce((top, c) => Math.max(top, songRung(c)), opened ? songRung(opened) : 0);
   const [pickedRung, setPickedRung] = useState<number | null>(null);
@@ -95,7 +97,7 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
   // 설명 화면은 같은 아트 배경 위에 뜨므로, 화면 전환 대신 내용만 비우고 채운다.
   const away = useSharedValue(0);
   // 가사 편집은 저장을 기다리지 않고 돌아와, 바로 다시 받으면 옛 가사로 덮인다. 설명 화면은 카드를 바꾸지 않는다.
-  const skipNextRefresh = useRefreshCardsOnReturn(navigation);
+  const skipNextRefresh = useRefreshCardsOnReturn(navigation, !readOnly);
   const awayStyle = useAnimatedStyle(() => ({ opacity: 1 - away.value, transform: [{ scale: 1 - away.value * 0.04 }] }));
   const openExplainer = useCallback(
     (params: RootStackParamList['RewardCardReveal']) => {
@@ -159,7 +161,7 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
   const issued = opened?.issued === true;
   const introCheckedRef = useRef(false);
   useEffect(() => {
-    if (!issued || introCheckedRef.current) return;
+    if (!issued || readOnly || introCheckedRef.current) return;
     introCheckedRef.current = true;
     let cancelled = false;
     useRewardCardStore
@@ -173,7 +175,7 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [issued, openExplainer, cardId]);
+  }, [issued, readOnly, openExplainer, cardId]);
 
   const handleWearInfo = useCallback(() => {
     openExplainer({ kind: 'song', cardId, wearOnly: true });
@@ -186,7 +188,7 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
   }, [navigation, skipNextRefresh, viewedId]);
 
   const songId = card?.songId ?? null;
-  const shareId = owned?.issued === true ? serverTargetId(owned.id) : null;
+  const shareId = !readOnly && owned?.issued === true ? serverTargetId(owned.id) : null;
   const handleOpenSong = useCallback(() => {
     if (songId != null) navigation.navigate('SongDetail', { songId, origin: 'reward_card_detail' });
   }, [navigation, songId]);
@@ -262,7 +264,7 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
               <Pressable onPress={handleFocus} hitSlop={10} style={styles.iconBtn}>
                 <Feather name="maximize-2" size={17} color={SHOWROOM.fg} />
               </Pressable>
-              {!isSample && (
+              {!isSample && !readOnly && (
                 <Pressable onPress={handleEditLyric} hitSlop={10} style={styles.iconBtn}>
                   <Feather name="edit-3" size={18} color={SHOWROOM.fg} />
                 </Pressable>
@@ -287,9 +289,9 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
           <Animated.View style={chromeStyle} pointerEvents={focused ? 'none' : 'auto'}>
             <Animated.View style={[styles.info, infoIn]}>
               <View style={[styles.wear, isSample && styles.wearMuted]}>
-                <Pressable onPress={handleWearInfo} hitSlop={10} style={styles.wearInfo}>
+                <Pressable onPress={handleWearInfo} disabled={readOnly} hitSlop={10} style={styles.wearInfo}>
                   <Text style={styles.wearLabel}>복습할 때가 된 단어</Text>
-                  <Feather name="info" size={13} color={SHOWROOM.fgDim} />
+                  {!readOnly && <Feather name="info" size={13} color={SHOWROOM.fgDim} />}
                 </Pressable>
                 <Text style={styles.wearValue}>{wearOf?.dueCount ?? 0}/{wearOf?.reviewedCount ?? 0}</Text>
               </View>
@@ -307,17 +309,19 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
                 <Pressable
                   onPress={handleOpenSong}
                   disabled={songId == null}
-                  style={({ pressed }) => [styles.subCta, songId == null && styles.ctaDisabled, pressed && styles.ctaPressed]}
+                  style={({ pressed }) => [styles.subCta, readOnly && styles.subCtaWide, songId == null && styles.ctaDisabled, pressed && styles.ctaPressed]}
                 >
                   <Text style={styles.subCtaText}>곡 보기</Text>
                 </Pressable>
-                <Pressable
-                  onPress={handleStartReview}
-                  disabled={songId == null || isStartingReview}
-                  style={({ pressed }) => [styles.cta, songId == null && styles.ctaDisabled, pressed && styles.ctaPressed]}
-                >
-                  {isStartingReview ? <ActivityIndicator color={SHOWROOM.bg} /> : <Text style={styles.ctaText}>복습 시작하기</Text>}
-                </Pressable>
+                {!readOnly && (
+                  <Pressable
+                    onPress={handleStartReview}
+                    disabled={songId == null || isStartingReview}
+                    style={({ pressed }) => [styles.cta, songId == null && styles.ctaDisabled, pressed && styles.ctaPressed]}
+                  >
+                    {isStartingReview ? <ActivityIndicator color={SHOWROOM.bg} /> : <Text style={styles.ctaText}>복습 시작하기</Text>}
+                  </Pressable>
+                )}
               </View>
             </Animated.View>
           </Animated.View>
@@ -346,6 +350,7 @@ const styles = StyleSheet.create({
   wearValue: { color: SHOWROOM.fg, fontSize: 17, fontWeight: '700', fontVariant: ['tabular-nums'] },
   ctaRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
   subCta: { height: 44, paddingHorizontal: 18, borderRadius: 14, backgroundColor: SHOWROOM.glass, alignItems: 'center', justifyContent: 'center' },
+  subCtaWide: { flex: 1 },
   subCtaText: { color: SHOWROOM.fg, fontSize: 15, fontWeight: '600' },
   cta: { flex: 1, height: 44, borderRadius: 14, backgroundColor: SHOWROOM.fg, alignItems: 'center', justifyContent: 'center' },
   ctaPressed: { opacity: 0.85 },

@@ -18,7 +18,6 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import ArtistCardShowcase from '../components/rewardCards/ArtistCardShowcase';
 import CardShareButton from '../components/rewardCards/CardShareButton';
 import GradePanel, { GradeTab } from '../components/rewardCards/GradePanel';
-import { useShallow } from 'zustand/react/shallow';
 import { ARTIST_GRADE_STEPS } from '../components/rewardCards/artistGrade';
 import type { CardGoal } from '../components/rewardCards/types';
 import { artistCardOfStep, artistCardSample, artistCardsOf, artistRung } from '../components/rewardCards/cardKinds';
@@ -26,7 +25,7 @@ import { serverTargetId } from '../components/rewardCards/serverRewardCards';
 import { ARTIST_CARD_RATIO, ARTIST_MATERIAL, SHOWROOM, useCardFonts } from '../components/rewardCards/cardTheme';
 import { useCardTilt } from '../components/rewardCards/useCardTilt';
 import { useRefreshCardsOnReturn } from '../components/rewardCards/useRefreshCardsOnReturn';
-import { useRewardCardStore } from '../stores/rewardCardStore';
+import { useOwnerCards } from '../stores/userProfileStore';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ArtistCardDetail'>;
 
@@ -43,11 +42,14 @@ function artistCondition(rung: number): string {
 }
 
 export default function ArtistCardDetailScreen({ navigation, route }: Props) {
-  const { cardId } = route.params;
-  const opened = useRewardCardStore((s) => s.artistCards.find((c) => c.id === cardId));
+  const { cardId, userId } = route.params;
+  const readOnly = userId != null;
+  const { artistCards } = useOwnerCards(userId);
+  const opened = useMemo(() => artistCards.find((c) => c.id === cardId), [artistCards, cardId]);
   // 다른 칸을 누르면 그 등급의 견본으로 바꿔 보여 준다. 카드는 한 장이라 지나온 등급도 견본이다.
-  const siblings = useRewardCardStore(
-    useShallow((s) => (opened ? artistCardsOf(s.artistCards, opened.artistId, opened.name) : [])),
+  const siblings = useMemo(
+    () => (opened ? artistCardsOf(artistCards, opened.artistId, opened.name) : []),
+    [artistCards, opened],
   );
   const top = useMemo(
     () => siblings.reduce<typeof opened>((best, c) => (best == null || c.masteredCount > best.masteredCount ? c : best), opened),
@@ -91,11 +93,11 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
     transform: [{ translateY: (1 - info.value) * 12 }],
   }));
 
-  useRefreshCardsOnReturn(navigation);
+  useRefreshCardsOnReturn(navigation, !readOnly);
 
   const handleClose = useCallback(() => navigation.goBack(), [navigation]);
   const artistId = card?.artistId ?? null;
-  const shareId = owned?.issued === true ? serverTargetId(owned.id) : null;
+  const shareId = !readOnly && owned?.issued === true ? serverTargetId(owned.id) : null;
   const handleOpenArtist = useCallback(() => {
     if (artistId != null) navigation.navigate('ArtistDetail', { artistId });
   }, [artistId, navigation]);

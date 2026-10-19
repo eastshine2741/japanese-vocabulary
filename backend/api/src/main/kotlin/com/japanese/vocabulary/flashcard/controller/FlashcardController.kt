@@ -2,8 +2,8 @@ package com.japanese.vocabulary.flashcard.controller
 
 import com.japanese.vocabulary.flashcard.dto.DueFlashcardsDto
 import com.japanese.vocabulary.flashcard.dto.DueFlashcardsResponse
-import com.japanese.vocabulary.flashcard.dto.FlashcardStatsDto
 import com.japanese.vocabulary.flashcard.dto.FlashcardStatsResponse
+import com.japanese.vocabulary.flashcard.dto.toResponse
 import com.japanese.vocabulary.flashcard.dto.ReviewRequest
 import com.japanese.vocabulary.flashcard.dto.ReviewResponse
 import com.japanese.vocabulary.deck.service.DeckService
@@ -58,15 +58,5 @@ class FlashcardController(
         cards = items,
         totalCount = totalCount,
         nextDueAt = nextDueAt,
-    )
-
-    private fun FlashcardStatsDto.toResponse() = FlashcardStatsResponse(
-        total = total,
-        due = due,
-        newCount = newCount,
-        learning = learning,
-        review = review,
-        longTermCount = longTermCount,
-        shortTermCount = shortTermCount,
     )
 }

@@ -36,6 +36,7 @@ import ArtistCardListScreen from '../screens/ArtistCardListScreen';
 import RewardCardLyricEditScreen from '../screens/RewardCardLyricEditScreen';
 import RewardCardRevealScreen from '../screens/RewardCardRevealScreen';
 import StudyScheduleScreen from '../screens/StudyScheduleScreen';
+import UserProfileScreen from '../screens/UserProfileScreen';
 
 import HomeTab from '../screens/tabs/HomeTab';
 import MyPageTab from '../screens/tabs/MyPageTab';
@@ -83,8 +84,8 @@ export type RootStackParamList = {
   SongProgressList: undefined;
   /** 홈 헤더의 연속 학습 칩에서 들어오는 상세. */
   Streak: undefined;
-  /** 프로필 카드 탭에서 곡 카드를 누르면 열리는 전시 화면. */
-  RewardCardDetail: { cardId: string; ownerName: string };
+  /** 프로필 카드 탭에서 곡 카드를 누르면 열리는 전시 화면. userId 가 있으면 그 유저의 카드를 읽기 전용으로 본다. */
+  RewardCardDetail: { cardId: string; ownerName: string; userId?: number };
   RewardCardLyricEdit: { cardId: string };
   /** 아직 얻지 않은 카드 종류의 견본 전시. condition 은 그 종류의 획득 조건 한 줄. */
   RewardCardPreview: { target: CardPreviewTarget; condition: string; reached: boolean };
@@ -103,11 +104,13 @@ export type RootStackParamList = {
     fromGrade?: string | null;
   };
   /** 프로필 카드 탭에서 아티스트 카드를 누르면 열리는 전시 화면. */
-  ArtistCardDetail: { cardId: string; ownerName: string };
+  ArtistCardDetail: { cardId: string; ownerName: string; userId?: number };
   /** 공유 링크로 연 남의 카드. */
   SharedCard: { token: string };
   /** 프로필 카드 탭 아티스트 카드 헤더에서 들어오는 전체 목록. */
-  ArtistCardList: { ownerName: string };
+  ArtistCardList: { ownerName: string; userId?: number };
+  /** 곡 상세 기여자를 누르면 열리는 프로필. 나를 누르면 편집할 수 있는 내 프로필이다. */
+  UserProfile: { userId: number };
   /** 홈 헤더의 '오늘 복습할 단어' 블록에서 들어오는 FSRS 스케줄 상세. */
   StudySchedule: undefined;
   DeckDetail: { deckId: number | null };
@@ -243,6 +246,7 @@ export default function AppNavigator({ initialRoute }: Props) {
         options={{ animation: 'fade', contentStyle: { backgroundColor: '#0E0D13' } }}
       />
       <Stack.Screen name="ArtistCardList" component={ArtistCardListScreen} />
+      <Stack.Screen name="UserProfile" component={UserProfileScreen} />
       <Stack.Screen name="StudySchedule" component={StudyScheduleScreen} />
       <Stack.Screen name="DeckDetail" component={DeckDetailScreen} />
       <Stack.Screen name="DeckWordList" component={DeckWordListScreen} />

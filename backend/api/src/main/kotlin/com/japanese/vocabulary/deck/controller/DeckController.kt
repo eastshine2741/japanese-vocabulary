@@ -6,13 +6,11 @@ import com.japanese.vocabulary.deck.dto.DeckDeletionPreviewResponse
 import com.japanese.vocabulary.deck.dto.DeckDetailResponse
 import com.japanese.vocabulary.deck.dto.DeckDto
 import com.japanese.vocabulary.deck.dto.DeckListResponse
+import com.japanese.vocabulary.deck.dto.toResponse
 import com.japanese.vocabulary.deck.dto.DeckResponse
 import com.japanese.vocabulary.deck.dto.DeckWordItemDto
 import com.japanese.vocabulary.deck.dto.DeckWordListResponse
-import com.japanese.vocabulary.deck.dto.SongDeckSummaryDto
 import com.japanese.vocabulary.deck.dto.DeckDetailDto
-import com.japanese.vocabulary.deck.dto.DeckListDto
-import com.japanese.vocabulary.deck.dto.DeckSummaryDto
 import com.japanese.vocabulary.deck.service.DeckDeletionService
 import com.japanese.vocabulary.deck.service.DeckService
 import com.japanese.vocabulary.word.dto.WordListDto
@@ -84,26 +82,6 @@ class DeckController(
 
     private fun currentUserId(): Long =
         SecurityContextHolder.getContext().authentication.principal as Long
-
-    private fun DeckListDto.toResponse() = DeckListResponse(
-        songDecks = items.map { it.toResponse() },
-        nextCursor = nextCursor,
-    )
-
-    private fun DeckSummaryDto.toResponse() = SongDeckSummaryDto(
-        deckId = deckId,
-        songId = songId,
-        title = title,
-        artist = artist,
-        artworkUrl = artworkUrl,
-        wordCount = wordCount,
-        dueCount = dueCount,
-        masteredCount = masteredCount,
-        studyingCount = studyingCount,
-        newWordCount = newWordCount,
-        longTermCount = longTermCount,
-        shortTermCount = shortTermCount,
-    )
 
     private fun DeckDetailDto.toResponse() = DeckDetailResponse(
         deckId = deckId,
