@@ -5,7 +5,9 @@ import {
   buildSongReportRequest,
   buildSongReportTokenChoices,
   canSubmitSongReport,
+  selectSongReportTokenChoices,
   selectSongReportTypes,
+  songReportLineFocus,
 } from './songReportForm';
 
 function type(overrides: Partial<SongReportTypeDto>): SongReportTypeDto {
@@ -54,6 +56,32 @@ describe('buildSongReportTokenChoices', () => {
       token({ surface: ' ', charStart: 1, charEnd: 2 }),
     ]);
     expect(choices).toEqual([{ key: '0-1', surface: '日', charStart: 0, charEnd: 1 }]);
+  });
+});
+
+describe('songReportLineFocus', () => {
+  it('유형마다 그 유형이 다루는 것을 보여주고, 모르는 유형은 원문과 번역을 보여준다', () => {
+    expect(songReportLineFocus('LYRIC_TEXT')).toBe('ORIGINAL');
+    expect(songReportLineFocus('FURIGANA')).toBe('READING');
+    expect(songReportLineFocus('WORD_MEANING')).toBe('MEANING');
+    expect(songReportLineFocus('SEGMENTATION')).toBe('SEGMENTS');
+    expect(songReportLineFocus('NEW_TYPE')).toBe('TRANSLATION');
+    expect(songReportLineFocus(null)).toBe('TRANSLATION');
+  });
+});
+
+describe('selectSongReportTokenChoices', () => {
+  const choices = buildSongReportTokenChoices([
+    token({ surface: '日', charStart: 0, charEnd: 1 }),
+    token({ surface: 'が', charStart: 1, charEnd: 2 }),
+  ]);
+
+  it('발음 제보는 한자가 든 단어만 고를 수 있다', () => {
+    expect(selectSongReportTokenChoices(choices, 'FURIGANA').map(c => c.surface)).toEqual(['日']);
+  });
+
+  it('다른 유형은 모든 단어를 고를 수 있다', () => {
+    expect(selectSongReportTokenChoices(choices, 'WORD_MEANING').map(c => c.surface)).toEqual(['日', 'が']);
   });
 });
 
