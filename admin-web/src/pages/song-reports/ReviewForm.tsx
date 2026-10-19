@@ -69,6 +69,22 @@ function createOp(kind: OpKind, report: SongReportDetail): DraftOp {
   }
 }
 
+function originalValue(draft: Exclude<DraftOp, { op: "REPLACE_LINE_TOKENS" }>, context: SongReportContext) {
+  switch (draft.op) {
+    case "SET_YOUTUBE_URL":
+      return context.song.youtubeUrl ?? ""
+    case "SET_LINE_TEXT":
+      return context.line?.text ?? ""
+    case "SET_LINE_TRANSLATION":
+      return context.line?.koreanLyrics ?? ""
+    default:
+      return tokenValue(
+        draft.op,
+        context.line?.tokens.find((item) => item.charStart === draft.charStart && item.charEnd === draft.charEnd),
+      )
+  }
+}
+
 function toChangeOp(draft: DraftOp, lineIndex: number): SongReportChangeOp {
   switch (draft.op) {
     case "SET_YOUTUBE_URL":
@@ -144,14 +160,23 @@ export function ReviewForm({
   }
 
   return (
-    <section className="mt-6 border-y border-[#d9e1ea] bg-white" aria-label="Review">
-      <div className="border-b border-[#edf1f5] px-4 py-3 text-xs font-semibold uppercase text-[#637083]">Review</div>
-      <div className="divide-y divide-[#edf1f5]">
-        {ops.map((item) => (
-          <OpEditor key={item.key} draft={item} context={context} lineText={lineText} onChange={updateOp} onRemove={removeOp} />
-        ))}
-      </div>
-      <div className="flex flex-wrap items-center gap-2 border-t border-[#edf1f5] px-4 py-3">
+    <div className="space-y-3" role="group" aria-label="Review">
+      {ops.length > 0 ? (
+        <div className="divide-y divide-[#edf1f5] rounded-md border border-[#d9e1ea]">
+          {ops.map((item) => (
+            <OpEditor
+              key={item.key}
+              draft={item}
+              context={context}
+              lineText={lineText}
+              suggestion={report.suggestion}
+              onChange={updateOp}
+              onRemove={removeOp}
+            />
+          ))}
+        </div>
+      ) : null}
+      <div className="flex flex-wrap items-center gap-2">
         <select
           className="focus-ring h-9 rounded-md border border-[#cbd5e1] bg-white px-3 text-sm"
           value={adding}
@@ -169,7 +194,7 @@ export function ReviewForm({
           Add change
         </Button>
       </div>
-      <div className="space-y-3 border-t border-[#edf1f5] px-4 py-3">
+      <div className="space-y-3 border-t border-[#edf1f5] pt-3">
         <Input
           value={note}
           maxLength={500}
@@ -191,7 +216,7 @@ export function ReviewForm({
           </Button>
         </div>
       </div>
-    </section>
+    </div>
   )
 }
 
@@ -199,18 +224,21 @@ const OpEditor = React.memo(function OpEditor({
   draft,
   context,
   lineText,
+  suggestion,
   onChange,
   onRemove,
 }: {
   draft: DraftOp
   context: SongReportContext
   lineText: string
+  suggestion: string | null
   onChange(key: number, next: DraftOp): void
   onRemove(key: number): void
 }) {
   const tokens = context.line?.tokens ?? []
+  const original = draft.op === "REPLACE_LINE_TOKENS" ? null : originalValue(draft, context)
   return (
-    <div className="space-y-2 px-4 py-3" aria-label={opLabels[draft.op]}>
+    <div className="space-y-2 px-3 py-3" aria-label={opLabels[draft.op]}>
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold text-[#18212f]">
           {opLabels[draft.op]}
@@ -254,11 +282,22 @@ const OpEditor = React.memo(function OpEditor({
               })}
             </div>
           ) : null}
-          <Input
-            value={draft.value}
-            aria-label={`${opLabels[draft.op]} value`}
-            onChange={(event) => onChange(draft.key, { ...draft, value: event.target.value })}
-          />
+          <div className="flex gap-2">
+            <Input
+              value={draft.value}
+              aria-label={`${opLabels[draft.op]} value`}
+              onChange={(event) => onChange(draft.key, { ...draft, value: event.target.value })}
+            />
+            {suggestion && suggestion !== draft.value ? (
+              <Button variant="secondary" onClick={() => onChange(draft.key, { ...draft, value: suggestion })}>
+                Use suggestion
+              </Button>
+            ) : null}
+          </div>
+          <div className="text-xs text-[#637083]">
+            Current: <span className="text-[#42526b]">{original || "-"}</span>
+            {original === draft.value ? <span className="ml-2 text-[#b45309]">unchanged</span> : null}
+          </div>
         </>
       )}
     </div>

@@ -155,15 +155,22 @@ describe("admin web", () => {
     await user.click(screen.getByText("단어 뜻이 틀려요"))
 
     const input = (await screen.findByLabelText("단어 뜻 value")) as HTMLInputElement
+    expect(screen.getByRole("region", { name: "Reported problem" })).toHaveTextContent("단어 뜻이 틀려요")
+    expect(screen.getByText("沈む", { selector: "mark" })).toBeInTheDocument()
+    const suggestion = screen.getByRole("region", { name: "User suggestion" })
+    expect(suggestion).toHaveTextContent("Current Meaning of 沈む가라앉다")
+    expect(suggestion).toHaveTextContent("Suggested가라앉다 (물에)")
+    expect(screen.getByRole("region", { name: "Fix to apply" })).toBeInTheDocument()
     expect(screen.getByLabelText("Change type")).toHaveValue("SET_TOKEN_MEANING")
     expect(input.value).toBe("가라앉다")
+    expect(screen.getByText("unchanged")).toBeInTheDocument()
     await user.clear(input)
     await user.type(input, "bad")
     await user.click(screen.getByRole("button", { name: /Approve/ }))
     expect(await screen.findByRole("alert")).toHaveTextContent("token out of bounds")
 
-    await user.clear(input)
-    await user.type(input, "가라앉다 (물에)")
+    await user.click(screen.getByRole("button", { name: "Use suggestion" }))
+    expect(input.value).toBe("가라앉다 (물에)")
     await user.type(screen.getByLabelText("Review note"), "ok")
     await user.click(screen.getByRole("button", { name: /Approve/ }))
 
