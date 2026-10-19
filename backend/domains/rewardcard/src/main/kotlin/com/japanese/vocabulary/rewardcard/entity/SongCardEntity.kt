@@ -34,7 +34,7 @@ class SongCardEntity(
     @Column(name = "grade", nullable = false, updatable = false, length = 10)
     val grade: SongCardGrade,
 
-    /** 곡·등급마다 따로 센다. */
+    /** 곡·등급마다 따로 센다 — 같은 곡을 공부하는 유저끼리 다음 등급을 누가 먼저 받는지가 남아 다음 단계를 공부하게 한다. */
     @Column(name = "acquired_seq", nullable = false)
     val acquiredSeq: Int,
 
@@ -57,7 +57,7 @@ class SongCardEntity(
 ) {
     val isIssued: Boolean get() = issuedAt != null
 
-    /** 발급 = 서명 확정. */
+    /** 발급 = 서명 확정. 서명은 이때 한 번만 받고 고칠 수 없다 — '이 카드는 내 것'이라는 감각을 만드는 의식이다. */
     fun issue(signature: List<String>, lyricLineIndexes: List<Int>, now: Instant) {
         if (isIssued) throw BusinessException(ErrorCode.REWARD_CARD_ALREADY_ISSUED)
         this.signature = signature

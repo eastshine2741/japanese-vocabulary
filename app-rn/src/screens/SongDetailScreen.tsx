@@ -101,6 +101,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const infoSheetOpenRef = useRef(false);
   const coverageHelpSheetRef = useRef<AppBottomSheetRef>(null);
   const coverageHelpSheetOpenRef = useRef(false);
+  const collapseLyricsSheetRef = useRef<(() => boolean) | null>(null);
   const isInitialFocusRef = useRef(true);
 
   const status = useSongDetailStore(s => s.status);
@@ -505,7 +506,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
           infoSheetRef.current?.close();
           return true;
         }
-        return false;
+        return collapseLyricsSheetRef.current?.() ?? false;
       };
       const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
       return () => sub.remove();
@@ -755,6 +756,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         lyricType={song.lyricType}
         busyWordKey={busyWordKey}
         onStartWordReview={handleStartWordReview}
+        collapseSheetRef={collapseLyricsSheetRef}
       />
 
       <View
@@ -914,6 +916,8 @@ interface PlaybackOverlaysProps {
   lyricType: React.ComponentProps<typeof CurrentPlayingWordsSheet>['lyricType'];
   busyWordKey: string | null;
   onStartWordReview: React.ComponentProps<typeof CurrentPlayingWordsSheet>['onStartWordReview'];
+  /** 백버튼이 위에 뜬 시트들을 먼저 닫은 뒤 가사 시트를 접도록 부모의 백 핸들러가 부른다. */
+  collapseSheetRef: React.MutableRefObject<(() => boolean) | null>;
 }
 
 const PlaybackOverlays = React.memo(function PlaybackOverlays({
@@ -931,6 +935,7 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
   lyricType,
   busyWordKey,
   onStartWordReview,
+  collapseSheetRef,
 }: PlaybackOverlaysProps) {
   // 가사 줄을 지정해 들어오면(예문) 가사 시트를 펼친 채 그 줄 시각부터 튼다.
   const initialSheetIndex = initialLyricIndex != null ? 1 : 0;
@@ -965,6 +970,17 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
     wordsSheetIndexRef.current = nextIndex;
     wordsSheetRef.current?.snapToIndex(nextIndex);
   }, []);
+  useEffect(() => {
+    collapseSheetRef.current = () => {
+      if (wordsSheetIndexRef.current <= 0) return false;
+      wordsSheetIndexRef.current = 0;
+      wordsSheetRef.current?.snapToIndex(0);
+      return true;
+    };
+    return () => {
+      collapseSheetRef.current = null;
+    };
+  }, [collapseSheetRef]);
 
   const handleOpenLineReport = useCallback((line: React.ComponentProps<typeof CurrentPlayingWordsSheet>['lines'][number]) => {
     setReportTarget({ group: 'LYRIC_LINE', line });

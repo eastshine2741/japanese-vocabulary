@@ -1,1 +1,0 @@
-../../../.codex/skills/pencil-frontend-implementer/SKILL.md

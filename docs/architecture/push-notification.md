@@ -11,14 +11,12 @@ decide who gets what: `batch` (streak reminder CronJob), `worker` (analysis-comp
 - Notification persistence: `NotificationLogEntity` in `domains:notification`.
 - Streak reminder (who / when / what): `StreakReminderTask` in `batch`, run by the
   `streak-reminder-evening` / `streak-reminder-night` CronJobs at `20:00` and `23:00` KST
-  (`--task=streak-reminder --slot=EVENING|NIGHT`). Copy lives in `StreakReminderMessage`; rules are in
-  `docs/product-intents/260918-streak-commitment.md` section C. Payload `data.type` is
+  (`--task=streak-reminder --slot=EVENING|NIGHT`). Copy lives in `StreakReminderMessage`. Payload `data.type` is
   `streak_reminder`. The former 09:00 / 18:00 word-recall reminder (`review_reminder`) is gone.
   Both slots are sent with `androidDataOnly = true`: no notification block on Android, so the
   app renders it from `data.title` / `data.body`; iOS still gets a visible APNs alert. The 23:00 slot
   also carries `data.expiresAt` (epoch ms of the next 04:00 KST) for the client countdown. Titles
-  call the user by `users.name` (NOT NULL, `사용자` when left blank). Payload and
-  copy: `docs/product-intents/260918-streak-commitment-api.md` section 3.
+  call the user by `users.name` (NOT NULL, `사용자` when left blank).
 - Client rendering: `app-rn/modules/streak-notification` (local Expo module, Android only) draws every
   streak reminder with colored title and body (red with a countdown, green without — dark green on a light shade, bright green in system dark mode). With
   `expiresAt` it adds a count-down chronometer until then and removes the notification at that point.
@@ -32,7 +30,7 @@ decide who gets what: `batch` (streak reminder CronJob), `worker` (analysis-comp
   `docs/karaoke-new-songs.md`.
 - Reward cards backfilled: `RewardCardBackfillPushTask` in `batch`, run once by hand from the suspended
   `reward-card-backfill-push` CronJob after `reward-card-backfill` has filled the cards. One push to each user who got a new song card. Payload `data.type` is
-  `reward_cards_backfilled`; carries the headline `songId`; a tap opens that song card's detail over the MyPage tab. Rules: `docs/product-intents/261010-reward-cards.md`.
+  `reward_cards_backfilled`; carries the headline `songId`; a tap opens that song card's detail over the MyPage tab.
 - Manual trigger of a slot: create a Job from the CronJob —
   `kubectl create job --from=cronjob/streak-reminder-evening sr-$(date +%s) -n <ns>`.
 - Manual single-user dispatch: `POST /admin/api/push/send` in `admin-api`, behind the normal admin

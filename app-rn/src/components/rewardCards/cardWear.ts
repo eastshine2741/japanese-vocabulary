@@ -5,7 +5,10 @@ export const FRESH_DUE = 0.2;
 
 export type WearState = 'fresh' | 'faded' | 'worn' | 'tattered';
 
-/** 카드를 받은 뒤 리뷰한 단어 중 지금 복습할 차례인 비율. 잴 단어가 없으면 0. */
+/**
+ * 카드를 받은 뒤 리뷰한 단어 중 지금 복습할 차례인 비율. 잴 단어가 없으면 0. FSRS R 로 재지 않는 이유는
+ * R 이 마지막 리뷰 뒤 24시간 안엔 늘 100% 라 첫날만 하고 떠난 유저를 다음 날 다시 부를 수 없어서다.
+ */
 export function dueRatio(card: Pick<SongRewardCard, 'dueCount' | 'reviewedCount'>): number {
   return card.reviewedCount > 0 ? card.dueCount / card.reviewedCount : 0;
 }

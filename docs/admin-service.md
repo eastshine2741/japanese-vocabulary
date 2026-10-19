@@ -72,6 +72,12 @@ Routes:
 - `POST /admin/api/song-reports/{id}/approve` — `{ changes: [{ op, ... }], note? }`. PENDING 만 (아니면 409)
 - `POST /admin/api/song-reports/{id}/reject` — `{ note? }`. PENDING 만 (아니면 409)
 
+분석 제보 (유저 쪽):
+
+- `POST /api/songs/{id}/reports` 가 `song_reports` PENDING 행을 만든다. 승인은 같은 트랜잭션에서 곡·active 가사를 고치고, 바뀐 내용은 `review_changes` 에만 남는다 — 곡·가사 버전은 두지 않는다.
+- 승인 커밋 뒤에만 제보자에게 `song_report_approved` 푸시. 반려는 알리지 않는다.
+- `GET /api/songs/{id}/contributors` 는 APPROVED 제보자. 누르면 그 유저 프로필을 읽기 전용으로 연다(서명한 보상 카드만 공개).
+
 Reels Factory:
 
 - `admin-web` is a small NLE-style editor: toolbar (song picker, acknowledgement, render) / line bin · monitor · inspector / timeline. The edit state (clip in/out, per-line start time, per-line words) lives only in the browser; nothing is persisted.

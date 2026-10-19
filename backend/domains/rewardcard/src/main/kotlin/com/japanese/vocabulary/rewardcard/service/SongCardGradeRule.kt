@@ -6,9 +6,10 @@ import com.japanese.vocabulary.rewardcard.model.SongCardGrade
 
 /**
  * 곡 상세 `완곡까지 3단계` 의 단계별 tier 단어 카드로 곡 카드 등급을 정한다. 단계는 앞에서부터 끝낸 수만 센다(남음 0 = 끝).
- * 마스터는 완곡 뒤, tier 단어의 90% 가 장기기억일 때다 — '전부'는 망각 때문에 곡이 길수록 닿기 어렵다.
+ * 마스터는 완곡 다음의 마지막 보상 하나로, tier 단어의 [MASTER_PERCENT]% 가 장기기억(stability 14일 이상)일 때다.
  */
 object SongCardGradeRule {
+    // 성실히 해도 due 마다 ~10% 는 잊혀 '전부'는 곡이 길수록 반년 넘게 걸리고 들쭉날쭉하다. 90% 면 곡 길이와 상관없이 약 6주.
     const val MASTER_PERCENT = 90
 
     /** [tiers] 는 단계 순서다. 단어마다 유저의 카드(없으면 null)를 둔다. */

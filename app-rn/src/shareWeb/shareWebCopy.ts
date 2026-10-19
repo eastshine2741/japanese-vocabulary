@@ -6,7 +6,7 @@ import type { LadderStep } from '../components/rewardCards/cardLadders';
 import { dueRatio, wearState } from '../components/rewardCards/cardWear';
 import { artistGradeIndex, songGradeOf } from '../components/rewardCards/serverRewardCards';
 
-// 이 화면을 보는 사람은 앱을 모른다. 앱 안의 단계·등급 이름 대신 무엇을 공부했는지로 말한다.
+// 이 화면을 보는 사람은 앱을 모른다. 등급 이름(MASTER 등)·앱 단계 이름('후렴 정복' 등) 대신 무엇을 공부했는지로 말한다.
 // 줄마다 한 줄로 맞춰 그리므로 긴 문장은 \n 으로 미리 나눈다.
 
 export interface ShareCelebration {

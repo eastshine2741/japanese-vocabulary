@@ -10,7 +10,7 @@
 기억 상태 판정은 `FlashcardMemory`(domains:word). 앱은 `songDetailStore.tiers` / `coverage` 에 둔다.
 
 관련 Pencil 프레임: `jBwuD`(17a 0%) · `uGG5c`(17b 진행 중) · `i7qEd`(17c 완곡 선택) ·
-`a71Emf`(17d 이해도 도움말). 기획 배경은 `docs/product-intents/260925-song-detail-study-status-api.md`.
+`a71Emf`(17d 이해도 도움말).
 
 ## 앱이 직접 못 하는 이유
 

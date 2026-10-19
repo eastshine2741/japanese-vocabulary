@@ -15,8 +15,8 @@ import java.time.Instant
 import kotlin.math.roundToInt
 
 /**
- * 오늘의 복습 스케줄 (docs/product-intents/261004-study-schedule-api.md).
- * 시뮬레이션은 메모리에서만 돈다 — 실제 flashcard 는 건드리지 않는다.
+ * 오늘의 복습 스케줄과 기억 단어 수 예보. 예보는 '잊기 직전에 다시 보여 주니 매일 복습하면 외운 단어를 지킨다'를 보이려고
+ * 매일 GOOD 복습과 오늘부터 쉼 두 시나리오만 그린다. 시뮬레이션은 메모리에서만 돈다 — 실제 flashcard 는 건드리지 않는다.
  */
 @Service
 class StudyScheduleService(
@@ -36,7 +36,7 @@ class StudyScheduleService(
             .map { SimCard(id = it.id!!, wordId = it.wordId, due = it.due, card = Card.fromJson(it.fsrsCardJson)) }
             .sortedWith(QUEUE_ORDER)
         val dueNow = cards.filter { it.due <= now }
-        // 새 카드는 아직 외운 적이 없으니 '지켜 줄 기억'에 넣지 않는다 — 넣으면 하루 만에 다 외운 것처럼 뛴다.
+        // 한 번도 평가 안 한 새 카드를 넣으면 쉬는 쪽은 바닥에 붙고 복습 쪽은 하루 만에 다 외운 것처럼 뛴다.
         val studied = cards.filter { it.card.lastReview != null }
 
         return StudyScheduleDto(
