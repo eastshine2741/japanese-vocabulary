@@ -1052,7 +1052,7 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
         keyboardBlurBehavior="restore"
         onDismiss={handleReportDismissed}
       >
-        <AppBottomSheetView>
+        <AppBottomSheetView fitAboveKeyboard>
           {reportSent ? (
             <SongReportThanksSheet onClose={handleCloseReport} />
           ) : reportTarget ? (
