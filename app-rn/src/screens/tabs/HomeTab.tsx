@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, PanResponder, PixelRatio, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, BackHandler, PanResponder, PixelRatio, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
   Extrapolation,
@@ -10,7 +10,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useIsFocused, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -112,6 +112,18 @@ export default function HomeTab() {
   }, [immerse, setDark]);
 
   const enterImmerse = useCallback(() => setImmersed(true), [setImmersed]);
+
+  // 아래 덱 시트 훅들보다 먼저 등록해야 시트가 열려 있을 땐 시트가 백버튼을 먼저 받는다.
+  useFocusEffect(
+    useCallback(() => {
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        if (!immersedRef.current) return false;
+        setImmersed(false);
+        return true;
+      });
+      return () => sub.remove();
+    }, [setImmersed]),
+  );
 
   const startRefresh = useCallback(() => {
     setRefreshing(true);
