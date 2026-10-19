@@ -51,27 +51,36 @@ OTA 가드 4번은 `.github/scripts/native-compat/check.sh <base-ref> [head-ref]
 ## Flow
 
 ```bash
-# 네이티브 출시 시작
-git switch -c release/1.2.5 main && git push -u origin release/1.2.5
+# 네이티브 출시 시작 — 메인 워크트리는 main 만 쓰므로 release 는 형제 워크트리에서
+git worktree add ../japanese-vocabulary-release-1.2.5 -b release/1.2.5 main
+cd ../japanese-vocabulary-release-1.2.5 && git push -u origin release/1.2.5
 git tag v1.2.5-rc.1 && git push origin v1.2.5-rc.1
 # rc 수정은 release/1.2.5 에 커밋 → v1.2.5-rc.2 ...
 git tag v1.2.5 && git push origin v1.2.5          # 스토어 심사 제출까지 자동
-git switch main && git merge release/1.2.5
+git -C ../japanese-vocabulary merge release/1.2.5  # 메인 워크트리(main)에 머지
 
-# 출시 후 OTA
-git switch release/1.2.5 && git merge main && git push
+# 출시 후 OTA (release 워크트리에서)
+git merge main && git push
 git tag js-v1.2.5-update.1.prod && git push origin js-v1.2.5-update.1.prod
-git switch main && git merge release/1.2.5
+git -C ../japanese-vocabulary merge release/1.2.5
 
 # OTA 가드가 fingerprint 로 실패하면: 태그와 머지를 되돌리고 필요한 PR 만 가져온다
 git push --delete origin js-v1.2.5-update.1.prod && git tag -d js-v1.2.5-update.1.prod
-git switch release/1.2.5 && git reset --hard <머지 전 커밋> && git push --force
+git reset --hard <머지 전 커밋> && git push --force   # release 워크트리에서
 git cherry-pick -m 1 <PR 의 merge commit>      # 이후 다시 태그
 ```
+
+iOS 빌드는 됐는데 제출이 실패하면 빌드 한도를 쓰지 않고 그 빌드로 다시 낸다 (워크플로는 release 브랜치 것을 쓴다):
+`gh workflow run cd-ios.yml --ref release/1.2.5 -f tag=v1.2.5 -f build_id=<EAS 빌드 id>`.
 
 iOS 심사는 통과해도 자동 출시하지 않는다 (`automatic_release: false`). App Store Connect 에서 출시를 누른다.
 iOS "이번 버전의 새로운 기능"과 Play 출시 노트(ko-KR, 500자)는 `vX.Y.Z` 가 annotated 태그면 그 메시지 본문을 쓴다. 아니면 iOS 는 기본 문구, Play 는 비워 둔다
 (`git tag -a v1.2.5 -m "..."`). Play 프로덕션은 관리형 게시를 켜 두면 심사 후 출시 시점을 직접 정한다.
+
+스토어 이름·부제·키워드·설명은 `app-rn/fastlane/metadata/` 가 원본이다. 콘솔에서 고치면 다음 업로드가 덮어쓴다.
+
+- iOS (`metadata/ios/ko/`): 키워드·부제는 새 버전 제출 때만 바뀌므로 CD - iOS 의 `submit_review` 가 심사 제출에 같이 싣는다.
+- Android (`metadata/android/ko-KR/`): main 에 머지되면 `Play Store Listing` 워크플로가 `fastlane android upload_listing` 으로 바로 올린다.
 
 ## Secrets
 

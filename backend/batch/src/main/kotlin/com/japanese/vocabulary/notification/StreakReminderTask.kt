@@ -16,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 
 /**
- * 연속 학습 알림 (docs/product-intents/260918-streak-commitment.md C). 20:00 / 23:00 KST에
+ * 연속 학습 알림. 20:00 / 23:00 KST에
  * 오늘 아직 학습하지 않은 유저에게 연속 학습 상태를 보낸다. "누구에게 / 언제 / 무슨 문구"는 전부
  * 여기서 정하고, notification 모듈은 토큰·제목·본문·data 만 받는다.
  *

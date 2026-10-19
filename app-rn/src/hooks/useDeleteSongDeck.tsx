@@ -11,15 +11,22 @@ import { useStudyStatsStore } from '../stores/studyStatsStore';
 const RETRY_MESSAGE = '잠시 후 다시 시도해주세요.';
 const KEPT_WORDS_NOTE = '다른 곡에서도 배운 단어는 그대로 남아요.';
 
-export function songDeckDeletionBody(deletedWordCount: number): string {
-  return deletedWordCount > 0
-    ? `단어 ${deletedWordCount}개와 복습 기록이 사라져요.\n${KEPT_WORDS_NOTE}`
-    : KEPT_WORDS_NOTE;
+type DeletionPreview = { deletedWordCount: number; deletedCardCount: number };
+
+export function songDeckDeletionBody({ deletedWordCount, deletedCardCount }: DeletionPreview): string {
+  const lines = [
+    deletedWordCount > 0 ? `단어 ${deletedWordCount}개와 복습 기록이 사라져요.` : null,
+    deletedCardCount > 0
+      ? `이 곡에서 얻은 카드 ${deletedCardCount}장${deletedWordCount > 0 ? '도' : '이'} 사라져요.`
+      : null,
+    KEPT_WORDS_NOTE,
+  ];
+  return lines.filter(Boolean).join('\n');
 }
 
 /** 곡 덱 삭제 확인 → 삭제. 확인 다이얼로그 전에 함께 지워질 단어 수를 받아 온다. */
 export function useDeleteSongDeck(onDeleted: (deckId: number) => void) {
-  const [pending, setPending] = useState<{ deckId: number; deletedWordCount: number } | null>(null);
+  const [pending, setPending] = useState<({ deckId: number } & DeletionPreview) | null>(null);
   const [error, setError] = useState<string | null>(null);
   const busyRef = useRef(false);
   const onDeletedRef = useRef(onDeleted);
@@ -29,8 +36,8 @@ export function useDeleteSongDeck(onDeleted: (deckId: number) => void) {
     if (busyRef.current) return;
     busyRef.current = true;
     try {
-      const { deletedWordCount } = await deckApi.getDeletionPreview(deckId);
-      setPending({ deckId, deletedWordCount });
+      const { deletedWordCount, deletedCardCount } = await deckApi.getDeletionPreview(deckId);
+      setPending({ deckId, deletedWordCount, deletedCardCount });
     } catch {
       setError(RETRY_MESSAGE);
     } finally {
@@ -64,7 +71,7 @@ export function useDeleteSongDeck(onDeleted: (deckId: number) => void) {
       <AppDialog
         visible={pending !== null}
         title="이 곡 학습을 그만둘까요?"
-        body={songDeckDeletionBody(pending?.deletedWordCount ?? 0)}
+        body={songDeckDeletionBody(pending ?? { deletedWordCount: 0, deletedCardCount: 0 })}
         buttons={[
           { label: '취소', variant: 'secondary', onPress: cancel },
           { label: '그만두기', variant: 'danger', onPress: confirm },

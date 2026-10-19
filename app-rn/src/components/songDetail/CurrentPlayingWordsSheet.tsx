@@ -1,11 +1,20 @@
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import Animated, { Extrapolation, SharedValue, interpolate, useAnimatedStyle } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/theme';
 import { Layers } from '../../theme/layers';
-import { AppBottomSheet, AppBottomSheetRef, AppBottomSheetView } from '../bottomSheet';
+import { DarkText } from './SongLyricsDial';
+import {
+  AppBottomSheet,
+  AppBottomSheetBackgroundProps,
+  AppBottomSheetRef,
+  AppBottomSheetView,
+} from '../bottomSheet';
+import { useArtBackdrop } from '../rewardCards/artColors';
+import { usePlayerStore } from '../../stores/playerStore';
 import { Token } from '../../types/song';
 import SongLyricsDial, { SongLyricsDialEntry } from './SongLyricsDial';
 import { SongDetailWordItem } from './types';
@@ -13,8 +22,10 @@ import { getCurrentLyricLineIndex } from './useCurrentLyricLine';
 
 export const CURRENT_PLAYING_WORDS_PEEK_HEIGHT = 70;
 
-/** 가사가 아래 알약 밑으로 흘러가는 걸 가리는 흰 그라데이션. */
+/** 가사가 아래 알약 밑으로 흘러가는 걸 가리는 그라데이션. */
 const BOTTOM_FADE_HEIGHT = 144;
+/** 커버가 없거나 색을 아직 못 뽑았을 때의 바탕. */
+const FALLBACK_BACKDROP: [string, string] = ['#2A2A31', '#141418'];
 /** 싱크 중 고른 줄을 붙잡아 두는 최대 시간. seek 이 끝내 닿지 않아도 이 뒤엔 재생 위치를 따른다. */
 const SEEK_HOLD_MAX_MS = 5000;
 
@@ -34,12 +45,16 @@ export type CurrentPlayingWord = SongDetailWordItem & {
 };
 
 export interface CurrentPlayingWordsSheetProps {
+  artworkUrl?: string | null;
+  /** 접힘 0 ↔ 펼침 1. 핸들 안 헤더가 바탕 색 전환에 맞춰 글자색을 바꾸는 데 쓴다. */
+  animatedIndex?: SharedValue<number>;
   lines: CurrentPlayingLyricLine[];
   words?: CurrentPlayingWord[];
   lineWordIndexes?: Record<string, number[]> | Map<number, number[]>;
   lyricType?: 'SYNCED' | 'PLAIN';
-  currentTimeMs: number;
   fallbackLineIndex?: number;
+  /** 처음 열릴 때 접힘 0 / 펼침 1. */
+  initialIndex?: number;
   bottomInset?: number;
   expandedHeight?: number;
   header?: React.ReactNode;
@@ -48,6 +63,8 @@ export interface CurrentPlayingWordsSheetProps {
   busyWordKey: string | null;
   /** 단어를 누르면 그 단어부터 복습한다 — 단어 탭·주요 단어와 같은 동작. */
   onStartWordReview: (word: CurrentPlayingWord) => void;
+  /** 포커스 줄의 제보 버튼. 없으면 버튼을 그리지 않는다. */
+  onReportLine?: (line: CurrentPlayingLyricLine) => void;
   onSheetChange?: (index: number) => void;
   onSyncedPageChange?: (line: CurrentPlayingLyricLine) => void;
 }
@@ -71,6 +88,28 @@ const SheetHandleContext = React.createContext<SheetHandleContextValue>({
   headerHeight: 0,
 });
 
+const SheetBackdropContext = React.createContext<[string, string]>(FALLBACK_BACKDROP);
+
+/** 접혀 있을 땐 흰 바탕이고, 펼칠수록 커버에서 뽑은 두 색 그라데이션이 떠오른다. 모듈 레벨이어야 다시 마운트되지 않는다. */
+function SheetBackground({ style, animatedIndex }: AppBottomSheetBackgroundProps) {
+  const colors = React.useContext(SheetBackdropContext);
+  const colorStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(animatedIndex.value, [0, 1], [0, 1], Extrapolation.CLAMP),
+  }));
+  return (
+    <View pointerEvents="none" style={[style, styles.sheetBackground]}>
+      <Animated.View style={[StyleSheet.absoluteFill, colorStyle]}>
+        <LinearGradient
+          style={StyleSheet.absoluteFill}
+          colors={colors}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        />
+      </Animated.View>
+    </View>
+  );
+}
+
 /**
  * MV 바가 시트의 핸들이다. 본문 pan 은 가사 다이얼이 가져가므로, 시트는 이 핸들로만 끈다.
  * 모듈 레벨 컴포넌트여야 한다 — 매 렌더 새 함수를 handleComponent 로 넘기면 핸들이 다시 마운트돼 MV WebView 가 초기화된다.
@@ -81,12 +120,14 @@ function SheetHandle() {
 }
 
 const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, CurrentPlayingWordsSheetProps>(function CurrentPlayingWordsSheetComponent({
+  artworkUrl,
+  animatedIndex,
   lines,
   words = [],
   lineWordIndexes,
   lyricType,
-  currentTimeMs,
   fallbackLineIndex = 0,
+  initialIndex = 0,
   bottomInset,
   expandedHeight,
   header,
@@ -94,10 +135,12 @@ const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, Cu
   zIndex = Layers.currentPlayingWordsSheet,
   busyWordKey,
   onStartWordReview,
+  onReportLine,
   onSheetChange,
   onSyncedPageChange,
 }, ref) {
   const insets = useSafeAreaInsets();
+  const backdrop = useArtBackdrop(artworkUrl) ?? FALLBACK_BACKDROP;
   const { height: screenHeight } = useWindowDimensions();
   const inferredLyricType = lyricType ?? (lines.some(line => line.startTimeMs != null) ? 'SYNCED' : 'PLAIN');
   const canAutoSync = inferredLyricType === 'SYNCED';
@@ -126,9 +169,12 @@ const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, Cu
     };
   }), [lines, words, lineWordIndexes]);
 
-  const playingLineIndex = useMemo(
-    () => getCurrentLyricLineIndex(lines, currentTimeMs, fallbackLineIndex),
-    [lines, currentTimeMs, fallbackLineIndex],
+  // 재생 시각은 100ms 마다 바뀐다. 줄 번호로 좁혀 구독해야 시트 전체가 매 틱 다시 그려지지 않는다.
+  const playingLineIndex = usePlayerStore(
+    s => getCurrentLyricLineIndex(lines, s.currentMs, fallbackLineIndex),
+  );
+  const seekArrived = usePlayerStore(
+    s => pendingSync != null && s.currentMs !== pendingSync.seekMs,
   );
 
   const clampIndex = useCallback(
@@ -151,10 +197,10 @@ const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, Cu
   // 플레이어는 버퍼링이 끝날 때까지(수 초) seek 전 시각을 보낸다. seekMs 가 아닌 시각이 고른 줄 안에서 오면 seek 이 닿은 것이다.
   useEffect(() => {
     if (pendingSync == null) return;
-    if (playingLineIndex === pendingSync.index && currentTimeMs !== pendingSync.seekMs) {
+    if (playingLineIndex === pendingSync.index && seekArrived) {
       setPendingSync(null);
     }
-  }, [currentTimeMs, pendingSync, playingLineIndex]);
+  }, [pendingSync, playingLineIndex, seekArrived]);
 
   useEffect(() => {
     if (pendingSync == null) return undefined;
@@ -190,68 +236,72 @@ const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, Cu
   const isSyncOn = canAutoSync && autoSyncEnabled;
 
   return (
-    <SheetHandleContext.Provider value={handleContextValue}>
-      <AppBottomSheet
-        ref={ref}
-        snapPoints={snapPoints}
-        index={0}
-        bottomInset={sheetBottomInset}
-        enablePanDownToClose={false}
-        enableDynamicSizing={false}
-        enableOverDrag={false}
-        // 본문의 세로 드래그는 가사 다이얼이 줄을 넘기는 데 쓴다. 시트는 핸들로만 끈다.
-        enableContentPanningGesture={false}
-        backgroundStyle={styles.sheetBackground}
-        handleComponent={header ? SheetHandle : null}
-        containerStyle={[styles.sheetContainer, { zIndex, elevation: zIndex }]}
-        style={[styles.sheet, { zIndex, elevation: zIndex }]}
-        onChange={onSheetChange}
-      >
-        <AppBottomSheetView fill style={styles.sheetContent}>
-          <View style={styles.lyricsArea}>
-            <SongLyricsDial
-              entries={entries}
-              focusedIndex={focusedIndex}
-              busyWordKey={busyWordKey}
-              onStepLine={handleStepLine}
-              onWordPress={onStartWordReview}
-            />
-          </View>
-
-          <LinearGradient
-            pointerEvents="none"
-            style={styles.bottomFade}
-            colors={['#FFFFFF00', '#FFFFFFD9', '#FFFFFF']}
-            locations={[0, 0.5, 1]}
-          />
-
-          <View pointerEvents="box-none" style={styles.actionPills}>
-            <Pressable
-              accessibilityLabel="가사 자동 넘김"
-              accessibilityRole="switch"
-              accessibilityState={{ checked: isSyncOn, disabled: !canAutoSync }}
-              disabled={!canAutoSync}
-              hitSlop={8}
-              onPress={handleToggleAutoSync}
-              style={[
-                styles.syncPill,
-                isSyncOn ? styles.syncPillOn : styles.syncPillOff,
-                !canAutoSync && styles.syncPillDisabled,
-              ]}
-            >
-              <Ionicons
-                name={isSyncOn ? 'locate' : 'locate-outline'}
-                size={15}
-                color={isSyncOn ? Colors.primary : Colors.textSecondary}
+    <SheetBackdropContext.Provider value={backdrop}>
+      <SheetHandleContext.Provider value={handleContextValue}>
+        <AppBottomSheet
+          ref={ref}
+          snapPoints={snapPoints}
+          index={initialIndex}
+          animatedIndex={animatedIndex}
+          bottomInset={sheetBottomInset}
+          enablePanDownToClose={false}
+          enableDynamicSizing={false}
+          enableOverDrag={false}
+          // 본문의 세로 드래그는 가사 다이얼이 줄을 넘기는 데 쓴다. 시트는 핸들로만 끈다.
+          enableContentPanningGesture={false}
+          backgroundComponent={SheetBackground}
+          handleComponent={header ? SheetHandle : null}
+          containerStyle={[styles.sheetContainer, { zIndex, elevation: zIndex }]}
+          style={[styles.sheet, { zIndex, elevation: zIndex }]}
+          onChange={onSheetChange}
+        >
+          <AppBottomSheetView fill style={styles.sheetContent}>
+            <View style={styles.lyricsArea}>
+              <SongLyricsDial
+                entries={entries}
+                focusedIndex={focusedIndex}
+                busyWordKey={busyWordKey}
+                onStepLine={handleStepLine}
+                onWordPress={onStartWordReview}
+                onReportLine={onReportLine}
               />
-              <Text style={[styles.syncPillText, isSyncOn && styles.syncPillTextOn]}>
-                {syncLabel}
-              </Text>
-            </Pressable>
-          </View>
-        </AppBottomSheetView>
-      </AppBottomSheet>
-    </SheetHandleContext.Provider>
+            </View>
+
+            <LinearGradient
+              pointerEvents="none"
+              style={styles.bottomFade}
+              colors={['#00000000', '#00000059', '#0000008C']}
+              locations={[0, 0.5, 1]}
+            />
+
+            <View pointerEvents="box-none" style={styles.actionPills}>
+              <Pressable
+                accessibilityLabel="가사 자동 넘김"
+                accessibilityRole="switch"
+                accessibilityState={{ checked: isSyncOn, disabled: !canAutoSync }}
+                disabled={!canAutoSync}
+                hitSlop={8}
+                onPress={handleToggleAutoSync}
+                style={[
+                  styles.syncPill,
+                  isSyncOn ? styles.syncPillOn : styles.syncPillOff,
+                  !canAutoSync && styles.syncPillDisabled,
+                ]}
+              >
+                <Ionicons
+                  name={isSyncOn ? 'locate' : 'locate-outline'}
+                  size={15}
+                  color={isSyncOn ? Colors.primary : DarkText.secondary}
+                />
+                <Text style={[styles.syncPillText, isSyncOn && styles.syncPillTextOn]}>
+                  {syncLabel}
+                </Text>
+              </Pressable>
+            </View>
+          </AppBottomSheetView>
+        </AppBottomSheet>
+      </SheetHandleContext.Provider>
+    </SheetBackdropContext.Provider>
   );
 });
 
@@ -271,6 +321,7 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
   },
   sheetBackground: {
+    overflow: 'hidden',
     backgroundColor: Colors.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
@@ -280,14 +331,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    backgroundColor: Colors.background,
   },
   headerSlot: {
     width: '100%',
     overflow: 'hidden',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    backgroundColor: Colors.background,
   },
   lyricsArea: {
     flex: 1,
@@ -324,8 +373,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryBg,
   },
   syncPillOff: {
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
+    borderColor: '#FFFFFF33',
+    backgroundColor: '#FFFFFF14',
   },
   syncPillDisabled: {
     opacity: 0.48,
@@ -334,7 +383,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 17,
     fontWeight: '500',
-    color: Colors.textSecondary,
+    color: DarkText.secondary,
   },
   syncPillTextOn: {
     color: Colors.primary,

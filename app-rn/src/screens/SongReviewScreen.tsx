@@ -59,8 +59,8 @@ export default function SongReviewScreen({ navigation, route }: Props) {
   // 탭 안(Main)까지 내려가면 바텀탭·다른 탭 화면이 같이 뜬다 — 검색탭 UI만 새 스택으로 띄운다.
   const goSearch = useCallback(() => navigation.navigate('SearchStack'), [navigation]);
   // 예문은 지금 복습 중인 곡과 다른 곡에서 왔을 수 있다 — 뒤로 가기 대신 그 곡 상세로 이동한다.
-  const openExampleSource = useCallback((songId: number) => {
-    navigation.navigate('SongDetail', { songId, origin: 'SongReview' });
+  const openExampleSource = useCallback((songId: number, lineIndex: number | null) => {
+    navigation.navigate('SongDetail', { songId, origin: 'SongReview', initialLyricIndex: lineIndex ?? undefined });
   }, [navigation]);
 
   // 시작 시 due 가 없었다가 도중에 due 된 카드를 리뷰하면 queueTotal 이 0 이라 진행 개수로 대체한다.

@@ -20,7 +20,7 @@ Architecture direction:
 - Active domain/integration modules provide Spring wiring through `AutoConfiguration.imports` and `com.japanese.autoconfigure.*` classes. AutoConfiguration component-scans the module-owned `com.japanese.vocabulary.<module>` package and registers JPA entities/repositories explicitly. Application bootstraps should not carry sibling module `@EntityScan` or repository scan knowledge, and broad root component scan should not be used as a backup wiring path.
 - Integration clients should use `RestClient` where behavior can stay equivalent. Applications avoid unused clients by depending only on the integration modules they need; the depended module's AutoConfiguration exposes its client beans.
 - Product/read-model cache belongs to the application module that owns the behavior. For this pass, song search cache belongs to `api` and artist-channel cache belongs to `worker`.
-- Admin mutations must call domain methods/services; raw field updates stay out of scope. Current mutations: song reanalysis creates or reuses a `song_analysis_work`, and resume reopens a failed work at its failed stage (`SongAnalysisWorkService.resume`); neither edits song/lyric fields directly.
+- Admin mutations must call domain methods/services; raw field updates stay out of scope. Current mutations: song reanalysis creates or reuses a `song_analysis_work`, and resume reopens a failed work at its failed stage (`SongAnalysisWorkService.resume`); neither edits song/lyric fields directly. Song report approval is the one song/lyric edit path: it applies typed ops (`SongEditOp`) through `SongReportService.approve`, checks token offsets against the line text, regenerates `wordCandidates`, and records each before/after in `song_reports.review_changes` as its audit log.
 
 ## Backend
 
@@ -54,6 +54,7 @@ Routes:
 - `GET /admin/api/song-analysis-works/{workId}/stages/{stage}/output` — 단계 산출물 JSON 원문
 - `POST /admin/api/song-analysis-works/{workId}/resume` — FAILED 작업을 실패한 단계부터 다시 돌린다 (활성 작업이 있거나 단계 원장 이전 작업이면 409)
 - `GET /admin/api/recommendations` / `POST` `{songId}` / `DELETE /{id}` / `PUT /order` `{ids}` — 홈 추천곡 전역 목록 편집 (`docs/recommended-songs.md`)
+- `GET /admin/api/feature-flags` / `PUT /{key}` `{startAt, endAt, description}` / `DELETE /{key}` — 시각 구간 기능 플래그 (`docs/architecture/feature-flag.md`)
 - `GET /admin/api/users` — 유저마다 `wordCount`, `songDeckCount`, `customDeckCount`, `lastWordSavedAt`, `lastReviewedAt` 포함
 - `GET /admin/api/users/{userId}` — `{ user, learning, decks }`
 - `GET /admin/api/users/{userId}/words?deckId=&q=` — 페이지 (최근 담은 순)
@@ -66,6 +67,16 @@ Routes:
 - `POST /admin/api/reels-factory/render` (202, returns a render job)
 - `GET /admin/api/reels-factory/render-jobs`
 - `GET /admin/api/reels-factory/render-jobs/{jobId}/output`
+- `GET /admin/api/song-reports?status=PENDING|APPROVED|REJECTED` — 유저 분석 제보 큐 (최신순)
+- `GET /admin/api/song-reports/{id}` — 제보 + 대상 줄의 현재 active 가사(`context.line`)
+- `POST /admin/api/song-reports/{id}/approve` — `{ changes: [{ op, ... }], note? }`. PENDING 만 (아니면 409)
+- `POST /admin/api/song-reports/{id}/reject` — `{ note? }`. PENDING 만 (아니면 409)
+
+분석 제보 (유저 쪽):
+
+- `POST /api/songs/{id}/reports` 가 `song_reports` PENDING 행을 만든다. 승인은 같은 트랜잭션에서 곡·active 가사를 고치고, 바뀐 내용은 `review_changes` 에만 남는다 — 곡·가사 버전은 두지 않는다.
+- 승인 커밋 뒤에만 제보자에게 `song_report_approved` 푸시. 반려는 알리지 않는다.
+- `GET /api/songs/{id}/contributors` 는 APPROVED 제보자. 누르면 그 유저 프로필을 읽기 전용으로 연다(서명한 보상 카드만 공개).
 
 Reels Factory:
 

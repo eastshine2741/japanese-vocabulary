@@ -6,13 +6,12 @@ import com.japanese.vocabulary.deck.dto.DeckDeletionPreviewResponse
 import com.japanese.vocabulary.deck.dto.DeckDetailResponse
 import com.japanese.vocabulary.deck.dto.DeckDto
 import com.japanese.vocabulary.deck.dto.DeckListResponse
+import com.japanese.vocabulary.deck.dto.toResponse
 import com.japanese.vocabulary.deck.dto.DeckResponse
 import com.japanese.vocabulary.deck.dto.DeckWordItemDto
 import com.japanese.vocabulary.deck.dto.DeckWordListResponse
-import com.japanese.vocabulary.deck.dto.SongDeckSummaryDto
 import com.japanese.vocabulary.deck.dto.DeckDetailDto
-import com.japanese.vocabulary.deck.dto.DeckListDto
-import com.japanese.vocabulary.deck.dto.DeckSummaryDto
+import com.japanese.vocabulary.deck.service.DeckDeletionService
 import com.japanese.vocabulary.deck.service.DeckService
 import com.japanese.vocabulary.word.dto.WordListDto
 import com.japanese.vocabulary.word.dto.WordListItemDto
@@ -31,7 +30,10 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/decks")
-class DeckController(private val deckService: DeckService) {
+class DeckController(
+    private val deckService: DeckService,
+    private val deckDeletionService: DeckDeletionService,
+) {
 
     @GetMapping
     fun getDeckList(@RequestParam(required = false) cursor: Long?): DeckListResponse =
@@ -61,16 +63,16 @@ class DeckController(private val deckService: DeckService) {
     fun getDeckDetail(@PathVariable deckId: Long): DeckDetailResponse =
         deckService.getDeckDetail(currentUserId(), deckId).toResponse()
 
-    /** 이 단어장에만 속한 단어도 함께 지운다. 전체 단어장은 지울 수 없다. */
+    /** 이 단어장에만 속한 단어와 그 곡 카드도 함께 지운다. 전체 단어장은 지울 수 없다. */
     @DeleteMapping("/{deckId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun deleteDeck(@PathVariable deckId: Long) {
-        deckService.deleteDeck(currentUserId(), deckId)
+        deckDeletionService.delete(currentUserId(), deckId)
     }
 
     @GetMapping("/{deckId}/deletion-preview")
     fun getDeletionPreview(@PathVariable deckId: Long): DeckDeletionPreviewResponse =
-        DeckDeletionPreviewResponse(deckService.getDeletionPreview(currentUserId(), deckId).deletedWordCount)
+        deckDeletionService.preview(currentUserId(), deckId)
 
     @GetMapping("/{deckId}/words")
     fun getDeckWords(
@@ -80,26 +82,6 @@ class DeckController(private val deckService: DeckService) {
 
     private fun currentUserId(): Long =
         SecurityContextHolder.getContext().authentication.principal as Long
-
-    private fun DeckListDto.toResponse() = DeckListResponse(
-        songDecks = items.map { it.toResponse() },
-        nextCursor = nextCursor,
-    )
-
-    private fun DeckSummaryDto.toResponse() = SongDeckSummaryDto(
-        deckId = deckId,
-        songId = songId,
-        title = title,
-        artist = artist,
-        artworkUrl = artworkUrl,
-        wordCount = wordCount,
-        dueCount = dueCount,
-        masteredCount = masteredCount,
-        studyingCount = studyingCount,
-        newWordCount = newWordCount,
-        longTermCount = longTermCount,
-        shortTermCount = shortTermCount,
-    )
 
     private fun DeckDetailDto.toResponse() = DeckDetailResponse(
         deckId = deckId,

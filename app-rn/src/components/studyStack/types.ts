@@ -15,7 +15,7 @@ export interface StudySource {
   totalCount: number;
   /** 이미 담긴 단어 클릭으로 열었다면 그 단어. 곡 덱 첫 카드로 강제되고, 곡 덱에 없으면 그 실제 카드를 미리보기로 띄운다. */
   leadWordId?: number | null;
-  /** 곡 상세에서 단어를 눌러 열었다면 그 단어. 곡 덱 첫 카드로 못 세우면 미리보기 카드로 보여주고, rating 을 확정할 때 곡을 통째로 담으며 lead 로 리뷰한다. */
+  /** 곡 상세에서 단어를 눌러 열었다면 그 단어. 곡 덱 첫 카드로 못 세우면 이 단어를 맨 앞에 둔 곡 세션 카드(`study-cards`)를 연다. */
   previewWord?: StudyPreviewWord | null;
   /** 곡 상세의 단계 학습으로 열었다면 그 단계. 곡 덱 due 큐 대신 그 단계의 due 단어를 한 번 받아 복습한다. */
   tierKey?: SongWordTierKey | null;
@@ -54,10 +54,14 @@ export interface StudyPreviewWord {
 
 export interface StudyCard extends FlashcardDTO {
   source: StudySource;
+  /** 아직 곡 단어장에 없는 카드. rating 때 그 단어 하나만 곡 단어장에 담으면서 리뷰한다. */
+  saveOnReview?: boolean;
 }
 
-/** 미리보기 카드에 부여하는 자리표시자 flashcard/word id — 실제 flashcard 가 아니라는 신호로만 쓴다. */
-export const PREVIEW_FLASHCARD_ID = -1;
+/** 아직 담지 않은 단어의 카드는 flashcard 가 없어 세션 안에서만 쓰는 음수 id 를 받는다. */
+export function isUnsavedCard(card: FlashcardDTO): boolean {
+  return card.id < 0;
+}
 
 /** 크롬이 그리는 세션 진행 정보. 공용 스택은 이 값만 노출하고 크롬은 그리지 않는다. */
 export interface StudySessionProgress {

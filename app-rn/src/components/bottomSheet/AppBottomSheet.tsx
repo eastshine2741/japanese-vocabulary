@@ -37,6 +37,7 @@ export type AppBottomSheetRef = React.ElementRef<typeof GorhomBottomSheet>;
 export type AppBottomSheetModalRef = React.ElementRef<typeof GorhomBottomSheetModal>;
 
 export type AppBottomSheetProps = BottomSheetProps & AppBottomSheetChromeProps;
+export type { BottomSheetBackgroundProps as AppBottomSheetBackgroundProps } from '@gorhom/bottom-sheet';
 export type AppBottomSheetModalProps<T = any> = BottomSheetModalProps<T> & AppBottomSheetChromeProps;
 
 function useAppSheetChrome({

@@ -47,7 +47,7 @@ class ArtistControllerTest : ApiBaseIntegrationTest() {
         listOf(unknown, known, otherArtistSong).forEach { newDeck(me, it) }
         val word = TestWordBuilder(entityManager).forUser(me).withJapaneseText("胸").build()
         TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(word)
-            .withState(1).withStability(7.0).lastReviewedAt(clock.instant()).dueAt(clock.instant().plusSeconds(86_400 * 30)).build()
+            .withState(1).withStability(14.0).lastReviewedAt(clock.instant()).dueAt(clock.instant().plusSeconds(86_400 * 30)).build()
         entityManager.flush()
         every { appleMusicClient.topSongs(artist.appleMusicId) } returns listOf(
             catalogSong("分かる曲"),

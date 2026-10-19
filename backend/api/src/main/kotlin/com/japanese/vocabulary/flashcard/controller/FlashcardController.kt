@@ -2,14 +2,14 @@ package com.japanese.vocabulary.flashcard.controller
 
 import com.japanese.vocabulary.flashcard.dto.DueFlashcardsDto
 import com.japanese.vocabulary.flashcard.dto.DueFlashcardsResponse
-import com.japanese.vocabulary.flashcard.dto.FlashcardStatsDto
 import com.japanese.vocabulary.flashcard.dto.FlashcardStatsResponse
+import com.japanese.vocabulary.flashcard.dto.toResponse
 import com.japanese.vocabulary.flashcard.dto.ReviewRequest
 import com.japanese.vocabulary.flashcard.dto.ReviewResponse
 import com.japanese.vocabulary.deck.service.DeckService
 import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
-import com.japanese.vocabulary.flashcard.dto.ReviewResultDto
+import com.japanese.vocabulary.flashcard.service.FlashcardReviewService
 import com.japanese.vocabulary.flashcard.service.FlashcardService
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.GetMapping
@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController
 class FlashcardController(
     private val flashcardService: FlashcardService,
     private val deckService: DeckService,
+    private val flashcardReviewService: FlashcardReviewService,
 ) {
 
     // deckId == null means the virtual "all" deck: every due card the user owns.
@@ -44,7 +45,7 @@ class FlashcardController(
 
     @PostMapping("/{id}/review")
     fun reviewCard(@PathVariable id: Long, @RequestBody request: ReviewRequest): ReviewResponse =
-        flashcardService.reviewCard(currentUserId(), id, request.rating).toResponse()
+        flashcardReviewService.review(currentUserId(), id, request.rating)
 
     @GetMapping("/stats")
     fun getStats(): FlashcardStatsResponse =
@@ -57,24 +58,5 @@ class FlashcardController(
         cards = items,
         totalCount = totalCount,
         nextDueAt = nextDueAt,
-    )
-
-    private fun ReviewResultDto.toResponse() = ReviewResponse(
-        id = id,
-        state = state,
-        due = due,
-        stability = stability,
-        difficulty = difficulty,
-        memory = memory,
-    )
-
-    private fun FlashcardStatsDto.toResponse() = FlashcardStatsResponse(
-        total = total,
-        due = due,
-        newCount = newCount,
-        learning = learning,
-        review = review,
-        longTermCount = longTermCount,
-        shortTermCount = shortTermCount,
     )
 }

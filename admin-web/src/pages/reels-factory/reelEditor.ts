@@ -216,6 +216,18 @@ export function tokenMeaning(token: LyricToken | undefined, line: EditorLine | u
   return (line?.meanings[tokenIndex] ?? token?.koreanText ?? "").trim()
 }
 
+/** 곡 전체 가사의 외울 단어 수. 서버 WordCandidateGenerator 가 곡 단어를 고르는 규칙(품사·뜻 있음·표제형+품사+뜻)과 같다. */
+export function songWordCount(detail: ReelsSongDetail): number {
+  const keys = detail.lines.flatMap((line) =>
+    line.tokens.flatMap((token) => {
+      const japanese = token.baseForm || token.surface
+      if (!tokenTakesMeaning(token) || token.partOfSpeech === "FILLER" || !token.koreanText?.trim() || !japanese) return []
+      return [[japanese, token.partOfSpeech, token.koreanText].join("\u0001")]
+    }),
+  )
+  return new Set(keys).size
+}
+
 export function tokenToVocabulary(token: LyricToken, meaning: string = token.koreanText ?? ""): VocabularyWord {
   return {
     japanese: token.baseForm || token.surface,
@@ -418,7 +430,6 @@ export function buildPromoData(
       },
     ]
   })
-  const wordCount = new Set(lyricLines.flatMap((line) => line.vocabulary.map((word) => word.japanese))).size
   return {
     song: {
       title: caption.title.trim(),
@@ -438,7 +449,7 @@ export function buildPromoData(
     lyricOffsetY: clampLyricOffsetY(lyricOffsetY),
     lyricsEndFrame: relative(state.endMs),
     totalLineCount: detail.lines.length,
-    wordCount,
+    wordCount: songWordCount(detail),
     lyricLines,
   }
 }

@@ -56,3 +56,7 @@ All new design work must follow these rules.
 - Recurring patterns (buttons, cards, badges, inputs) must be defined as reusable: true components
 - Instantiate via type: "ref" with descendants overrides
 - Never hand-build the same pattern multiple times
+
+## Song Detail 지표
+- 층마다 단위 하나: 이해도 = 가사 줄(앰버 `lyric-*`), 마일스톤·칩·CTA = 단어. 한 카드에 두 단위를 섞지 않는다. 두 단위를 잇는 건 CTA 문구 한 곳(`8단어 학습하고 4줄 열기`).
+- 단기기억(`state-learning`, 시안 #22B8CF) 색 제약: 초록 계열 금지(장기기억과 구분 안 됨), 장기기억 초록보다 밝을 것, 앰버·노랑(줄 지표)·파랑(`state-new`)·빨강(again) 금지.

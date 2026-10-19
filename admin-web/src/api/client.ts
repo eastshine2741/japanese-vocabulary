@@ -2,6 +2,7 @@ import type {
   AdminUser,
   AdminUserDetail,
   AdminUserWord,
+  FeatureFlag,
   LoginResponse,
   LyricDetail,
   ManualPushResult,
@@ -16,6 +17,9 @@ import type {
   SongAnalysisWorkSummary,
   SongAnalysisWorkOperation,
   SongDetail,
+  SongReportChangeOp,
+  SongReportDetail,
+  SongReportSummary,
   SongSummary,
 } from "@/api/types"
 
@@ -123,6 +127,25 @@ export const adminApi = {
       method: "POST",
     })
   },
+  songReports(token: string, page: number, status: string) {
+    const params = new URLSearchParams({ page: String(page), size: "20", status })
+    return request<PageResponse<SongReportSummary>>(`/song-reports?${params}`, token)
+  },
+  songReport(token: string, id: string) {
+    return request<SongReportDetail>(`/song-reports/${id}`, token)
+  },
+  approveSongReport(token: string, id: number, payload: { changes: SongReportChangeOp[]; note?: string }) {
+    return request<SongReportDetail>(`/song-reports/${id}/approve`, token, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+  },
+  rejectSongReport(token: string, id: number, payload: { note?: string }) {
+    return request<SongReportDetail>(`/song-reports/${id}/reject`, token, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+  },
   recommendations(token: string) {
     return request<Recommendation[]>("/recommendations", token)
   },
@@ -140,6 +163,18 @@ export const adminApi = {
       method: "PUT",
       body: JSON.stringify({ ids }),
     })
+  },
+  featureFlags(token: string) {
+    return request<FeatureFlag[]>("/feature-flags", token)
+  },
+  saveFeatureFlag(token: string, key: string, body: { startAt: string | null; endAt: string | null; description: string }) {
+    return request<FeatureFlag>(`/feature-flags/${encodeURIComponent(key)}`, token, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    })
+  },
+  deleteFeatureFlag(token: string, key: string) {
+    return request<void>(`/feature-flags/${encodeURIComponent(key)}`, token, { method: "DELETE" })
   },
   users(token: string, page: number, query?: string) {
     return request<PageResponse<AdminUser>>(`/users?${pageParams(page, query)}`, token)

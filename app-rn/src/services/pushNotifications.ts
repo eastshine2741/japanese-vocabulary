@@ -15,6 +15,9 @@ import {
 import * as Notifications from 'expo-notifications';
 import { flashcardApi } from '../api/flashcardApi';
 import { navigate } from '../navigation/navigationRef';
+import { findSongCard } from '../components/rewardCards/cardKinds';
+import { useAuthStore } from '../stores/authStore';
+import { useRewardCardStore } from '../stores/rewardCardStore';
 import {
   addStreakPressListener,
   consumeInitialStreakPress,
@@ -119,6 +122,22 @@ function handleData(data: RemoteMessage['data']): void {
     navigate('Main', { screen: 'Home' });
     return;
   }
+  // 그동안 공부한 곡으로 카드를 채웠다는 알림 — 문구에 이름이 나온 곡 카드. 닫으면 프로필 탭 카드 목록이다.
+  if (data.type === 'reward_cards_backfilled') {
+    navigate('Main', { screen: 'MyPage' });
+    // 알림 전에 받아 둔 목록엔 새 카드가 없다. 카드 id 는 등급마다 따로라 받은 뒤에 곡의 가장 높은 카드를 연다.
+    const songId = Number(data.songId);
+    useRewardCardStore
+      .getState()
+      .loadServerCards()
+      .then(() => {
+        const card = Number.isFinite(songId) && songId > 0 ? findSongCard(useRewardCardStore.getState().songCards, songId, null) : null;
+        if (!card) return;
+        const ownerName = useAuthStore.getState().userName?.trim() || '학습자';
+        navigate('RewardCardDetail', { cardId: card.id, ownerName });
+      });
+    return;
+  }
   // 노래방 신곡 알림 — 그날 올라온 곡 목록.
   if (data.type === 'karaoke_new_songs') {
     navigate('KaraokeNewSongs');
@@ -129,6 +148,13 @@ function handleData(data: RemoteMessage['data']): void {
     const songId = Number(data.songId);
     if (Number.isFinite(songId)) {
       navigate('SongDetail', { songId, origin: 'AnalysisPush' });
+    }
+    return;
+  }
+  if (data.type === 'song_report_approved' && data.songId != null) {
+    const songId = Number(data.songId);
+    if (Number.isFinite(songId)) {
+      navigate('SongDetail', { songId, origin: 'SongReportPush' });
     }
   }
 }

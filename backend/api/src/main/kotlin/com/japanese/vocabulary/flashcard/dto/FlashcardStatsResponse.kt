@@ -9,3 +9,13 @@ data class FlashcardStatsResponse(
     val longTermCount: Long,
     val shortTermCount: Long,
 )
+
+fun FlashcardStatsDto.toResponse() = FlashcardStatsResponse(
+    total = total,
+    due = due,
+    newCount = newCount,
+    learning = learning,
+    review = review,
+    longTermCount = longTermCount,
+    shortTermCount = shortTermCount,
+)

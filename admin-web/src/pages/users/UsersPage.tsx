@@ -10,7 +10,7 @@ import { Count, Recency } from "@/components/LearningStatus"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Table, Td, Th } from "@/components/ui/table"
+import { LinkRow, Table, Td, Th } from "@/components/ui/table"
 import { useAuth } from "@/features/auth"
 import { formatDateTime, formatNumber } from "@/lib/utils"
 
@@ -82,7 +82,7 @@ export function UsersPage() {
             </thead>
             <tbody>
               {data.content.map((user) => (
-                <tr key={user.id} className="hover:bg-[#f9fbfc]">
+                <LinkRow key={user.id} to={`/users/${user.id}`}>
                   <Td className="w-24 font-mono text-xs text-[#637083]">{user.id}</Td>
                   <Td>
                     <Link className="font-medium text-[#0f766e] hover:underline" to={`/users/${user.id}`}>
@@ -107,7 +107,7 @@ export function UsersPage() {
                     <Recency value={user.lastReviewedAt} />
                   </Td>
                   <Td>{formatDateTime(user.createdAt)}</Td>
-                </tr>
+                </LinkRow>
               ))}
             </tbody>
           </Table>

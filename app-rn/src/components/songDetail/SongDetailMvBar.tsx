@@ -1,15 +1,16 @@
 import React, { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import {
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
   ViewStyle,
 } from 'react-native';
+import Animated, { SharedValue, interpolateColor, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import YouTubePlayer, { YouTubePlayerRef } from '../YouTubePlayer';
 import { Colors } from '../../theme/theme';
+import { extractYoutubeVideoId } from '../../utils/youtube';
 
 export const SONG_DETAIL_MV_BAR_HEIGHT = 56;
 
@@ -26,21 +27,18 @@ export interface SongDetailMvBarProps {
   bottomInset?: number;
   zIndex?: number;
   embedded?: boolean;
+  /** 시트에 박힌 경우 접힘 0 ↔ 펼침 1. 펼칠수록 어두운 바탕에 맞춰 글자를 희게 바꾼다. */
+  expandProgress?: SharedValue<number>;
   style?: ViewStyle;
   onCurrentTimeChange?: (currentTimeMs: number) => void;
   onDurationChange?: (durationMs: number) => void;
   onPlayingChange?: (isPlaying: boolean) => void;
   onBarPress?: () => void;
+  onReportPress?: () => void;
 }
 
 export interface SongDetailMvBarRef {
   seekToMs: (milliseconds: number) => void;
-}
-
-function extractVideoId(url: string | null | undefined): string | null {
-  if (!url) return null;
-  const match = url.match(/(?:v=|youtu\.be\/|shorts\/|embed\/)([a-zA-Z0-9_-]{11})/);
-  return match?.[1] ?? null;
 }
 
 function formatTime(ms: number): string {
@@ -63,18 +61,20 @@ const SongDetailMvBarComponent = forwardRef<SongDetailMvBarRef, SongDetailMvBarP
   bottomInset,
   zIndex = 10,
   embedded = false,
+  expandProgress,
   style,
   onCurrentTimeChange,
   onDurationChange,
   onPlayingChange,
   onBarPress,
+  onReportPress,
 }, ref) {
   const insets = useSafeAreaInsets();
   const playerRef = useRef<YouTubePlayerRef>(null);
   const initialSeekDoneRef = useRef(false);
   const pendingSeekMsRef = useRef<number | null>(null);
   const resolvedVideoId = useMemo(
-    () => videoId ?? extractVideoId(youtubeUrl),
+    () => videoId ?? extractYoutubeVideoId(youtubeUrl),
     [videoId, youtubeUrl],
   );
 
@@ -145,8 +145,22 @@ const SongDetailMvBarComponent = forwardRef<SongDetailMvBarRef, SongDetailMvBarP
     }
   }, [isPlaying, onPlayingChange]);
 
+  const collapsedProgress = useSharedValue(0);
+  const progress = expandProgress ?? collapsedProgress;
+  const titleColorStyle = useAnimatedStyle(() => ({
+    color: interpolateColor(progress.value, [0, 1], [Colors.textPrimary, '#FFFFFF']),
+  }));
+  const artistColorStyle = useAnimatedStyle(() => ({
+    color: interpolateColor(progress.value, [0, 1], [Colors.textSecondary, '#FFFFFFB8']),
+  }));
+  const borderColorStyle = useAnimatedStyle(() => ({
+    borderTopColor: interpolateColor(progress.value, [0, 1], [Colors.border, '#FFFFFF00']),
+  }));
+  const lightIconStyle = useAnimatedStyle(() => ({ opacity: progress.value }));
+
+  const toggleIconName = isPlaying ? 'pause' : 'play';
   const bar = (
-    <View style={[styles.bar, embedded && styles.embeddedBar, embedded && style]}>
+    <Animated.View style={[styles.bar, embedded && styles.embeddedBar, embedded && borderColorStyle, embedded && style]}>
       <View style={styles.content}>
         <TouchableOpacity
           style={styles.pressArea}
@@ -177,13 +191,25 @@ const SongDetailMvBarComponent = forwardRef<SongDetailMvBarRef, SongDetailMvBarP
           </View>
 
           <View style={styles.textCol}>
-            <Text style={styles.title} numberOfLines={1}>{title}</Text>
-            <Text style={styles.artist} numberOfLines={1}>
+            <Animated.Text style={[styles.title, titleColorStyle]} numberOfLines={1}>{title}</Animated.Text>
+            <Animated.Text style={[styles.artist, artistColorStyle]} numberOfLines={1}>
               {artist}
               {effectiveDurationMs > 0 ? ` · ${formatTime(effectiveCurrentMs)} / ${formatTime(effectiveDurationMs)}` : ''}
-            </Text>
+            </Animated.Text>
           </View>
         </TouchableOpacity>
+
+        {onReportPress ? (
+          <TouchableOpacity
+            style={styles.toggle}
+            onPress={onReportPress}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel="영상 제보"
+          >
+            <Feather name="flag" size={17} color={Colors.textMuted} />
+          </TouchableOpacity>
+        ) : null}
 
         <TouchableOpacity
           style={styles.toggle}
@@ -193,14 +219,23 @@ const SongDetailMvBarComponent = forwardRef<SongDetailMvBarRef, SongDetailMvBarP
           accessibilityLabel={isPlaying ? 'MV 일시정지' : 'MV 재생'}
         >
           <Ionicons
-            name={isPlaying ? 'pause' : 'play'}
+            name={toggleIconName}
             size={22}
             color={Colors.primary}
             style={!isPlaying && styles.playIcon}
           />
+          {/* 초록 아이콘은 커버 색 바탕에 묻힐 수 있어 펼칠수록 흰 아이콘을 겹친다. */}
+          <Animated.View pointerEvents="none" style={[styles.lightIcon, lightIconStyle]}>
+            <Ionicons
+              name={toggleIconName}
+              size={22}
+              color="#FFFFFF"
+              style={!isPlaying && styles.playIcon}
+            />
+          </Animated.View>
         </TouchableOpacity>
       </View>
-    </View>
+    </Animated.View>
   );
 
   if (embedded) {
@@ -243,6 +278,7 @@ const styles = StyleSheet.create({
   },
   embeddedBar: {
     width: '100%',
+    backgroundColor: 'transparent',
     shadowOpacity: 0,
     shadowRadius: 0,
     elevation: 0,
@@ -297,6 +333,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'transparent',
+  },
+  lightIcon: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   playIcon: {
     marginLeft: 2,

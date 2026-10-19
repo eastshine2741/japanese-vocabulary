@@ -279,6 +279,12 @@ describe("validate and buildPromoData",  () => {
     expect(data.totalLineCount).toBe(5)
   })
 
+  test("counts every learnable word in the whole song, not just the picked ones", () => {
+    const state = [0, 1, 2, 3].reduce((current, index) => toggleLine(current, synced, index), emptyEditor())
+    // 모든 줄이 夢・を・見る 라 조사를 뺀 2개
+    expect(buildPromoData(synced, state, "http://mv").wordCount).toBe(2)
+  })
+
   test("uses the admin-entered caption and rejects blank ones", () => {
     const state = [0, 1, 2, 3].reduce((current, index) => toggleLine(current, synced, index), emptyEditor())
     const defaults = buildPromoData(synced, state, "http://mv")

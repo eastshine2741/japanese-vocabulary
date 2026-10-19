@@ -8,6 +8,7 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -15,6 +16,7 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, FontAwesome6 } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
@@ -24,24 +26,37 @@ import { useHomeChromeStore } from '../stores/homeChromeStore';
 import { useDeleteSongDeck } from '../hooks/useDeleteSongDeck';
 import { deckApi } from '../api/deckApi';
 import { songApi } from '../api/songApi';
-import { wordApi } from '../api/wordApi';
+import { songReportApi } from '../api/songReportApi';
+import { apiErrorMessage } from '../api/errors';
 import SkeletonBox from '../components/SkeletonLoading';
 import SongInfoSheet from '../components/SongInfoSheet';
 import ErrorDialog from '../components/ErrorDialog';
-import { AppBottomSheet, AppBottomSheetRef, AppBottomSheetView } from '../components/bottomSheet';
+import {
+  AppBottomSheet,
+  AppBottomSheetModal,
+  AppBottomSheetModalRef,
+  AppBottomSheetRef,
+  AppBottomSheetView,
+} from '../components/bottomSheet';
 import {
   CurrentPlayingWordsSheet,
   selectCurrentTier,
   SongDetailCoverageHelpSheet,
+  SongDetailCardsTab,
   SongDetailHomeTab,
   SONG_DETAIL_MV_BAR_HEIGHT,
   SongDetailMvBar,
   SongDetailWordsActionBar,
   SongDetailWordsTab,
+  SongReportSheet,
+  SongReportThanksSheet,
   type SongDetailMvBarRef,
+  type SongReportSheetTarget,
   type SongDetailWordItem,
   useSongDetailWordsTab,
 } from '../components/songDetail';
+import { pickLineWords, pickSampleLyric } from '../components/songDetail/songCardSample';
+import type { PreviewSong } from '../components/rewardCards/cardPreview';
 import { Colors, Dimens } from '../theme/theme';
 import { Layers } from '../theme/layers';
 import { Typography } from '../theme/typography';
@@ -49,14 +64,18 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import type { StudyEntryTrigger } from '../services/analytics';
 import type { DeckDetailResponse } from '../types/deck';
 import type { SongWordTierDto } from '../types/song';
+import type { SongContributor, SubmitSongReportRequest } from '../types/songReport';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SongDetail'>;
-type DetailTab = 'home' | 'words';
+type DetailTab = 'home' | 'words' | 'cards';
 type LearningActionMode = 'start' | 'review' | 'preparing';
 
 const HERO_HEIGHT = 360;
 const COLLAPSED_BAR_HEIGHT = 56;
 const TAB_BAR_HEIGHT = 44;
+const EMPTY_CARD_SONG: PreviewSong = { id: 0, title: '', artist: '', artworkUrl: null, lyric: [], words: [] };
+const TAB_INDEX: Record<DetailTab, number> = { home: 0, words: 1, cards: 2 };
+const TAB_COUNT = 3;
 const TAB_ITEM_WIDTH = 54;
 const TAB_ITEM_GAP = 10;
 const TAB_INDICATOR_WIDTH = 28;
@@ -82,6 +101,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const infoSheetOpenRef = useRef(false);
   const coverageHelpSheetRef = useRef<AppBottomSheetRef>(null);
   const coverageHelpSheetOpenRef = useRef(false);
+  const collapseLyricsSheetRef = useRef<(() => boolean) | null>(null);
   const isInitialFocusRef = useRef(true);
 
   const status = useSongDetailStore(s => s.status);
@@ -93,6 +113,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const tiers = useSongDetailStore(s => s.tiers);
   const refreshTiers = useSongDetailStore(s => s.refreshTiers);
   const coverage = useSongDetailStore(s => s.coverage);
+  const contributors = useSongDetailStore(s => s.contributors);
   const refreshCoverage = useSongDetailStore(s => s.refreshCoverage);
   const preloadedStudyData = usePlayerStore(s => s.studyData);
   const setCurrentMs = usePlayerStore(s => s.setCurrentMs);
@@ -100,14 +121,14 @@ export default function SongDetailScreen({ navigation, route }: Props) {
 
   const [activeTab, setActiveTab] = useState<DetailTab>('home');
   const [songDeckDetail, setSongDeckDetail] = useState<DeckDetailResponse | null>(null);
-  const [isStartingLearning, setIsStartingLearning] = useState(false);
-  const [learningError, setLearningError] = useState<string | null>(null);
   const [isPinnedTabsVisible, setIsPinnedTabsVisible] = useState(false);
   const [tabPageHeights, setTabPageHeights] = useState<Record<DetailTab, number>>({
     home: 0,
     words: 0,
+    cards: 0,
   });
   const [busyWordKey, setBusyWordKey] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const notifiedSongIdRef = useRef<number | null>(null);
   const isPinnedTabsVisibleRef = useRef(false);
 
@@ -208,8 +229,8 @@ export default function SongDetailScreen({ navigation, route }: Props) {
 
   const tabContentTranslate = useMemo(
     () => tabProgress.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0, -screenWidth],
+      inputRange: [0, TAB_COUNT - 1],
+      outputRange: [0, -screenWidth * (TAB_COUNT - 1)],
       extrapolate: 'clamp',
     }),
     [screenWidth, tabProgress],
@@ -220,7 +241,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     Animated.timing(tabProgress, {
-      toValue: activeTab === 'words' ? 1 : 0,
+      toValue: TAB_INDEX[activeTab],
       duration: TAB_TRANSITION_MS,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
@@ -244,6 +265,20 @@ export default function SongDetailScreen({ navigation, route }: Props) {
 
   const songTiers = tiers != null && tiers.songId === songId ? tiers.tiers : null;
   const songCoverage = coverage != null && coverage.songId === songId ? coverage : null;
+  const songContributors = loadedSongId === songId ? contributors : null;
+  // 단계 보상 견본 카드에 실을 곡 정보. 가사는 대표 줄, 단어는 그 줄의 중요 단어를 골라 쓴다.
+  const cardSong = useMemo<PreviewSong | null>(() => {
+    if (data == null) return null;
+    const lyric = pickSampleLyric(data.lyrics.lines);
+    return {
+      id: data.song.id,
+      title: data.song.title,
+      artist: data.song.artist,
+      artworkUrl: data.song.artworkUrl,
+      lyric,
+      words: pickLineWords(data.words.words, lyric.map(line => line.index)),
+    };
+  }, [data]);
   const currentTier = useMemo(
     () => (songTiers != null ? selectCurrentTier(songTiers) : null),
     [songTiers],
@@ -267,6 +302,10 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     coverageHelpSheetRef.current?.expand();
   }, []);
 
+  const handlePressContributor = useCallback((contributor: SongContributor) => {
+    navigation.navigate('UserProfile', { userId: contributor.userId });
+  }, [navigation]);
+
   const handleCloseCoverageHelp = useCallback(() => {
     coverageHelpSheetOpenRef.current = false;
     coverageHelpSheetRef.current?.close();
@@ -275,17 +314,6 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const handleCoverageHelpSheetChange = useCallback((index: number) => {
     coverageHelpSheetOpenRef.current = index >= 0;
   }, []);
-
-  const ensureSongDeck = useCallback(async (): Promise<DeckDetailResponse | null> => {
-    if (songDeckDetail?.deckId != null) return songDeckDetail;
-    if (songId == null || defaultDeckWords.length === 0) return null;
-
-    await wordApi.batchAddWords({ words: defaultDeckWords });
-    const deck = await deckApi.getDeckBySongId(songId);
-    setSongDeckDetail(deck);
-    await refreshWords(songId).catch(() => undefined);
-    return deck;
-  }, [defaultDeckWords, refreshWords, songDeckDetail, songId]);
 
   const openSongReview = useCallback((deck: DeckDetailResponse, trigger: StudyEntryTrigger) => {
     if (songId == null || deck.deckId == null) return false;
@@ -307,10 +335,10 @@ export default function SongDetailScreen({ navigation, route }: Props) {
 
   /**
    * 그 단계의 due 단어만 연다(카드 수 = CTA 의 `dueCount`). 곡 덱 due 큐를 열면 다른 단계 단어가 섞인다.
-   * 담기와 카드 조회는 복습 화면이 `POST /api/songs/{id}/word-tiers/{key}/study` 로 한다.
+   * 카드 조회는 복습 화면이 `GET /api/songs/{id}/word-tiers/{key}/cards` 로 하고, 단어는 rating 때 한 장씩 담긴다.
    */
   const handleStartTier = useCallback((tier: SongWordTierDto, trigger: StudyEntryTrigger = 'tier') => {
-    if (songId == null || isStartingLearning) return;
+    if (songId == null) return;
     navigation.navigate('SongReview', {
       origin: 'SongDetail',
       trigger,
@@ -325,40 +353,46 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         tierKey: tier.key,
       },
     });
-  }, [data?.song, isStartingLearning, navigation, songDeckDetail?.deckId, songId]);
+  }, [data?.song, navigation, songDeckDetail?.deckId, songId]);
 
-  /** CTA 라벨 기준: due 가 있으면 곡 단어장 due 복습, 없으면 현재 단계, 단계가 없으면 곡 단어장을 연다. */
-  const handleStartLearning = useCallback(async () => {
-    if (songId == null || isStartingLearning) return;
-    if (songDeckDetail != null && songDeckDetail.dueCount > 0) {
-      if (!openSongReview(songDeckDetail, 'cta')) {
-        setLearningError('학습할 단어를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.');
-      }
+  /** 곡 단어장도 단계도 없을 때. 담지 않고 곡 세션(`study-cards`)을 열며, 단어는 rating 때 한 장씩 담긴다. */
+  const openSongSession = useCallback(() => {
+    if (songId == null) return;
+    navigation.navigate('SongReview', {
+      origin: 'SongDetail',
+      trigger: 'cta',
+      source: {
+        deckId: null,
+        songId,
+        title: data?.song.title ?? '',
+        artist: data?.song.artist ?? '',
+        artworkUrl: data?.song.artworkUrl ?? null,
+        dueCount: 0,
+        totalCount: 0,
+      },
+    });
+  }, [data?.song, navigation, songId]);
+
+  /** CTA 라벨 기준: due 가 있으면 곡 단어장 due 복습, 없으면 현재 단계, 단계가 없으면 곡 단어장이나 곡 세션을 연다. */
+  const handleStartLearning = useCallback(() => {
+    if (songId == null) return;
+    if (songDeckDetail != null && songDeckDetail.deckId != null && (songDeckDetail.dueCount > 0 || currentTier == null)) {
+      openSongReview(songDeckDetail, 'cta');
       return;
     }
     if (currentTier != null) {
       handleStartTier(currentTier, 'cta');
       return;
     }
-    setIsStartingLearning(true);
-    try {
-      const deck = await ensureSongDeck();
-      if (deck == null || !openSongReview(deck, 'cta')) {
-        setLearningError('학습할 단어를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.');
-      }
-    } catch (e: any) {
-      setLearningError(e?.message ?? '학습을 시작하지 못했어요. 잠시 후 다시 시도해 주세요.');
-    } finally {
-      setIsStartingLearning(false);
-    }
-  }, [currentTier, ensureSongDeck, handleStartTier, isStartingLearning, openSongReview, songDeckDetail, songId]);
+    openSongSession();
+  }, [currentTier, handleStartTier, openSongReview, openSongSession, songDeckDetail, songId]);
 
   /**
    * 누른 단어가 복습의 첫 카드여야 하고, 여기서 곡을 담지 않는다. 곡 덱 첫 카드로 세울 수 없으면 복습 화면이 그 단어를
-   * 미리보기로 띄우고 rating 확정 시 곡을 담는다(`study-bootstrap`). `savedWordId` 는 다른 곡에서 담은 단어에도 붙는다.
+   * 맨 앞에 둔 곡 세션(`study-cards`)을 열고, 단어는 rating 때 한 장씩 담긴다. `savedWordId` 는 다른 곡에서 담은 단어에도 붙는다.
    */
   const handleStartWordReview = useCallback((word: SongDetailWordItem) => {
-    if (songId == null || isStartingLearning) return;
+    if (songId == null) return;
     navigation.navigate('SongReview', {
       origin: 'SongDetail',
       trigger: 'word',
@@ -378,15 +412,11 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         },
       },
     });
-  }, [data?.song, isStartingLearning, navigation, songDeckDetail, songId]);
+  }, [data?.song, navigation, songDeckDetail, songId]);
 
   const handlePrimaryLearningPress = useCallback(() => {
     handleStartLearning();
   }, [handleStartLearning]);
-
-  const handleDismissLearningError = useCallback(() => {
-    setLearningError(null);
-  }, []);
 
   const artistId = data?.song.artistId ?? null;
   const handleArtistPress = useCallback(() => {
@@ -401,9 +431,25 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     setActiveTab('words');
   }, []);
 
+  const handleSelectCards = useCallback(() => {
+    setActiveTab('cards');
+  }, []);
+
   const handleRefreshAnalysisStatus = useCallback(() => {
     if (songId == null) return;
     load(songId);
+  }, [load, songId]);
+
+  // loadSong 은 재생 위치를 되돌리므로 쓰지 않는다. 같은 곡이면 load 가 화면 데이터를 유지한 채 다시 받는다.
+  const handlePullRefresh = useCallback(() => {
+    if (songId == null) return;
+    setRefreshing(true);
+    Promise.all([
+      load(songId),
+      deckApi.getDeckBySongId(songId)
+        .then(deck => setSongDeckDetail(deck))
+        .catch(() => setSongDeckDetail(null)),
+    ]).finally(() => setRefreshing(false));
   }, [load, songId]);
 
   const handleWordsChanged = useCallback(() => {
@@ -442,6 +488,11 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     setTabPageHeights(prev => prev.words === height ? prev : { ...prev, words: height });
   }, []);
 
+  const handleCardsPageLayout = useCallback((event: LayoutChangeEvent) => {
+    const height = Math.ceil(event.nativeEvent.layout.height);
+    setTabPageHeights(prev => prev.cards === height ? prev : { ...prev, cards: height });
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       const onBack = () => {
@@ -455,7 +506,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
           infoSheetRef.current?.close();
           return true;
         }
-        return false;
+        return collapseLyricsSheetRef.current?.() ?? false;
       };
       const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
       return () => sub.remove();
@@ -556,8 +607,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const learningActionIcon: keyof typeof Feather.glyphMap = actionMode === 'review'
     ? 'rotate-ccw'
     : actionMode === 'preparing' ? 'info' : 'layers';
-  const isLearningActionDisabled = isStartingLearning
-    || actionMode === 'preparing'
+  const isLearningActionDisabled = actionMode === 'preparing'
     || (songDeckDetail?.deckId == null && currentTier == null && defaultDeckWords.length === 0);
 
   return (
@@ -582,6 +632,14 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         style={styles.scroll}
         onScroll={handleScroll}
         scrollEventThrottle={16}
+        refreshControl={(
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handlePullRefresh}
+            tintColor="#FFFFFF"
+            progressViewOffset={insets.top}
+          />
+        )}
         contentContainerStyle={[
           styles.scrollContent,
           { paddingBottom: activeTab === 'words' ? 0 : bottomReserve },
@@ -595,6 +653,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
             tabProgress={tabProgress}
             onSelectHome={handleSelectHome}
             onSelectWords={handleSelectWords}
+            onSelectCards={handleSelectCards}
           />
 
           {isSongAnalysisPending ? (
@@ -605,7 +664,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
                 style={[
                   styles.tabContentRail,
                   {
-                    width: screenWidth * 2,
+                    width: screenWidth * TAB_COUNT,
                     transform: [{ translateX: tabContentTranslate }],
                   },
                 ]}
@@ -616,13 +675,14 @@ export default function SongDetailScreen({ navigation, route }: Props) {
                   onLayout={handleHomePageLayout}
                 >
                   <SongDetailHomeTab
-                    songId={song.id}
+                    song={cardSong ?? EMPTY_CARD_SONG}
                     words={words.words}
                     coverage={songCoverage}
                     tiers={songTiers}
-                    isStartingLearning={isStartingLearning}
+                    contributors={songContributors}
                     onCoverageHelpPress={handleOpenCoverageHelp}
                     onStartTier={handleStartTier}
+                    onPressContributor={handlePressContributor}
                   />
                 </View>
                 <View
@@ -636,6 +696,13 @@ export default function SongDetailScreen({ navigation, route }: Props) {
                     busyWordKey={busyWordKey}
                     onStartWordReview={handleStartWordReview}
                   />
+                </View>
+                <View
+                  pointerEvents={activeTab === 'cards' ? 'auto' : 'none'}
+                  style={[styles.tabPage, { width: screenWidth }]}
+                  onLayout={handleCardsPageLayout}
+                >
+                  <SongDetailCardsTab song={cardSong ?? EMPTY_CARD_SONG} />
                 </View>
               </Animated.View>
             </Animated.View>
@@ -676,8 +743,10 @@ export default function SongDetailScreen({ navigation, route }: Props) {
       </Animated.View>
 
       <PlaybackOverlays
+        songId={song.id}
         title={song.title}
         artist={song.artist}
+        artworkUrl={song.artworkUrl}
         youtubeUrl={song.youtubeUrl}
         initialSeekMs={route.params?.initialSeekMs}
         initialLyricIndex={route.params?.initialLyricIndex}
@@ -688,6 +757,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         lyricType={song.lyricType}
         busyWordKey={busyWordKey}
         onStartWordReview={handleStartWordReview}
+        collapseSheetRef={collapseLyricsSheetRef}
       />
 
       <View
@@ -774,6 +844,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
           tabProgress={tabProgress}
           onSelectHome={handleSelectHome}
           onSelectWords={handleSelectWords}
+          onSelectCards={handleSelectCards}
         />
       </Animated.View>
 
@@ -825,7 +896,6 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         </AppBottomSheetView>
       </AppBottomSheet>
 
-      <ErrorDialog message={learningError} onDismiss={handleDismissLearningError} />
       {songDeckDeletion.dialogs}
 
     </View>
@@ -833,8 +903,10 @@ export default function SongDetailScreen({ navigation, route }: Props) {
 }
 
 interface PlaybackOverlaysProps {
+  songId: number;
   title: string;
   artist: string;
+  artworkUrl: string | null;
   youtubeUrl: string | null;
   initialSeekMs?: number;
   initialLyricIndex?: number;
@@ -845,11 +917,15 @@ interface PlaybackOverlaysProps {
   lyricType: React.ComponentProps<typeof CurrentPlayingWordsSheet>['lyricType'];
   busyWordKey: string | null;
   onStartWordReview: React.ComponentProps<typeof CurrentPlayingWordsSheet>['onStartWordReview'];
+  /** 백버튼이 위에 뜬 시트들을 먼저 닫은 뒤 가사 시트를 접도록 부모의 백 핸들러가 부른다. */
+  collapseSheetRef: React.MutableRefObject<(() => boolean) | null>;
 }
 
 const PlaybackOverlays = React.memo(function PlaybackOverlays({
+  songId,
   title,
   artist,
+  artworkUrl,
   youtubeUrl,
   initialSeekMs,
   initialLyricIndex,
@@ -860,14 +936,28 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
   lyricType,
   busyWordKey,
   onStartWordReview,
+  collapseSheetRef,
 }: PlaybackOverlaysProps) {
+  // 가사 줄을 지정해 들어오면(예문) 가사 시트를 펼친 채 그 줄 시각부터 튼다.
+  const initialSheetIndex = initialLyricIndex != null ? 1 : 0;
+  const lineSeekMs = initialLyricIndex != null ? lines[initialLyricIndex]?.startTimeMs ?? undefined : undefined;
+  const startSeekMs = initialSeekMs ?? lineSeekMs;
   const mvBarRef = useRef<SongDetailMvBarRef>(null);
   const wordsSheetRef = useRef<AppBottomSheetRef>(null);
-  const wordsSheetIndexRef = useRef(0);
-  const currentMs = usePlayerStore(s => s.currentMs);
-  const durationMs = usePlayerStore(s => s.durationMs);
+  const wordsSheetIndexRef = useRef(initialSheetIndex);
+  const wordsSheetAnimatedIndex = useSharedValue(initialSheetIndex);
+  const reportSheetRef = useRef<AppBottomSheetModalRef>(null);
+  const [reportTarget, setReportTarget] = useState<SongReportSheetTarget | null>(null);
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+  const [reportSent, setReportSent] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
   const setCurrentMs = usePlayerStore(s => s.setCurrentMs);
   const setDurationMs = usePlayerStore(s => s.setDurationMs);
+  useEffect(() => {
+    if (initialSeekMs == null && lineSeekMs != null) setCurrentMs(lineSeekMs);
+    // 화면 진입 때 한 번만 맞춘다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const handleSyncedPageChange = useCallback((line: React.ComponentProps<typeof CurrentPlayingWordsSheet>['lines'][number]) => {
     if (line.startTimeMs == null) return;
     mvBarRef.current?.seekToMs(line.startTimeMs);
@@ -881,26 +971,67 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
     wordsSheetIndexRef.current = nextIndex;
     wordsSheetRef.current?.snapToIndex(nextIndex);
   }, []);
+  useEffect(() => {
+    collapseSheetRef.current = () => {
+      if (wordsSheetIndexRef.current <= 0) return false;
+      wordsSheetIndexRef.current = 0;
+      wordsSheetRef.current?.snapToIndex(0);
+      return true;
+    };
+    return () => {
+      collapseSheetRef.current = null;
+    };
+  }, [collapseSheetRef]);
+
+  const handleOpenLineReport = useCallback((line: React.ComponentProps<typeof CurrentPlayingWordsSheet>['lines'][number]) => {
+    setReportTarget({ group: 'LYRIC_LINE', line });
+    reportSheetRef.current?.present();
+  }, []);
+  const handleOpenMvReport = useCallback(() => {
+    setReportTarget({ group: 'MV' });
+    reportSheetRef.current?.present();
+  }, []);
+  const handleCloseReport = useCallback(() => {
+    reportSheetRef.current?.dismiss();
+  }, []);
+  const handleReportDismissed = useCallback(() => {
+    setReportTarget(null);
+    setReportSent(false);
+  }, []);
+  const handleDismissReportError = useCallback(() => {
+    setReportError(null);
+  }, []);
+  const handleSubmitReport = useCallback(async (request: SubmitSongReportRequest) => {
+    setIsSubmittingReport(true);
+    try {
+      await songReportApi.submit(songId, request);
+      setReportSent(true);
+    } catch (e) {
+      setReportError(apiErrorMessage(e, '제보를 보내지 못했어요. 잠시 후 다시 보내주세요'));
+    } finally {
+      setIsSubmittingReport(false);
+    }
+  }, [songId]);
   const mvBarHeader = useMemo(() => (
     <SongDetailMvBar
       ref={mvBarRef}
       title={title}
       artist={artist}
       youtubeUrl={youtubeUrl}
-      initialSeekMs={initialSeekMs}
-      currentTimeMs={currentMs}
-      durationMs={durationMs}
+      initialSeekMs={startSeekMs}
       embedded
+      expandProgress={wordsSheetAnimatedIndex}
       onCurrentTimeChange={setCurrentMs}
       onDurationChange={setDurationMs}
       onBarPress={handleToggleWordsSheet}
+      onReportPress={handleOpenMvReport}
     />
   ), [
     artist,
-    currentMs,
-    durationMs,
+    handleOpenMvReport,
     handleToggleWordsSheet,
-    initialSeekMs,
+    startSeekMs,
+    wordsSheetAnimatedIndex,
     setCurrentMs,
     setDurationMs,
     title,
@@ -908,22 +1039,54 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
   ]);
 
   return (
-    <CurrentPlayingWordsSheet
-      ref={wordsSheetRef}
-      lines={lines}
-      words={words}
-      lineWordIndexes={lineWordIndexes}
-      lyricType={lyricType}
-      currentTimeMs={currentMs}
-      fallbackLineIndex={initialLyricIndex}
-      bottomInset={bottomInset}
-      header={mvBarHeader}
-      headerHeight={SONG_DETAIL_MV_BAR_HEIGHT}
-      busyWordKey={busyWordKey}
-      onStartWordReview={onStartWordReview}
-      onSheetChange={handleWordsSheetChange}
-      onSyncedPageChange={handleSyncedPageChange}
-    />
+    <>
+      <CurrentPlayingWordsSheet
+        ref={wordsSheetRef}
+        artworkUrl={artworkUrl}
+        animatedIndex={wordsSheetAnimatedIndex}
+        lines={lines}
+        words={words}
+        lineWordIndexes={lineWordIndexes}
+        lyricType={lyricType}
+        fallbackLineIndex={initialLyricIndex}
+        initialIndex={initialSheetIndex}
+        bottomInset={bottomInset}
+        header={mvBarHeader}
+        headerHeight={SONG_DETAIL_MV_BAR_HEIGHT}
+        busyWordKey={busyWordKey}
+        onStartWordReview={onStartWordReview}
+        onReportLine={handleOpenLineReport}
+        onSheetChange={handleWordsSheetChange}
+        onSyncedPageChange={handleSyncedPageChange}
+      />
+
+      <AppBottomSheetModal
+        ref={reportSheetRef}
+        enableDynamicSizing
+        enablePanDownToClose
+        keyboardBehavior="interactive"
+        keyboardBlurBehavior="restore"
+        onDismiss={handleReportDismissed}
+      >
+        <AppBottomSheetView>
+          {reportSent ? (
+            <SongReportThanksSheet onClose={handleCloseReport} />
+          ) : reportTarget ? (
+            <SongReportSheet
+              target={reportTarget}
+              songTitle={title}
+              songArtist={artist}
+              youtubeUrl={youtubeUrl}
+              submitting={isSubmittingReport}
+              onSubmit={handleSubmitReport}
+              onClose={handleCloseReport}
+            />
+          ) : null}
+        </AppBottomSheetView>
+      </AppBottomSheetModal>
+
+      <ErrorDialog message={reportError} onDismiss={handleDismissReportError} />
+    </>
   );
 });
 
@@ -950,6 +1113,7 @@ interface TabsProps {
   tabProgress: Animated.Value;
   onSelectHome: () => void;
   onSelectWords: () => void;
+  onSelectCards: () => void;
 }
 
 const SongDetailTabs = React.memo(function SongDetailTabs({
@@ -957,11 +1121,12 @@ const SongDetailTabs = React.memo(function SongDetailTabs({
   tabProgress,
   onSelectHome,
   onSelectWords,
+  onSelectCards,
 }: TabsProps) {
   const indicatorTranslateX = useMemo(
     () => tabProgress.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0, TAB_ITEM_WIDTH + TAB_ITEM_GAP],
+      inputRange: [0, TAB_COUNT - 1],
+      outputRange: [0, (TAB_ITEM_WIDTH + TAB_ITEM_GAP) * (TAB_COUNT - 1)],
       extrapolate: 'clamp',
     }),
     [tabProgress],
@@ -987,6 +1152,13 @@ const SongDetailTabs = React.memo(function SongDetailTabs({
         tabProgress={tabProgress}
         onPress={onSelectWords}
       />
+      <TabButton
+        tab="cards"
+        label="카드"
+        isActive={activeTab === 'cards'}
+        tabProgress={tabProgress}
+        onPress={onSelectCards}
+      />
     </View>
   );
 });
@@ -1006,29 +1178,30 @@ const TabButton = React.memo(function TabButton({
   tabProgress,
   onPress,
 }: TabButtonProps) {
+  const index = TAB_INDEX[tab];
   const activeOpacity = useMemo(
     () => tabProgress.interpolate({
-      inputRange: [0, 1],
-      outputRange: tab === 'home' ? [1, 0] : [0, 1],
+      inputRange: [index - 1, index, index + 1],
+      outputRange: [0, 1, 0],
       extrapolate: 'clamp',
     }),
-    [tab, tabProgress],
+    [index, tabProgress],
   );
   const inactiveOpacity = useMemo(
     () => tabProgress.interpolate({
-      inputRange: [0, 1],
-      outputRange: tab === 'home' ? [0, 1] : [1, 0],
+      inputRange: [index - 1, index, index + 1],
+      outputRange: [1, 0, 1],
       extrapolate: 'clamp',
     }),
-    [tab, tabProgress],
+    [index, tabProgress],
   );
   const labelScale = useMemo(
     () => tabProgress.interpolate({
-      inputRange: [0, 1],
-      outputRange: tab === 'home' ? [1, 0.96] : [0.96, 1],
+      inputRange: [index - 1, index, index + 1],
+      outputRange: [0.96, 1, 0.96],
       extrapolate: 'clamp',
     }),
-    [tab, tabProgress],
+    [index, tabProgress],
   );
 
   return (

@@ -7,8 +7,6 @@ import { useStudyStatsStore } from '../../stores/studyStatsStore';
 import { Colors } from '../../theme/theme';
 import { HeatmapDay } from '../../types/studyStats';
 
-const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
-
 const CELL = 14;
 const GAP = 3;
 const ROWS = 7;
@@ -16,18 +14,19 @@ const COLS = 16; // matches Pencil heatmap design (16 weeks)
 const ROW_LABEL_WIDTH = 18;
 const ROW_LABEL_GAP = 6;
 const ROW_LABELS: Record<number, string> = { 1: '월', 3: '수', 5: '금' };
+const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
 
 interface HeatmapSectionProps {
-  onPressFreeze: () => void;
+  /** 연속·최장 기록과 날짜별 수치는 연속 학습 상세가 보여준다. */
+  onPressMore: () => void;
 }
 
-export default React.memo(function HeatmapSection({ onPressFreeze }: HeatmapSectionProps) {
-  const { heatmap, profile, loadHeatmap, loadProfile } = useStudyStatsStore(
+/** 내 학습 기록. */
+export default React.memo(function HeatmapSection({ onPressMore }: HeatmapSectionProps) {
+  const { heatmap, loadHeatmap } = useStudyStatsStore(
     useShallow((s) => ({
       heatmap: s.heatmap,
-      profile: s.profile,
       loadHeatmap: s.loadHeatmap,
-      loadProfile: s.loadProfile,
     })),
   );
 
@@ -36,20 +35,25 @@ export default React.memo(function HeatmapSection({ onPressFreeze }: HeatmapSect
       if (heatmap.status === 'idle' || heatmap.staleAt > 0) {
         loadHeatmap(heatmap.staleAt > 0);
       }
-      if (profile.status === 'idle' || profile.staleAt > 0) {
-        loadProfile(profile.staleAt > 0);
-      }
-    }, [heatmap.status, heatmap.staleAt, profile.status, profile.staleAt, loadHeatmap, loadProfile]),
+    }, [heatmap.status, heatmap.staleAt, loadHeatmap]),
   );
 
-  const cells = useMemo(() => {
-    return computeGrid(heatmap.data?.days ?? []);
-  }, [heatmap.data]);
+  return <HeatmapView days={heatmap.data?.days} onPressMore={onPressMore} />;
+});
+
+interface HeatmapViewProps {
+  days: HeatmapDay[] | undefined;
+  /** 없으면 제목만 그리고 상세로 넘어가지 않는다. */
+  onPressMore?: () => void;
+}
+
+export const HeatmapView = React.memo(function HeatmapView({ days, onPressMore }: HeatmapViewProps) {
+  const cells = useMemo(() => computeGrid(days ?? []), [days]);
 
   const visibleMax = useMemo(() => {
-    if (!heatmap.data) return 0;
-    return heatmap.data.days.reduce((acc, d) => (d.reviewCount > acc ? d.reviewCount : acc), 0);
-  }, [heatmap.data]);
+    if (!days) return 0;
+    return days.reduce((acc, d) => (d.reviewCount > acc ? d.reviewCount : acc), 0);
+  }, [days]);
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const handleSelect = useCallback((date: string) => {
@@ -57,104 +61,85 @@ export default React.memo(function HeatmapSection({ onPressFreeze }: HeatmapSect
   }, []);
 
   const selectedDay = useMemo(() => {
-    if (!selectedDate || !heatmap.data) return null;
-    return heatmap.data.days.find((d) => d.date === selectedDate) ?? null;
-  }, [selectedDate, heatmap.data]);
-
-  const totalDays = profile.data?.totalStudyDays ?? 0;
-  const currentStreak = profile.data?.currentStreak ?? 0;
-  const longestStreak = profile.data?.longestStreak ?? 0;
-  const freezeCount = profile.data?.freezeCount ?? 0;
-  const freezeMax = profile.data?.freezeMax ?? 2;
+    if (!selectedDate || !days) return null;
+    return days.find((d) => d.date === selectedDate) ?? null;
+  }, [selectedDate, days]);
 
   return (
     <View style={styles.section}>
-      <View style={styles.header}>
-        <Text style={styles.title}>학습 기록</Text>
+      {onPressMore ? (
         <Pressable
-          style={({ pressed }) => [styles.right, pressed && styles.rightPressed]}
-          onPress={onPressFreeze}
+          style={({ pressed }) => [styles.header, pressed && styles.headerPressed]}
+          onPress={onPressMore}
           hitSlop={8}
         >
-          <Ionicons name="snow" size={11} color={Colors.freezeStroke} />
-          <Text style={styles.freezeText}>{freezeCount}/{freezeMax}</Text>
+          <Text style={styles.title}>학습 기록</Text>
+          <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
         </Pressable>
-      </View>
+      ) : (
+        <Text style={styles.title}>학습 기록</Text>
+      )}
 
-      <View style={styles.statsLine}>
-        <Ionicons name="flame" size={13} color={Colors.streakFlame} />
-        <Text style={styles.streakText}>연속 {currentStreak}일</Text>
-        <Text style={styles.dotSep}>·</Text>
-        <Text style={styles.statText}>최장 {longestStreak}일</Text>
-        <Text style={styles.dotSep}>·</Text>
-        <Text style={styles.statText}>총 {totalDays}일</Text>
-      </View>
-
-      <View style={styles.grid}>
-        <View style={styles.labelCol}>
-          {Array.from({ length: ROWS }).map((_, r) => (
-            <View key={r} style={styles.labelCell}>
-              <Text style={styles.labelText}>{ROW_LABELS[r] ?? ''}</Text>
-            </View>
-          ))}
+      <View style={styles.body}>
+        <View style={styles.grid}>
+          <View style={styles.labelCol}>
+            {Array.from({ length: ROWS }).map((_, r) => (
+              <View key={r} style={styles.labelCell}>
+                <Text style={styles.labelText}>{ROW_LABELS[r] ?? ''}</Text>
+              </View>
+            ))}
+          </View>
+          <View>
+            {Array.from({ length: ROWS }).map((_, r) => (
+              <View key={r} style={styles.gridRow}>
+                {Array.from({ length: COLS }).map((_, c) => {
+                  const cell = cells[c * ROWS + r];
+                  const date = cell.kind === 'day' ? cell.day.date : null;
+                  return (
+                    <Cell
+                      key={c}
+                      cell={cell}
+                      max={visibleMax}
+                      selected={!!date && date === selectedDate}
+                      onSelect={handleSelect}
+                    />
+                  );
+                })}
+              </View>
+            ))}
+          </View>
         </View>
-        <View>
-          {Array.from({ length: ROWS }).map((_, r) => (
-            <View key={r} style={styles.gridRow}>
-              {Array.from({ length: COLS }).map((_, c) => {
-                const cell = cells[c * ROWS + r];
-                const date = cell.kind === 'day' ? cell.day.date : null;
-                return (
-                  <Cell
-                    key={c}
-                    cell={cell}
-                    max={visibleMax}
-                    selected={!!date && date === selectedDate}
-                    onSelect={handleSelect}
-                  />
-                );
-              })}
-            </View>
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.footer}>
-        <View style={styles.selection}>
-          {selectedDay ? (
-            <>
-              <Text style={styles.selCount}>
-                {selectedDay.freezeUsed && selectedDay.reviewCount === 0
-                  ? '프리즈'
-                  : `${selectedDay.reviewCount}회`}
-              </Text>
-              <Text style={styles.selDate}>{formatKoreanDate(selectedDay.date)}</Text>
-            </>
-          ) : null}
-        </View>
-        <View style={styles.legend}>
-          <Text style={styles.legendText}>적음</Text>
-          {Colors.heatmapIntensities.map((color, i) => (
-            <View key={i} style={[styles.legendCell, { backgroundColor: color }]} />
-          ))}
-          <Text style={styles.legendText}>많음</Text>
+        <View style={styles.footer}>
+          <View style={styles.selection}>
+            {selectedDay ? (
+              <>
+                <Text style={styles.selCount}>
+                  {selectedDay.freezeUsed && selectedDay.reviewCount === 0
+                    ? '프리즈'
+                    : `${selectedDay.reviewCount}회`}
+                </Text>
+                <Text style={styles.selDate}>{formatKoreanDate(selectedDay.date)}</Text>
+              </>
+            ) : null}
+          </View>
+          <View style={styles.legend}>
+            <Text style={styles.legendText}>적음</Text>
+            {Colors.heatmapIntensities.map((color, i) => (
+              <View key={i} style={[styles.legendCell, { backgroundColor: color }]} />
+            ))}
+            <Text style={styles.legendText}>많음</Text>
+          </View>
         </View>
       </View>
-
     </View>
   );
 });
-
-function formatKoreanDate(iso: string): string {
-  const d = parseISODate(iso);
-  return `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAY_KO[d.getDay()]})`;
-}
 
 type CellState =
   | { kind: 'empty' }
   | { kind: 'day'; day: HeatmapDay };
 
-function Cell({
+const Cell = React.memo(function Cell({
   cell,
   max,
   selected,
@@ -185,6 +170,11 @@ function Cell({
       style={[styles.cell, { backgroundColor: Colors.heatmapIntensities[level] }, ringStyle]}
     />
   );
+});
+
+function formatKoreanDate(iso: string): string {
+  const d = parseISODate(iso);
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAY_KO[d.getDay()]})`;
 }
 
 function computeLevel(count: number, max: number): number {
@@ -227,46 +217,22 @@ function mondayBasedRow(date: Date): number {
 const styles = StyleSheet.create({
   section: { gap: 14 },
   header: {
+    alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 3,
   },
+  headerPressed: { opacity: 0.5 },
   title: {
     fontSize: 17,
     fontWeight: '700',
     color: Colors.textPrimary,
   },
-  right: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  rightPressed: { opacity: 0.5 },
-  freezeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.freezeStroke,
-    fontVariant: ['tabular-nums'],
-  },
-  dotSep: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.textMuted,
-  },
-  statsLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-  },
-  streakText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    fontVariant: ['tabular-nums'],
-  },
-  statText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: Colors.textSecondary,
-    fontVariant: ['tabular-nums'],
-  },
 
+  body: {
+    alignSelf: 'flex-start',
+    gap: 4,
+  },
   grid: {
     flexDirection: 'row',
     gap: ROW_LABEL_GAP,
@@ -304,7 +270,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Colors.textPrimary,
   },
-
   footer: {
     flexDirection: 'row',
     alignItems: 'center',

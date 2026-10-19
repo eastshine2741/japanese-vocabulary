@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, PanResponder, PixelRatio, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, BackHandler, PanResponder, PixelRatio, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
   Extrapolation,
@@ -10,7 +10,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useIsFocused, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -25,6 +25,7 @@ import {
   useStudyStack,
 } from '../../components/studyStack';
 import { useHomeChromeStore } from '../../stores/homeChromeStore';
+import { useRewardCardStore } from '../../stores/rewardCardStore';
 import { useDeleteSongDeck, useSongDeckActionSheet } from '../../hooks/useDeleteSongDeck';
 import { Colors } from '../../theme/theme';
 import { RootStackParamList, TabParamList } from '../../navigation/AppNavigator';
@@ -73,6 +74,11 @@ export default function HomeTab() {
   const insetTopRef = useRef(insets.top);
   insetTopRef.current = insets.top;
 
+  // 서명 전에 앱을 끈 카드는 홈에 처음 들어올 때 다시 띄운다.
+  useEffect(() => {
+    useRewardCardStore.getState().checkPendingOnce();
+  }, []);
+
   useEffect(() => navigation.addListener('tabPress', () => {
     if (!focusedRef.current) return;
     immerse.value = 0;
@@ -92,7 +98,7 @@ export default function HomeTab() {
   }, [consumeReload, focused, reload]);
 
   // 몰입 규칙:
-  //  ① 몰입 밖에서는 카드를 못 만진다 — 탭이든 드래그든 몰입 진입이다 (WordLayer 잠금 오버레이).
+  //  ① 몰입 밖에서 카드를 탭하면 탭한 동작과 함께 몰입에 들어간다 (WordLayer 탭 감시).
   //  ② 세로 드래그가 몰입 값을 끈다 — 몰입 중엔 아래로, 아니면 위로. 카드 앞뒤면은 무관하다.
   //  ③ 놓으면 가까운 쪽(0.5 기준)으로 붙는다.
   // immerse 는 레이아웃 값(카드 안쪽 여백)도 끌어서 RN Animated 네이티브 드라이버를 못 쓴다.
@@ -106,6 +112,18 @@ export default function HomeTab() {
   }, [immerse, setDark]);
 
   const enterImmerse = useCallback(() => setImmersed(true), [setImmersed]);
+
+  // 아래 덱 시트 훅들보다 먼저 등록해야 시트가 열려 있을 땐 시트가 백버튼을 먼저 받는다.
+  useFocusEffect(
+    useCallback(() => {
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        if (!immersedRef.current) return false;
+        setImmersed(false);
+        return true;
+      });
+      return () => sub.remove();
+    }, [setImmersed]),
+  );
 
   const startRefresh = useCallback(() => {
     setRefreshing(true);
@@ -176,8 +194,8 @@ export default function HomeTab() {
     navigation.navigate('SongDetail', { songId: visibleSongId, origin: 'Home' });
   }, [navigation, visibleSongId]);
 
-  const openExampleSource = useCallback((songId: number) => {
-    navigation.navigate('SongDetail', { songId, origin: 'Home' });
+  const openExampleSource = useCallback((songId: number, lineIndex: number | null) => {
+    navigation.navigate('SongDetail', { songId, origin: 'Home', initialLyricIndex: lineIndex ?? undefined });
   }, [navigation]);
 
   const editWord = useEditWordFromStack(stack.refreshCurrentCard);

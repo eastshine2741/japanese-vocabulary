@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
-/** 오늘의 복습 스케줄 (docs/product-intents/261004-study-schedule-api.md). */
+/** 오늘의 복습 스케줄과 기억 단어 수 예보. */
 @RestController
 @RequestMapping("/api/study-schedule")
 class StudyScheduleController(
@@ -41,6 +41,7 @@ class StudyScheduleController(
         SecurityContextHolder.getContext().authentication.principal as Long
 
     companion object {
+        // 30일로는 오래 공부한 유저의 두 시나리오 차이가 10~20% 라 안 보인다.
         private const val FORECAST_DAYS = 365
     }
 }

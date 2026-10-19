@@ -55,3 +55,28 @@ export function buildTierSegments(tier: SongWordTierDto): SongWordTierSegments {
     remainingCount: total - longTerm - shortTerm,
   };
 }
+
+/** 곡 카드 마스터 기준. 정직하게 공부해도 due 마다 약 10% 는 잊혀서 '전부'가 아니라 90% 다. */
+export const SONG_CARD_MASTER_RATIO = 0.9;
+
+export interface SongCardProgress {
+  /** 앞에서부터 끝낸 단계 수. 0 이면 아직 카드가 없다. */
+  level: 0 | 1 | 2 | 3;
+  mastered: boolean;
+  /** 곡 단어 중 장기기억 비율. */
+  longTermRatio: number;
+}
+
+/** 단계 n 을 끝내면 레벨 n 카드다. 단계는 순서대로만 오르므로 앞에서부터 이어진 완료 단계만 센다. */
+export function getSongCardProgress(tiers: readonly SongWordTierDto[]): SongCardProgress {
+  let level = 0;
+  while (level < tiers.length && level < 3 && isTierDone(tiers[level])) level++;
+  const total = tiers.reduce((sum, tier) => sum + Math.max(0, tier.totalCount), 0);
+  const longTerm = tiers.reduce((sum, tier) => sum + Math.max(0, tier.longTermCount), 0);
+  const longTermRatio = total > 0 ? Math.min(1, longTerm / total) : 0;
+  return {
+    level: level as SongCardProgress['level'],
+    mastered: level === 3 && longTermRatio >= SONG_CARD_MASTER_RATIO,
+    longTermRatio,
+  };
+}

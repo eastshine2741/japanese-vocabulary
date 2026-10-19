@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="630" viewBox="0 0 1200 630">
+  <!-- og.png 원본. 고친 뒤: rsvg-convert -w 1200 -h 630 og/og.svg -o public/assets/og.png -->
+  <defs>
+    <radialGradient id="glow" cx="80%" cy="30%" r="60%">
+      <stop offset="0" stop-color="#16B364" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#16B364" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="iconClip"><rect x="72" y="64" width="56" height="56" rx="14"/></clipPath>
+    <!-- 히어로 폰 화면: 영상 배경 위에 가사 시트 -->
+    <linearGradient id="screen" x1="0" y1="0" x2=".5" y2="1">
+      <stop offset="0" stop-color="#2b3550"/><stop offset=".6" stop-color="#4a3f5c"/><stop offset="1" stop-color="#1b1f2a"/>
+    </linearGradient>
+    <linearGradient id="thumb" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3d5a8a"/><stop offset="1" stop-color="#c99ab5"/>
+    </linearGradient>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".85"/><stop offset="1" stop-color="#fff"/>
+    </linearGradient>
+    <clipPath id="screenClip"><rect width="384" height="438" rx="32"/></clipPath>
+    <clipPath id="sheetClip"><rect y="30" width="384" height="440" rx="24"/></clipPath>
+  </defs>
+  <rect width="1200" height="630" fill="#111418"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+  <text x="1100" y="30" font-family="Noto Serif CJK JP" font-weight="900" font-size="200" fill="none" stroke="#ffffff" stroke-opacity=".07" stroke-width="1.5" writing-mode="tb">言の葉</text>
+
+  <image xlink:href="icon.png" x="72" y="64" width="56" height="56" clip-path="url(#iconClip)"/>
+  <text x="146" y="103" font-family="Noto Sans CJK KR" font-weight="700" font-size="30" fill="#ffffff">코토노하</text>
+  <text x="280" y="103" font-family="Noto Sans CJK KR" font-weight="500" font-size="22" fill="#ffffff" fill-opacity=".5">Kotonoha</text>
+
+  <g font-family="Noto Sans CJK KR" font-weight="900" font-size="78" letter-spacing="-3" fill="#ffffff">
+    <text x="68" y="290" fill="#52B98A">좋아하는 노래로</text>
+    <text x="68" y="390">일본어를 배워보세요</text>
+  </g>
+  <text x="72" y="470" font-family="Noto Sans CJK KR" font-weight="500" font-size="28" fill="#9aa0a9">가사를 따라 부르다 보면 어느새 늘어 있는 일본어.</text>
+
+  <g transform="translate(748 96)">
+    <g clip-path="url(#screenClip)">
+      <rect width="384" height="438" fill="url(#screen)"/>
+      <g clip-path="url(#sheetClip)">
+        <rect y="30" width="384" height="440" fill="#ffffff"/>
+
+        <!-- MV 바 -->
+        <rect x="20" y="50" width="64" height="32" rx="9" fill="url(#thumb)"/>
+        <text x="100" y="66" font-family="Noto Sans CJK JP" font-weight="600" font-size="17" fill="#1a1a1a">夜空の約束</text>
+        <text x="100" y="89" font-family="Noto Sans CJK KR" font-weight="400" font-size="13" fill="#666666">샘플 곡 · 0:24 / 3:48</text>
+        <rect x="344" y="57" width="5" height="18" rx="1" fill="#16B364"/><rect x="354" y="57" width="5" height="18" rx="1" fill="#16B364"/>
+        <rect y="102" width="384" height="1" fill="#e5e5e5"/>
+
+        <text x="22" y="150" font-family="Noto Sans CJK JP" font-weight="400" font-size="21" fill="#1a1a1a" fill-opacity=".44">遠い街の灯り</text>
+
+        <!-- 지금 줄: 후리가나, 단어, 품사 색 막대, 뜻, 발음, 번역 -->
+        <rect y="172" width="384" height="170" fill="#f6f6f6"/>
+        <g font-family="Noto Sans CJK JP" font-weight="400" font-size="12" fill="#666666" text-anchor="middle">
+          <text x="54" y="202">よぞら</text><text x="137" y="202">ほし</text>
+        </g>
+        <g font-family="Noto Sans CJK JP" font-weight="600" font-size="30" fill="#1a1a1a">
+          <text x="24" y="236">夜空</text>
+          <text x="88" y="236" fill="#666666">に</text>
+          <text x="122" y="236">星</text>
+          <text x="156" y="236" fill="#666666">が</text>
+          <text x="190" y="236">ひとつ</text>
+        </g>
+        <g fill="#368ee8">
+          <rect x="24" y="244" width="60" height="3.5" rx="1.5"/>
+          <rect x="122" y="244" width="30" height="3.5" rx="1.5"/>
+          <rect x="190" y="244" width="90" height="3.5" rx="1.5"/>
+        </g>
+        <g font-family="Noto Sans CJK KR" font-weight="400" font-size="13" fill="#666666" text-anchor="middle">
+          <text x="54" y="268">밤하늘</text><text x="137" y="268">별</text><text x="235" y="268">하나</text>
+        </g>
+        <text x="24" y="300" font-family="Noto Sans CJK KR" font-weight="400" font-size="15" fill="#666666">요조라니 호시가 히토츠</text>
+        <text x="24" y="326" font-family="Noto Sans CJK KR" font-weight="500" font-size="18" fill="#1a1a1a">밤하늘에 별이 하나</text>
+
+        <text x="22" y="382" font-family="Noto Sans CJK JP" font-weight="400" font-size="21" fill="#1a1a1a" fill-opacity=".44">静かな夜の風</text>
+        <text x="22" y="420" font-family="Noto Sans CJK JP" font-weight="400" font-size="21" fill="#1a1a1a" fill-opacity=".3">君の声を探して</text>
+
+        <rect y="338" width="384" height="100" fill="url(#fade)"/>
+
+        <!-- 싱크 ON -->
+        <rect x="134" y="386" width="116" height="34" rx="17" fill="#16B364" fill-opacity=".125" stroke="#16B364" stroke-width="1.5"/>
+        <circle cx="158" cy="403" r="7" fill="#0b7a43" stroke="#ffffff" stroke-width="2.5"/>
+        <circle cx="158" cy="403" r="8" fill="none" stroke="#0b7a43" stroke-width="1.5"/>
+        <text x="172" y="408" font-family="Noto Sans CJK KR" font-weight="500" font-size="14" fill="#0b7a43">싱크 ON</text>
+      </g>
+    </g>
+  </g>
+</svg>

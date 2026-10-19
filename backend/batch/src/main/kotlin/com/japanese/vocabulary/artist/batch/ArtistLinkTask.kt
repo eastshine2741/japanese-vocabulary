@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component
 
 /**
  * 아티스트가 비어 있는 곡을 Apple Music 에서 찾아 잇는다. 분석 완료 때 worker 가 잇지 못한 곡과 기존 곡을 맡는다.
- * 카탈로그에 없는 곡은 매번 다시 찾지만, 곡 하나에 검색 한 번이라 남겨 둔다.
+ * 카탈로그에 없는 곡은 매번 다시 찾지만, 곡 하나에 검색 두 번이라 남겨 둔다.
  */
 @Component
 class ArtistLinkTask(

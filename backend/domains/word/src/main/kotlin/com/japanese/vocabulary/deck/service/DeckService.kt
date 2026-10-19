@@ -10,13 +10,14 @@ import com.japanese.vocabulary.deck.dto.DeckDto
 import com.japanese.vocabulary.deck.dto.DeckDetailDto
 import com.japanese.vocabulary.deck.dto.DeckListDto
 import com.japanese.vocabulary.deck.dto.DeckSummaryDto
+import com.japanese.vocabulary.deck.dto.SongDeckReviewDto
 import com.japanese.vocabulary.deck.dto.toDto
 import com.japanese.vocabulary.deck.model.DeckTargets
 import com.japanese.vocabulary.deck.repository.DeckRepository
 import com.japanese.vocabulary.deck.repository.DeckWordRepository
 import com.japanese.vocabulary.flashcard.dto.DueFlashcardsDto
-import com.japanese.vocabulary.flashcard.model.FlashcardMemory
 import com.japanese.vocabulary.flashcard.service.FlashcardService
+import com.japanese.vocabulary.flashcard.service.LongTermThreshold
 import com.japanese.vocabulary.word.dto.WordListDto
 import com.japanese.vocabulary.word.dto.WordListItemDto
 import com.japanese.vocabulary.song.repository.SongRepository
@@ -43,6 +44,7 @@ class DeckService(
     private val wordRepository: WordRepository,
     private val flashcardService: FlashcardService,
     private val clock: Clock,
+    private val longTermThreshold: LongTermThreshold,
 ) {
 
     /**
@@ -92,7 +94,7 @@ class DeckService(
         }
 
         val deckIds = decks.mapNotNull { it.id }
-        val statsMap = deckRepository.findDeckStats(userId, deckIds, Instant.now(clock), FlashcardMemory.LONG_TERM_STABILITY_DAYS).associateBy { it.getDeckId() }
+        val statsMap = deckRepository.findDeckStats(userId, deckIds, Instant.now(clock), longTermThreshold.days()).associateBy { it.getDeckId() }
 
         val songIds = decks.mapNotNull { it.songId }.toSet()
         val artworkMap = if (songIds.isEmpty()) emptyMap() else {
@@ -166,9 +168,10 @@ class DeckService(
     /**
      * 전체 단어장을 빼면 이 단어장에만 속한 단어는 flashcard·모든 연결과 함께 지운다. 다른 단어장에도 속한 단어는
      * 손대지 않는다. 전체 단어장은 "모든 단어는 전체 단어장에 속한다"는 불변식의 담지자라 지울 수 없다.
+     * 곡 단어장이었으면 그 곡 id 를 돌려준다.
      */
     @Transactional
-    fun deleteDeck(userId: Long, deckId: Long) {
+    fun deleteDeck(userId: Long, deckId: Long): Long? {
         val deck = loadDeletableDeck(userId, deckId)
         val exclusiveWordIds = deckWordRepository.findExclusiveWordIds(deckId)
         deckWordRepository.deleteByDeckId(deckId)
@@ -179,12 +182,13 @@ class DeckService(
             wordRepository.deleteByIdIn(exclusiveWordIds)
         }
         deckRepository.delete(deck)
+        return deck.songId
     }
 
     @Transactional(readOnly = true)
     fun getDeletionPreview(userId: Long, deckId: Long): DeckDeletionPreviewDto {
-        loadDeletableDeck(userId, deckId)
-        return DeckDeletionPreviewDto(deletedWordCount = deckWordRepository.findExclusiveWordIds(deckId).size)
+        val deck = loadDeletableDeck(userId, deckId)
+        return DeckDeletionPreviewDto(songId = deck.songId, deletedWordCount = deckWordRepository.findExclusiveWordIds(deckId).size)
     }
 
     private fun loadDeletableDeck(userId: Long, deckId: Long): DeckEntity {
@@ -231,7 +235,7 @@ class DeckService(
     @Transactional(readOnly = true)
     fun getDeckDetail(userId: Long, deckId: Long): DeckDetailDto {
         val deck = loadOwnedDeck(userId, deckId)
-        val stats = deckRepository.findDeckDetailStats(deckId, userId, Instant.now(clock), FlashcardMemory.LONG_TERM_STABILITY_DAYS)
+        val stats = deckRepository.findDeckDetailStats(deckId, userId, Instant.now(clock), longTermThreshold.days())
         val artworkUrl = deck.songId?.let { songRepository.findById(it).map { s -> s.artworkUrl }.orElse(null) }
 
         return DeckDetailDto(
@@ -252,7 +256,7 @@ class DeckService(
 
     @Transactional(readOnly = true)
     fun getAllDeckDetail(userId: Long): DeckDetailDto {
-        val stats = deckRepository.findAllDeckDetailStats(userId, Instant.now(clock), FlashcardMemory.LONG_TERM_STABILITY_DAYS)
+        val stats = deckRepository.findAllDeckDetailStats(userId, Instant.now(clock), longTermThreshold.days())
         return DeckDetailDto(
             deckId = deckRepository.findByUserIdAndIsDefaultTrue(userId)?.id,
             songId = null,
@@ -268,6 +272,12 @@ class DeckService(
             shortTermCount = stats.getShortTermCount(),
         )
     }
+
+    /** 곡마다 그 곡 단어장의 리뷰 현황. 단어장이 없거나 리뷰한 단어가 없는 곡은 빠진다. */
+    @Transactional(readOnly = true)
+    fun songDeckReviews(userId: Long, songIds: Collection<Long>, now: Instant): Map<Long, SongDeckReviewDto> =
+        if (songIds.isEmpty()) emptyMap()
+        else deckRepository.findSongDeckReviews(userId, songIds, now).associateBy { it.songId }
 
     @Transactional(readOnly = true)
     fun findBySongId(userId: Long, songId: Long): DeckDto? =

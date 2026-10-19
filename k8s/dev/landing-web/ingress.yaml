@@ -1,0 +1,36 @@
+# 페이지가 상대 경로로 에셋을 부르므로 /${NS}/landing 은 끝에 / 를 붙여 넘긴다.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: landing-web-trailing-slash
+spec:
+  redirectRegex:
+    regex: ^(.*/${NS}/landing)$
+    replacement: ${1}/
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: landing-web-strip-prefix
+spec:
+  stripPrefix:
+    prefixes:
+      - /${NS}/landing
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: landing-web
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: PathPrefix(`/${NS}/landing`)
+      kind: Rule
+      priority: 50
+      services:
+        - name: landing-web
+          port: 80
+      middlewares:
+        - name: landing-web-trailing-slash
+        - name: landing-web-strip-prefix

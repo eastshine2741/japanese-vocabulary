@@ -39,9 +39,14 @@ class AppleMusicClient(
      * The artist of the catalog song whose title and artist spell exactly like ours — our songs carry
      * catalog spellings, so anything looser risks a same-titled stranger. Search does not honor
      * `include=artists`, hence the second call. A collaboration resolves to its first artist.
+     * Catalog search misses some Japanese songs on the title-plus-artist term (`風呂入るプロファイル もちうつね`
+     * returns nothing) yet lists them under the artist name alone, so that is the fallback term.
      */
     fun findSongArtist(title: String, artist: String): CatalogArtistDto? {
-        val song = search("$title $artist").items.firstOrNull { it.title == title && it.artistName == artist } ?: return null
+        val song = sequenceOf("$title $artist", artist)
+            .mapNotNull { term -> search(term).items.firstOrNull { it.title == title && it.artistName == artist } }
+            .firstOrNull()
+            ?: return null
         val response = restClient.get()
             .uri("/v1/catalog/{storefront}/songs/{id}/artists", STOREFRONT, song.id)
             .header("Authorization", "Bearer ${tokenProvider.token()}")

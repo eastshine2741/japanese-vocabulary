@@ -9,10 +9,11 @@
 
 - **찾는 법** (`AppleMusicClient.findSongArtist`): `"$title $artist"` 로 검색해 제목·아티스트가 **정확히**
   같은 곡을 고르고 `/songs/{id}/artists` 의 첫 아티스트를 쓴다. 우리 곡은 카탈로그 표기를 그대로 들고 있어서,
-  느슨하게 맞추면 같은 제목의 다른 가수 곡이 잡힌다. 협업곡(`After the Rain, そらる & まふまふ`)은 첫 아티스트에만 이어진다.
+  느슨하게 맞추면 같은 제목의 다른 가수 곡이 잡힌다. 카탈로그 검색은 일본어 곡명+아티스트 검색어로 못 찾는 곡이 있어
+  (`風呂入るプロファイル もちうつね` → 0건), 못 찾으면 아티스트명만으로 한 번 더 검색해 같은 조건으로 고른다. 협업곡(`After the Rain, そらる & まふまふ`)은 첫 아티스트에만 이어진다.
 - **언제** — worker `ArtistLinkListener` 가 분석 완료(`SongAnalysisCompletedEvent`, AFTER_COMMIT)에 잇는다. 실패는
   삼킨다. 놓친 곡과 기존 곡은 batch `artist-link` CronJob(매일 05:00 KST)이 `artist_id IS NULL` 인 곡을 전부 다시 찾는다.
-  카탈로그에 없는 곡도 매번 다시 찾는다(곡 하나에 검색 한 번).
+  카탈로그에 없는 곡도 매번 다시 찾는다(곡 하나에 검색 두 번).
 - 이을 때마다 아티스트의 이름·사진·링크를 최신으로 덮는다(`ON DUPLICATE KEY UPDATE`). 사진은 1200px 로 채운 URL 이다.
 
 ## `GET /api/songs/{id}`

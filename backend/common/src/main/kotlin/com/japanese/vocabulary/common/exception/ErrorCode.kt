@@ -10,6 +10,7 @@ enum class ErrorCode(val status: HttpStatus, val message: String) {
     INVALID_USERNAME(HttpStatus.BAD_REQUEST, "Username must match ^[a-z0-9_]{3,20}$"),
     RESERVED_USERNAME(HttpStatus.BAD_REQUEST, "Username is reserved"),
     USERNAME_TAKEN(HttpStatus.CONFLICT, "Username already taken"),
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "User not found"),
 
     // Song / Lyrics
     LYRICS_NOT_FOUND(HttpStatus.NOT_FOUND, "Could not find lyrics for this song"),
@@ -25,6 +26,14 @@ enum class ErrorCode(val status: HttpStatus, val message: String) {
     SONG_ANALYSIS_NOT_PENDING(HttpStatus.CONFLICT, "No pending analysis for this song"),
     ANALYSIS_NOTIFICATION_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "Analysis notification subscription is unavailable"),
     INVALID_NOTIFICATION_REQUEST(HttpStatus.BAD_REQUEST, "enabled must be a boolean"),
+
+    // Song report
+    SONG_REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "Song report not found"),
+    SONG_REPORT_INVALID_TYPE(HttpStatus.BAD_REQUEST, "Unknown song report type"),
+    SONG_REPORT_INVALID_TARGET(HttpStatus.BAD_REQUEST, "Report target does not match this song's lyric"),
+    SONG_REPORT_SUGGESTION_REQUIRED(HttpStatus.BAD_REQUEST, "Suggestion required for this report type"),
+    SONG_REPORT_SUGGESTION_TOO_LONG(HttpStatus.BAD_REQUEST, "Suggestion must be at most 1000 characters"),
+    SONG_REPORT_NOT_PENDING(HttpStatus.CONFLICT, "Song report was already reviewed"),
 
     // Word
     WORD_NOT_FOUND(HttpStatus.NOT_FOUND, "Word not found"),
@@ -59,6 +68,18 @@ enum class ErrorCode(val status: HttpStatus, val message: String) {
 
     // Recommendation
     SONG_ALREADY_RECOMMENDED(HttpStatus.CONFLICT, "Song is already recommended"),
+
+    // Reward card
+    REWARD_CARD_NOT_FOUND(HttpStatus.NOT_FOUND, "Reward card not found"),
+    REWARD_CARD_ALREADY_ISSUED(HttpStatus.CONFLICT, "Reward card already issued"),
+    REWARD_CARD_NOT_ISSUED(HttpStatus.CONFLICT, "Reward card not issued yet"),
+    INVALID_SIGNATURE(HttpStatus.BAD_REQUEST, "Signature must have 1-200 non-blank strokes"),
+    INVALID_CARD_LYRIC(HttpStatus.BAD_REQUEST, "lyricLineIndexes must be up to 2 distinct lines of the song"),
+    REWARD_CARD_SHARE_NOT_FOUND(HttpStatus.NOT_FOUND, "Share link not found"),
+    SHARE_IMAGE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "Share image upload is unavailable"),
+    INVALID_SHARE_IMAGE_TYPE(HttpStatus.BAD_REQUEST, "Share image must be image/png"),
+    SHARE_IMAGE_NOT_UPLOADED(HttpStatus.BAD_REQUEST, "Share image has not been uploaded"),
+    SHARE_IMAGE_TOO_LARGE(HttpStatus.BAD_REQUEST, "Share image must be at most 5MB"),
 
     // Common
     FORBIDDEN(HttpStatus.FORBIDDEN, "Access denied"),

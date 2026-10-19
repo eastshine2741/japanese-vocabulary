@@ -28,7 +28,15 @@ import VocScreen from '../screens/VocScreen';
 import SongProgressListScreen from '../screens/SongProgressListScreen';
 import SongReviewScreen from '../screens/SongReviewScreen';
 import StreakScreen from '../screens/StreakScreen';
+import RewardCardDetailScreen from '../screens/RewardCardDetailScreen';
+import RewardCardPreviewScreen from '../screens/RewardCardPreviewScreen';
+import ArtistCardDetailScreen from '../screens/ArtistCardDetailScreen';
+import SharedCardScreen from '../screens/SharedCardScreen';
+import ArtistCardListScreen from '../screens/ArtistCardListScreen';
+import RewardCardLyricEditScreen from '../screens/RewardCardLyricEditScreen';
+import RewardCardRevealScreen from '../screens/RewardCardRevealScreen';
 import StudyScheduleScreen from '../screens/StudyScheduleScreen';
+import UserProfileScreen from '../screens/UserProfileScreen';
 
 import HomeTab from '../screens/tabs/HomeTab';
 import MyPageTab from '../screens/tabs/MyPageTab';
@@ -37,6 +45,8 @@ import { AuthProvider } from '../api/authApi';
 import { WordSense } from '../types/word';
 import { Token } from '../types/song';
 import type { StudySource } from '../components/studyStack';
+import type { RewardCardKind } from '../stores/rewardCardStore';
+import type { CardPreviewTarget } from '../components/rewardCards/cardPreview';
 
 type SongPlaybackEntryParams = {
   songId?: number;
@@ -74,6 +84,33 @@ export type RootStackParamList = {
   SongProgressList: undefined;
   /** 홈 헤더의 연속 학습 칩에서 들어오는 상세. */
   Streak: undefined;
+  /** 프로필 카드 탭에서 곡 카드를 누르면 열리는 전시 화면. userId 가 있으면 그 유저의 카드를 읽기 전용으로 본다. */
+  RewardCardDetail: { cardId: string; ownerName: string; userId?: number };
+  RewardCardLyricEdit: { cardId: string };
+  /** 아직 얻지 않은 카드 종류의 견본 전시. condition 은 그 종류의 획득 조건 한 줄. */
+  RewardCardPreview: { target: CardPreviewTarget; condition: string; reached: boolean };
+  /** 카드 획득 연출과 발급 서명. 곡 카드는 가사 고르기를 거친다. */
+  RewardCardReveal: {
+    kind: RewardCardKind;
+    cardId: string;
+    wearOnly?: boolean;
+    /** 연출 없이 받은(채우기) 카드의 획득·승급·낡음 설명만. 봉투·서명이 없다. */
+    intro?: boolean;
+    /** 연출 차례에서 열었다. 닫히면 다음 연출을 연다. */
+    queued?: boolean;
+    /** 아티스트 카드 강화. 봉투·서명 없이 새 등급이 번진다. */
+    upgrade?: boolean;
+    /** 강화 전에 본 등급(서버). 없으면 한 단계 아래에서 오른다. */
+    fromGrade?: string | null;
+  };
+  /** 프로필 카드 탭에서 아티스트 카드를 누르면 열리는 전시 화면. */
+  ArtistCardDetail: { cardId: string; ownerName: string; userId?: number };
+  /** 공유 링크로 연 남의 카드. */
+  SharedCard: { token: string };
+  /** 프로필 카드 탭 아티스트 카드 헤더에서 들어오는 전체 목록. */
+  ArtistCardList: { ownerName: string; userId?: number };
+  /** 곡 상세 기여자를 누르면 열리는 프로필. 나를 누르면 편집할 수 있는 내 프로필이다. */
+  UserProfile: { userId: number };
   /** 홈 헤더의 '오늘 복습할 단어' 블록에서 들어오는 FSRS 스케줄 상세. */
   StudySchedule: undefined;
   DeckDetail: { deckId: number | null };
@@ -173,6 +210,43 @@ export default function AppNavigator({ initialRoute }: Props) {
       <Stack.Screen name="DeckList" component={DeckListScreen} />
       <Stack.Screen name="SongProgressList" component={SongProgressListScreen} />
       <Stack.Screen name="Streak" component={StreakScreen} />
+      <Stack.Screen
+        name="RewardCardDetail"
+        component={RewardCardDetailScreen}
+        options={{ animation: 'fade', contentStyle: { backgroundColor: '#0E0D13' } }}
+      />
+      <Stack.Screen
+        name="RewardCardPreview"
+        component={RewardCardPreviewScreen}
+        options={{ animation: 'fade', contentStyle: { backgroundColor: '#0E0D13' } }}
+      />
+      <Stack.Screen
+        name="RewardCardReveal"
+        component={RewardCardRevealScreen}
+        // Android fade 는 아래 화면도 같이 흐려져 그 사이로 흰 기본 배경이 비친다 — 상세 위 설명은 내용 페이드인만 쓴다.
+        options={({ route }) => ({
+          animation: route.params.wearOnly || route.params.intro ? 'none' : 'fade',
+          gestureEnabled: false,
+          contentStyle: { backgroundColor: '#0E0D13' },
+        })}
+      />
+      <Stack.Screen
+        name="RewardCardLyricEdit"
+        component={RewardCardLyricEditScreen}
+        options={{ animation: 'slide_from_bottom', contentStyle: { backgroundColor: '#0E0D13' } }}
+      />
+      <Stack.Screen
+        name="ArtistCardDetail"
+        component={ArtistCardDetailScreen}
+        options={{ animation: 'fade', contentStyle: { backgroundColor: '#0E0D13' } }}
+      />
+      <Stack.Screen
+        name="SharedCard"
+        component={SharedCardScreen}
+        options={{ animation: 'fade', contentStyle: { backgroundColor: '#0E0D13' } }}
+      />
+      <Stack.Screen name="ArtistCardList" component={ArtistCardListScreen} />
+      <Stack.Screen name="UserProfile" component={UserProfileScreen} />
       <Stack.Screen name="StudySchedule" component={StudyScheduleScreen} />
       <Stack.Screen name="DeckDetail" component={DeckDetailScreen} />
       <Stack.Screen name="DeckWordList" component={DeckWordListScreen} />

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.japanese.vocabulary.auth.jwt.JwtUtil
 import com.japanese.vocabulary.common.exception.BusinessException
+import com.japanese.vocabulary.featureflag.FeatureFlagKeys
 import com.japanese.vocabulary.song.dto.AnalyzeSongRequest
 import com.japanese.vocabulary.song.model.AnalyzedLine
 import com.japanese.vocabulary.song.model.LyricLineData
@@ -14,14 +15,19 @@ import com.japanese.vocabulary.song.dto.SongDto
 import com.japanese.vocabulary.song.dto.SongStudyDto
 import com.japanese.vocabulary.deck.dto.DeckDetailResponse
 import com.japanese.vocabulary.flashcard.dto.DueFlashcardsResponse
+import com.japanese.vocabulary.flashcard.model.FlashcardMemory
 import com.japanese.vocabulary.song.dto.songdetail.SongCoverageDto
 import com.japanese.vocabulary.song.dto.songdetail.SongLyricsDto
 import com.japanese.vocabulary.song.dto.songdetail.SongStudyBootstrapRequest
 import com.japanese.vocabulary.song.dto.songdetail.SongStudyBootstrapResponse
-import com.japanese.vocabulary.song.dto.songdetail.SongWordTierKey
+import com.japanese.vocabulary.song.dto.songdetail.SongStudyCardsResponse
+import com.japanese.vocabulary.song.dto.songdetail.SongWordReviewRequest
+import com.japanese.vocabulary.song.dto.songdetail.SongWordReviewResponse
+import com.japanese.vocabulary.word.repository.WordRepository
+import com.japanese.vocabulary.word.model.SongWordTierKey
 import com.japanese.vocabulary.song.dto.songdetail.SongWordTierStudyResponse
 import com.japanese.vocabulary.song.dto.songdetail.SongWordTiersDto
-import com.japanese.vocabulary.song.dto.songdetail.WordsInSongDto
+import com.japanese.vocabulary.word.dto.songword.WordsInSongDto
 import com.japanese.vocabulary.songsearch.dto.SongSearchItemDto
 import com.japanese.vocabulary.songsearch.dto.SongSearchResponse
 import com.japanese.vocabulary.song.model.Token
@@ -74,6 +80,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
     @Autowired private lateinit var lyricRepository: LyricRepository
     @Autowired private lateinit var workRepository: SongAnalysisWorkRepository
     @Autowired private lateinit var workService: SongAnalysisWorkService
+    @Autowired private lateinit var wordRepository: WordRepository
 
     private fun newUser(): UserEntity = TestUserBuilder(entityManager).build()
     private fun newSong(title: String? = null, artist: String? = null): SongEntity =
@@ -1006,7 +1013,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             // 胸: 장기기억(REVIEW) / 雨: 단기기억, 아직 due 아님 / 輪郭: 담기만 함 / する: 안 담음
             val longTerm = TestWordBuilder(entityManager).forUser(me).withJapaneseText("胸").build()
             TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(longTerm)
-                .withState(1).withStability(10.0).lastReviewedAt(clock.instant()).dueAt(later).build()
+                .withState(1).withStability(20.0).lastReviewedAt(clock.instant()).dueAt(later).build()
             val shortTerm = TestWordBuilder(entityManager).forUser(me).withJapaneseText("雨").build()
             TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(shortTerm)
                 .withState(1).withStability(2.0).lastReviewedAt(clock.instant()).dueAt(later).build()
@@ -1031,7 +1038,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             assertThat(chorus.dueCount).isZero()
             assertThat(chorus.duePreviewWords).isEmpty()
 
-            // REVIEW 라도 stability 가 7일 미만이면 단기기억이다.
+            // REVIEW 라도 stability 가 14일 미만이면 단기기억이다.
             val singalong = byKey.getValue(SongWordTierKey.SINGALONG)
             assertThat(singalong.wordJapanese).containsExactly("する", "雨")
             assertThat(singalong.longTermCount).isZero()
@@ -1090,6 +1097,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
 
         @Test
         fun `coverage counts lines whose tier words are all long-term and skips lines without tier words`() {
+            turnOn(FeatureFlagKeys.REWARD_CARD)
             val me = newUser()
             val song = newSong()
             newLyric(
@@ -1111,10 +1119,10 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             )
             val longTerm = TestWordBuilder(entityManager).forUser(me).withJapaneseText("胸").build()
             TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(longTerm)
-                .withState(1).withStability(7.0).lastReviewedAt(clock.instant()).dueAt(later).build()
+                .withState(1).withStability(14.0).lastReviewedAt(clock.instant()).dueAt(later).build()
             val shortTerm = TestWordBuilder(entityManager).forUser(me).withJapaneseText("雨").build()
             TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(shortTerm)
-                .withState(1).withStability(6.9).lastReviewedAt(clock.instant()).dueAt(later).build()
+                .withState(1).withStability(13.9).lastReviewedAt(clock.instant()).dueAt(later).build()
             entityManager.flush()
 
             val dto = coverage(me, song.id!!)
@@ -1472,6 +1480,206 @@ class SongControllerTest : ApiBaseIntegrationTest() {
 
             bootstrap(me, song.id!!, rating = 99)
                 .andExpect { status { isBadRequest() } }
+        }
+    }
+
+    @Nested
+    inner class StudyCards {
+
+        private fun candidate(
+            japanese: String,
+            score: Double,
+            order: Int,
+            lineIndexes: List<Int>,
+            jlpt: String = "N3",
+            pos: String = "NOUN",
+        ) = WordCandidate(
+            japanese = japanese,
+            surface = japanese,
+            baseForm = japanese,
+            reading = null,
+            baseFormReading = null,
+            koreanText = "$japanese-ko",
+            partOfSpeech = pos,
+            partOfSpeechLabel = pos,
+            jlpt = jlpt,
+            importanceScore = score,
+            appearanceOrder = order,
+            frequency = lineIndexes.size,
+            lineIndexes = lineIndexes,
+            scoreComponents = WordScoreComponents(0.0, 0.0, 0.0, 0.0, 1.0),
+        )
+
+        private fun songWithWords(vararg candidates: WordCandidate): SongEntity {
+            val song = newSong()
+            newLyric(
+                song,
+                raw = listOf(LyricLineData(index = 0, startTimeMs = null, text = candidates.joinToString("") { it.japanese })),
+                wordCandidates = LyricWordCandidates(
+                    candidates = candidates.toList(),
+                    lineCandidates = mapOf("0" to candidates.indices.toList()),
+                ),
+            )
+            return song
+        }
+
+        private fun cards(user: UserEntity, songId: Long, leadJapanese: String? = null): SongStudyCardsResponse =
+            readBody(mockMvc.get("/api/songs/$songId/study-cards") {
+                header("Authorization", bearer(user))
+                if (leadJapanese != null) param("leadJapanese", leadJapanese)
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString)
+
+        private fun review(user: UserEntity, songId: Long, japanese: String, rating: Int) =
+            mockMvc.post("/api/songs/$songId/words/review") {
+                header("Authorization", bearer(user))
+                contentType = MediaType.APPLICATION_JSON
+                content = objectMapper.writeValueAsString(SongWordReviewRequest(japanese = japanese, rating = rating))
+            }
+
+        private fun savedJapanese(user: UserEntity, vararg japanese: String) =
+            wordRepository.findByUserIdAndJapaneseTextIn(user.id!!, japanese.toList()).map { it.japaneseText }
+
+        @Test
+        fun `session puts the chosen word first and the rest of the song after it without saving any word`() {
+            val me = newUser()
+            val song = songWithWords(
+                candidate("高い", 99.0, 0, listOf(0)),
+                candidate("低い", 10.0, 1, listOf(0)),
+                candidate("を", 1.0, 2, listOf(0), pos = "PARTICLE"),
+            )
+
+            val result = cards(me, song.id!!, leadJapanese = "低い")
+
+            assertThat(result.deckId).isNull()
+            assertThat(result.cards.map { it.japanese }).containsExactly("低い", "高い")
+            assertThat(result.totalCount).isEqualTo(2)
+            assertThat(result.cards).allSatisfy {
+                assertThat(it.id).isNull()
+                assertThat(it.inSongDeck).isFalse()
+                assertThat(it.intervals).containsKeys(1, 2, 3, 4)
+            }
+            assertThat(savedJapanese(me, "高い", "低い")).isEmpty()
+        }
+
+        @Test
+        fun `without a chosen word the most important unsaved word leads`() {
+            val me = newUser()
+            val song = songWithWords(
+                candidate("低い", 10.0, 0, listOf(0)),
+                candidate("高い", 99.0, 1, listOf(0)),
+            )
+
+            assertThat(cards(me, song.id!!).cards.map { it.japanese }).containsExactly("高い", "低い")
+        }
+
+        @Test
+        fun `rating a card saves only that word to the song deck and drops it from the next session`() {
+            val me = newUser()
+            val song = songWithWords(
+                candidate("高い", 99.0, 0, listOf(0)),
+                candidate("低い", 10.0, 1, listOf(0)),
+            )
+            clock.setTo(Instant.now().plusSeconds(5))
+
+            val reviewed = readBody<SongWordReviewResponse>(review(me, song.id!!, "高い", rating = 3)
+                .andExpect { status { isOk() } }.andReturn().response.contentAsString)
+
+            assertThat(savedJapanese(me, "高い", "低い")).containsExactly("高い")
+            assertThat(reviewed.memory).isEqualTo(FlashcardMemory.SHORT_TERM)
+            val deck = readBody<DeckDetailResponse>(mockMvc.get("/api/decks/by-song/${song.id}") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString)
+            assertThat(deck.deckId).isEqualTo(reviewed.deckId)
+            assertThat(deck.wordCount).isEqualTo(1)
+
+            val next = cards(me, song.id!!)
+            assertThat(next.deckId).isEqualTo(reviewed.deckId)
+            assertThat(next.cards.map { it.japanese }).containsExactly("低い")
+        }
+
+        @Test
+        fun `due words of the song deck come before unsaved words and are marked as in the deck`() {
+            val me = newUser()
+            val song = songWithWords(
+                candidate("高い", 99.0, 0, listOf(0)),
+                candidate("低い", 10.0, 1, listOf(0)),
+                candidate("空", 5.0, 2, listOf(0)),
+            )
+            clock.setTo(Instant.now().plusSeconds(5))
+            // 低い 는 AGAIN 이라 곧 다시 due 가 된다.
+            review(me, song.id!!, "低い", rating = 1).andExpect { status { isOk() } }
+            clock.setTo(Instant.now().plusSeconds(86_400))
+
+            val result = cards(me, song.id!!, leadJapanese = "空")
+
+            assertThat(result.cards.map { it.japanese }).containsExactly("空", "低い", "高い")
+            assertThat(result.cards.map { it.inSongDeck }).containsExactly(false, true, false)
+            assertThat(result.cards[1].id).isNotNull()
+        }
+
+        @Test
+        fun `tier cards match dueCount without saving and rating one saves only it`() {
+            val me = newUser()
+            val song = songWithWords(
+                candidate("雨", 50.0, 0, listOf(0), jlpt = "N5"),
+                candidate("空", 40.0, 1, listOf(0), jlpt = "N5"),
+            )
+            clock.setTo(Instant.now().plusSeconds(5))
+
+            val tier = readBody<SongWordTiersDto>(mockMvc.get("/api/songs/${song.id}/word-tiers") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString)
+                .tiers.first { it.key == SongWordTierKey.SINGALONG }
+            val result = readBody<SongStudyCardsResponse>(mockMvc.get("/api/songs/${song.id}/word-tiers/SINGALONG/cards") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString)
+
+            assertThat(result.cards.map { it.japanese }).containsExactly("雨", "空")
+            assertThat(result.totalCount).isEqualTo(tier.dueCount)
+            assertThat(savedJapanese(me, "雨", "空")).isEmpty()
+
+            review(me, song.id!!, "空", rating = 3).andExpect { status { isOk() } }
+            assertThat(savedJapanese(me, "雨", "空")).containsExactly("空")
+        }
+
+        @Test
+        fun `word saved from another song is not in this song deck until it is rated here`() {
+            val me = newUser()
+            val other = songWithWords(candidate("雨", 50.0, 0, listOf(0), jlpt = "N5"))
+            val song = songWithWords(candidate("雨", 50.0, 0, listOf(0), jlpt = "N5"))
+            clock.setTo(Instant.now().plusSeconds(5))
+            review(me, other.id!!, "雨", rating = 1).andExpect { status { isOk() } }
+            clock.setTo(Instant.now().plusSeconds(86_400))
+
+            val card = cards(me, song.id!!, leadJapanese = "雨").cards.single()
+            assertThat(card.id).isNotNull()
+            assertThat(card.inSongDeck).isFalse()
+            assertThat(card.senses.flatMap { it.examples }.map { it.songId }).containsExactly(song.id, other.id)
+
+            val reviewed = readBody<SongWordReviewResponse>(review(me, song.id!!, "雨", rating = 3)
+                .andExpect { status { isOk() } }.andReturn().response.contentAsString)
+            assertThat(reviewed.id).isEqualTo(card.id)
+        }
+
+        @Test
+        fun `invalid rating is rejected before the word is saved`() {
+            val me = newUser()
+            val song = songWithWords(candidate("高い", 99.0, 0, listOf(0)))
+
+            review(me, song.id!!, "高い", rating = 99).andExpect { status { isBadRequest() } }
+            assertThat(savedJapanese(me, "高い")).isEmpty()
+        }
+
+        @Test
+        fun `word not in the song returns not found`() {
+            val me = newUser()
+            val song = songWithWords(candidate("高い", 99.0, 0, listOf(0)))
+
+            review(me, song.id!!, "없는말", rating = 3).andExpect { status { isNotFound() } }
+            mockMvc.get("/api/songs/${song.id}/study-cards") {
+                header("Authorization", bearer(me))
+                param("leadJapanese", "없는말")
+            }.andExpect { status { isNotFound() } }
         }
     }
 }

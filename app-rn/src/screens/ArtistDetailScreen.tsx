@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,6 +20,11 @@ import ArtworkImage from '../components/ArtworkImage';
 import ErrorDialog from '../components/ErrorDialog';
 import SkeletonBox from '../components/SkeletonLoading';
 import RowSpinner from '../components/RowSpinner';
+import { ArtistCardKindGrid } from '../components/rewardCards/CardKindGrid';
+import { useShallow } from 'zustand/react/shallow';
+import { artistCardsOf } from '../components/rewardCards/cardKinds';
+import { useCardFonts } from '../components/rewardCards/cardTheme';
+import { useRewardCardStore } from '../stores/rewardCardStore';
 import { artistApi } from '../api/artistApi';
 import { isAnalyzingSong, useAnalysisStore } from '../stores/analysisStore';
 import { usePlayerStore } from '../stores/playerStore';
@@ -31,12 +37,16 @@ import { SongSearchItem } from '../types/song';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ArtistDetail'>;
 type Status = 'loading' | 'success' | 'error';
+type ArtistTab = 'songs' | 'cards';
 
 const HERO_HEIGHT = 300;
 const COLLAPSED_BAR_HEIGHT = 56;
 const PARALLAX_RATIO = 0.4;
 const CHEVRON_SIZE = 18;
 const SKELETON_ROWS = [0, 1, 2, 3, 4, 5];
+
+const TAB_BAR_HEIGHT = 44;
+const TAB_INDICATOR_WIDTH = 28;
 
 type ArtistRow =
   | { kind: 'studying'; song: ArtistStudyingSong }
@@ -45,6 +55,7 @@ type ArtistRow =
 interface ArtistSection {
   key: 'studying' | 'popular';
   title: string;
+  count: string;
   data: ArtistRow[];
 }
 
@@ -164,6 +175,45 @@ const ArtistHero = React.memo(function ArtistHero({
   );
 });
 
+const ArtistTabs = React.memo(function ArtistTabs({
+  activeTab,
+  onSelectSongs,
+  onSelectCards,
+}: {
+  activeTab: ArtistTab;
+  onSelectSongs: () => void;
+  onSelectCards: () => void;
+}) {
+  return (
+    <View style={styles.tabBar}>
+      <TabButton label="곡" isActive={activeTab === 'songs'} onPress={onSelectSongs} />
+      <TabButton label="카드" isActive={activeTab === 'cards'} onPress={onSelectCards} />
+    </View>
+  );
+});
+
+const TabButton = React.memo(function TabButton({
+  label,
+  isActive,
+  onPress,
+}: {
+  label: string;
+  isActive: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected: isActive }}
+      style={styles.tabButton}
+      onPress={onPress}
+    >
+      <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{label}</Text>
+      {isActive && <View style={styles.tabIndicator} />}
+    </Pressable>
+  );
+});
+
 export default function ArtistDetailScreen({ navigation, route }: Props) {
   const { artistId } = route.params;
   const insets = useSafeAreaInsets();
@@ -174,6 +224,15 @@ export default function ArtistDetailScreen({ navigation, route }: Props) {
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
   const [checkingItemId, setCheckingItemId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<ArtistTab>('songs');
+
+  const { width: screenWidth } = useWindowDimensions();
+  const fonts = useCardFonts();
+  const artistName = artist?.name ?? '';
+  const artistCards = useRewardCardStore(useShallow(s => artistCardsOf(s.artistCards, artistId, artistName)));
+  useEffect(() => {
+    useRewardCardStore.getState().ensureServerCards();
+  }, []);
 
   const analyze = usePlayerStore(s => s.analyze);
   const playerStatus = usePlayerStore(s => s.status);
@@ -289,13 +348,19 @@ export default function ArtistDetailScreen({ navigation, route }: Props) {
     });
   }, [analyze, navigation, isChecking]);
 
+  const handleSelectSongs = useCallback(() => setActiveTab('songs'), []);
+  const handleSelectCards = useCallback(() => setActiveTab('cards'), []);
+
+  const gridWidth = screenWidth - Dimens.screenPadding * 2;
+
   const sections = useMemo<ArtistSection[]>(() => {
-    if (!artist) return [];
+    if (!artist || activeTab === 'cards') return [];
     const result: ArtistSection[] = [];
     if (artist.studyingSongs.length > 0) {
       result.push({
         key: 'studying',
         title: '곡별 진도',
+        count: `${artist.studyingSongs.length}곡`,
         data: artist.studyingSongs.map(song => ({ kind: 'studying', song })),
       });
     }
@@ -303,11 +368,12 @@ export default function ArtistDetailScreen({ navigation, route }: Props) {
       result.push({
         key: 'popular',
         title: '인기곡',
+        count: `${artist.popularSongs.length}곡`,
         data: artist.popularSongs.map(song => ({ kind: 'popular', song })),
       });
     }
     return result;
-  }, [artist]);
+  }, [artist, activeTab]);
 
   const renderItem = useCallback(({ item }: { item: ArtistRow }) => {
     // 리스트 뒤에 아트워크가 깔려 있어 눌림 페이드가 배경을 비치지 않게 불투명 셀로 감싼다.
@@ -325,14 +391,19 @@ export default function ArtistDetailScreen({ navigation, route }: Props) {
         )}
       </View>
     );
-  }, [handleStudyingPress, handlePopularPress, isChecking, checkingItemId]);
+  }, [
+    handleStudyingPress,
+    handlePopularPress,
+    isChecking,
+    checkingItemId,
+  ]);
 
   const firstSectionKey = sections[0]?.key;
   const renderSectionHeader = useCallback(
     ({ section }: { section: SectionListData<ArtistRow, ArtistSection> }) => (
       <View style={[styles.sectionHeader, section.key === firstSectionKey && styles.firstSectionHeader]}>
         <Text style={styles.sectionTitle}>{section.title}</Text>
-        <Text style={styles.sectionCount}>{section.data.length}곡</Text>
+        <Text style={styles.sectionCount}>{section.count}</Text>
       </View>
     ),
     [firstSectionKey],
@@ -382,13 +453,25 @@ export default function ArtistDetailScreen({ navigation, route }: Props) {
         renderSectionHeader={renderSectionHeader}
         stickySectionHeadersEnabled={false}
         ListHeaderComponent={
-          <ArtistHero
-            artist={artist}
-            infoOpacity={heroInfoOpacity}
-            onOpenAppleMusic={handleOpenAppleMusic}
-          />
+          <>
+            <ArtistHero
+              artist={artist}
+              infoOpacity={heroInfoOpacity}
+              onOpenAppleMusic={handleOpenAppleMusic}
+            />
+            <ArtistTabs
+              activeTab={activeTab}
+              onSelectSongs={handleSelectSongs}
+              onSelectCards={handleSelectCards}
+            />
+            {activeTab === 'cards' && (
+              <View style={styles.cardsTab}>
+                <ArtistCardKindGrid artist={artist} cards={artistCards} width={gridWidth} fonts={fonts} />
+              </View>
+            )}
+          </>
         }
-        ListEmptyComponent={<EmptyState />}
+        ListEmptyComponent={activeTab === 'songs' ? <EmptyState /> : null}
         ListFooterComponent={<View style={[styles.listFooter, { height: insets.bottom + 24 }]} />}
         initialNumToRender={12}
         maxToRenderPerBatch={8}
@@ -420,8 +503,9 @@ export default function ArtistDetailScreen({ navigation, route }: Props) {
   );
 }
 
-const keyExtractor = (item: ArtistRow) =>
-  item.kind === 'studying' ? `studying-${item.song.songId}` : `popular-${item.song.id}`;
+const keyExtractor = (item: ArtistRow) => {
+  return item.kind === 'studying' ? `studying-${item.song.songId}` : `popular-${item.song.id}`;
+};
 
 const ArtistDetailSkeleton = React.memo(function ArtistDetailSkeleton({
   topInset,
@@ -608,6 +692,39 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
+  tabBar: {
+    height: TAB_BAR_HEIGHT,
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 10,
+    paddingHorizontal: 16,
+    backgroundColor: Colors.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+  },
+  tabButton: {
+    minWidth: 54,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabLabel: {
+    ...Typography.bodyBold,
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.textMuted,
+  },
+  tabLabelActive: {
+    fontWeight: '800',
+    color: Colors.textPrimary,
+  },
+  tabIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    width: TAB_INDICATOR_WIDTH,
+    height: 2,
+    backgroundColor: Colors.primary,
+  },
   sectionHeader: {
     backgroundColor: Colors.surface,
     flexDirection: 'row',
@@ -630,6 +747,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textMuted,
     fontVariant: ['tabular-nums'],
+  },
+  cardsTab: {
+    backgroundColor: Colors.surface,
+    paddingHorizontal: Dimens.screenPadding,
+    paddingTop: 20,
   },
   cell: {
     backgroundColor: Colors.surface,

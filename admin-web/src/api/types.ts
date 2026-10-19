@@ -293,3 +293,65 @@ export type ReelsRenderRequest = {
   data: PromoReelData
   acknowledgeSourceRightsAndPlatformRisk: boolean
 }
+
+export type SongReportStatus = "PENDING" | "APPROVED" | "REJECTED"
+
+export type SongReportSummary = {
+  id: number
+  songId: number
+  songTitle: string
+  songArtist: string
+  userId: number
+  username: string
+  type: string
+  typeLabel: string
+  status: SongReportStatus
+  createdAt: string
+  reviewedAt: string | null
+}
+
+export type SongReportTarget = {
+  lineIndex?: number | null
+  charStart?: number | null
+  charEnd?: number | null
+  surface?: string | null
+}
+
+export type SongReportReviewChange = {
+  field: string
+  locator: Record<string, unknown>
+  before: unknown
+  after: unknown
+}
+
+export type SongReportContext = {
+  song: { id: number; title: string; artist: string; youtubeUrl: string | null }
+  reportLyricId: number | null
+  activeLyricId: number | null
+  line: { index: number; text: string; koreanLyrics: string | null; tokens: LyricToken[] } | null
+}
+
+export type SongReportDetail = SongReportSummary & {
+  target: SongReportTarget | null
+  suggestion: string | null
+  reviewChanges: SongReportReviewChange[] | null
+  reviewNote: string | null
+  context: SongReportContext
+}
+
+export type SongReportChangeOp =
+  | { op: "SET_YOUTUBE_URL"; value: string }
+  | { op: "SET_LINE_TEXT"; lineIndex: number; value: string }
+  | { op: "SET_LINE_TRANSLATION"; lineIndex: number; value: string }
+  | { op: "SET_TOKEN_READING"; lineIndex: number; charStart: number; charEnd: number; value: string }
+  | { op: "SET_TOKEN_MEANING"; lineIndex: number; charStart: number; charEnd: number; value: string }
+  | { op: "REPLACE_LINE_TOKENS"; lineIndex: number; tokens: LyricToken[] }
+
+export type FeatureFlag = {
+  key: string
+  startAt: string | null
+  endAt: string | null
+  description: string
+  on: boolean
+  updatedAt: string | null
+}
