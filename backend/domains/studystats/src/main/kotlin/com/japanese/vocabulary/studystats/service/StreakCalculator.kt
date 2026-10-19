@@ -6,11 +6,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 
-/**
- * Streak semantics: a `daily_study_summary` row keeps the run unbroken (review or
- * freeze_used), but only review days (`freeze_used = FALSE`) add to the count.
- * A freeze bridges a gap without earning a day.
- */
+/** 프리즈로 이어 간 날(`freeze_used`)은 연속을 잇기만 하고 연속 일수·총 학습일에는 세지 않는다. */
 @Service
 class StreakCalculator(
     private val repo: DailyStudySummaryRepository,

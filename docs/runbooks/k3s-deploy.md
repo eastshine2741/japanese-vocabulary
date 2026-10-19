@@ -136,6 +136,9 @@ DEPLOY_NS=issue-21 npx expo run:android
 | `YOUTUBE_API_KEY` | YouTube Data API v3 |
 | `APPLE_MUSIC_TEAM_ID` / `APPLE_MUSIC_KEY_ID` / `APPLE_MUSIC_PRIVATE_KEY_BASE64` | MusicKit key (`base64 -w0 AuthKey_<KEY_ID>.p8`) that signs the Apple Music API developer token. api(검색) / worker(아티스트 별칭 확인) / batch(노래방 신곡 매칭) 가 쓴다 |
 | `GITHUB_VOC_TOKEN` | Fine-grained PAT (Issues: write on `eastshine2741/japanese-vocabulary`) used by `POST /api/voc` to file `type:voc` issues; blank makes the endpoint return 503 |
+| `GEMINI_API_KEY` | Gemini — sense-select 을 뺀 단어 뜻 파이프라인 LLM 단계 (`worker`) |
+| `TYPESAFE_API_KEY` | TypeSafe Jev — sense-select 단계 (`worker`) |
+| `OBJECT_STORAGE_ENDPOINT` / `_BUCKET` / `_ACCESS_KEY` / `_SECRET_KEY` / `_PUBLIC_BASE_URL` | Cloudflare R2 (`kotonoha-prod` / `kotonoha-dev`, dev 네임스페이스 공유, `infra/terraform` 이 만든다). 프로필 이미지 업로드. 하나라도 비면 업로드 API 가 503 |
 | `JWT_SECRET` | JWT signing key; defaults to dev key |
 | `GOOGLE_OAUTH_CLIENT_ID` | Google Web OAuth Client ID, same audience as `EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID` |
 | `PENCIL_CLI_KEY` | Pencil CLI auth for headless `.pen` editing |

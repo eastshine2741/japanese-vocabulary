@@ -9,7 +9,8 @@ export interface ArtistGradeStep {
   from: number;
 }
 
-// 납찰(納札)처럼 위로 갈수록 구간이 넓어져, 곡이 많은 아티스트의 팬에게도 위가 남는다. 마스터 곡 수엔 상한이 없다.
+// 납찰(納札)처럼 위로 갈수록 구간이 넓어져, 곡이 적은 아티스트도 아래 단계는 금방이고 곡이 많은 아티스트의 팬에게도 위가 남는다.
+// 마스터 곡 수엔 상한이 없다.
 export const ARTIST_GRADE_STEPS: readonly ArtistGradeStep[] = [
   { grade: 'paper', label: '기본', from: 0 },
   { grade: 'bronze', label: 'BRONZE', from: 1 },

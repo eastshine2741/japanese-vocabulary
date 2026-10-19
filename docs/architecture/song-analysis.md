@@ -216,9 +216,15 @@ Bad Apple!!, 匿名M) against Jev and hand-graded the disagreements.
 - **Known weak spots:** request て after a verb (殴って read as "and then"), auxiliary いく after
   て (流れてく), sentence-final わ nuance, する in 〜にする.
 
-> The jisho Redis cache key carries a schema version (`jisho:v4:`). Bump it whenever the cached DTO
+> The jisho Redis cache key carries a schema version (`jisho:v5:`). Bump it whenever the cached DTO
 > changes: unknown-field-tolerant deserialization turns an old cached value into an empty result,
 > which drops meanings and POS with no error in the logs.
+
+## JLPT Level Source
+
+- 공식 N1~N5 어휘 리스트는 없다(2010 개정 때 出題基準 공개 중단). jisho 를 포함한 모든 리스트가 tanos.co.uk 에서 나온다.
+- jisho `jlpt` 는 난이도가 아니라 리스트 등재 여부다. N1 은 N5~N2 리스트에 없는 상용어가 모이는 잔여 버킷(だけ·パジャマ·了解)이고, 忖度 같은 진짜 상급어는 무태그. entry 단위라 sense 별 등급도 없다.
+- 소스를 바꾼다면 tanos 원본 CSV(`stephenmk/yomitan-jlpt-vocab` 의 `original_data/`, JMdict seq 단위, CC BY)를 `(kanji, kana)` 키로 쓴다. 가나 기준으로 눌러버린 가공본 `jlpt.zip` 은 jisho 와 같은 뭉개짐이 있어 금지. 등급 대신 "난이도"가 필요하면 日本語教育語彙表(JEV, 6단계, tanos 와 독립).
 
 ## Major Word Ranking
 

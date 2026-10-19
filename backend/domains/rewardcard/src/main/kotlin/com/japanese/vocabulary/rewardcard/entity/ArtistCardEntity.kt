@@ -14,7 +14,10 @@ import jakarta.persistence.Id
 import jakarta.persistence.Table
 import java.time.Instant
 
-/** 유저·아티스트마다 한 장. 등급은 마스터 곡 수를 따르고, 곡 학습을 그만둬 그 수가 줄면 내려간다. */
+/**
+ * 수집 카드가 아니라 '이 아티스트의 팬'을 보여 주는 회원 카드라 유저·아티스트마다 한 장, 등급만 오른다.
+ * 등급은 마스터 곡 수를 따르고, 곡 학습을 그만둬 그 수가 줄면 내려간다.
+ */
 @Entity
 @Table(name = "artist_card")
 class ArtistCardEntity(

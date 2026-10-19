@@ -51,21 +51,22 @@ OTA 가드 4번은 `.github/scripts/native-compat/check.sh <base-ref> [head-ref]
 ## Flow
 
 ```bash
-# 네이티브 출시 시작
-git switch -c release/1.2.5 main && git push -u origin release/1.2.5
+# 네이티브 출시 시작 — 메인 워크트리는 main 만 쓰므로 release 는 형제 워크트리에서
+git worktree add ../japanese-vocabulary-release-1.2.5 -b release/1.2.5 main
+cd ../japanese-vocabulary-release-1.2.5 && git push -u origin release/1.2.5
 git tag v1.2.5-rc.1 && git push origin v1.2.5-rc.1
 # rc 수정은 release/1.2.5 에 커밋 → v1.2.5-rc.2 ...
 git tag v1.2.5 && git push origin v1.2.5          # 스토어 심사 제출까지 자동
-git switch main && git merge release/1.2.5
+git -C ../japanese-vocabulary merge release/1.2.5  # 메인 워크트리(main)에 머지
 
-# 출시 후 OTA
-git switch release/1.2.5 && git merge main && git push
+# 출시 후 OTA (release 워크트리에서)
+git merge main && git push
 git tag js-v1.2.5-update.1.prod && git push origin js-v1.2.5-update.1.prod
-git switch main && git merge release/1.2.5
+git -C ../japanese-vocabulary merge release/1.2.5
 
 # OTA 가드가 fingerprint 로 실패하면: 태그와 머지를 되돌리고 필요한 PR 만 가져온다
 git push --delete origin js-v1.2.5-update.1.prod && git tag -d js-v1.2.5-update.1.prod
-git switch release/1.2.5 && git reset --hard <머지 전 커밋> && git push --force
+git reset --hard <머지 전 커밋> && git push --force   # release 워크트리에서
 git cherry-pick -m 1 <PR 의 merge commit>      # 이후 다시 태그
 ```
 

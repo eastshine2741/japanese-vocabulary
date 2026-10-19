@@ -28,3 +28,4 @@ Applies to all files under `backend/`.
 - Module boundary background: `../docs/architecture/backend-modules.md`
 - Song analysis pipeline (and its work queue): `../docs/architecture/song-analysis.md`
 - Push notification flow: `../docs/architecture/push-notification.md`
+- RabbitMQ 큐 토폴로지(브로커가 소유, `spring.rabbitmq.dynamic: false`, 기존 큐 arguments 변경은 조용히 무시됨): `../docs/runbooks/k3s-deploy.md`

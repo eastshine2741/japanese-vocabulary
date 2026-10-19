@@ -110,8 +110,8 @@ const SPARKS = [
 ] as const;
 
 /**
- * 연속 학습 축하 — 오늘 첫 rating 직후 전체 화면으로 올라온다.
- * streakStore.celebration 이 채워지면 나타나고, CTA(또는 뒤로가기)로만 닫힌다.
+ * 연속 학습 축하 — 하루(04:00 경계) 첫 rating 직후 한 번만 전체 화면으로 올라온다.
+ * streakStore.celebration 이 채워지면 나타나고, 스스로 사라지지 않고 CTA(또는 뒤로가기)로만 닫힌다.
  */
 export const StreakCelebrationHost = React.memo(function StreakCelebrationHost() {
   const celebration = useStreakStore(s => s.celebration);
