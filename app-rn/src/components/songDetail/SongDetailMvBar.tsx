@@ -9,6 +9,7 @@ import Animated, { SharedValue, interpolateColor, useAnimatedStyle, useSharedVal
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import YouTubePlayer, { YouTubePlayerRef } from '../YouTubePlayer';
+import ReportIcon from '../ReportIcon';
 import { Colors } from '../../theme/theme';
 import { extractYoutubeVideoId } from '../../utils/youtube';
 
@@ -207,7 +208,7 @@ const SongDetailMvBarComponent = forwardRef<SongDetailMvBarRef, SongDetailMvBarP
             accessibilityRole="button"
             accessibilityLabel="영상 제보"
           >
-            <Feather name="flag" size={17} color={Colors.textMuted} />
+            <ReportIcon size={17} color={Colors.textMuted} />
           </TouchableOpacity>
         ) : null}
 

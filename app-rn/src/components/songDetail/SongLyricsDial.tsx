@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Feather } from '@expo/vector-icons';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
@@ -17,6 +16,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { convertLineReading } from '../../utils/readingConverter';
+import ReportIcon from '../ReportIcon';
 import { getSongDetailWordKey } from './songDetailWordSave';
 import { hapticLineTick } from './lyricsHaptics';
 import {
@@ -107,7 +107,7 @@ const LineReportButton = React.memo(function LineReportButton({ line, onPress }:
       accessibilityRole="button"
       accessibilityLabel="이 가사 제보"
     >
-      <Feather name="flag" size={15} color={DarkText.muted} />
+      <ReportIcon size={15} color={DarkText.muted} />
     </Pressable>
   );
 });
