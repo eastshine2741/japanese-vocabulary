@@ -164,7 +164,7 @@ function SongReportSheet({
           </Pressable>
         ) : null}
         <Text style={styles.title} numberOfLines={1}>
-          {detailType?.label ?? '어디가 잘못됐나요?'}
+          {detailType?.label ?? '어디가 틀렸는지 알려주세요'}
         </Text>
         <Pressable
           style={styles.headerButton}
@@ -247,7 +247,7 @@ function SongReportSheet({
             {groupTypes.length === 0 ? (
               <View style={styles.sectionLoading}>
                 {typesStatus === 'error' ? (
-                  <Text style={styles.sectionEmptyText}>제보 유형을 불러오지 못했어요</Text>
+                  <Text style={styles.sectionEmptyText}>제보 유형을 불러오지 못했어요. 잠시 후 다시 열어주세요</Text>
                 ) : (
                   <ActivityIndicator size="small" color={Colors.textMuted} />
                 )}

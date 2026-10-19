@@ -16,7 +16,7 @@ function type(overrides: Partial<SongReportTypeDto>): SongReportTypeDto {
     targetKind: 'LINE',
     suggestionRequired: true,
     tokenPrompt: null,
-    suggestionPlaceholder: '맞는 가사를 적어주세요',
+    suggestionPlaceholder: '맞는 가사를 알려주세요',
     ...overrides,
   };
 }

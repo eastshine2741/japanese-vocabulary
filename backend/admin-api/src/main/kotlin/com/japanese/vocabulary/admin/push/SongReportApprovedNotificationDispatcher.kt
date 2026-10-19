@@ -34,7 +34,7 @@ class SongReportApprovedNotificationDispatcher(
     }
 
     companion object {
-        const val TITLE = "보내주신 제보를 반영했어요"
-        fun body(songTitle: String) = "「$songTitle」을 더 정확하게 다듬는 데 기여해주셔서 감사합니다."
+        const val TITLE = "짚어주신 부분을 바로잡았어요"
+        fun body(songTitle: String) = "「$songTitle」에서 저희가 놓친 부분을 알려주셔서 감사합니다."
     }
 }

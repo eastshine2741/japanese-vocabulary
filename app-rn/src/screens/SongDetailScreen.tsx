@@ -986,7 +986,7 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
       await songReportApi.submit(songId, request);
       setReportSent(true);
     } catch (e) {
-      setReportError(apiErrorMessage(e, '제보를 보내지 못했어요'));
+      setReportError(apiErrorMessage(e, '제보를 보내지 못했어요. 잠시 후 다시 보내주세요'));
     } finally {
       setIsSubmittingReport(false);
     }

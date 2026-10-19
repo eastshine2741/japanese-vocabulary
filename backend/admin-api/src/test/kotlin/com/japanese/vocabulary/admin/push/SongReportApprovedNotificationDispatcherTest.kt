@@ -45,9 +45,9 @@ class SongReportApprovedNotificationDispatcherTest {
         dispatcher.dispatch(event)
 
         val data = mapOf("type" to "song_report_approved", "songId" to "11", "reportId" to "3")
-        val body = "「夜に駆ける」을 더 정확하게 다듬는 데 기여해주셔서 감사합니다."
-        verify(exactly = 1) { push.send(7L, "a", "보내주신 제보를 반영했어요", body, data) }
-        verify(exactly = 1) { push.send(7L, "b", "보내주신 제보를 반영했어요", body, data) }
+        val body = "「夜に駆ける」에서 저희가 놓친 부분을 알려주셔서 감사합니다."
+        verify(exactly = 1) { push.send(7L, "a", "짚어주신 부분을 바로잡았어요", body, data) }
+        verify(exactly = 1) { push.send(7L, "b", "짚어주신 부분을 바로잡았어요", body, data) }
     }
 
     @Test
