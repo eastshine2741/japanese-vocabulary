@@ -76,7 +76,7 @@ export interface WordBackProps {
   hideHeadword?: boolean;
   headwordRef?: React.Ref<View>;
   onHeadwordLayout?: () => void;
-  onOpenExampleSource?: (songId: number) => void;
+  onOpenExampleSource?: (songId: number, lineIndex: number | null) => void;
   /** 뜻 옆 연필 버튼 — 단어 편집 화면으로. 미리보기 카드(아직 안 담긴 단어)에는 버튼이 없다. */
   onEditWord?: (card: StudyCard) => void;
 }
@@ -427,7 +427,7 @@ function openDictionary(word: string) {
 interface ExamplePageProps {
   example: SenseExample;
   japanese: string;
-  onOpenSource?: (songId: number) => void;
+  onOpenSource?: (songId: number, lineIndex: number | null) => void;
 }
 
 /** 예문 한 건 — 표제어 위치를 강조 표시하고 한국어 번역을 아래에 붙인다. */
@@ -438,10 +438,10 @@ const ExamplePage = React.memo(function ExamplePage({ example, japanese, onOpenS
   const beforeHit = hasHit ? jpText.slice(0, hitIndex) : '';
   const hit = hasHit ? jpText.slice(hitIndex, hitIndex + japanese.length) : '';
   const afterHit = hasHit ? jpText.slice(hitIndex + japanese.length) : jpText;
-  const { songId, songTitle } = example;
+  const { songId, songTitle, lineIndex } = example;
   const handlePress = useCallback(() => {
-    if (songId != null) onOpenSource?.(songId);
-  }, [onOpenSource, songId]);
+    if (songId != null) onOpenSource?.(songId, lineIndex);
+  }, [lineIndex, onOpenSource, songId]);
   return (
     <View style={styles.exampleContent}>
       {songId != null && songTitle && (

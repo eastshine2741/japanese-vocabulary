@@ -90,7 +90,7 @@ export interface WordLayerProps {
   onReveal: () => void;
   onRating: (rating: number) => void;
   onSourcePress: () => void;
-  onOpenExampleSource?: (songId: number) => void;
+  onOpenExampleSource?: (songId: number, lineIndex: number | null) => void;
   onEditWord?: (card: StudyCard) => void;
   /** 카드 어디를 탭하든 onRequestImmerse 를 함께 부른다 — 탭한 버튼의 동작은 그대로 일어난다. */
   requireImmersedInteraction?: boolean;

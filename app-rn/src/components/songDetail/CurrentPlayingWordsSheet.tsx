@@ -53,6 +53,8 @@ export interface CurrentPlayingWordsSheetProps {
   lineWordIndexes?: Record<string, number[]> | Map<number, number[]>;
   lyricType?: 'SYNCED' | 'PLAIN';
   fallbackLineIndex?: number;
+  /** 처음 열릴 때 접힘 0 / 펼침 1. */
+  initialIndex?: number;
   bottomInset?: number;
   expandedHeight?: number;
   header?: React.ReactNode;
@@ -123,6 +125,7 @@ const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, Cu
   lineWordIndexes,
   lyricType,
   fallbackLineIndex = 0,
+  initialIndex = 0,
   bottomInset,
   expandedHeight,
   header,
@@ -235,7 +238,7 @@ const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, Cu
         <AppBottomSheet
           ref={ref}
           snapPoints={snapPoints}
-          index={0}
+          index={initialIndex}
           animatedIndex={animatedIndex}
           bottomInset={sheetBottomInset}
           enablePanDownToClose={false}

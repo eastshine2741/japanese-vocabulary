@@ -14,7 +14,7 @@ export interface StudyStackProps {
   stack: StudyStackState;
   onOpenSource: () => void;
   /** 예문 캐러셀에서 그 예문이 나온 곡(카드 자체 source 와 다를 수 있다)으로 이동할 때. */
-  onOpenExampleSource?: (songId: number) => void;
+  onOpenExampleSource?: (songId: number, lineIndex: number | null) => void;
   /** 뒷면 뜻 옆 연필 버튼. 없으면 버튼을 그리지 않는다. */
   onEditWord?: (card: StudyCard) => void;
   onSearch: () => void;
