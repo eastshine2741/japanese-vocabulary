@@ -24,6 +24,9 @@ const GRIME = require('../../../assets/cards/wear-grime.png');
 const SCRATCHES = require('../../../assets/cards/wear-scratches.png');
 const PAPER = require('../../../assets/cards/paper-fiber.png');
 
+// iOS compositingFilter 는 saturation 같은 비분리 혼합을 몰라 보통 덧칠로 그려, 회색 판이 카드를 덮는다.
+const CAN_DESATURATE = Platform.OS !== 'ios';
+
 const PAPER_EDGE = '#EFE7D6';
 const PAPER_FIBER = '#F3ECDD';
 
@@ -39,7 +42,7 @@ function CardWearLayer({ width, height, age, seed, side = 'front', tilt, lite }:
 
   return (
     <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.blendThrough]}>
-      <View style={[StyleSheet.absoluteFill, styles.desaturate, { opacity: age * 0.75 }]} />
+      {CAN_DESATURATE && <View style={[StyleSheet.absoluteFill, styles.desaturate, { opacity: age * 0.75 }]} />}
       <View style={[StyleSheet.absoluteFill, styles.sepia, { opacity: age * 0.45 }]} />
       <View style={[StyleSheet.absoluteFill, styles.liftBlacks, { opacity: age * 0.55 }]} />
       {!lite && (
