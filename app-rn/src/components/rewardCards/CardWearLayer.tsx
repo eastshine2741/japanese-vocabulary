@@ -27,6 +27,20 @@ const PAPER = require('../../../assets/cards/paper-fiber.png');
 // iOS compositingFilter 는 saturation 같은 비분리 혼합을 몰라 보통 덧칠로 그려, 회색 판이 카드를 덮는다.
 const CAN_DESATURATE = Platform.OS !== 'ios';
 
+// 혼합 판의 세기는 opacity 대신 색에 싣는다. 흰 multiply·검은 screen 은 그대로라 결과는 같고,
+// compositingFilter 와 opacity 를 같이 건 iOS 레이어는 Android 보다 진하게 덮였다.
+const WHITE: Rgb = [255, 255, 255];
+const BLACK: Rgb = [0, 0, 0];
+const SEPIA: Rgb = [0xa0, 0x7a, 0x3c];
+const LIFT_BLACKS: Rgb = [0x4a, 0x3b, 0x26];
+
+type Rgb = [number, number, number];
+
+function towards(from: Rgb, to: Rgb, t: number): string {
+  const [r, g, b] = from.map((c, i) => Math.round(c + (to[i] - c) * t));
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
 const PAPER_EDGE = '#EFE7D6';
 const PAPER_FIBER = '#F3ECDD';
 
@@ -43,11 +57,11 @@ function CardWearLayer({ width, height, age, seed, side = 'front', tilt, lite }:
   return (
     <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.blendThrough]}>
       {CAN_DESATURATE && <View style={[StyleSheet.absoluteFill, styles.desaturate, { opacity: age * 0.75 }]} />}
-      <View style={[StyleSheet.absoluteFill, styles.sepia, { opacity: age * 0.45 }]} />
-      <View style={[StyleSheet.absoluteFill, styles.liftBlacks, { opacity: age * 0.55 }]} />
+      <View style={[StyleSheet.absoluteFill, styles.multiply, { backgroundColor: towards(WHITE, SEPIA, age * 0.45) }]} />
+      <View style={[StyleSheet.absoluteFill, styles.screen, { backgroundColor: towards(BLACK, LIFT_BLACKS, age * 0.55) }]} />
       {!lite && (
-        <View style={[StyleSheet.absoluteFill, styles.multiply, { opacity: ramp(0.15, 1, age) * 0.6 }]}>
-          <Image source={PAPER} style={{ width, height }} resizeMode="repeat" />
+        <View style={[StyleSheet.absoluteFill, styles.multiply]}>
+          <Image source={PAPER} style={{ width, height, opacity: ramp(0.15, 1, age) * 0.6 }} resizeMode="repeat" />
         </View>
       )}
       <Image source={GRIME} style={[StyleSheet.absoluteFill, { width, height, opacity: g.grime * 0.85 }]} resizeMode="stretch" />
@@ -162,7 +176,6 @@ const styles = StyleSheet.create({
   // RN web 의 View 는 z-index:0 이라 감싸개가 혼합을 가둬, 아래 카드 대신 투명한 바탕과 섞여 카드를 덮어 버린다.
   blendThrough: Platform.OS === 'web' ? ({ zIndex: 'auto' } as unknown as object) : {},
   desaturate: { backgroundColor: '#808080', mixBlendMode: 'saturation' },
-  sepia: { backgroundColor: '#A07A3C', mixBlendMode: 'multiply' },
-  liftBlacks: { backgroundColor: '#4A3B26', mixBlendMode: 'screen' },
   multiply: { mixBlendMode: 'multiply' },
+  screen: { mixBlendMode: 'screen' },
 });
