@@ -16,6 +16,8 @@ import {
   songAnalysisWorkDetail,
   songAnalysisWorkSummary,
   songDetail,
+  songReportDetail,
+  songReportSummary,
   songSummary,
 } from "@/test/page-fixtures"
 
@@ -38,6 +40,18 @@ function mockFetch() {
     if (url.endsWith("/songs/1/lyric")) return json(lyricDetail)
     if (url.includes("/songs/1")) return json(songDetail)
     if (url.includes("/songs?")) return json(page([songSummary]))
+    if (url.endsWith("/song-reports/9/approve") && init?.method === "POST") {
+      const body = JSON.parse(String(init.body))
+      if (body.changes[0]?.value === "bad") return json({ message: "token out of bounds" }, 400)
+      return json({
+        ...songReportDetail,
+        status: "APPROVED",
+        reviewNote: body.note,
+        reviewChanges: [{ field: "lyric.token.koreanText", locator: { lineIndex: 0 }, before: "가라앉다", after: body.changes[0].value }],
+      })
+    }
+    if (url.includes("/song-reports/9")) return json(songReportDetail)
+    if (url.includes("/song-reports?")) return json(page([songReportSummary]))
     if (url.includes("/song-analysis-works/4")) return json(songAnalysisWorkDetail)
     if (url.endsWith("/song-analysis-works/5/resume") && init?.method === "POST") {
       return json({ ...failedSongAnalysisWorkDetail, status: "PENDING", resumable: false, errorCode: null, errorMessage: null })
@@ -129,6 +143,33 @@ describe("admin web", () => {
     expect(screen.getByRole("link", { name: "Analysis Work" })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Reels Factory" })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Users" })).toBeInTheDocument()
+  })
+
+  test("lists pending song reports and approves with a prefilled token meaning change", async () => {
+    const user = userEvent.setup()
+    sessionStorage.setItem("kotonoha.admin.token", "admin-token")
+    renderApp("/song-reports")
+
+    expect(await screen.findByText("단어 뜻이 틀려요")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "PENDING" })).toHaveAttribute("aria-pressed", "true")
+    await user.click(screen.getByText("단어 뜻이 틀려요"))
+
+    const input = (await screen.findByLabelText("단어 뜻 value")) as HTMLInputElement
+    expect(screen.getByLabelText("Change type")).toHaveValue("SET_TOKEN_MEANING")
+    expect(input.value).toBe("가라앉다")
+    await user.clear(input)
+    await user.type(input, "bad")
+    await user.click(screen.getByRole("button", { name: /Approve/ }))
+    expect(await screen.findByRole("alert")).toHaveTextContent("token out of bounds")
+
+    await user.clear(input)
+    await user.type(input, "가라앉다 (물에)")
+    await user.type(screen.getByLabelText("Review note"), "ok")
+    await user.click(screen.getByRole("button", { name: /Approve/ }))
+
+    expect(await screen.findByText("APPROVED")).toBeInTheDocument()
+    expect(screen.getByText("가라앉다 (물에)", { selector: "span.text-\\[\\#115e59\\]" })).toBeInTheDocument()
+    expect(screen.queryByLabelText("Review")).not.toBeInTheDocument()
   })
 
   test("shows user learning activity in list and detail", async () => {

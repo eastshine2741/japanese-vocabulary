@@ -149,6 +149,13 @@ function handleData(data: RemoteMessage['data']): void {
     if (Number.isFinite(songId)) {
       navigate('SongDetail', { songId, origin: 'AnalysisPush' });
     }
+    return;
+  }
+  if (data.type === 'song_report_approved' && data.songId != null) {
+    const songId = Number(data.songId);
+    if (Number.isFinite(songId)) {
+      navigate('SongDetail', { songId, origin: 'SongReportPush' });
+    }
   }
 }
 

@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import YouTubePlayer, { YouTubePlayerRef } from '../YouTubePlayer';
 import { Colors } from '../../theme/theme';
+import { extractYoutubeVideoId } from '../../utils/youtube';
 
 export const SONG_DETAIL_MV_BAR_HEIGHT = 56;
 
@@ -33,16 +34,11 @@ export interface SongDetailMvBarProps {
   onDurationChange?: (durationMs: number) => void;
   onPlayingChange?: (isPlaying: boolean) => void;
   onBarPress?: () => void;
+  onReportPress?: () => void;
 }
 
 export interface SongDetailMvBarRef {
   seekToMs: (milliseconds: number) => void;
-}
-
-function extractVideoId(url: string | null | undefined): string | null {
-  if (!url) return null;
-  const match = url.match(/(?:v=|youtu\.be\/|shorts\/|embed\/)([a-zA-Z0-9_-]{11})/);
-  return match?.[1] ?? null;
 }
 
 function formatTime(ms: number): string {
@@ -71,13 +67,14 @@ const SongDetailMvBarComponent = forwardRef<SongDetailMvBarRef, SongDetailMvBarP
   onDurationChange,
   onPlayingChange,
   onBarPress,
+  onReportPress,
 }, ref) {
   const insets = useSafeAreaInsets();
   const playerRef = useRef<YouTubePlayerRef>(null);
   const initialSeekDoneRef = useRef(false);
   const pendingSeekMsRef = useRef<number | null>(null);
   const resolvedVideoId = useMemo(
-    () => videoId ?? extractVideoId(youtubeUrl),
+    () => videoId ?? extractYoutubeVideoId(youtubeUrl),
     [videoId, youtubeUrl],
   );
 
@@ -201,6 +198,18 @@ const SongDetailMvBarComponent = forwardRef<SongDetailMvBarRef, SongDetailMvBarP
             </Animated.Text>
           </View>
         </TouchableOpacity>
+
+        {onReportPress ? (
+          <TouchableOpacity
+            style={styles.toggle}
+            onPress={onReportPress}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel="영상 제보"
+          >
+            <Feather name="flag" size={17} color={Colors.textMuted} />
+          </TouchableOpacity>
+        ) : null}
 
         <TouchableOpacity
           style={styles.toggle}

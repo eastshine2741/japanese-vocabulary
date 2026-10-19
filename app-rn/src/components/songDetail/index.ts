@@ -1,6 +1,7 @@
 export { SongDetailHomeTab } from './SongDetailHomeTab';
 export { SongDetailCardsTab } from './SongDetailCardsTab';
 export { SongDetailJlptChart } from './SongDetailJlptChart';
+export { SongDetailContributors } from './SongDetailContributors';
 export { SongDetailCoverageSection } from './SongDetailCoverageSection';
 export { SongDetailCoverageHelpSheet } from './SongDetailCoverageHelpSheet';
 export { SongDetailTierJourney } from './SongDetailTierJourney';
@@ -29,6 +30,12 @@ export {
 export { default as SongDetailWordRow } from './SongDetailWordRow';
 export { default as SongDetailSortSheet } from './SongDetailSortSheet';
 export { default as SongDetailFilterSheet } from './SongDetailFilterSheet';
+export {
+  default as SongReportSheet,
+  type SongReportSheetProps,
+  type SongReportSheetTarget,
+} from './SongReportSheet';
+export { default as SongReportThanksSheet } from './SongReportThanksSheet';
 export {
   CurrentPlayingWordsSheet,
   CURRENT_PLAYING_WORDS_PEEK_HEIGHT,

@@ -1,12 +1,11 @@
 package com.japanese.vocabulary.studystats.controller
 
-import com.japanese.vocabulary.studystats.dto.HeatmapDayDto
+import com.japanese.vocabulary.studystats.dto.toHeatmapDay
 import com.japanese.vocabulary.studystats.dto.HeatmapResponse
 import com.japanese.vocabulary.studystats.dto.HomeStatsResponse
 import com.japanese.vocabulary.studystats.dto.ProfileStatsResponse
 import com.japanese.vocabulary.studystats.dto.WeekDotDto
 import com.japanese.vocabulary.studystats.dto.DailyDotDto
-import com.japanese.vocabulary.studystats.dto.DailyStudySummaryDto
 import com.japanese.vocabulary.studystats.dto.DotStatusDto
 import com.japanese.vocabulary.studystats.dto.StudyCalendarResponse
 import com.japanese.vocabulary.studystats.service.StudyStatsService
@@ -80,10 +79,4 @@ class StudyStatsController(
         DotStatusDto.FREEZE -> "freeze"
         DotStatusDto.TODAY -> "today"
     }
-
-    private fun DailyStudySummaryDto.toHeatmapDay() = HeatmapDayDto(
-        date = dateKst.toString(),
-        reviewCount = reviewCount,
-        freezeUsed = freezeUsed,
-    )
 }

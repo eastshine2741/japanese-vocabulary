@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { songApi } from '../api/songApi';
+import { songReportApi } from '../api/songReportApi';
 import { SongCoverageDto, SongDetailData, SongWordTiersDto } from '../types/song';
+import { SongContributorsDto } from '../types/songReport';
 
 type Status = 'idle' | 'loading' | 'success' | 'error';
 
@@ -12,6 +14,8 @@ interface SongDetailState {
   tiers: SongWordTiersDto | null;
   /** 이 곡 이해도. null 이면 그 섹션을 그리지 않는다. */
   coverage: SongCoverageDto | null;
+  /** 승인된 제보를 낸 사람들. null 이거나 비면 그 섹션을 그리지 않는다. */
+  contributors: SongContributorsDto | null;
   errorCode: string | null;
   load: (songId: number) => Promise<void>;
   refreshWords: (songId: number) => Promise<void>;
@@ -28,6 +32,7 @@ export const useSongDetailStore = create<SongDetailState>((set) => ({
   data: null,
   tiers: null,
   coverage: null,
+  contributors: null,
   errorCode: null,
 
   load: async (songId: number) => {
@@ -39,17 +44,19 @@ export const useSongDetailStore = create<SongDetailState>((set) => ({
       data: state.data?.song.id === songId ? state.data : null,
       tiers: state.tiers?.songId === songId ? state.tiers : null,
       coverage: state.coverage?.songId === songId ? state.coverage : null,
+      contributors: state.songId === songId ? state.contributors : null,
     }));
     try {
-      const [song, lyrics, words, tiers, coverage] = await Promise.all([
+      const [song, lyrics, words, tiers, coverage, contributors] = await Promise.all([
         songApi.getById(songId),
         songApi.getLyrics(songId),
         songApi.getWords(songId),
         songApi.getWordTiers(songId).catch(() => null),
         songApi.getCoverage(songId).catch(() => null),
+        songReportApi.getContributors(songId).catch(() => null),
       ]);
       if (loadRunId !== runId) return;
-      set({ status: 'success', data: { song, lyrics, words }, tiers, coverage });
+      set({ status: 'success', data: { song, lyrics, words }, tiers, coverage, contributors });
     } catch (e: any) {
       if (loadRunId !== runId) return;
       set({ status: 'error', errorCode: e.response?.data?.error ?? 'SONG_DETAIL_LOAD_FAILED' });
@@ -82,6 +89,6 @@ export const useSongDetailStore = create<SongDetailState>((set) => ({
 
   reset: () => {
     loadRunId++;
-    set({ status: 'idle', songId: null, data: null, tiers: null, coverage: null, errorCode: null });
+    set({ status: 'idle', songId: null, data: null, tiers: null, coverage: null, contributors: null, errorCode: null });
   },
 }));

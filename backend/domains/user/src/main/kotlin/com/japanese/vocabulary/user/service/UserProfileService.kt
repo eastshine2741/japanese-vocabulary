@@ -19,6 +19,12 @@ class UserProfileService(
         userRepository.findByIdAndDeletedAtIsNull(userId)?.toDto()
             ?: throw BusinessException(ErrorCode.INVALID_CREDENTIALS)
 
+    /** 남의 프로필을 볼 때. 탈퇴한 유저는 없는 유저다. */
+    @Transactional(readOnly = true)
+    fun getPublicProfile(userId: Long): UserDto =
+        userRepository.findByIdAndDeletedAtIsNull(userId)?.toDto()
+            ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
+
     @Transactional
     fun updateProfile(userId: Long, rawName: String?, rawUsername: String?): UserDto {
         val user = userRepository.findByIdAndDeletedAtIsNull(userId)

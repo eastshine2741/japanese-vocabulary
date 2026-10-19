@@ -11,6 +11,8 @@ import type {
   SongAnalysisWorkDetail,
   SongAnalysisWorkSummary,
   SongDetail,
+  SongReportDetail,
+  SongReportSummary,
   SongSummary,
 } from "@/api/types"
 
@@ -293,4 +295,37 @@ export const recommendation: Recommendation = {
   artworkUrl: null,
   orderIndex: 0,
   createdAt: "2026-06-26T00:10:00Z",
+}
+
+export const songReportSummary: SongReportSummary = {
+  id: 9,
+  songId: 1,
+  songTitle: "夜に駆ける",
+  songArtist: "YOASOBI",
+  userId: 3,
+  username: "adminread",
+  type: "WORD_MEANING",
+  typeLabel: "단어 뜻이 틀려요",
+  status: "PENDING",
+  createdAt: "2026-01-02T00:00:00Z",
+  reviewedAt: null,
+}
+
+export const songReportDetail: SongReportDetail = {
+  ...songReportSummary,
+  target: { lineIndex: 0, charStart: 0, charEnd: 2, surface: "沈む" },
+  suggestion: "가라앉다 (물에)",
+  reviewChanges: null,
+  reviewNote: null,
+  context: {
+    song: { id: 1, title: "夜に駆ける", artist: "YOASOBI", youtubeUrl: "https://youtu.be/x8VYWazR5mE" },
+    reportLyricId: 2,
+    activeLyricId: 2,
+    line: {
+      index: 0,
+      text: lyricDetail.rawContent[0].text,
+      koreanLyrics: "가라앉듯이 녹아가듯이",
+      tokens: lyricDetail.analyzedContent![0].tokens,
+    },
+  },
 }

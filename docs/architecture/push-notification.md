@@ -2,7 +2,7 @@
 
 Push notification is split between the `notification` domain module and the application modules that
 decide who gets what: `batch` (streak reminder CronJob), `worker` (analysis-completed push), and
-`admin-api` (operator manual send).
+`admin-api` (operator manual send, song report approved push).
 
 ## Responsibilities
 
@@ -41,6 +41,9 @@ decide who gets what: `batch` (streak reminder CronJob), `worker` (analysis-comp
   exists when `PUSH_FIREBASE_ENABLED=true`.
 - Analysis-completed push: `AnalysisNotificationDispatcher` in `worker`, on the `AFTER_COMMIT`
   `SongAnalysisCompletedEvent`.
+- Song report approved push: `SongReportApprovedNotificationDispatcher` in `admin-api`, on the
+  `AFTER_COMMIT` `SongReportApprovedEvent` (one push per approved report, none on reject). Payload
+  `data.type` is `song_report_approved` with `songId`; the app opens that song's detail.
 
 `StreakReminderTask.findCandidates()` reads `DeviceTokenRepository`, `UserSettingsRepository`,
 `DailyStudySummaryRepository` and `StreakCalculator` directly. A user is a candidate when they have a

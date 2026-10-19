@@ -21,6 +21,7 @@ interface HeatmapSectionProps {
   onPressMore: () => void;
 }
 
+/** 내 학습 기록. */
 export default React.memo(function HeatmapSection({ onPressMore }: HeatmapSectionProps) {
   const { heatmap, loadHeatmap } = useStudyStatsStore(
     useShallow((s) => ({
@@ -37,14 +38,22 @@ export default React.memo(function HeatmapSection({ onPressMore }: HeatmapSectio
     }, [heatmap.status, heatmap.staleAt, loadHeatmap]),
   );
 
-  const cells = useMemo(() => {
-    return computeGrid(heatmap.data?.days ?? []);
-  }, [heatmap.data]);
+  return <HeatmapView days={heatmap.data?.days} onPressMore={onPressMore} />;
+});
+
+interface HeatmapViewProps {
+  days: HeatmapDay[] | undefined;
+  /** 없으면 제목만 그리고 상세로 넘어가지 않는다. */
+  onPressMore?: () => void;
+}
+
+export const HeatmapView = React.memo(function HeatmapView({ days, onPressMore }: HeatmapViewProps) {
+  const cells = useMemo(() => computeGrid(days ?? []), [days]);
 
   const visibleMax = useMemo(() => {
-    if (!heatmap.data) return 0;
-    return heatmap.data.days.reduce((acc, d) => (d.reviewCount > acc ? d.reviewCount : acc), 0);
-  }, [heatmap.data]);
+    if (!days) return 0;
+    return days.reduce((acc, d) => (d.reviewCount > acc ? d.reviewCount : acc), 0);
+  }, [days]);
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const handleSelect = useCallback((date: string) => {
@@ -52,20 +61,24 @@ export default React.memo(function HeatmapSection({ onPressMore }: HeatmapSectio
   }, []);
 
   const selectedDay = useMemo(() => {
-    if (!selectedDate || !heatmap.data) return null;
-    return heatmap.data.days.find((d) => d.date === selectedDate) ?? null;
-  }, [selectedDate, heatmap.data]);
+    if (!selectedDate || !days) return null;
+    return days.find((d) => d.date === selectedDate) ?? null;
+  }, [selectedDate, days]);
 
   return (
     <View style={styles.section}>
-      <Pressable
-        style={({ pressed }) => [styles.header, pressed && styles.headerPressed]}
-        onPress={onPressMore}
-        hitSlop={8}
-      >
+      {onPressMore ? (
+        <Pressable
+          style={({ pressed }) => [styles.header, pressed && styles.headerPressed]}
+          onPress={onPressMore}
+          hitSlop={8}
+        >
+          <Text style={styles.title}>학습 기록</Text>
+          <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+        </Pressable>
+      ) : (
         <Text style={styles.title}>학습 기록</Text>
-        <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
-      </Pressable>
+      )}
 
       <View style={styles.body}>
         <View style={styles.grid}>

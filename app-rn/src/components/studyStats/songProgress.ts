@@ -33,6 +33,10 @@ export function toSongProgressItem(deck: SongDeckSummary): SongProgressItem {
   };
 }
 
+export function sumBy(items: SongProgressItem[], pick: (item: SongProgressItem) => number): number {
+  return items.reduce((acc, item) => acc + pick(item), 0);
+}
+
 /** 서버가 아직 새 필드를 안 주는 배포 틈(OTA 선반영)에서도 바가 깨지지 않게 min 으로 떨어뜨린다. */
 function clamp(value: number, min: number, max: number): number {
   if (!Number.isFinite(value)) return min;
