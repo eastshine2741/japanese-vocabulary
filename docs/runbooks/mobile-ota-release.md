@@ -43,6 +43,7 @@
 OTA 가드 4번은 `.github/scripts/native-compat/check.sh <base-ref> [head-ref]` 가 맡는다. 두 커밋의
 `@expo/fingerprint`(네이티브 모듈 목록·버전, Expo config, config plugin, patches)를 깨끗한 worktree 에서
 비교한다. 설정은 `app-rn/fingerprint.config.js` 이고, version·runtimeVersion·`eas.json` 등은 제외한다.
+patch-package 패치는 JS 파일만 고친 diff 를 빼고 잰다. 그 외 파일을 건드린 diff 는 네이티브로 본다.
 
 - 실패하면 워크플로 로그에 바뀐 입력이 찍힌다. 머지를 되돌리고 원하는 PR 만 cherry-pick 한다.
 - 네이티브 의존을 추가하는 PR 에는 그 기능만 넣는다. 다른 수정이 섞이면 cherry-pick 으로 떼어낼 수 없다.

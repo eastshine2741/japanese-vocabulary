@@ -44,7 +44,7 @@ SENTRY_AUTH_TOKEN=... SENTRY_ORG=eastshine SENTRY_PROJECT=kotonoha-app-prod \
 - 소스맵은 OTA 에서 자동 업로드되지 않는다. `eas update` 직후 위 명령을 직접 돌린다. `@sentry/expo-upload-sourcemaps` 패키지는 SDK 8.9.0+ 전용이라 현재 7.x 에서는 SDK 번들 bin 을 쓴다.
 - `metro.config.js` 의 `getSentryExpoConfig` 가 번들/소스맵에 Debug ID 를 심는다. 지우면 업로드해도 매칭이 안 된다.
 - `eas update` 는 `eas.json` build profile 의 `env` 를 자동으로 쓰지 않는다. prod OTA 는 `BUILD_ENV=prod EAS_UPDATE_CHANNEL=production EXPO_PUBLIC_OTA_UPDATE_NUMBER=N` 을 명시한다.
-- **새 빌드가 필요한 경우**: native dependency/plugin/patches/icon/splash/bundleIdentifier 변경.
+- **새 빌드가 필요한 경우**: native dependency/plugin/icon/splash/bundleIdentifier 변경, JS 가 아닌 파일을 고치는 patches.
 - 업데이트는 백그라운드로 받고 다음 콜드스타트에 적용된다.
 
 ## Multi-worktree Builds
