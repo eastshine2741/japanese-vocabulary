@@ -3,12 +3,17 @@ package com.japanese.vocabulary.test
 import com.google.firebase.messaging.FirebaseMessaging
 import com.japanese.vocabulary.auth.service.AppleOidcService
 import com.japanese.vocabulary.auth.service.GoogleOidcService
+import com.japanese.vocabulary.featureflag.entity.FeatureFlagEntity
+import com.japanese.vocabulary.featureflag.repository.FeatureFlagRepository
+import com.japanese.vocabulary.featureflag.service.FeatureFlags
 import com.japanese.vocabulary.github.client.GithubIssueClient
 import com.japanese.vocabulary.objectstorage.client.ObjectStorageClient
-import com.japanese.vocabulary.songsearch.client.itunes.ItunesClient
+import com.japanese.vocabulary.songsearch.client.applemusic.AppleMusicClient
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.clearMocks
 import org.junit.jupiter.api.BeforeEach
+import org.springframework.beans.factory.annotation.Autowired
+import java.time.Instant
 
 /**
  * api 모듈 통합테스트 부모. 외부 클라이언트를 여기서 일괄 mock 해 ApplicationContext cache key 를 안정화한다.
@@ -17,7 +22,7 @@ import org.junit.jupiter.api.BeforeEach
 abstract class ApiBaseIntegrationTest : BaseIntegrationTest() {
 
     @MockkBean
-    protected lateinit var itunesClient: ItunesClient
+    protected lateinit var appleMusicClient: AppleMusicClient
 
     @MockkBean
     protected lateinit var googleOidcService: GoogleOidcService
@@ -38,12 +43,31 @@ abstract class ApiBaseIntegrationTest : BaseIntegrationTest() {
     @MockkBean
     protected lateinit var firebaseMessaging: FirebaseMessaging
 
+    @Autowired
+    private lateinit var featureFlags: FeatureFlags
+
+    @Autowired
+    private lateinit var featureFlagRepository: FeatureFlagRepository
+
     @BeforeEach
     fun resetClientMocks() {
         clearMocks(
-            itunesClient, googleOidcService, appleOidcService, githubIssueClient, objectStorageClient, firebaseMessaging,
+            appleMusicClient, googleOidcService, appleOidcService, githubIssueClient, objectStorageClient, firebaseMessaging,
             answers = true,
             recordedCalls = true,
         )
+        featureFlags.invalidate()
+    }
+
+    /** 테스트 트랜잭션 안에서 켜므로 롤백과 함께 사라진다. 플래그 캐시는 bean 이라 테스트마다 비운다. */
+    protected fun turnOn(flagKey: String) {
+        featureFlagRepository.saveAndFlush(FeatureFlagEntity(key = flagKey, startAt = Instant.EPOCH))
+        featureFlags.invalidate()
+    }
+
+    protected fun turnOff(flagKey: String) {
+        featureFlagRepository.deleteById(flagKey)
+        featureFlagRepository.flush()
+        featureFlags.invalidate()
     }
 }

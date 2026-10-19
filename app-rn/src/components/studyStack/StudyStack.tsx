@@ -14,7 +14,7 @@ export interface StudyStackProps {
   stack: StudyStackState;
   onOpenSource: () => void;
   /** 예문 캐러셀에서 그 예문이 나온 곡(카드 자체 source 와 다를 수 있다)으로 이동할 때. */
-  onOpenExampleSource?: (songId: number) => void;
+  onOpenExampleSource?: (songId: number, lineIndex: number | null) => void;
   /** 뒷면 뜻 옆 연필 버튼. 없으면 버튼을 그리지 않는다. */
   onEditWord?: (card: StudyCard) => void;
   onSearch: () => void;
@@ -27,7 +27,7 @@ export interface StudyStackProps {
   contentInsetTop?: StageInset;
   /** 시스템 하단 영역이 무대 위를 덮는 높이. 하단 컨트롤만 그만큼 올린다. */
   contentInsetBottom?: number;
-  /** 홈 확장 상태처럼 카드 조작 전에 먼저 immersive 전환이 필요한 경우. */
+  /** 홈 확장 상태처럼 카드를 탭하면 immersive 로도 전환해야 하는 경우. */
   requireImmersedInteraction?: boolean;
   onRequestImmerse?: () => void;
 }

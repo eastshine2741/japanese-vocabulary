@@ -69,7 +69,7 @@ class AuthService(
             throw BusinessException(ErrorCode.USERNAME_TAKEN)
         }
 
-        val cleanedDisplayName = displayName?.trim()?.takeIf { it.isNotEmpty() }
+        val cleanedDisplayName = displayName?.trim()?.takeIf { it.isNotEmpty() } ?: UserEntity.DEFAULT_NAME
         return userRepository.save(
             UserEntity(
                 provider = provider,

@@ -18,11 +18,11 @@ import { ArtworkThumb } from './CardStage';
 import { Colors } from '../../theme/theme';
 import { getJlptColor } from '../Badges';
 import { getPosColor, getPosLabel } from '../../types/pos';
-import { flattenExamples, joinMeanings, SenseExample } from '../../types/word';
+import { flattenExamplesForSong, joinMeanings, SenseExample } from '../../types/word';
 import ReadingText from '../ReadingText';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { formatInterval, holdLabel } from './intervalLabel';
-import { PREVIEW_FLASHCARD_ID, StudyCard } from './types';
+import { isUnsavedCard, StudyCard } from './types';
 
 export const RATINGS = [
   { rating: 1, label: '다시', color: Colors.ratingAgain },
@@ -76,7 +76,7 @@ export interface WordBackProps {
   hideHeadword?: boolean;
   headwordRef?: React.Ref<View>;
   onHeadwordLayout?: () => void;
-  onOpenExampleSource?: (songId: number) => void;
+  onOpenExampleSource?: (songId: number, lineIndex: number | null) => void;
   /** 뜻 옆 연필 버튼 — 단어 편집 화면으로. 미리보기 카드(아직 안 담긴 단어)에는 버튼이 없다. */
   onEditWord?: (card: StudyCard) => void;
 }
@@ -96,13 +96,16 @@ export const WordBack = React.memo(function WordBack({
   onEditWord,
 }: WordBackProps) {
   const meaning = joinMeanings(card.senses);
-  const canEdit = onEditWord != null && card.id !== PREVIEW_FLASHCARD_ID;
+  const canEdit = onEditWord != null && !isUnsavedCard(card);
   const handleEditPress = useCallback(() => onEditWord?.(card), [card, onEditWord]);
   const handleDictionaryPress = useCallback(() => openDictionary(card.japanese), [card.japanese]);
   const firstSense = card.senses[0];
   const pos = firstSense?.partOfSpeech;
   const jlpt = firstSense?.jlpt;
-  const examples = useMemo(() => flattenExamples(card.senses), [card.senses]);
+  const examples = useMemo(
+    () => flattenExamplesForSong(card.senses, card.source.songId),
+    [card.senses, card.source.songId],
+  );
 
   // '복습 주기 보여주기' 설정은 rating 버튼의 주기 표시만 가린다 — 선택 후 "N일 뒤에 다시 만나요" 문구엔 그대로 보인다.
   const showIntervals = useSettingsStore(s => s.showIntervals);
@@ -424,7 +427,7 @@ function openDictionary(word: string) {
 interface ExamplePageProps {
   example: SenseExample;
   japanese: string;
-  onOpenSource?: (songId: number) => void;
+  onOpenSource?: (songId: number, lineIndex: number | null) => void;
 }
 
 /** 예문 한 건 — 표제어 위치를 강조 표시하고 한국어 번역을 아래에 붙인다. */
@@ -435,10 +438,10 @@ const ExamplePage = React.memo(function ExamplePage({ example, japanese, onOpenS
   const beforeHit = hasHit ? jpText.slice(0, hitIndex) : '';
   const hit = hasHit ? jpText.slice(hitIndex, hitIndex + japanese.length) : '';
   const afterHit = hasHit ? jpText.slice(hitIndex + japanese.length) : jpText;
-  const { songId, songTitle } = example;
+  const { songId, songTitle, lineIndex } = example;
   const handlePress = useCallback(() => {
-    if (songId != null) onOpenSource?.(songId);
-  }, [onOpenSource, songId]);
+    if (songId != null) onOpenSource?.(songId, lineIndex);
+  }, [lineIndex, onOpenSource, songId]);
   return (
     <View style={styles.exampleContent}>
       {songId != null && songTitle && (

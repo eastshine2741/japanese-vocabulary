@@ -4,6 +4,7 @@ import com.japanese.vocabulary.flashcard.model.FlashcardMemory
 
 data class ReviewResultDto(
     val id: Long,
+    val wordId: Long,
     val state: Int,
     val due: String,
     val stability: Double,

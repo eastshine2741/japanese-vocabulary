@@ -31,6 +31,10 @@ class SongEntity(
     @Column(name = "active_lyric_id")
     var activeLyricId: Long? = null,
 
+    /** 분석 뒤에 Apple Music 에서 찾아 잇는다. 카탈로그에 없는 곡은 null 로 남는다. */
+    @Column(name = "artist_id")
+    var artistId: Long? = null,
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     var createdAt: Instant? = null,

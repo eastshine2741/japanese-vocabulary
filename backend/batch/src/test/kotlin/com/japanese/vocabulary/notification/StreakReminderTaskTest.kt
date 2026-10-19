@@ -7,8 +7,6 @@ import com.japanese.vocabulary.notification.entity.DeviceTokenEntity
 import com.japanese.vocabulary.studystats.entity.DailyStudySummaryEntity
 import com.japanese.vocabulary.test.BatchBaseIntegrationTest
 import com.japanese.vocabulary.user.entity.UserEntity
-import com.japanese.vocabulary.user.entity.UserSettingsEntity
-import com.japanese.vocabulary.user.model.UserSettingsData
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import io.mockk.verify
@@ -34,7 +32,7 @@ class StreakReminderTaskTest : BatchBaseIntegrationTest() {
 
     private val today: LocalDate = LocalDate.of(2026, 9, 20)
 
-    private fun newUser(token: Boolean = true, notificationsEnabled: Boolean? = null): UserEntity {
+    private fun newUser(token: Boolean = true): UserEntity {
         val seq = USER_SEQUENCE.incrementAndGet()
         val user = UserEntity(
             provider = "google",
@@ -43,11 +41,6 @@ class StreakReminderTaskTest : BatchBaseIntegrationTest() {
         ).also { entityManager.persist(it) }
         if (token) {
             entityManager.persist(DeviceTokenEntity(userId = user.id!!, token = "streak-token-$seq", platform = "ANDROID"))
-        }
-        if (notificationsEnabled != null) {
-            entityManager.persist(
-                UserSettingsEntity(userId = user.id!!, settings = UserSettingsData(notificationsEnabled = notificationsEnabled)),
-            )
         }
         entityManager.flush()
         return user
@@ -76,18 +69,17 @@ class StreakReminderTaskTest : BatchBaseIntegrationTest() {
         val result = candidatesFor(Slot.EVENING, pending, doneToday, neverStudied)
 
         assertThat(result.keys).containsExactly(pending.id)
-        assertThat(result[pending.id]!!.body).startsWith("3일이나")
+        assertThat(result[pending.id]!!.title).isEqualTo("👀 사용자님...?")
     }
 
     @Test
-    fun `skips users without token or with notifications disabled`() {
+    fun `skips users without token`() {
         val noToken = newUser(token = false).also { studied(it, 1) }
-        val disabled = newUser(notificationsEnabled = false).also { studied(it, 1) }
-        val enabledExplicitly = newUser(notificationsEnabled = true).also { studied(it, 1) }
+        val withToken = newUser().also { studied(it, 1) }
 
-        val result = candidatesFor(Slot.EVENING, noToken, disabled, enabledExplicitly)
+        val result = candidatesFor(Slot.EVENING, noToken, withToken)
 
-        assertThat(result.keys).containsExactly(enabledExplicitly.id)
+        assertThat(result.keys).containsExactly(withToken.id)
     }
 
     @Test
@@ -98,7 +90,7 @@ class StreakReminderTaskTest : BatchBaseIntegrationTest() {
         val result = candidatesFor(Slot.NIGHT, startedYesterday, lapsed)
 
         assertThat(result.keys).containsExactly(startedYesterday.id)
-        assertThat(result[startedYesterday.id]!!.title).isEqualTo("정말 공부 안 하실 건가요...?")
+        assertThat(result[startedYesterday.id]!!.title).isEqualTo("😱 조심하세요!!")
     }
 
     @Test
@@ -111,8 +103,8 @@ class StreakReminderTaskTest : BatchBaseIntegrationTest() {
         val result = candidatesFor(Slot.EVENING, dayAfter, secondDay, thirdDay, fourthDay)
 
         assertThat(result.keys).containsExactlyInAnyOrder(dayAfter.id, thirdDay.id)
-        assertThat(result[dayAfter.id]!!.title).isEqualTo("어제는 좀 피곤했잖아요. 오늘은 다르죠?")
-        assertThat(result[thirdDay.id]!!.title).isEqualTo("마지막으로 한 번만 부를게요")
+        assertThat(result[dayAfter.id]!!.title).isEqualTo("어제는 좀 피곤했던 거죠?")
+        assertThat(result[thirdDay.id]!!.title).isEqualTo("마지막으로 한 번만 부를게요.")
     }
 
     @Test
@@ -121,9 +113,9 @@ class StreakReminderTaskTest : BatchBaseIntegrationTest() {
         entityManager.persist(DailyStudySummaryEntity(userId = user.id!!, dateKst = today.minusDays(1), reviewCount = 0, freezeUsed = true))
         entityManager.flush()
 
-        val result = candidatesFor(Slot.EVENING, user)
+        val result = candidatesFor(Slot.NIGHT, user)
 
-        assertThat(result[user.id]!!.body).startsWith("2일이나")
+        assertThat(result[user.id]!!.body).isEqualTo("단어 하나만 공부해도 2일 연속이 유지돼요")
     }
 
     @Test
@@ -135,7 +127,7 @@ class StreakReminderTaskTest : BatchBaseIntegrationTest() {
 
         val result = candidatesFor(Slot.EVENING, user)
 
-        assertThat(result[user.id]!!.title).isEqualTo("마지막으로 한 번만 부를게요")
+        assertThat(result[user.id]!!.title).isEqualTo("마지막으로 한 번만 부를게요.")
     }
 
     @Test
@@ -166,13 +158,13 @@ class StreakReminderTaskTest : BatchBaseIntegrationTest() {
         val data = mine.fieldValue<Map<String, String>>("data")
         assertThat(data["type"]).isEqualTo("streak_reminder")
         assertThat(data["expiresAt"]).isEqualTo(Instant.parse("2026-09-20T19:00:00Z").toEpochMilli().toString())
-        assertThat(data["title"]).isEqualTo("정말 공부 안 하실 건가요...?")
+        assertThat(data["title"]).isEqualTo("😱 조심하세요!!")
         assertThat(mine.fieldValue<Any?>("notification")).isNull()
         assertThat(mine.fieldValue<Any>("androidConfig").fieldValue<Any?>("notification")).isNull()
     }
 
     @Test
-    fun `evening dispatch has no expiresAt and keeps the notification block`() {
+    fun `evening dispatch has no expiresAt and is also data-only on Android`() {
         val user = newUser().also { studied(it, 1) }
         val messages = mutableListOf<Message>()
         every { firebaseMessaging.send(capture(messages)) } returns "fcm-message-id"
@@ -181,7 +173,8 @@ class StreakReminderTaskTest : BatchBaseIntegrationTest() {
 
         val mine = messages.single { it.fieldValue<String>("token") == "streak-token-${user.username.removePrefix("streak")}" }
         assertThat(mine.fieldValue<Map<String, String>>("data")).doesNotContainKey("expiresAt")
-        assertThat(mine.fieldValue<Any?>("notification")).isNotNull
+        assertThat(mine.fieldValue<Any?>("notification")).isNull()
+        assertThat(mine.fieldValue<Any>("androidConfig").fieldValue<Any?>("notification")).isNull()
     }
 
     @Suppress("UNCHECKED_CAST")

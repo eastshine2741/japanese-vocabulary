@@ -36,7 +36,7 @@ export const EXTERNAL_SERVICES: OssEntry[] = [
   { name: 'LRCLIB', license: '가사 데이터 출처', url: 'https://lrclib.net' },
   { name: 'VocaDB', license: '가사 데이터 출처', url: 'https://vocadb.net' },
   { name: 'UtaiteDB', license: '가사 데이터 출처', url: 'https://utaitedb.net' },
-  { name: 'Apple iTunes Search API', license: 'Apple 약관', url: 'https://performance-partners.apple.com/search-api' },
+  { name: 'Apple Music API', license: 'Apple 약관', url: 'https://developer.apple.com/documentation/applemusicapi' },
   { name: 'Google Gemini API', license: 'Google ToS', url: 'https://ai.google.dev/gemini-api/terms' },
   { name: 'YouTube IFrame Player API', license: 'YouTube ToS', url: 'https://developers.google.com/youtube/iframe_api_reference' },
 ];

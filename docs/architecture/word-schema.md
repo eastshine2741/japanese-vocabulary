@@ -20,6 +20,9 @@ words(id, user_id, japanese_text VARCHAR(255), reading VARCHAR(255) NULL, senses
 UNIQUE (user_id, japanese_text)
 ```
 
+`japanese_text` 는 `utf8mb4_bin` 이다 (V47). `_ci`/`_ai` collation 은 탁음·작은 글자·히라가나/가타카나를 무시해
+まだ 와 また 를 한 행으로 합친다.
+
 ```json
 [{ "meaning": "흐르다", "partOfSpeech": "동사", "jlpt": "N4",
    "examples": [{ "text": "川が流れる", "translation": "강이 흐른다", "songId": 12, "lineIndex": 7 }] }]
@@ -69,7 +72,7 @@ deck 멤버십의 유일한 소유자. `deck_flashcards` 를 대체한다.
 | 대상 | word 와의 관계 | 규칙 |
 |---|---|---|
 | flashcard | 수명주기 동일 | word 저장 시 생성, 삭제 시 삭제. flashcard 없는 word 는 존재할 수 없다 |
-| deck | word 보다 오래 산다 | 담을 때 없으면 생성. 안이 비어도 안 지우고, deck 을 지워도 안의 word 는 안 지운다 |
+| deck | word 보다 오래 산다 | 담을 때 없으면 생성. 안이 비어도 안 지운다. deck 을 지우면 전체 단어장 말고는 그 deck 에만 속한 word 를 함께 지운다 |
 | 전체 단어장 | 모든 word 가 연결 | 유저당 1개, 삭제 불가 |
 
 ### 뜻 쪼개기
@@ -81,7 +84,7 @@ deck 멤버십의 유일한 소유자. `deck_flashcards` 를 대체한다.
 쪼개는 지점은 둘이다.
 
 - **저장 경로** (`WordService.forSave`): `POST /api/words`, `POST /api/words/batch` 로 들어온 sense 를 쪼갠 뒤 merge 한다. 쪼갠 조각 중 이미 담긴 뜻에는 예문만 붙고, 처음 보는 조각만 새 sense 가 된다. `PUT /api/words/{id}` 는 쪼개지 않는다 — 사용자가 직접 입력한 뜻을 서버가 나누면 안 된다.
-- **SongDetail 응답** (`SongDetailQueryService`): `senses` 와 `addRequest.senses` 를 쪼개서 내려보내므로 담김 판정도 조각 단위가 된다. 같은 뜻이 여러 candidate 에서 나오면 예문을 합쳐 하나로 만든다 — 쪼개진 쪽의 빈 조각이 자기 예문을 가진 candidate 를 덮으면 안 된다. 요약 표시용 `koreanText` 만 쪼개기 전 문자열을 유지한다.
+- **SongDetail 응답** (`SongWordQueryService`): `senses` 와 `addRequest.senses` 를 쪼개서 내려보내므로 담김 판정도 조각 단위가 된다. 같은 뜻이 여러 candidate 에서 나오면 예문을 합쳐 하나로 만든다 — 쪼개진 쪽의 빈 조각이 자기 예문을 가진 candidate 를 덮으면 안 된다. 요약 표시용 `koreanText` 만 쪼개기 전 문자열을 유지한다.
   **한 가사 줄은 뜻 하나에만 붙는다.** 조각 단위 규칙("첫 조각만")은 candidate 하나 안에서만 성립해서, 같은 단어가 뜻이 갈린 candidate 로 여러 개 잡히면 줄이 뜻마다 반복될 수 있었다. 이미 앞선 뜻이 가져간 `lineIndex` 는 뒤 뜻의 예문에서 뺀다.
 
 앱도 같은 규칙의 `splitMeaningText` 를 갖는다 (`app-rn/src/types/word.ts`). 가사 탭으로 담는 경로의 요청 조립, '다른 뜻 담기 / 예문 담기' 판정, 편집 화면의 뜻 줄 프리필이 여기에 걸린다.
@@ -102,7 +105,13 @@ deck 멤버십의 유일한 소유자. `deck_flashcards` 를 대체한다.
 
 ### 단어장 삭제
 
-`DELETE /api/decks/{id}` 는 `deck_word` 행과 `decks` 행만 지운다. 안의 단어와 flashcard 는 그대로 남고 전체 단어장 연결도 유지된다. 전체 단어장은 "모든 단어는 전체 단어장에 속한다"는 불변식의 담지자라 `DEFAULT_DECK_NOT_DELETABLE` 로 거부한다.
+`DELETE /api/decks/{id}` 는 "곡 담기 취소"다. 전체 단어장을 빼고 보면 이 단어장에만 속한 단어를 flashcard·모든 `deck_word`(전체 단어장 연결 포함)와 함께 지우고, 이 단어장의 `deck_word`·`decks` 행을 지운다. 한 트랜잭션이다.
+
+- 다른 곡 단어장이나 일반 단어장에도 속한 단어는 손대지 않는다 — FSRS 상태·senses·이 곡을 가리키는 예문까지 그대로다.
+- `daily_study_summary`·연속 학습 기록은 건드리지 않는다.
+- `GET /api/decks/{id}/deletion-preview` → `{ "deletedWordCount": Int }` 가 같은 판정으로 지워질 단어 수를 미리 돌려준다.
+
+전체 단어장은 "모든 단어는 전체 단어장에 속한다"는 불변식의 담지자라 삭제·미리보기 모두 `DEFAULT_DECK_NOT_DELETABLE` 로 거부한다.
 
 ### 담김 판정 (SongDetailScreen)
 

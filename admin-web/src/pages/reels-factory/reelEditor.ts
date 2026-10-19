@@ -1,5 +1,5 @@
 import type { LyricToken, ReelsLyricLine, ReelsSongDetail } from "@/api/types"
-import type { MvCrop, MvFrame, PartOfSpeech, PromoReelData, VocabularyWord } from "@reels/types"
+import type { MvCrop, MvFrame, MvKeyframe, PartOfSpeech, PromoReelData, VocabularyWord } from "@reels/types"
 
 /**
  * 릴스 에디터 상태와 순수 함수. 시간은 전부 MV 기준 절대 ms 다.
@@ -44,7 +44,8 @@ export const MV_SCALE_MAX = 5
 export const MV_OFFSET_X_MAX = 2700
 export const MV_OFFSET_Y_MAX = 1920
 const REEL_WIDTH = 1080
-const REEL_HEIGHT = 1920
+/** PromoReel MV_AREA_BOTTOM - HEADLINE_BAND_HEIGHT. MV 는 헤드라인 띠 아래, 하단 인스타 UI 위만 채운다. */
+const MV_AREA_HEIGHT = 1560 - 580
 
 /** 한 변에서 잘라낼 수 있는 최대 비율. MV 에 박힌 레터박스(2.39:1 이면 위아래 각 12%)는 넉넉히 덮는다. */
 export const MV_CROP_MAX = 0.4
@@ -72,20 +73,80 @@ export function croppedAspect(aspect: number, crop: MvCrop = NO_CROP): number {
 }
 
 /**
- * 가운데 정렬로 캔버스를 꽉 채우는(cover) 배치. MV 비율(가로/세로)이 있어야 배율을 안다.
+ * 가운데 정렬로 띠 아래 MV 영역을 꽉 채우는(cover) 배치. MV 비율(가로/세로)이 있어야 배율을 안다.
  * 크롭이 없으면 `mvFrame` 이 null 일 때와 같은 화면이다.
  */
 export function coverMvFrame(aspect: number, crop: MvCrop = NO_CROP): MvFrame {
-  const scale = Math.max(1, (REEL_HEIGHT * croppedAspect(aspect, crop)) / REEL_WIDTH)
+  const scale = Math.max(1, (MV_AREA_HEIGHT * croppedAspect(aspect, crop)) / REEL_WIDTH)
   return clampMvFrame({ scale, x: 0, y: 0, crop })
 }
 
 /** 폭을 릴스 폭에 맞추고 가운데 둔다. */
 export const FIT_WIDTH_MV_FRAME: MvFrame = { scale: 1, x: 0, y: 0, crop: NO_CROP }
 
-/** 가사 원문 글자 배율. 1 이 기본이고, 긴 줄을 맞추는 자동 축소 위에 곱해진다. */
+/**
+ * MV 배치 트랙. `base` 가 처음부터 쓰이고, 키프레임마다 그 시각부터 그 배치로 바뀐다(전환 없음).
+ * 키프레임 시각은 줄처럼 MV 기준 절대 ms 라 클립을 옮겨도 MV 장면에 붙어 있다. `frame` 이 null 이면 꽉 채움(cover).
+ */
+export type MvTrack = {
+  base: MvFrame | null
+  keyframes: { atMs: number; frame: MvFrame | null }[]
+}
+
+export const EMPTY_MV_TRACK: MvTrack = { base: null, keyframes: [] }
+
+/** `ms` 에 적용 중인 키프레임 index. 첫 키프레임 전이면 -1(base). */
+export function activeMvKeyframe(track: MvTrack, ms: number): number {
+  return track.keyframes.reduce((found, keyframe, index) => (keyframe.atMs <= ms ? index : found), -1)
+}
+
+export function mvFrameAt(track: MvTrack, ms: number): MvFrame | null {
+  const index = activeMvKeyframe(track, ms)
+  return index < 0 ? track.base : track.keyframes[index].frame
+}
+
+/** `ms` 에 적용 중인 배치(base 또는 키프레임)를 바꾼다. */
+export function setMvFrameAt(track: MvTrack, ms: number, frame: MvFrame | null): MvTrack {
+  const index = activeMvKeyframe(track, ms)
+  if (index < 0) return { ...track, base: frame }
+  return { ...track, keyframes: track.keyframes.map((keyframe, at) => (at === index ? { ...keyframe, frame } : keyframe)) }
+}
+
+/** `ms` 에 지금 배치를 그대로 복사한 키프레임을 둔다. 그 자리에 이미 있으면 그대로다. */
+export function addMvKeyframe(track: MvTrack, ms: number): MvTrack {
+  const atMs = Math.max(0, Math.round(ms))
+  if (track.keyframes.some((keyframe) => keyframe.atMs === atMs)) return track
+  const keyframes = [...track.keyframes, { atMs, frame: mvFrameAt(track, atMs) }].sort((a, b) => a.atMs - b.atMs)
+  return { ...track, keyframes }
+}
+
+/**
+ * 키프레임을 `ms` 로 옮긴다. `keepOrder` 면 이웃 키프레임 사이로 묶어 index 가 그대로다(드래그용).
+ * 아니면 다시 정렬하고, 다른 키프레임과 시각이 겹치면 그대로다.
+ */
+export function moveMvKeyframe(track: MvTrack, index: number, ms: number, keepOrder = false): MvTrack {
+  const target = track.keyframes[index]
+  if (!target) return track
+  let atMs = Math.max(0, Math.round(ms))
+  if (keepOrder) {
+    const prev = track.keyframes[index - 1]
+    const next = track.keyframes[index + 1]
+    if (prev) atMs = Math.max(atMs, prev.atMs + 1)
+    if (next) atMs = Math.min(atMs, next.atMs - 1)
+  } else if (track.keyframes.some((keyframe, at) => at !== index && keyframe.atMs === atMs)) {
+    return track
+  }
+  if (atMs === target.atMs) return track
+  const keyframes = track.keyframes.map((keyframe, at) => (at === index ? { ...keyframe, atMs } : keyframe))
+  return { ...track, keyframes: keepOrder ? keyframes : keyframes.sort((a, b) => a.atMs - b.atMs) }
+}
+
+export function removeMvKeyframe(track: MvTrack, index: number): MvTrack {
+  return { ...track, keyframes: track.keyframes.filter((_, at) => at !== index) }
+}
+
 /** 헤드라인 글자 크기(px). 기본값은 PromoReel 의 DEFAULT_HEADLINE_FONT_SIZE, 범위는 서버 HEADLINE_FONT_SIZE_RANGE 와 같다. */
-export const DEFAULT_HEADLINE_FONT_SIZE = 58
+export const DEFAULT_HEADLINE_FONT_SIZE = 76
 export const HEADLINE_FONT_SIZE_MIN = 48
 export const HEADLINE_FONT_SIZE_MAX = 110
 
@@ -93,12 +154,29 @@ export function clampHeadlineFontSize(size: number): number {
   return Math.round(Math.min(HEADLINE_FONT_SIZE_MAX, Math.max(HEADLINE_FONT_SIZE_MIN, size)))
 }
 
+/** 계정명·헤드라인 세로 이동(px, + 가 아래). 범위는 서버 HEADLINE_OFFSET_Y_RANGE 와 같다. */
+export const HEADLINE_OFFSET_Y_MIN = -300
+export const HEADLINE_OFFSET_Y_MAX = 300
+
+export function clampHeadlineOffsetY(offset: number): number {
+  return Math.round(Math.min(HEADLINE_OFFSET_Y_MAX, Math.max(HEADLINE_OFFSET_Y_MIN, offset)))
+}
+
+/** 가사 원문 글자 배율. 1 이 기본이고, 긴 줄을 맞추는 자동 축소 위에 곱해진다. */
 export const DEFAULT_LYRIC_SCALE = 1
 export const LYRIC_SCALE_MIN = 0.6
 export const LYRIC_SCALE_MAX = 1.4
 
 export function clampLyricScale(scale: number): number {
   return Math.round(Math.min(LYRIC_SCALE_MAX, Math.max(LYRIC_SCALE_MIN, scale)) * 100) / 100
+}
+
+/** 가사 블록 세로 이동(px, + 가 아래). 범위는 서버 LYRIC_OFFSET_Y_RANGE 와 같다 — 위로는 헤드라인 띠 아래까지만 간다. */
+export const LYRIC_OFFSET_Y_MIN = -600
+export const LYRIC_OFFSET_Y_MAX = 300
+
+export function clampLyricOffsetY(offset: number): number {
+  return Math.round(Math.min(LYRIC_OFFSET_Y_MAX, Math.max(LYRIC_OFFSET_Y_MIN, offset)))
 }
 
 /** 연속한 줄 시작 사이 최소 간격. 드래그로 줄이 겹치는 걸 막는다. */
@@ -109,7 +187,9 @@ export const DEFAULT_LINE_GAP_MS = 3000
 export const DEFAULT_TAIL_MS = 4000
 /** 다음 줄 타임스탬프가 이보다 멀면(간주) 거기까지 기다리지 않고 자른다. */
 export const MAX_TAIL_MS = 8000
-/** PromoReel END_CARD_DURATION_IN_FRAMES(210) / 30fps. */
+/** PromoReel END_CARD_DURATION_IN_FRAMES. */
+const END_CARD_FRAMES = 210
+/** END_CARD_FRAMES / 30fps. */
 export const END_CARD_MS = 7000
 
 /** 릴스에서 뜻을 비우는 품사 — 외울 단어가 아니다. PromoReel 의 NON_WORD_POS 와 같다. */
@@ -136,6 +216,18 @@ export function tokenMeaning(token: LyricToken | undefined, line: EditorLine | u
   return (line?.meanings[tokenIndex] ?? token?.koreanText ?? "").trim()
 }
 
+/** 곡 전체 가사의 외울 단어 수. 서버 WordCandidateGenerator 가 곡 단어를 고르는 규칙(품사·뜻 있음·표제형+품사+뜻)과 같다. */
+export function songWordCount(detail: ReelsSongDetail): number {
+  const keys = detail.lines.flatMap((line) =>
+    line.tokens.flatMap((token) => {
+      const japanese = token.baseForm || token.surface
+      if (!tokenTakesMeaning(token) || token.partOfSpeech === "FILLER" || !token.koreanText?.trim() || !japanese) return []
+      return [[japanese, token.partOfSpeech, token.koreanText].join("\u0001")]
+    }),
+  )
+  return new Set(keys).size
+}
+
 export function tokenToVocabulary(token: LyricToken, meaning: string = token.koreanText ?? ""): VocabularyWord {
   return {
     japanese: token.baseForm || token.surface,
@@ -144,19 +236,6 @@ export function tokenToVocabulary(token: LyricToken, meaning: string = token.kor
     partOfSpeech: token.partOfSpeech,
     jlpt: token.jlpt ?? null,
   }
-}
-
-/** 서버 추천 단어를 토큰 index 로 옮긴다. 어드민이 바꾸기 전 기본 선택이다. */
-export function defaultTokenIndexes(line: ReelsLyricLine, max: number): number[] {
-  const picked: number[] = []
-  for (const word of line.recommendedVocabulary) {
-    const found = line.tokens.findIndex(
-      (token, index) => !picked.includes(index) && tokenSelectable(token) && (token.baseForm || token.surface) === word.japanese,
-    )
-    if (found >= 0) picked.push(found)
-    if (picked.length >= max) break
-  }
-  return picked
 }
 
 /** 릴스에 넣거나 뺀다. 넣을 때 시작 시각은 타임스탬프 → 앞 줄 + 3초 → 클립 시작 순으로 잡는다. */
@@ -183,7 +262,8 @@ export function toggleLine(state: EditorState, detail: ReelsSongDetail, index: n
   const inserted: EditorLine = {
     index,
     startMs,
-    tokenIndexes: defaultTokenIndexes(line, detail.maxVocabularyPerLine),
+    // 단어는 어드민이 짚은 줄에만 뜬다 — 모든 줄에 붙으면 강조가 되지 않는다.
+    tokenIndexes: [],
     meanings: {},
   }
   const lines = normalizeMonotonic([...state.lines.slice(0, at), inserted, ...state.lines.slice(at)])
@@ -246,7 +326,7 @@ export function shiftAll(state: EditorState, deltaMs: number): EditorState {
   }
 }
 
-export function toggleToken(state: EditorState, index: number, tokenIndex: number, max: number): EditorState {
+export function toggleToken(state: EditorState, index: number, tokenIndex: number): EditorState {
   return {
     ...state,
     lines: state.lines.map((line) => {
@@ -254,7 +334,6 @@ export function toggleToken(state: EditorState, index: number, tokenIndex: numbe
       if (line.tokenIndexes.includes(tokenIndex)) {
         return { ...line, tokenIndexes: line.tokenIndexes.filter((current) => current !== tokenIndex) }
       }
-      if (line.tokenIndexes.length >= max) return line
       return { ...line, tokenIndexes: [...line.tokenIndexes, tokenIndex] }
     }),
   }
@@ -321,12 +400,15 @@ export function buildPromoData(
   state: EditorState,
   mvAsset: string,
   caption: ReelCaption = defaultCaption(detail),
-  mvFrame: MvFrame | null = null,
+  mvTrack: MvTrack = EMPTY_MV_TRACK,
   lyricScale: number = DEFAULT_LYRIC_SCALE,
   headlineFontSize: number = DEFAULT_HEADLINE_FONT_SIZE,
+  lyricOffsetY: number = 0,
+  headlineOffsetY: number = 0,
 ): PromoReelData {
   const fps = detail.fps
   const relative = (ms: number) => msToFrame(ms - state.sourceStartMs, fps)
+  const { mvFrame, mvKeyframes } = placeMvTrack(mvTrack, relative, relative(state.endMs) + END_CARD_FRAMES)
   const lyricLines = state.lines.flatMap((selected) => {
     const line = lineByIndex(detail, selected.index)
     if (!line) return []
@@ -348,7 +430,6 @@ export function buildPromoData(
       },
     ]
   })
-  const wordCount = new Set(lyricLines.flatMap((line) => line.vocabulary.map((word) => word.japanese))).size
   return {
     song: {
       title: caption.title.trim(),
@@ -358,16 +439,44 @@ export function buildPromoData(
     },
     headline: caption.headline.trim(),
     headlineFontSize: clampHeadlineFontSize(headlineFontSize),
+    headlineOffsetY: clampHeadlineOffsetY(headlineOffsetY),
     instagramHandle: detail.instagramHandle,
     catchphrase: detail.catchphrase,
     sourceStartFrame: msToFrame(state.sourceStartMs, fps),
     mvFrame,
+    mvKeyframes,
     lyricScale: clampLyricScale(lyricScale),
+    lyricOffsetY: clampLyricOffsetY(lyricOffsetY),
     lyricsEndFrame: relative(state.endMs),
     totalLineCount: detail.lines.length,
-    wordCount,
+    wordCount: songWordCount(detail),
     lyricLines,
   }
+}
+
+/**
+ * 트랙을 릴스 프레임으로 옮긴다. 클립 시작 전에 놓인 키프레임은 그중 마지막이 처음 배치가 되고,
+ * 릴스가 끝난 뒤의 키프레임은 버린다. 같은 프레임에 겹치면 뒤의 것이 이긴다.
+ */
+function placeMvTrack(
+  track: MvTrack,
+  toFrame: (ms: number) => number,
+  totalFrames: number,
+): { mvFrame: MvFrame | null; mvKeyframes: MvKeyframe[] } {
+  let mvFrame = track.base
+  const mvKeyframes: MvKeyframe[] = []
+  for (const keyframe of track.keyframes) {
+    const startFrame = toFrame(keyframe.atMs)
+    if (startFrame >= totalFrames) break
+    if (startFrame <= 0) {
+      mvFrame = keyframe.frame
+    } else if (mvKeyframes.length > 0 && mvKeyframes[mvKeyframes.length - 1].startFrame === startFrame) {
+      mvKeyframes[mvKeyframes.length - 1] = { startFrame, mvFrame: keyframe.frame }
+    } else {
+      mvKeyframes.push({ startFrame, mvFrame: keyframe.frame })
+    }
+  }
+  return { mvFrame, mvKeyframes }
 }
 
 /** `m:ss.t` */

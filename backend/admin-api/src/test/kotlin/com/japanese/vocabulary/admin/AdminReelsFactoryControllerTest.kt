@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.admin
 
+import com.fasterxml.jackson.databind.JsonNode
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsRenderRequest
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsVocabularyResponse
 import com.japanese.vocabulary.admin.reels.AdminReelsRenderFailedException
@@ -11,6 +12,7 @@ import com.japanese.vocabulary.admin.reels.AdminReelsSourceProperties
 import com.japanese.vocabulary.admin.reels.FileAdminReelsSourceCache
 import com.japanese.vocabulary.admin.reels.model.AdminReelsMvCrop
 import com.japanese.vocabulary.admin.reels.model.AdminReelsMvFrame
+import com.japanese.vocabulary.admin.reels.model.AdminReelsMvKeyframe
 import com.japanese.vocabulary.admin.reels.model.AdminReelsPromoData
 import com.japanese.vocabulary.admin.reels.model.AdminReelsPromoLine
 import com.japanese.vocabulary.admin.reels.model.AdminReelsPromoSong
@@ -83,15 +85,11 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
             jsonPath("$.lyricType") { value("PLAIN") }
             jsonPath("$.fps") { value(30) }
             jsonPath("$.lines[0].originalText") { value("歌詞0") }
-            jsonPath("$.lines[0].recommendedVocabulary[0].japanese") { value("夢") }
-            jsonPath("$.lines[0].recommendedVocabulary[0].partOfSpeechLabel") { value("명사") }
-            jsonPath("$.lines[0].recommendedVocabulary[0].jlpt") { value("N5") }
             jsonPath("$.lines[2].startTimeMs") { doesNotExist() }
             jsonPath("$.lines[2].selectable") { value(true) }
             jsonPath("$.minLineCount") { value(4) }
             jsonPath("$.maxLineCount") { doesNotExist() }
             jsonPath("$.maxLyricsSpanMs") { value(60000) }
-            jsonPath("$.maxVocabularyPerLine") { value(3) }
         }
     }
 
@@ -131,24 +129,45 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
             song = AdminReelsPromoSong(title = "레몬 (Lemon)", artist = "요네즈 켄시", artworkAsset = "", mvAsset = "http://localhost/mv?token=x"),
             mvFrame = AdminReelsMvFrame(scale = 1.0, x = -120.0, y = 240.0, crop = AdminReelsMvCrop(top = 0.12, right = 0.0, bottom = 0.12, left = 0.0)),
             lyricScale = 1.2,
+            lyricOffsetY = -150,
             headlineFontSize = 92,
+            headlineOffsetY = 60,
+            mvKeyframes = listOf(
+                AdminReelsMvKeyframe(startFrame = 200, mvFrame = AdminReelsMvFrame(scale = 2.0, x = 0.0, y = -80.0)),
+                AdminReelsMvKeyframe(startFrame = 600, mvFrame = null),
+            ),
         )
-        mockMvc.post("/admin/api/reels-factory/render") {
+        val jobId = mockMvc.post("/admin/api/reels-factory/render") {
             header("Authorization", "Bearer $token")
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(
                 AdminReelsRenderRequest(songId = song.id!!, data = data, acknowledgeSourceRightsAndPlatformRisk = true),
             )
         }.andExpect {
-            status { isOk() }
-            header { string("Content-Type", "video/mp4") }
-            header { string("Content-Disposition", "attachment; filename=\"kotonoha-reel-${song.id}.mp4\"") }
+            status { isAccepted() }
+            jsonPath("$.songId") { value(song.id!!) }
+            jsonPath("$.title") { value("레몬 (Lemon)") }
+        }.andReturn().response.contentAsString.let { objectMapper.readTree(it)["id"].asText() }
+
+        // 요청은 바로 돌아오고 렌더는 뒤에서 끝난다. 결과는 몇 번이고 다시 받을 수 있다
+        val job = awaitJob(token, jobId)
+        assertThat(job["status"].asText()).isEqualTo("SUCCEEDED")
+        repeat(2) {
+            mockMvc.get("/admin/api/reels-factory/render-jobs/$jobId/output") {
+                header("Authorization", "Bearer $token")
+            }.andExpect {
+                status { isOk() }
+                header { string("Content-Type", "video/mp4") }
+                content { bytes("fake mp4".toByteArray()) }
+            }
         }
 
-        // 어드민이 올려 둔 파일을 렌더 스크립트에 그대로 넘긴다
-        // 본 렌더는 미리보기 사본이 아니라 올린 원본을 받는다
+        // 본 렌더는 미리보기 사본이 아니라 올린 원본을 받는다. 줄 서는 동안 캐시가 바뀌어도 되게 작업 몫으로 잡아 둔 파일이다
         assertThat(fakeRenderer.lastInput?.source?.localPath)
-            .isEqualTo(requireNotNull(sourceCache.cached(song.id!!)).source.toString())
+            .isNotEqualTo(requireNotNull(sourceCache.cached(song.id!!)).source.toString())
+        assertThat(fakeRenderer.lastSourceBytes).isEqualTo(FAKE_MP4)
+        // 렌더가 끝나면 잡아 둔 파일은 지운다
+        assertThat(Path.of(requireNotNull(fakeRenderer.lastInput).source.localPath)).doesNotExist()
         val rendered = requireNotNull(fakeRenderer.lastInput?.data)
         assertThat(rendered.sourceStartFrame).isEqualTo(900)
         assertThat(rendered.lyricLines.map { it.startFrame }).containsExactly(45, 90, 200, 260, 400)
@@ -161,14 +180,18 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         assertThat(rendered.mvFrame).isEqualTo(AdminReelsMvFrame(scale = 1.0, x = -120.0, y = 240.0, crop = AdminReelsMvCrop(top = 0.12, right = 0.0, bottom = 0.12, left = 0.0)))
         // 어드민이 정한 가사 글자 배율도 그대로 간다
         assertThat(rendered.lyricScale).isEqualTo(1.2)
+        assertThat(rendered.lyricOffsetY).isEqualTo(-150)
         // 헤드라인 글자 크기도 어드민이 정한 값을 쓴다
         assertThat(rendered.headlineFontSize).isEqualTo(92)
+        assertThat(rendered.headlineOffsetY).isEqualTo(60)
+        // MV 배치 키프레임도 그대로 간다 — 엔드카드 구간(520~730) 안의 키프레임도 받는다
+        assertThat(rendered.mvKeyframes).isEqualTo(data.mvKeyframes)
         // 클라이언트의 스트리밍 URL 은 버리고 렌더 스크립트가 mvAsset 을 채운다
         assertThat(rendered.song.mvAsset).isEmpty()
     }
 
     @Test
-    fun `reels factory render failure returns json for mp4 accept header`() {
+    fun `reels factory render failure is reported on the job`() {
         val song = TestSongBuilder(entityManager)
             .withTitle("Lemon")
             .withArtist("米津玄師")
@@ -179,9 +202,8 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         uploadSource(token, song.id!!)
         fakeRenderer.failWith = AdminReelsRenderFailedException("boom")
 
-        mockMvc.post("/admin/api/reels-factory/render") {
+        val jobId = mockMvc.post("/admin/api/reels-factory/render") {
             header("Authorization", "Bearer $token")
-            accept(MediaType.parseMediaType("video/mp4"))
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(
                 AdminReelsRenderRequest(
@@ -191,9 +213,16 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
                 ),
             )
         }.andExpect {
-            status { isInternalServerError() }
-            content { contentType(MediaType.APPLICATION_JSON) }
-            jsonPath("$.error") { value("render_failed") }
+            status { isAccepted() }
+        }.andReturn().response.contentAsString.let { objectMapper.readTree(it)["id"].asText() }
+
+        val job = awaitJob(token, jobId)
+        assertThat(job["status"].asText()).isEqualTo("FAILED")
+        assertThat(job["error"].asText()).isEqualTo("render_failed")
+        mockMvc.get("/admin/api/reels-factory/render-jobs/$jobId/output") {
+            header("Authorization", "Bearer $token")
+        }.andExpect {
+            status { isNotFound() }
         }
     }
 
@@ -225,9 +254,6 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         renderExpectingBadRequest(token, song.id!!, promoData(startFrames = listOf(-10, 60, 120, 180), lyricsEndFrame = 240))
         // 60초 상한
         renderExpectingBadRequest(token, song.id!!, promoData(startFrames = listOf(0, 60, 120, 180), lyricsEndFrame = 1801))
-        // 줄당 단어 상한
-        val fourWords = List(4) { AdminReelsVocabularyResponse(japanese = "夢$it", reading = "ユメ", korean = "꿈") }
-        renderExpectingBadRequest(token, song.id!!, promoData(startFrames = listOf(0, 60, 120, 180), lyricsEndFrame = 240, vocabulary = fourWords))
         // 어드민이 고쳐 쓰는 곡 제목·아티스트가 비어 있음
         renderExpectingBadRequest(token, song.id!!, valid.copy(song = valid.song.copy(title = " ")))
         renderExpectingBadRequest(token, song.id!!, valid.copy(song = valid.song.copy(artist = "")))
@@ -242,6 +268,26 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         // 가사 글자 배율 범위 밖
         renderExpectingBadRequest(token, song.id!!, valid.copy(lyricScale = 0.4))
         renderExpectingBadRequest(token, song.id!!, valid.copy(lyricScale = 2.0))
+        // 가사 위치 범위 밖
+        renderExpectingBadRequest(token, song.id!!, valid.copy(lyricOffsetY = -700))
+        renderExpectingBadRequest(token, song.id!!, valid.copy(lyricOffsetY = 400))
+        // MV 키프레임: 0 프레임, 릴스 끝 이후, 순서 어김, 배치 범위 밖
+        val zoom = AdminReelsMvFrame(scale = 2.0, x = 0.0, y = 0.0)
+        renderExpectingBadRequest(token, song.id!!, valid.copy(mvKeyframes = listOf(AdminReelsMvKeyframe(startFrame = 0, mvFrame = zoom))))
+        renderExpectingBadRequest(token, song.id!!, valid.copy(mvKeyframes = listOf(AdminReelsMvKeyframe(startFrame = valid.lyricsEndFrame + 210, mvFrame = zoom))))
+        renderExpectingBadRequest(
+            token,
+            song.id!!,
+            valid.copy(mvKeyframes = listOf(AdminReelsMvKeyframe(startFrame = 100, mvFrame = zoom), AdminReelsMvKeyframe(startFrame = 100, mvFrame = null))),
+        )
+        renderExpectingBadRequest(
+            token,
+            song.id!!,
+            valid.copy(mvKeyframes = listOf(AdminReelsMvKeyframe(startFrame = 100, mvFrame = zoom.copy(scale = 9.0)))),
+        )
+        // 헤드라인 위치 범위 밖
+        renderExpectingBadRequest(token, song.id!!, valid.copy(headlineOffsetY = -400))
+        renderExpectingBadRequest(token, song.id!!, valid.copy(headlineOffsetY = 400))
         // 헤드라인 글자 크기 범위 밖
         renderExpectingBadRequest(token, song.id!!, valid.copy(headlineFontSize = 20))
         renderExpectingBadRequest(token, song.id!!, valid.copy(headlineFontSize = 200))
@@ -279,6 +325,8 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         assertThat(mvPath).startsWith("/reels-factory/songs/${song.id}/mv?token=")
         assertThat(fakeRenderer.lastInput).isNull()
         val mediaToken = mvPath.substringAfter("token=")
+        // 에디터는 MV URL 을 다시 받지 않으므로 로그인 세션보다 먼저 죽으면 편집 중 재생이 끊긴다
+        assertThat(jwtExpiration(mediaToken)).isEqualTo(jwtExpiration(token))
 
         // 올린 뒤에는 다시 올리지 않고 경로만 받을 수 있다 (새 미디어 토큰)
         mockMvc.get("/admin/api/reels-factory/songs/${song.id}/source") {
@@ -370,6 +418,9 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         }
         assertThat(sourceCache.cached(song.id!!)).isNull()
     }
+
+    private fun jwtExpiration(jwt: String): Long =
+        objectMapper.readTree(java.util.Base64.getUrlDecoder().decode(jwt.split(".")[1]))["exp"].asLong()
 
     private fun uploadSource(token: String, songId: Long): String {
         val body = mockMvc.multipart("/admin/api/reels-factory/songs/$songId/source") {
@@ -467,6 +518,19 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         return lyric
     }
 
+    private fun awaitJob(token: String, jobId: String): JsonNode {
+        val deadline = System.nanoTime() + 5_000_000_000
+        while (true) {
+            val jobs = mockMvc.get("/admin/api/reels-factory/render-jobs") {
+                header("Authorization", "Bearer $token")
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString
+            val job = objectMapper.readTree(jobs).first { it["id"].asText() == jobId }
+            if (job["status"].asText() in setOf("SUCCEEDED", "FAILED")) return job
+            check(System.nanoTime() < deadline) { "render job $jobId did not finish" }
+            Thread.sleep(20)
+        }
+    }
+
     @TestConfiguration
     class ReelsFactoryTestConfig {
         @Bean
@@ -507,11 +571,14 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
     }
 
     class FakeReelsRenderService : AdminReelsRenderService {
-        var lastInput: AdminReelsRenderInput? = null
-        var failWith: RuntimeException? = null
+        // 렌더는 작업 스레드에서 돈다.
+        @Volatile var lastInput: AdminReelsRenderInput? = null
+        @Volatile var failWith: RuntimeException? = null
+        @Volatile var lastSourceBytes: ByteArray? = null
 
         override fun render(input: AdminReelsRenderInput): Path {
             lastInput = input
+            lastSourceBytes = Files.readAllBytes(Path.of(input.source.localPath))
             failWith?.let { exception ->
                 failWith = null
                 throw exception

@@ -5,7 +5,6 @@ import com.japanese.vocabulary.notification.service.PushNotificationService
 import com.japanese.vocabulary.song.event.SongReportApprovedEvent
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.user.repository.UserRepository
-import com.japanese.vocabulary.user.repository.UserSettingsRepository
 import org.springframework.beans.factory.ObjectProvider
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Propagation
@@ -14,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class SongReportApprovedNotificationDispatcher(
     private val userRepository: UserRepository,
-    private val settingsRepository: UserSettingsRepository,
     private val tokenRepository: DeviceTokenRepository,
     private val songRepository: SongRepository,
     private val pushProvider: ObjectProvider<PushNotificationService>,
@@ -24,7 +22,6 @@ class SongReportApprovedNotificationDispatcher(
     fun dispatch(event: SongReportApprovedEvent) {
         val push = pushProvider.ifAvailable ?: return
         if (userRepository.findByIdAndDeletedAtIsNull(event.userId) == null) return
-        if (settingsRepository.findByUserId(event.userId)?.settings?.notificationsEnabled == false) return
         val song = songRepository.findById(event.songId).orElse(null) ?: return
         val data = mapOf(
             "type" to "song_report_approved",

@@ -1,3 +1,12 @@
 sentry:
   enabled: false
   dsn: ""
+
+# 이 파일이 main application.yml 을 가리므로 share 설정을 따로 둔다. 검증 파일은 끈 상태(apple-app-id·지문 비움).
+share:
+  public-base-url: https://kotonoha.test
+  app-scheme: kotonoha
+  ios-app-store-url: https://apps.apple.com/app/id6806729387
+  android-play-url: https://play.google.com/store/apps/details?id=dev.eastshine.kotonoha
+  android-package: dev.eastshine.kotonoha
+  token-keys: test:test-share-token-secret-at-least-32-bytes-long

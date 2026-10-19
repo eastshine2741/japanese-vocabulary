@@ -3,6 +3,7 @@ export {
   AppBottomSheetModal,
 } from './AppBottomSheet';
 export type {
+  AppBottomSheetBackgroundProps,
   AppBottomSheetModalProps,
   AppBottomSheetModalRef,
   AppBottomSheetProps,

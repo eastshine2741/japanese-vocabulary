@@ -101,7 +101,7 @@ class UserProfileControllerTest : ApiBaseIntegrationTest() {
     }
 
     @Test
-    fun `PATCH blank name stores null`() {
+    fun `PATCH blank name falls back to the default name`() {
         val me = newUser { withUsername("blanker"); withName("Before") }
 
         mockMvc.patch("/api/users/me") {
@@ -112,7 +112,7 @@ class UserProfileControllerTest : ApiBaseIntegrationTest() {
 
         entityManager.flush(); entityManager.clear()
         val reloaded = userRepository.findById(me.id!!).get()
-        assertThat(reloaded.name).isNull()
+        assertThat(reloaded.name).isEqualTo(UserEntity.DEFAULT_NAME)
     }
 
     @Test
@@ -199,7 +199,7 @@ class UserProfileControllerTest : ApiBaseIntegrationTest() {
         assertThat(reloaded.providerSub).isEqualTo("deleted:${me.id}:sub-leaving")
         assertThat(reloaded.username).isEqualTo("deleted:${me.id}:goingaway")
         assertThat(reloaded.email).isNull()
-        assertThat(reloaded.name).isNull()
+        assertThat(reloaded.name).isEqualTo(UserEntity.DEFAULT_NAME)
     }
 
     @Test

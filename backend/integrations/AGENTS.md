@@ -16,7 +16,7 @@ Applies to all modules under `backend/integrations/`.
 
 ## Current Modules
 
-- `song-search`: iTunes song search.
+- `song-search`: Apple Music catalog song search (JP storefront). `AppleMusicTokenProvider` signs the ES256 developer token from `APPLE_MUSIC_*`; blank settings boot but fail the first call.
 - `lyric-search`: LRCLIB, VocaDB, and UtaiteDB (same API as VocaDB; fallback when VocaDB is behind a Cloudflare 403) lyric search.
 - `mv-search`: YouTube MV search.
 - `github`: GitHub issue creation (`GithubIssueClient`), used by `api` for VOC. Token blank -> `enabled=false`.

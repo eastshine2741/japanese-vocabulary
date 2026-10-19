@@ -18,10 +18,12 @@ dependencies {
     implementation(project(":domains:song-analysis"))
     implementation(project(":domains:translation"))
     implementation(project(":domains:notification"))
+    implementation(project(":domains:featureflag"))
     implementation(project(":domains:user"))
     implementation(project(":domains:word"))
     implementation(project(":domains:karaoke"))
     implementation(project(":integrations:lyric-search"))
+    implementation(project(":integrations:song-search"))
     implementation(project(":integrations:mv-search"))
     implementation(project(":integrations:message-queue"))
 

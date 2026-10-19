@@ -4,12 +4,13 @@ import type { SongCoverageDto, SongWordTierDto } from '../../types/song';
 import type { SongContributorsDto } from '../../types/songReport';
 import { SongDetailContributors } from './SongDetailContributors';
 import { SongDetailCoverageSection } from './SongDetailCoverageSection';
+import type { PreviewSong } from '../rewardCards/cardPreview';
 import { SongDetailJlptChart } from './SongDetailJlptChart';
 import { SongDetailTierJourney } from './SongDetailTierJourney';
 import { SongDetailWordItem } from './types';
 
 interface SongDetailHomeTabProps {
-  songId: number;
+  song: PreviewSong;
   words: readonly SongDetailWordItem[];
   /** 서버가 이해도를 못 주면 null 이고 그 섹션은 그리지 않는다. */
   coverage: SongCoverageDto | null;
@@ -18,20 +19,18 @@ interface SongDetailHomeTabProps {
   /** 승인된 제보를 낸 사람들. null 이면 그 섹션은 그리지 않는다. */
   contributors: SongContributorsDto | null;
   isLoadingWords?: boolean;
-  isStartingLearning?: boolean;
   onCoverageHelpPress: () => void;
   onStartTier: (tier: SongWordTierDto) => void;
   style?: StyleProp<ViewStyle>;
 }
 
 export const SongDetailHomeTab = React.memo(function SongDetailHomeTab({
-  songId,
+  song,
   words,
   coverage,
   tiers,
   contributors,
   isLoadingWords = false,
-  isStartingLearning = false,
   onCoverageHelpPress,
   onStartTier,
   style,
@@ -43,9 +42,9 @@ export const SongDetailHomeTab = React.memo(function SongDetailHomeTab({
       )}
       {tiers != null && (
         <SongDetailTierJourney
-          key={songId}
+          key={song.id}
+          song={song}
           tiers={tiers}
-          isStartingLearning={isStartingLearning}
           onStartTier={onStartTier}
         />
       )}

@@ -5,6 +5,7 @@ import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.user.dto.UserDto
 import com.japanese.vocabulary.user.dto.toDto
+import com.japanese.vocabulary.user.entity.UserEntity
 import com.japanese.vocabulary.user.repository.UserRepository
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -35,7 +36,7 @@ class UserProfileService(
         }
 
         if (rawName != null) {
-            user.name = rawName.trim().takeIf { it.isNotEmpty() }
+            user.name = rawName.trim().ifEmpty { UserEntity.DEFAULT_NAME }
         }
 
         return userRepository.save(user).toDto()
@@ -54,7 +55,7 @@ class UserProfileService(
 
     /**
      * Soft delete. provider_sub and username are mutated so the same identity can sign up again;
-     * email, display name and profile image are cleared to minimize PII; the returned image key is
+     * email and profile image are cleared and the display name reset to minimize PII; the returned image key is
      * the caller's to delete from storage. Child rows stay, unreachable because
      * every read path resolves users via findByIdAndDeletedAtIsNull.
      */
@@ -67,7 +68,7 @@ class UserProfileService(
         user.providerSub = "deleted:$id:${user.providerSub}"
         user.username = "deleted:$id:${user.username}"
         user.email = null
-        user.name = null
+        user.name = UserEntity.DEFAULT_NAME
         val profileImageKey = user.profileImageKey
         user.profileImageKey = null
         userRepository.save(user)

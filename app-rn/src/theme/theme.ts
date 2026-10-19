@@ -58,7 +58,7 @@ export const Colors = {
   // 이해도 (가사 줄 기준) / 기억 칸 진행 바 — 곡 상세·프로필·단어장이 같은 색을 쓴다
   coverageAccent: '#E5A100',
   coverageTrack: '#F4EEDF',
-  /** 장기기억 — 7일 뒤 90% 이상 회상. primary 와 같은 초록. */
+  /** 장기기억 — 14일 뒤 90% 이상 회상. primary 와 같은 초록. */
   memoryLongTerm: '#16B364',
   /** 단기기억 — 한 번이라도 학습한 단어. */
   memoryShortTerm: '#22B8CF',

@@ -32,6 +32,7 @@ class FlashcardService(
     private val songRepository: SongRepository,
     private val eventPublisher: ApplicationEventPublisher,
     private val clock: Clock,
+    private val longTermThreshold: LongTermThreshold,
 ) {
 
     /**
@@ -69,6 +70,11 @@ class FlashcardService(
     fun deleteByWordId(wordId: Long) {
         val flashcard = flashcardRepository.findByWordId(wordId) ?: return
         flashcardRepository.delete(flashcard)
+    }
+
+    @Transactional
+    fun deleteByWordIds(wordIds: Collection<Long>) {
+        flashcardRepository.deleteByWordIdIn(wordIds)
     }
 
     @Transactional
@@ -141,23 +147,12 @@ class FlashcardService(
         val wordIds = dueEntities.map { it.wordId }
         val words = wordRepository.findAllById(wordIds).associateBy { it.id }
         val songMap = SenseEnricher.loadSongs(words.values.flatMap { it.senses }, songRepository)
-
-        val desiredRetention = 0.9
+        val longTermDays = longTermThreshold.days()
 
         // showIntervals 설정과 무관하게 항상 내려준다 — rating 선택 후 "N일 뒤에 다시 만나요" 문구에 필요하다.
         val cards = dueEntities.mapNotNull { entity ->
             val word = words[entity.wordId] ?: return@mapNotNull null
-
-            val scheduler = Scheduler.builder()
-                .desiredRetention(desiredRetention)
-                .build()
-            val card = Card.fromJson(entity.fsrsCardJson)
-            val intervals = mapOf(
-                1 to formatInterval(now, scheduler.reviewCard(card, Rating.AGAIN).card().due ?: now),
-                2 to formatInterval(now, scheduler.reviewCard(card, Rating.HARD).card().due ?: now),
-                3 to formatInterval(now, scheduler.reviewCard(card, Rating.GOOD).card().due ?: now),
-                4 to formatInterval(now, scheduler.reviewCard(card, Rating.EASY).card().due ?: now)
-            )
+            val intervals = intervalsOf(Card.fromJson(entity.fsrsCardJson), now)
 
             FlashcardDto(
                 id = entity.id!!,
@@ -168,7 +163,7 @@ class FlashcardService(
                 state = entity.state,
                 due = entity.due.toString(),
                 intervals = intervals,
-                memory = FlashcardMemory.of(entity),
+                memory = FlashcardMemory.of(entity, longTermDays),
             )
         }
 
@@ -220,11 +215,12 @@ class FlashcardService(
 
         return ReviewResultDto(
             id = savedFlashcardId,
+            wordId = entity.wordId,
             state = entity.state,
             due = entity.due.toString(),
             stability = entity.stability,
             difficulty = entity.difficulty,
-            memory = FlashcardMemory.ofReviewed(entity.stability),
+            memory = FlashcardMemory.ofReviewed(entity.stability, longTermThreshold.days()),
         )
     }
 
@@ -239,7 +235,7 @@ class FlashcardService(
         val review = flashcardRepository.countByUserIdAndState(userId, 1) // REVIEW
         val longTerm = flashcardRepository.countByUserIdAndLastReviewIsNotNullAndStabilityGreaterThanEqual(
             userId,
-            FlashcardMemory.LONG_TERM_STABILITY_DAYS,
+            longTermThreshold.days(),
         )
 
         return FlashcardStatsDto(
@@ -250,6 +246,21 @@ class FlashcardService(
             review = review,
             longTermCount = longTerm,
             shortTermCount = total - newCount - longTerm,
+        )
+    }
+
+    /** 아직 담지 않은 단어의 카드도 담기는 순간 새 카드라, 그 간격을 미리 보여 준다. */
+    fun newCardIntervals(): Map<Int, String> = intervalsOf(Card.builder().build(), Instant.now(clock))
+
+    private fun intervalsOf(card: Card, now: Instant): Map<Int, String> {
+        val scheduler = Scheduler.builder()
+            .desiredRetention(0.9)
+            .build()
+        return mapOf(
+            1 to formatInterval(now, scheduler.reviewCard(card, Rating.AGAIN).card().due ?: now),
+            2 to formatInterval(now, scheduler.reviewCard(card, Rating.HARD).card().due ?: now),
+            3 to formatInterval(now, scheduler.reviewCard(card, Rating.GOOD).card().due ?: now),
+            4 to formatInterval(now, scheduler.reviewCard(card, Rating.EASY).card().due ?: now),
         )
     }
 

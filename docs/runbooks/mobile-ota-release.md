@@ -30,8 +30,8 @@
 
 `js-v*` 태그 워크플로(Deploy EAS Update)는 배포 전에 아래를 확인하고, 하나라도 어기면 실패한다.
 
-1. prod 는 `vX.Y.Z` 정식 태그가 있어야 한다. 바이너리보다 먼저 올린 OTA 는 내장 번들보다 오래돼 적용되지 않는다.
-   dev 는 정식 태그가 없으면 최신 `vX.Y.Z-rc.*` 를 기준으로 삼는다.
+1. 기준 네이티브 태그는 `vX.Y.Z`, 없으면 최신 `vX.Y.Z-rc.*` 다. rc 의 prod APK 도 production 채널이라
+   정식 출시 전 prod OTA 는 rc 사용자에게만 간다. 정식 바이너리는 그보다 늦게 빌드돼 이전 OTA 를 무시한다.
 2. prod 태그 커밋이 `release/X.Y.Z` 에 있어야 한다.
 3. `npm run typecheck` — 업그레이드된 네이티브 라이브러리의 새 API 를 구버전에 쓰는 것을 대부분 잡는다.
 4. 네이티브 fingerprint 가 기준 태그와 같아야 한다.
@@ -69,15 +69,24 @@ git switch release/1.2.5 && git reset --hard <머지 전 커밋> && git push --f
 git cherry-pick -m 1 <PR 의 merge commit>      # 이후 다시 태그
 ```
 
+iOS 빌드는 됐는데 제출이 실패하면 빌드 한도를 쓰지 않고 그 빌드로 다시 낸다 (워크플로는 release 브랜치 것을 쓴다):
+`gh workflow run cd-ios.yml --ref release/1.2.5 -f tag=v1.2.5 -f build_id=<EAS 빌드 id>`.
+
 iOS 심사는 통과해도 자동 출시하지 않는다 (`automatic_release: false`). App Store Connect 에서 출시를 누른다.
-iOS "이번 버전의 새로운 기능"은 `vX.Y.Z` 가 annotated 태그면 그 메시지, 아니면 기본 문구다
+iOS "이번 버전의 새로운 기능"과 Play 출시 노트(ko-KR, 500자)는 `vX.Y.Z` 가 annotated 태그면 그 메시지 본문을 쓴다. 아니면 iOS 는 기본 문구, Play 는 비워 둔다
 (`git tag -a v1.2.5 -m "..."`). Play 프로덕션은 관리형 게시를 켜 두면 심사 후 출시 시점을 직접 정한다.
+
+스토어 이름·부제·키워드·설명은 `app-rn/fastlane/metadata/` 가 원본이다. 콘솔에서 고치면 다음 업로드가 덮어쓴다.
+
+- iOS (`metadata/ios/ko/`): 키워드·부제는 새 버전 제출 때만 바뀌므로 CD - iOS 의 `submit_review` 가 심사 제출에 같이 싣는다.
+- Android (`metadata/android/ko-KR/`): main 에 머지되면 `Play Store Listing` 워크플로가 `fastlane android upload_listing` 으로 바로 올린다.
 
 ## Secrets
 
 GitHub Actions:
 
 - `EXPO_TOKEN`, `SENTRY_*`, `DISCORD_WEBHOOK_URL`, Android keystore·`GOOGLE_SERVICES_JSON_BASE64` (기존)
+- `GOOGLE_SERVICES_PLIST_BASE64`: runner 에서 eas-cli 가 config 를 평가할 때 쓰는 `GoogleService-Info.plist` (원격 빌드는 EAS file 변수)
 - `PLAY_SERVICE_ACCOUNT_JSON`: Play Console 에 릴리스 권한을 준 서비스 계정 키 JSON
 - `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8_BASE64`: App Store Connect API 키 (App Manager 이상)
 

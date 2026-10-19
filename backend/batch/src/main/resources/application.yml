@@ -41,6 +41,12 @@ spring:
     # 토폴로지는 브로커의 definitions 가 소유한다. 이름만 참조하고 선언하지 않는다.
     dynamic: false
 
+apple-music:
+  # MusicKit key that signs the catalog developer token. Blank boots but fails the first catalog call.
+  team-id: ${APPLE_MUSIC_TEAM_ID:}
+  key-id: ${APPLE_MUSIC_KEY_ID:}
+  private-key-base64: ${APPLE_MUSIC_PRIVATE_KEY_BASE64:}
+
 sentry:
   dsn: ${SENTRY_DSN_BATCH:}
   environment: ${SENTRY_ENVIRONMENT:local}

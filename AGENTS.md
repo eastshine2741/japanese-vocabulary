@@ -16,7 +16,7 @@ action — rating a card saves its song as a deck.
 `gradlew`는 `backend/` 디렉토리에 위치. 반드시 `backend/`에서 실행할 것.
 
 ```bash
-./deploy.sh                                   # k3s에 backend(api+worker+batch cronjob+admin-api+admin-web) + mysql + redis + rabbitmq 배포
+./deploy.sh                                   # k3s에 backend(api+worker+batch cronjob+admin-api+admin-web+landing-web) + mysql + redis + rabbitmq 배포
 cd backend && ./gradlew :admin-api:test       # Admin API tests
 cd backend && ./gradlew :worker:test          # 곡 분석 파이프라인 tests
 cd admin-web && npm run dev                   # Admin Web (local, http://localhost:5174)
@@ -31,10 +31,14 @@ cd app-rn && npx expo start --web             # App - Web (dev)
 - Backend module boundaries: `docs/architecture/backend-modules.md`
 - Word 스키마와 song 결합 해제: `docs/architecture/word-schema.md`
 - Song analysis and word-meaning pipeline: `docs/architecture/song-analysis.md`
-- 곡 상세 완곡까지 3단계·이해도(`GET /api/songs/{id}/word-tiers`, `/coverage`): `docs/architecture/song-word-tiers.md`
+- 곡 상세 완곡까지 3단계·이해도(`GET /api/songs/{id}/word-tiers`, `/coverage`), 학습 세션 카드는 담지 않고 rating 때 한 장씩 담기(`words/review`): `docs/architecture/song-word-tiers.md`
+- 아티스트 상세(`GET /api/artists/{id}`)·곡↔Apple Music 아티스트 잇기(`artist` 테이블, batch `artist-link`): `docs/architecture/artist-detail.md`
 - 곡 상세 이해도·word tier 3단계 개편 기획 배경: `docs/product-intents/260925-song-detail-study-status-api.md`
 - 오늘의 복습 스케줄(H6) `GET /api/study-schedule` — 1년 기억 단어 수 예보(매일 GOOD 복습 vs 쉼, FSRS 기억 확률 합): `docs/product-intents/261004-study-schedule-api.md`
+- 보상 카드: 곡 카드는 등급마다 새로 발급·등급별 순번, 아티스트 카드는 한 장 강화·BRONZE 부터 팬 번호, 레벨·마스터·낡음(복습할 때가 된 단어 비율)·아티스트 등급 규칙과 프로필 카드|학습 탭, rating 때 달성·서명 때 발급(`domains:rewardcard`), 카드 공유 링크(서명 토큰 `/c/{token}`, share-web 카드 웹 화면, 앱 링크 검증 파일): `docs/product-intents/261010-reward-cards.md`
+- 서비스 소개 랜딩(`kotonoha.eastshine.dev/`, 정적 HTML·SEO·스토어 링크, `landing-web/`): `docs/landing-web.md`
 - Translation pipeline guardrails: `docs/translation-pipeline.md`
+- Feature flag(시작·종료 시각 구간으로 켜짐, 롤아웃 없이 30초 내 반영): `docs/architecture/feature-flag.md`
 - Push notification architecture: `docs/architecture/push-notification.md`
 - Admin service: `docs/admin-service.md`
 - KPI 와 측정 방법 (GA4/BigQuery): `docs/analytics.md`
@@ -84,7 +88,8 @@ rules, see `docs/architecture/backend-modules.md`.
 - `domains:word` owns word, flashcard, and deck lifecycle in one transaction.
 - A word save creates/reuses its 1:1 flashcard and links the word to the default
   deck and, when applicable, the song deck.
-- Deck membership is `deck_word`; deck deletion does not delete words.
+- Deck membership is `deck_word`; deck deletion also deletes words that belong
+  to no other non-default deck.
 - Word to song has only one physical FK: `decks.song_id`. Word examples keep
   `songId` / `lineIndex` only as logical references inside `words.senses`.
 
@@ -128,7 +133,7 @@ TypeSafe Jev (`TYPESAFE_API_KEY`), the other LLM stages on Gemini. Details live 
 `OBJECT_STORAGE_*` 가 하나라도 비면 업로드 API 가 503.
 
 **Streak commitment (260918):** `GET /api/study-stats/home`이 `studiedToday`/`hasStudiedBefore`를 내려주고,
-`batch`의 `StreakReminderTask`가 20:00/23:00 KST CronJob 으로 `streak_reminder` 알림을 보낸다 (단어 회상 알림은 폐기). 23:00은 카운트다운용 `expiresAt`을 싣고 Android data-only.
+`batch`의 `StreakReminderTask`가 20:00/23:00 KST CronJob 으로 `streak_reminder` 알림을 보낸다 (단어 회상 알림은 폐기). 두 슬롯 모두 Android data-only라 앱이 로컬 모듈 `modules/streak-notification`으로 제목·본문을 강조색으로 그리고, 23:00은 `expiresAt`까지 카운트다운을 붙인다(새 네이티브 빌드 필요). 제목은 `users.name`(NOT NULL, 기본 `사용자`)으로 부른다.
 freeze 행은 연속을 잇기만 하고 streak/총 학습일 카운트에는 들어가지 않는다.
 스펙은 `docs/product-intents/260918-streak-commitment-api.md`.
 홈 헤더 연속 학습 칩 -> `Streak` 화면(히어로·통계·학습 달력). 달력은 `GET /api/study-stats/calendar`(달 단위 커서 페이지)로 첫 기록 달까지 넘긴다 (`/heatmap` 은 구클라·마이페이지용으로 유지):
@@ -136,7 +141,7 @@ freeze 행은 연속을 잇기만 하고 streak/총 학습일 카운트에는 �
 오늘 첫 rating 직후의 플로팅 배너는 폐기되고 전체 화면 축하로 바뀌었다:
 `docs/product-intents/261004-streak-celebration-screen.md`.
 
-**Karaoke new songs:** batch `karaoke-collect`(18:00 KST)가 TJ·금영 일본 신곡을 `karaoke_song`에 쌓고 → 분석을 요청하고 → 구독자에게 알린다. 분석 결과와 무관하게 보여주고, 분석된 곡만 `songId`가 있다. `GET /api/karaoke-songs/daily|monthly`. 앱은 검색 탭 디스커버리 섹션에서 `KaraokeNewSongs` 화면(날짜별·월별)으로 들어간다.
+**Karaoke new songs:** batch `karaoke-collect`(15:00 KST)가 TJ·금영 일본 신곡을 `karaoke_song`에 쌓고 → 분석을 요청하고 → 구독자에게 알린다. 분석 결과와 무관하게 보여주고, 분석된 곡만 `songId`가 있다. `GET /api/karaoke-songs/daily|monthly`. 앱은 검색 탭 디스커버리 섹션에서 `KaraokeNewSongs` 화면(날짜별·월별)으로 들어간다.
 
 **Song report (분석 제보):** 유형 목록은 서버 enum `SongReportType` 이 소유한다(`GET /api/song-reports/types`).
 `POST /api/songs/{id}/reports` 가 `song_reports` PENDING 행을 만들고, 관리자가 승인하면 같은 트랜잭션에서 곡·active 가사를
@@ -144,7 +149,7 @@ freeze 행은 연속을 잇기만 하고 streak/총 학습일 카운트에는 �
 앱 진입점은 가사 시트의 포커스 줄 깃발(줄·토큰)과 MV 바 깃발(영상) 둘이고, 기여자는 곡 상세 홈 탭 맨 아래 섹션이다.
 어드민 흐름은 `docs/admin-service.md`.
 
-**Admin surface:** `backend/admin-api` exposes `/admin/api/auth/login`, `/admin/api/songs`, `/admin/api/lyrics`, `/admin/api/song-analysis-works`, `/admin/api/users`, `/admin/api/users/{id}/words` (per-user decks/words/review state, read-only), `/admin/api/song-reports` (분석 제보 승인·반려), and `/admin/api/push/send` (운영자 수동 푸시; 구 batch `/dev/push/send` 대체). `admin-web` is a Vite React TypeScript shadcn-style SPA. Dev 는 `/<namespace>/admin` 경로로, prod 는 `https://kotonoha.eastshine.dev/admin` (API 는 `/admin/api`) 한 호스트로 배포된다 — path 별 미들웨어가 필요해 Traefik `IngressRoute` 를 쓴다. See `docs/admin-service.md`.
+**Admin surface:** `backend/admin-api` exposes `/admin/api/auth/login`, `/admin/api/songs`, `/admin/api/lyrics`, `/admin/api/song-analysis-works`, `/admin/api/users`, `/admin/api/users/{id}/words` (per-user decks/words/review state, read-only), `/admin/api/song-reports` (분석 제보 승인·반려), `/admin/api/feature-flags`, and `/admin/api/push/send` (운영자 수동 푸시; 구 batch `/dev/push/send` 대체). `admin-web` is a Vite React TypeScript shadcn-style SPA. Dev 는 `/<namespace>/admin` 경로로, prod 는 `https://kotonoha.eastshine.dev/admin` (API 는 `/admin/api`) 한 호스트로 배포된다 — path 별 미들웨어가 필요해 Traefik `IngressRoute` 를 쓴다. See `docs/admin-service.md`.
 
 **Partial coverage:** Backend integration tests for new domains; broader e2e tests still pending.
 

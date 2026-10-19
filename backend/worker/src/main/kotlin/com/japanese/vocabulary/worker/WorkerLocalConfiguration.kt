@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.worker
 
+import com.japanese.vocabulary.artist.ArtistLinkListener
 import com.japanese.vocabulary.config.ClockConfig
 import com.japanese.vocabulary.config.SentryConfig
 import com.japanese.vocabulary.karaoke.KaraokeSongLinkListener
@@ -27,6 +28,7 @@ import org.springframework.context.annotation.Import
     AnalysisNotificationDispatcher::class,
     AnalysisNotificationListener::class,
     KaraokeSongLinkListener::class,
+    ArtistLinkListener::class,
     ArtistChannelCache::class,
     SongAnalysisPreparationService::class,
     YoutubeMvSearchService::class,

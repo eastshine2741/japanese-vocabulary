@@ -1,6 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { userApi, UserProfile } from '../api/userApi';
+import { putToPresignedUrl } from './presignedUpload';
 
 const MAX_SIDE = 512;
 
@@ -23,10 +24,7 @@ export async function uploadProfileImage(uri: string): Promise<UserProfile> {
   const resized = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.85 });
 
   const { key, uploadUrl, headers } = await userApi.issueProfileImageUploadUrl('image/jpeg');
-  const body = await (await fetch(resized.uri)).blob();
-  // Straight to the bucket, not through axios: the shared client would attach our JWT and JSON headers.
-  const res = await fetch(uploadUrl, { method: 'PUT', headers, body });
-  if (!res.ok) throw new Error(`upload failed: ${res.status}`);
+  await putToPresignedUrl(resized.uri, uploadUrl, headers);
 
   return userApi.confirmProfileImage(key);
 }

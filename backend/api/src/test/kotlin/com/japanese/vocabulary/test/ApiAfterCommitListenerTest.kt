@@ -3,7 +3,7 @@ package com.japanese.vocabulary.test
 import com.google.firebase.messaging.FirebaseMessaging
 import com.japanese.vocabulary.auth.service.AppleOidcService
 import com.japanese.vocabulary.auth.service.GoogleOidcService
-import com.japanese.vocabulary.songsearch.client.itunes.ItunesClient
+import com.japanese.vocabulary.songsearch.client.applemusic.AppleMusicClient
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.clearMocks
 import org.junit.jupiter.api.BeforeEach
@@ -15,7 +15,7 @@ import org.junit.jupiter.api.BeforeEach
 abstract class ApiAfterCommitListenerTest : AfterCommitListenerTest() {
 
     @MockkBean
-    protected lateinit var itunesClient: ItunesClient
+    protected lateinit var appleMusicClient: AppleMusicClient
 
     @MockkBean
     protected lateinit var googleOidcService: GoogleOidcService
@@ -29,7 +29,7 @@ abstract class ApiAfterCommitListenerTest : AfterCommitListenerTest() {
     @BeforeEach
     fun resetClientMocks() {
         clearMocks(
-            itunesClient, googleOidcService, appleOidcService, firebaseMessaging,
+            appleMusicClient, googleOidcService, appleOidcService, firebaseMessaging,
             answers = true,
             recordedCalls = true,
         )

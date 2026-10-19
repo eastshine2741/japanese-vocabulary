@@ -25,6 +25,8 @@ export interface HomeExpandedHeaderProps {
   /** 덱 스트립에서 현재 강조돼야 할 곡. */
   selectedSongId: number | null;
   onSelectDeckStripItem: (source: StudySource) => void;
+  /** 곡 덱 타일(deckId·songId 있음)을 길게 눌렀을 때. */
+  onLongPressDeckStripItem: (source: StudySource) => void;
   onSearch: () => void;
   /** 연속 학습 칩을 눌렀을 때 — 프로필 탭으로 보낸다. */
   onPressStreak: () => void;
@@ -44,6 +46,7 @@ export const HomeExpandedHeader = React.memo(function HomeExpandedHeader({
   deckStripItems,
   selectedSongId,
   onSelectDeckStripItem,
+  onLongPressDeckStripItem,
   onSearch,
   onPressStreak,
   dueRemaining,
@@ -115,6 +118,7 @@ export const HomeExpandedHeader = React.memo(function HomeExpandedHeader({
           items={deckStripItems}
           selectedSongId={selectedSongId}
           onSelect={onSelectDeckStripItem}
+          onLongPress={onLongPressDeckStripItem}
           onSearch={onSearch}
         />
       </Animated.View>

@@ -29,7 +29,7 @@ class FreezeConsumeServiceTest : BatchBaseIntegrationTest() {
         val keyHolder = GeneratedKeyHolder()
         jdbcTemplate.update({ conn ->
             conn.prepareStatement(
-                "INSERT INTO users (provider, provider_sub, username) VALUES ('test', ?, ?)",
+                "INSERT INTO users (provider, provider_sub, username, name) VALUES ('test', ?, ?, '사용자')",
                 Statement.RETURN_GENERATED_KEYS,
             ).apply {
                 setString(1, "sub-$seq")

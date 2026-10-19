@@ -34,7 +34,7 @@ class KaraokeTitleCleanerTest {
     }
 
     @Test
-    fun `matches itunes results only on both title and artist`() {
+    fun `matches catalog results only on both title and artist`() {
         assertThat(KaraokeTitleCleaner.sameSong("風のゆくえ(映画 'ONE PIECE FILM RED' OST)", "Ado", "風のゆくえ", "Ado")).isTrue()
         assertThat(KaraokeTitleCleaner.sameSong("歌姫失格", "ピノキオピー(Feat.初音ミク)", "歌姫失格", "ピノキオピー feat. 初音ミク")).isTrue()
         assertThat(KaraokeTitleCleaner.sameSong("光", "RADWIMPS", "光", "宇多田ヒカル")).isFalse()
@@ -43,10 +43,22 @@ class KaraokeTitleCleanerTest {
     }
 
     @Test
+    fun `does not match a vocal-less version of the song`() {
+        assertThat(KaraokeTitleCleaner.sameSong("Execution Clap", "TRAP CHICK", "Execution Clap (Instrumental)", "TRAP CHICK")).isFalse()
+        assertThat(KaraokeTitleCleaner.sameSong("唱", "Ado", "唱 (Off Vocal)", "Ado")).isFalse()
+        assertThat(KaraokeTitleCleaner.sameSong("唱", "Ado", "唱 (Inst.)", "Ado")).isFalse()
+        assertThat(KaraokeTitleCleaner.sameSong("唱", "Ado", "唱 -オフボーカル-", "Ado")).isFalse()
+        assertThat(KaraokeTitleCleaner.sameSong("Execution Clap", "TRAP CHICK", "Execution Clap (feat. Kasane Teto)", "TRAP CHICK")).isTrue()
+        assertThat(KaraokeTitleCleaner.sameSong("Instrument", "Ado", "Instrument", "Ado")).isTrue()
+    }
+
+    @Test
     fun `matches on the main artist however guests are credited`() {
         assertThat(KaraokeTitleCleaner.sameSong("少女A", "椎名もた feat.鏡音リン", "少女A", "椎名もた & 鏡音リン")).isTrue()
         assertThat(KaraokeTitleCleaner.sameSong("少女A", "椎名もた feat.鏡音リン", "少女A", "椎名もた")).isTrue()
         assertThat(KaraokeTitleCleaner.sameSong("少女A", "椎名もた feat.鏡音リン", "少女A", "中森明菜")).isFalse()
         assertThat(KaraokeTitleCleaner.sameSong("曲", "長い名前のアーティ..", "曲", "長い名前のアーティスト & ゲスト")).isTrue()
+        assertThat(KaraokeTitleCleaner.sameSong("星降る海", "月見 ヤチヨ", "星降る海", "Aqu3ra, 超かぐや姫! & 月見ヤチヨ(cv.早見沙織)")).isTrue()
+        assertThat(KaraokeTitleCleaner.sameSong("少女A", "鏡音リン", "少女A", "椎名もた feat. 鏡音リン")).isFalse()
     }
 }

@@ -11,7 +11,7 @@ interface HelpStep {
 const HELP_STEPS: HelpStep[] = [
   {
     title: '장기 기억 중인 단어 고르기',
-    desc: '7일 뒤에 떠올릴 확률이 90% 이상이면, 그 단어는 확실히 외운 것으로 봐요.',
+    desc: '14일 뒤에 떠올릴 확률이 90% 이상이면, 그 단어는 확실히 외운 것으로 봐요.',
   },
   {
     title: '이해한 가사 세기',

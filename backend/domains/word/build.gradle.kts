@@ -1,5 +1,6 @@
 dependencies {
     implementation(project(":domains:song"))
+    implementation(project(":domains:featureflag"))
 
     // FSRS - Spaced Repetition Scheduler
     implementation("io.github.open-spaced-repetition:fsrs:1.0.0")

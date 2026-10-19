@@ -1,4 +1,5 @@
 export { SongDetailHomeTab } from './SongDetailHomeTab';
+export { SongDetailCardsTab } from './SongDetailCardsTab';
 export { SongDetailJlptChart } from './SongDetailJlptChart';
 export { SongDetailContributors } from './SongDetailContributors';
 export { SongDetailCoverageSection } from './SongDetailCoverageSection';

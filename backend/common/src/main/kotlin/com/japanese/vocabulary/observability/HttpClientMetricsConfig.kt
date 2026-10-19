@@ -36,7 +36,7 @@ class HttpClientMetricsConfig {
         val host = uri?.host ?: return "other"
         val path = uri.path.orEmpty()
         return when {
-            host == "itunes.apple.com" -> "itunes"
+            host == "api.music.apple.com" -> "apple-music"
             host == "www.googleapis.com" && path.startsWith("/youtube/") -> "youtube"
             host == "generativelanguage.googleapis.com" -> "gemini"
             host == "lrclib.net" -> "lrclib"

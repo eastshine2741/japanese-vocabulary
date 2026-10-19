@@ -17,24 +17,21 @@ data class StreakReminderMessage(val title: String, val body: String) {
         /**
          * @param streak 어제까지 이어진 연속 일수 (오늘 미학습 시점의 currentStreak). 0이면 끊김.
          * @param lastStudyDate 마지막 학습일. streak == 0 일 때만 본다.
+         * @param name 유저 표시 이름. 문구가 "OO님"으로 부른다.
          */
-        fun compose(slot: Slot, streak: Int, lastStudyDate: LocalDate, today: LocalDate): StreakReminderMessage? {
+        fun compose(slot: Slot, streak: Int, lastStudyDate: LocalDate, today: LocalDate, name: String): StreakReminderMessage? {
             if (streak >= 1) {
                 return when (slot) {
-                    Slot.EVENING ->
-                        if (streak == 1) StreakReminderMessage("우리 어제 막 만났는데...", "벌써 끝인가요? 새벽 4시 전에 카드 한 장이면 2일째가 돼요 😢")
-                        else StreakReminderMessage("아직 오늘의 학습을 하지 않았어요!!", "${streak}일이나 해놓고 오늘 그냥 넘어가려고요? 카드 한 장이면 끝나요!")
-                    Slot.NIGHT ->
-                        if (streak == 1) StreakReminderMessage("정말 공부 안 하실 건가요...?", "당신을 믿었는데... 하루 만에 멈추실 건가요. 새벽 4시 전에 카드 한 장이면 돼요")
-                        else StreakReminderMessage("당신의 의지는 여기까지입니까.", "더 할 수 있잖아요. ${streak}일을 여기서 버릴 건가요. 새벽 4시 전에 카드 한 장만 넘기세요")
+                    Slot.EVENING -> StreakReminderMessage("👀 ${name}님...?", "아직 오늘의 복습을 하지 않으셨네요. 그냥 그렇다고요.")
+                    Slot.NIGHT -> StreakReminderMessage("😱 조심하세요!!", "단어 하나만 공부해도 ${streak}일 연속이 유지돼요")
                 }
             }
 
             // 끊긴 유저: 20:00만. 끊긴 다음날(gap 2)과 마지막 작별(gap 4) 두 번. 어제가 비어 있으므로 gap 은 2 이상.
             if (slot == Slot.NIGHT) return null
             return when (ChronoUnit.DAYS.between(lastStudyDate, today)) {
-                2L -> StreakReminderMessage("어제는 좀 피곤했잖아요. 오늘은 다르죠?", "새 마음으로 다시 시작해요. 카드 한 장이면 1일째예요. 당신은 할 수 있어요!")
-                LAPSED_MAX_GAP_DAYS -> StreakReminderMessage("마지막으로 한 번만 부를게요", "제가 너무 귀찮게 했나 봐요. 마음이 바뀌면 카드 한 장으로 돌아와 주세요")
+                2L -> StreakReminderMessage("어제는 좀 피곤했던 거죠?", "새 마음으로 다시 시작해봐요!!")
+                LAPSED_MAX_GAP_DAYS -> StreakReminderMessage("마지막으로 한 번만 부를게요.", "제가 너무 귀찮게 했나 봐요. 마음이 바뀌면 단어 한 장으로 돌아와 주세요")
                 else -> null
             }
         }

@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { Alert, Linking, Platform } from 'react-native';
 import { getApp } from '@react-native-firebase/app';
 import {
   AuthorizationStatus,
@@ -15,6 +15,14 @@ import {
 import * as Notifications from 'expo-notifications';
 import { flashcardApi } from '../api/flashcardApi';
 import { navigate } from '../navigation/navigationRef';
+import { findSongCard } from '../components/rewardCards/cardKinds';
+import { useAuthStore } from '../stores/authStore';
+import { useRewardCardStore } from '../stores/rewardCardStore';
+import {
+  addStreakPressListener,
+  consumeInitialStreakPress,
+  showStreakNotification,
+} from '../../modules/streak-notification';
 
 const REVIEW_CHANNEL_ID = 'review-reminders';
 
@@ -64,9 +72,10 @@ async function requestPermission(): Promise<boolean> {
 
 export async function requestPermissionAndRegisterToken(): Promise<void> {
   if (!FIREBASE_ENABLED) return;
-  const granted = await requestPermission();
-  if (!granted) return;
+  if (await requestPermission()) await registerToken();
+}
 
+async function registerToken(): Promise<void> {
   try {
     const token = await getToken(getFirebaseMessaging());
     if (!token) return;
@@ -75,6 +84,24 @@ export async function requestPermissionAndRegisterToken(): Promise<void> {
   } catch {
     // ignore — token registration is best-effort
   }
+}
+
+/** 알림 토글을 켤 때. OS 가 더 이상 다이얼로그를 띄우지 않으면 설정 앱으로 안내한다. */
+export async function requestPermissionForOptIn(): Promise<void> {
+  if (!FIREBASE_ENABLED) return;
+  try {
+    const { status, canAskAgain } = await Notifications.getPermissionsAsync();
+    if (status !== 'granted' && !canAskAgain) {
+      Alert.alert('알림이 꺼져 있어요', '휴대폰 설정에서 Kotonoha 알림을 허용해 주세요.', [
+        { text: '닫기', style: 'cancel' },
+        { text: '설정 열기', onPress: () => Linking.openSettings() },
+      ]);
+      return;
+    }
+  } catch {
+    return;
+  }
+  if (await requestPermission()) await registerToken();
 }
 
 export async function unregisterCurrentToken(): Promise<void> {
@@ -93,6 +120,22 @@ function handleData(data: RemoteMessage['data']): void {
   // 연속 학습 알림 — 탭하면 홈 첫 카드.
   if (data.type === 'streak_reminder') {
     navigate('Main', { screen: 'Home' });
+    return;
+  }
+  // 그동안 공부한 곡으로 카드를 채웠다는 알림 — 문구에 이름이 나온 곡 카드. 닫으면 프로필 탭 카드 목록이다.
+  if (data.type === 'reward_cards_backfilled') {
+    navigate('Main', { screen: 'MyPage' });
+    // 알림 전에 받아 둔 목록엔 새 카드가 없다. 카드 id 는 등급마다 따로라 받은 뒤에 곡의 가장 높은 카드를 연다.
+    const songId = Number(data.songId);
+    useRewardCardStore
+      .getState()
+      .loadServerCards()
+      .then(() => {
+        const card = Number.isFinite(songId) && songId > 0 ? findSongCard(useRewardCardStore.getState().songCards, songId, null) : null;
+        if (!card) return;
+        const ownerName = useAuthStore.getState().userName?.trim() || '학습자';
+        navigate('RewardCardDetail', { cardId: card.id, ownerName });
+      });
     return;
   }
   // 노래방 신곡 알림 — 그날 올라온 곡 목록.
@@ -120,14 +163,51 @@ function handleRemoteMessage(remoteMessage: RemoteMessage | null): void {
   handleData(remoteMessage?.data);
 }
 
+// 카운트다운 숫자(네이티브 레이아웃)와 같은 빨강.
+const STREAK_URGENT_COLOR = '#FF4B4B';
+// Colors.primary(#16B364)는 흰 셰이드에서 대비가 2.6:1 이라 흐리다. 밝은 배경엔 짙은 초록(5:1), 다크엔 밝은 초록.
+const STREAK_GREEN = '#0B8043';
+const STREAK_GREEN_NIGHT = '#4ADE80';
+
+// 연속 학습 알림은 제목·본문을 강조색으로 칠하고, 23:00 은 expiresAt(다음 04:00 KST epoch ms)까지 카운트다운을 붙인다.
+// Android 전용 네이티브 모듈이 있을 때만 쓰고, 없거나 실패하면 일반 알림으로 되돌아간다.
+async function tryShowStreakNotification(
+  title: string,
+  body: string,
+  data: NonNullable<RemoteMessage['data']>,
+): Promise<boolean> {
+  if (Platform.OS !== 'android' || data.type !== 'streak_reminder') return false;
+  const expiresAt = Number(data.expiresAt);
+  const hasTimer = Number.isFinite(expiresAt) && expiresAt > Date.now();
+  const stringData: Record<string, string> = {};
+  for (const [k, v] of Object.entries(data)) {
+    if (typeof v === 'string') stringData[k] = v;
+  }
+  try {
+    return await showStreakNotification({
+      title,
+      body,
+      channelId: REVIEW_CHANNEL_ID,
+      expiresAt: hasTimer ? expiresAt : null,
+      accentColor: hasTimer ? STREAK_URGENT_COLOR : STREAK_GREEN,
+      accentColorNight: hasTimer ? STREAK_URGENT_COLOR : STREAK_GREEN_NIGHT,
+      data: stringData,
+    });
+  } catch {
+    return false;
+  }
+}
+
+/** 네이티브 연속 학습 레이아웃으로 그렸으면 'custom', expo-notifications 일반 알림이면 'plain'. */
 async function displayLocalNotification(
   remoteMessage: RemoteMessage,
-): Promise<void> {
+): Promise<'custom' | 'plain'> {
   const data = remoteMessage.data ?? {};
   const title =
     typeof data.title === 'string' ? data.title : remoteMessage.notification?.title ?? '';
   const body =
     typeof data.body === 'string' ? data.body : remoteMessage.notification?.body ?? '';
+  if (await tryShowStreakNotification(title, body, data)) return 'custom';
   await Notifications.scheduleNotificationAsync({
     content: {
       title,
@@ -137,6 +217,7 @@ async function displayLocalNotification(
     },
     trigger: null,
   });
+  return 'plain';
 }
 
 // Module-scope: must be registered before a data-only push reaches a killed or backgrounded app.
@@ -184,6 +265,11 @@ export function registerNotificationHandlers(): void {
     onNotificationOpenedApp(getFirebaseMessaging(), handleRemoteMessage);
     getInitialNotification(getFirebaseMessaging()).then(handleRemoteMessage);
   }
+
+  // 카운트다운 알림은 expo-notifications 밖에서 그려서 탭도 따로 받는다.
+  addStreakPressListener(handleData);
+  const initialStreakPress = consumeInitialStreakPress();
+  if (initialStreakPress) handleData(initialStreakPress);
 
   // Tap handler for locally displayed notifications, including cold-start taps.
   Notifications.addNotificationResponseReceivedListener((response) => {

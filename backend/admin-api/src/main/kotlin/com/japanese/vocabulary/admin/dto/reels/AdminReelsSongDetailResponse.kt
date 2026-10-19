@@ -12,6 +12,5 @@ data class AdminReelsSongDetailResponse(
     val minLineCount: Int,
     val maxLineCount: Int?,
     val maxLyricsSpanMs: Long,
-    val maxVocabularyPerLine: Int,
     val lines: List<AdminReelsLyricLineResponse>,
 )

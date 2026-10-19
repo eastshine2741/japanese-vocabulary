@@ -20,10 +20,13 @@ import {
   StackReviewOverlay,
   STACK_REVIEW_CHROME_HEIGHT,
   StudyStack,
+  type StudySource,
   useEditWordFromStack,
   useStudyStack,
 } from '../../components/studyStack';
 import { useHomeChromeStore } from '../../stores/homeChromeStore';
+import { useRewardCardStore } from '../../stores/rewardCardStore';
+import { useDeleteSongDeck, useSongDeckActionSheet } from '../../hooks/useDeleteSongDeck';
 import { Colors } from '../../theme/theme';
 import { RootStackParamList, TabParamList } from '../../navigation/AppNavigator';
 import {
@@ -50,13 +53,14 @@ export default function HomeTab() {
   const insets = useSafeAreaInsets();
   const focused = useIsFocused();
   const stack = useStudyStack({ mode: 'home' });
-  const { deckStripItems, dueTodayCount, isComplete, reload, selectSource, session, status } = stack;
+  const { deckStripItems, dueTodayCount, isComplete, reload, removeDeck, selectSource, session, status } = stack;
   const visibleSongId = stack.visibleSource?.songId ?? null;
   const selectedSongId = stack.selectedSource?.songId ?? null;
 
   const immersed = useHomeChromeStore(s => s.isDark);
   const setDark = useHomeChromeStore(s => s.setDark);
   const consumeImmerse = useHomeChromeStore(s => s.consumeImmerse);
+  const consumeReload = useHomeChromeStore(s => s.consumeReload);
   const focusedRef = useRef(focused);
   focusedRef.current = focused;
   const immersedRef = useRef(immersed);
@@ -69,6 +73,11 @@ export default function HomeTab() {
   canPullRef.current = status !== 'loading' && !refreshing;
   const insetTopRef = useRef(insets.top);
   insetTopRef.current = insets.top;
+
+  // 서명 전에 앱을 끈 카드는 홈에 처음 들어올 때 다시 띄운다.
+  useEffect(() => {
+    useRewardCardStore.getState().checkPendingOnce();
+  }, []);
 
   useEffect(() => navigation.addListener('tabPress', () => {
     if (!focusedRef.current) return;
@@ -84,11 +93,12 @@ export default function HomeTab() {
   useEffect(() => {
     const regained = focused && !wasFocusedRef.current;
     wasFocusedRef.current = focused;
-    if (regained && coldStartRef.current) reload();
-  }, [focused, reload]);
+    // 다른 화면에서 곡을 지웠으면 그 곡의 카드·배지가 남아 있을 수 있어 다시 연다.
+    if (regained && (consumeReload() || coldStartRef.current)) reload();
+  }, [consumeReload, focused, reload]);
 
   // 몰입 규칙:
-  //  ① 몰입 밖에서는 카드를 못 만진다 — 탭이든 드래그든 몰입 진입이다 (WordLayer 잠금 오버레이).
+  //  ① 몰입 밖에서 카드를 탭하면 탭한 동작과 함께 몰입에 들어간다 (WordLayer 탭 감시).
   //  ② 세로 드래그가 몰입 값을 끈다 — 몰입 중엔 아래로, 아니면 위로. 카드 앞뒤면은 무관하다.
   //  ③ 놓으면 가까운 쪽(0.5 기준)으로 붙는다.
   // immerse 는 레이아웃 값(카드 안쪽 여백)도 끌어서 RN Animated 네이티브 드라이버를 못 쓴다.
@@ -172,11 +182,23 @@ export default function HomeTab() {
     navigation.navigate('SongDetail', { songId: visibleSongId, origin: 'Home' });
   }, [navigation, visibleSongId]);
 
-  const openExampleSource = useCallback((songId: number) => {
-    navigation.navigate('SongDetail', { songId, origin: 'Home' });
+  const openExampleSource = useCallback((songId: number, lineIndex: number | null) => {
+    navigation.navigate('SongDetail', { songId, origin: 'Home', initialLyricIndex: lineIndex ?? undefined });
   }, [navigation]);
 
   const editWord = useEditWordFromStack(stack.refreshCurrentCard);
+
+  const deckDeletion = useDeleteSongDeck(removeDeck);
+  const { requestDelete } = deckDeletion;
+  const handleDeleteFromSheet = useCallback((target: { deckId: number }) => {
+    requestDelete(target.deckId);
+  }, [requestDelete]);
+  const deckActions = useSongDeckActionSheet(handleDeleteFromSheet);
+  const { open: openDeckActions } = deckActions;
+  const handleLongPressDeck = useCallback((source: StudySource) => {
+    if (source.deckId == null) return;
+    openDeckActions({ deckId: source.deckId, title: source.title, artist: source.artist });
+  }, [openDeckActions]);
 
   // 세션 시작 시점에 due 가 없었는데 도중에 새로 due 된 카드를 리뷰하면 queueTotal 이 0으로 남는다.
   const counterTotal = session.queueTotal > 0 ? session.queueTotal : session.reviewedCount;
@@ -246,6 +268,7 @@ export default function HomeTab() {
           deckStripItems={deckStripItems}
           selectedSongId={selectedSongId}
           onSelectDeckStripItem={selectSource}
+          onLongPressDeckStripItem={handleLongPressDeck}
           onSearch={goSearch}
           onPressStreak={goStreak}
           dueRemaining={dueTodayCount}
@@ -253,6 +276,8 @@ export default function HomeTab() {
           immerse={immerse}
         />
       </Animated.View>
+      {deckActions.sheet}
+      {deckDeletion.dialogs}
     </View>
   );
 }

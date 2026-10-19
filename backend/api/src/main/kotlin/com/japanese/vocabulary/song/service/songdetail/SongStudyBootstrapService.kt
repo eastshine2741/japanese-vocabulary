@@ -3,12 +3,14 @@ package com.japanese.vocabulary.song.service.songdetail
 import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.deck.service.DeckService
+import com.japanese.vocabulary.flashcard.service.FlashcardReviewService
 import com.japanese.vocabulary.flashcard.service.FlashcardService
 import com.japanese.vocabulary.song.dto.songdetail.SongStudyBootstrapResponse
 import com.japanese.vocabulary.word.dto.AddWordDto
 import com.japanese.vocabulary.word.dto.AddWordRequest
 import com.japanese.vocabulary.word.dto.BatchAddWordDto
 import com.japanese.vocabulary.word.service.WordService
+import com.japanese.vocabulary.word.service.songword.SongWordQueryService
 import org.springframework.stereotype.Service
 
 /**
@@ -23,21 +25,22 @@ import org.springframework.stereotype.Service
  */
 @Service
 class SongStudyBootstrapService(
-    private val songDetailQueryService: SongDetailQueryService,
+    private val songWordQueryService: SongWordQueryService,
     private val wordService: WordService,
     private val flashcardService: FlashcardService,
     private val deckService: DeckService,
+    private val flashcardReviewService: FlashcardReviewService,
 ) {
     fun bootstrap(userId: Long, songId: Long, rating: Int, leadJapanese: String? = null): SongStudyBootstrapResponse {
-        val words = songDetailQueryService.words(songId, userId)
-        val eligible = with(songDetailQueryService) {
+        val words = songWordQueryService.words(songId, userId)
+        val eligible = with(songWordQueryService) {
             words.words.filter { it.matchesDefaultFilters() && !it.isSavedForSong }
         }
         val lead = if (leadJapanese != null) {
             words.words.firstOrNull { it.japanese == leadJapanese }
                 ?: throw BusinessException(ErrorCode.WORD_NOT_FOUND)
         } else {
-            eligible.sortedWith(SongDetailQueryService.IMPORTANCE_RANKING).firstOrNull()
+            eligible.sortedWith(SongWordQueryService.IMPORTANCE_RANKING).firstOrNull()
                 ?: throw BusinessException(ErrorCode.NO_ELIGIBLE_WORDS)
         }
 
@@ -52,7 +55,7 @@ class SongStudyBootstrapService(
             ?: throw BusinessException(ErrorCode.WORD_NOT_FOUND)
         val flashcardId = flashcardService.findLeadCandidate(userId, wordId)?.id
             ?: throw BusinessException(ErrorCode.FLASHCARD_NOT_FOUND)
-        val reviewed = flashcardService.reviewCard(userId, flashcardId, rating)
+        val reviewed = flashcardReviewService.review(userId, flashcardId, rating)
 
         val deckId = deckService.findBySongId(userId, songId)?.id
             ?: throw BusinessException(ErrorCode.DECK_NOT_FOUND)
@@ -64,6 +67,7 @@ class SongStudyBootstrapService(
             totalCount = due.totalCount,
             nextDueAt = due.nextDueAt,
             reviewedMemory = reviewed.memory,
+            rewardCards = reviewed.rewardCards,
         )
     }
 

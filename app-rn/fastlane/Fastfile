@@ -9,10 +9,7 @@ platform :ios do
       key_filepath: ENV.fetch("ASC_KEY_PATH"),
     )
 
-    # metadata_path 를 빈 디렉터리로 두어 release_notes 외 메타데이터는 건드리지 않는다.
-    empty_metadata = File.expand_path("metadata-empty", __dir__)
-    FileUtils.mkdir_p(empty_metadata)
-
+    # 키워드·부제는 새 버전 제출 때만 바뀌므로 스토어 정보도 이 심사 제출에 같이 싣는다.
     # build_number 를 주면 처리 대기 없이 바로 찾다가 실패한다 — app_version 의 최신 빌드를 기다리게 둔다.
     deliver(
       api_key: api_key,
@@ -20,13 +17,29 @@ platform :ios do
       app_version: options.fetch(:version),
       skip_binary_upload: true,
       skip_screenshots: true,
-      metadata_path: empty_metadata,
+      metadata_path: File.expand_path("metadata/ios", __dir__),
       release_notes: { "ko" => options.fetch(:release_notes) },
       submit_for_review: true,
       automatic_release: false,
       submission_information: { add_id_info_uses_idfa: false },
       run_precheck_before_submit: false,
       force: true,
+    )
+  end
+end
+
+platform :android do
+  # Play 스토어 등록정보는 빌드와 무관하게 바로 바뀐다. 텍스트만 올리고 이미지·출시 노트는 건드리지 않는다.
+  lane :upload_listing do
+    upload_to_play_store(
+      package_name: "dev.eastshine.kotonoha",
+      json_key_data: ENV.fetch("PLAY_SERVICE_ACCOUNT_JSON"),
+      metadata_path: File.expand_path("metadata/android", __dir__),
+      skip_upload_apk: true,
+      skip_upload_aab: true,
+      skip_upload_changelogs: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
     )
   end
 end

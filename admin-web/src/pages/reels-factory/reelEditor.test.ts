@@ -2,8 +2,12 @@ import { describe, expect, test } from "vitest"
 import { parseHeadline } from "@reels/headline"
 import type { ReelsLyricLine, ReelsSongDetail } from "@/api/types"
 import {
+  activeMvKeyframe,
+  addMvKeyframe,
   buildPromoData,
   clampHeadlineFontSize,
+  clampHeadlineOffsetY,
+  clampLyricOffsetY,
   clampLyricScale,
   clampMvFrame,
   coverMvFrame,
@@ -11,17 +15,26 @@ import {
   DEFAULT_HEADLINE_FONT_SIZE,
   DEFAULT_LINE_GAP_MS,
   DEFAULT_TAIL_MS,
+  EMPTY_MV_TRACK,
   emptyEditor,
   formatMs,
   HEADLINE_FONT_SIZE_MAX,
   HEADLINE_FONT_SIZE_MIN,
+  HEADLINE_OFFSET_Y_MAX,
+  HEADLINE_OFFSET_Y_MIN,
+  LYRIC_OFFSET_Y_MAX,
+  LYRIC_OFFSET_Y_MIN,
   LYRIC_SCALE_MAX,
   LYRIC_SCALE_MIN,
   MIN_GAP_MS,
+  moveMvKeyframe,
+  mvFrameAt,
   parseTimecode,
+  removeMvKeyframe,
   setEnd,
   setLineStart,
   setLinesIncluded,
+  setMvFrameAt,
   setSourceStart,
   setTokenMeaning,
   shiftAll,
@@ -65,13 +78,11 @@ function detailWith(lines: Array<Partial<ReelsLyricLine> & { index: number }>): 
     minLineCount: 4,
     maxLineCount: null,
     maxLyricsSpanMs: 60_000,
-    maxVocabularyPerLine: 3,
     lines: lines.map((line) => ({
       startTimeMs: null,
       originalText: `歌詞${line.index}`,
       koreanLyrics: `가사${line.index}`,
       tokens: [token("夢", "NOUN", "꿈"), token("を", "PARTICLE", null), token("見る", "VERB", "보다", "N4")],
-      recommendedVocabulary: [{ japanese: "夢", reading: "ユメ", korean: "꿈" }],
       selectable: true,
       ineligibleReason: null,
       ...line,
@@ -85,7 +96,7 @@ const plain = detailWith([0, 1, 2, 3, 4].map((index) => ({ index })))
 describe("toggleLine", () => {
   test("synced lyrics seed timing from timestamps and fit the clip around the first pick", () => {
     let state = toggleLine(emptyEditor(), synced, 2)
-    expect(state.lines).toEqual([{ index: 2, startMs: 14_000, tokenIndexes: [0], meanings: {} }])
+    expect(state.lines).toEqual([{ index: 2, startMs: 14_000, tokenIndexes: [], meanings: {} }])
     expect(state.sourceStartMs).toBe(14_000)
     // 끝은 곡의 다음 줄(index 3, 16초)이 시작하는 곳
     expect(state.endMs).toBe(16_000)
@@ -192,15 +203,11 @@ describe("timing edits", () => {
 })
 
 describe("vocabulary", () => {
-  test("toggleToken respects the per-line maximum", () => {
+  test("toggleToken adds and removes any number of words in a line", () => {
     const state = toggleLine(emptyEditor(), synced, 0)
-    const withVerb = toggleToken(state, 0, 2, 2)
-    expect(withVerb.lines[0].tokenIndexes).toEqual([0, 2])
-    // 상한에 걸리면 무시
-    const full = toggleToken(withVerb, 0, 1, 2)
-    expect(full.lines[0].tokenIndexes).toEqual([0, 2])
-    const removed = toggleToken(full, 0, 0, 2)
-    expect(removed.lines[0].tokenIndexes).toEqual([2])
+    const picked = toggleToken(toggleToken(toggleToken(state, 0, 0), 0, 2), 0, 1)
+    expect(picked.lines[0].tokenIndexes).toEqual([0, 2, 1])
+    expect(toggleToken(picked, 0, 0).lines[0].tokenIndexes).toEqual([2, 1])
   })
 })
 
@@ -215,6 +222,7 @@ describe("token meanings", () => {
 
   test("carries the admin-written meaning into the reel tokens and the chosen words", () => {
     let state = [0, 1, 2, 3].reduce((current, index) => toggleLine(current, synced, index), emptyEditor())
+    state = toggleToken(state, 0, 0)
     state = setTokenMeaning(state, 0, 0, "가슴")
     // 조사는 뜻을 써 넣어도 릴스에 나가지 않는다
     state = setTokenMeaning(state, 0, 1, "~을")
@@ -237,6 +245,7 @@ describe("token meanings", () => {
 
   test("a chosen word with the meaning cleared blocks the render", () => {
     let state = [0, 1, 2, 3].reduce((current, index) => toggleLine(current, synced, index), emptyEditor())
+    state = toggleToken(state, 0, 0)
     expect(validate(state, synced)).toEqual([])
     state = setTokenMeaning(state, 0, 0, "  ")
     expect(validate(state, synced)).toEqual(["#1 줄에 뜻 없는 단어가 있습니다"])
@@ -255,18 +264,25 @@ describe("validate and buildPromoData",  () => {
   test("builds frames relative to the clip start with the chosen words", () => {
     let state = [0, 1, 2, 3].reduce((current, index) => toggleLine(current, synced, index), emptyEditor())
     state = setSourceStart(state, 9_000)
-    state = toggleToken(state, 1, 2, 2)
+    state = toggleToken(state, 1, 2)
+    state = toggleToken(state, 3, 0)
     const data = buildPromoData(synced, state, "http://mv")
     expect(data.sourceStartFrame).toBe(270)
     expect(data.lyricLines.map((line) => line.startFrame)).toEqual([30, 90, 150, 210])
     // 끝은 다음 줄(index 4, 18초)
     expect(data.lyricsEndFrame).toBe(msToFrame(18_000 - 9_000))
     expect(data.lyricLines[0].lineNumber).toBe(1)
-    expect(data.lyricLines[1].vocabulary.map((word) => word.japanese)).toEqual(["夢", "見る"])
-    expect(data.lyricLines[1].vocabulary[1]).toMatchObject({ korean: "보다", partOfSpeech: "VERB", jlpt: "N4" })
+    expect(data.lyricLines[0].vocabulary).toEqual([])
+    expect(data.lyricLines[1].vocabulary).toEqual([expect.objectContaining({ japanese: "見る", korean: "보다", partOfSpeech: "VERB", jlpt: "N4" })])
     expect(data.wordCount).toBe(2)
     expect(data.song.mvAsset).toBe("http://mv")
     expect(data.totalLineCount).toBe(5)
+  })
+
+  test("counts every learnable word in the whole song, not just the picked ones", () => {
+    const state = [0, 1, 2, 3].reduce((current, index) => toggleLine(current, synced, index), emptyEditor())
+    // 모든 줄이 夢・を・見る 라 조사를 뺀 2개
+    expect(buildPromoData(synced, state, "http://mv").wordCount).toBe(2)
   })
 
   test("uses the admin-entered caption and rejects blank ones", () => {
@@ -294,13 +310,24 @@ describe("headline font size", () => {
 
   test("defaults to the design size and carries the admin value into the props", () => {
     expect(buildPromoData(synced, state, "http://mv").headlineFontSize).toBe(DEFAULT_HEADLINE_FONT_SIZE)
-    expect(buildPromoData(synced, state, "http://mv", undefined, null, 1, 92).headlineFontSize).toBe(92)
+    expect(buildPromoData(synced, state, "http://mv", undefined, EMPTY_MV_TRACK, 1, 92).headlineFontSize).toBe(92)
   })
 
   test("clamps out-of-range values", () => {
-    expect(buildPromoData(synced, state, "http://mv", undefined, null, 1, 400).headlineFontSize).toBe(HEADLINE_FONT_SIZE_MAX)
+    expect(buildPromoData(synced, state, "http://mv", undefined, EMPTY_MV_TRACK, 1, 400).headlineFontSize).toBe(HEADLINE_FONT_SIZE_MAX)
     expect(clampHeadlineFontSize(10)).toBe(HEADLINE_FONT_SIZE_MIN)
     expect(clampHeadlineFontSize(76.6)).toBe(77)
+  })
+})
+
+describe("headline offset", () => {
+  const state = [0, 1, 2, 3].reduce((current, index) => toggleLine(current, synced, index), emptyEditor())
+
+  test("carries the headline offset and clamps it to the server range", () => {
+    expect(buildPromoData(synced, state, "http://mv").headlineOffsetY).toBe(0)
+    expect(buildPromoData(synced, state, "http://mv", undefined, EMPTY_MV_TRACK, 1, undefined, 0, 80.6).headlineOffsetY).toBe(81)
+    expect(clampHeadlineOffsetY(-9_999)).toBe(HEADLINE_OFFSET_Y_MIN)
+    expect(clampHeadlineOffsetY(9_999)).toBe(HEADLINE_OFFSET_Y_MAX)
   })
 })
 
@@ -309,13 +336,20 @@ describe("lyric scale", () => {
 
   test("defaults to the base size and carries the admin value into the props", () => {
     expect(buildPromoData(synced, state, "http://mv").lyricScale).toBe(1)
-    expect(buildPromoData(synced, state, "http://mv", undefined, null, 1.25).lyricScale).toBe(1.25)
+    expect(buildPromoData(synced, state, "http://mv", undefined, EMPTY_MV_TRACK, 1.25).lyricScale).toBe(1.25)
   })
 
   test("clamps out-of-range values", () => {
-    expect(buildPromoData(synced, state, "http://mv", undefined, null, 9).lyricScale).toBe(LYRIC_SCALE_MAX)
+    expect(buildPromoData(synced, state, "http://mv", undefined, EMPTY_MV_TRACK, 9).lyricScale).toBe(LYRIC_SCALE_MAX)
     expect(clampLyricScale(0.1)).toBe(LYRIC_SCALE_MIN)
     expect(clampLyricScale(1.234)).toBe(1.23)
+  })
+
+  test("carries the lyric offset and clamps it to the server range", () => {
+    expect(buildPromoData(synced, state, "http://mv").lyricOffsetY).toBe(0)
+    expect(buildPromoData(synced, state, "http://mv", undefined, EMPTY_MV_TRACK, 1, undefined, -120.4).lyricOffsetY).toBe(-120)
+    expect(clampLyricOffsetY(-9_999)).toBe(LYRIC_OFFSET_Y_MIN)
+    expect(clampLyricOffsetY(9_999)).toBe(LYRIC_OFFSET_Y_MAX)
   })
 })
 
@@ -324,13 +358,60 @@ describe("mv frame", () => {
     const state = [0, 1, 2, 3].reduce((current, index) => toggleLine(current, synced, index), emptyEditor())
     expect(buildPromoData(synced, state, "http://mv").mvFrame).toBeNull()
     const frame = { scale: 1, x: -120, y: 300 }
-    expect(buildPromoData(synced, state, "http://mv", undefined, frame).mvFrame).toEqual(frame)
+    expect(buildPromoData(synced, state, "http://mv", undefined, { base: frame, keyframes: [] }).mvFrame).toEqual(frame)
+  })
+
+  test("keyframes copy the current frame and edits go to the one at the playhead", () => {
+    const base = { scale: 1, x: 0, y: 0 }
+    const zoomed = { scale: 2, x: 40, y: -80 }
+    let track = addMvKeyframe({ base, keyframes: [] }, 14_000)
+    expect(track.keyframes).toEqual([{ atMs: 14_000, frame: base }])
+    expect(addMvKeyframe(track, 14_000)).toBe(track)
+    track = setMvFrameAt(track, 15_000, zoomed)
+    expect(track.base).toEqual(base)
+    expect(mvFrameAt(track, 13_999)).toEqual(base)
+    expect(mvFrameAt(track, 14_000)).toEqual(zoomed)
+    track = addMvKeyframe(track, 12_000)
+    expect(track.keyframes.map((keyframe) => keyframe.atMs)).toEqual([12_000, 14_000])
+    expect(activeMvKeyframe(track, 12_500)).toBe(0)
+    expect(removeMvKeyframe(track, 1).keyframes).toEqual([{ atMs: 12_000, frame: base }])
+  })
+
+  test("moving a keyframe re-sorts, or stays between neighbours while dragging", () => {
+    const a = { scale: 1, x: 0, y: 0 }
+    const b = { scale: 2, x: 0, y: 0 }
+    const track = { base: null, keyframes: [{ atMs: 10_000, frame: a }, { atMs: 14_000, frame: b }] }
+    expect(moveMvKeyframe(track, 0, 16_000.4).keyframes).toEqual([{ atMs: 14_000, frame: b }, { atMs: 16_000, frame: a }])
+    expect(moveMvKeyframe(track, 0, 14_000)).toBe(track)
+    expect(moveMvKeyframe(track, 1, -500).keyframes[0]).toEqual({ atMs: 0, frame: b })
+    expect(moveMvKeyframe(track, 0, 16_000, true).keyframes).toEqual([{ atMs: 13_999, frame: a }, { atMs: 14_000, frame: b }])
+    expect(moveMvKeyframe(track, 1, 5_000, true).keyframes[1]).toEqual({ atMs: 10_001, frame: b })
+    expect(moveMvKeyframe(track, 2, 5_000)).toBe(track)
+  })
+
+  test("keyframes become reel frames; ones before the clip set the first frame, ones after the reel are dropped", () => {
+    const state = [0, 1, 2, 3].reduce((current, index) => toggleLine(current, synced, index), emptyEditor())
+    const a = { scale: 1, x: 0, y: 0 }
+    const b = { scale: 2, x: 0, y: 0 }
+    const c = { scale: 0.5, x: 0, y: 0 }
+    // 클립 10s~18s + 엔드카드 7s → 25s 에서 릴스가 끝난다
+    const data = buildPromoData(synced, state, "http://mv", undefined, {
+      base: null,
+      keyframes: [
+        { atMs: 9_000, frame: a },
+        { atMs: 12_000, frame: b },
+        { atMs: 12_010, frame: c },
+        { atMs: 25_000, frame: b },
+      ],
+    })
+    expect(data.mvFrame).toEqual(a)
+    expect(data.mvKeyframes).toEqual([{ startFrame: 60, mvFrame: c }])
   })
 
   test("computes the cover scale from the MV aspect", () => {
-    // 16:9 는 높이 1920 에 맞추면 폭이 3413px → 릴스 폭의 약 3.16배
-    expect(coverMvFrame(16 / 9)).toMatchObject({ scale: 3.16, x: 0, y: 0 })
-    // 캔버스보다 세로로 긴 MV 는 폭에 맞추는 게 곧 cover 다
+    // 16:9 는 MV 영역 높이 980 에 맞추면 폭이 1742px → 릴스 폭의 약 1.61배
+    expect(coverMvFrame(16 / 9)).toMatchObject({ scale: 1.613, x: 0, y: 0 })
+    // MV 영역보다 세로로 긴 MV 는 폭에 맞추는 게 곧 cover 다
     expect(coverMvFrame(9 / 20).scale).toBe(1)
   })
 
@@ -338,9 +419,9 @@ describe("mv frame", () => {
     // 16:9 안에 2.35:1 레터박스(1920×816, 위아래 132px 씩)
     const crop = { top: 132 / 1080, right: 0, bottom: 132 / 1080, left: 0 }
     expect(croppedAspect(16 / 9, crop)).toBeCloseTo(1920 / 816)
-    expect(coverMvFrame(16 / 9, crop).scale).toBeCloseTo((1920 * (1920 / 816)) / 1080, 2)
+    expect(coverMvFrame(16 / 9, crop).scale).toBeCloseTo((980 * (1920 / 816)) / 1080, 2)
     // 좌우를 잘라내면 같은 높이에서 폭이 줄어든다
-    expect(coverMvFrame(16 / 9, { top: 0, right: 0.1, bottom: 0, left: 0.1 }).scale).toBeCloseTo(3.16 * 0.8, 2)
+    expect(coverMvFrame(16 / 9, { top: 0, right: 0.1, bottom: 0, left: 0.1 }).scale).toBeCloseTo(1.613 * 0.8, 2)
   })
 
   test("clamps scale, offsets and crop", () => {

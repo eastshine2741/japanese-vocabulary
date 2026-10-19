@@ -1,0 +1,26 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: share-web-strip-prefix
+spec:
+  stripPrefix:
+    prefixes:
+      - /${NS}/share-assets
+---
+# api 의 /${NS} 보다 긴 매처라 먼저 걸린다.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: share-web
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: PathPrefix(`/${NS}/share-assets`)
+      kind: Rule
+      priority: 50
+      services:
+        - name: share-web
+          port: 80
+      middlewares:
+        - name: share-web-strip-prefix

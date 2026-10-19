@@ -10,9 +10,11 @@ interface Props {
   artist: string;
   lyricsSourceName: string | null;
   lyricsSourceUrl: string | null;
+  /** 곡 덱이 있을 때만 넘긴다. */
+  onStopLearning?: () => void;
 }
 
-function SongInfoSheet({ songId, title, artist, lyricsSourceName, lyricsSourceUrl }: Props) {
+function SongInfoSheet({ songId, title, artist, lyricsSourceName, lyricsSourceUrl, onStopLearning }: Props) {
   const handleReport = useCallback(() => {
     Linking.openURL(buildReportMailto({ songId, songTitle: title, artist }));
   }, [songId, title, artist]);
@@ -56,6 +58,16 @@ function SongInfoSheet({ songId, title, artist, lyricsSourceName, lyricsSourceUr
         <Text style={styles.reportText}>이 곡 권리자 신고</Text>
         <Feather name="mail" size={14} color={Colors.textMuted} style={styles.reportIconRight} />
       </TouchableOpacity>
+
+      {onStopLearning && (
+        <>
+          <View style={[styles.divider, styles.dividerGap]} />
+          <TouchableOpacity style={styles.stopRow} onPress={onStopLearning} activeOpacity={0.6}>
+            <Feather name="minus-circle" size={18} color={Colors.ratingAgain} />
+            <Text style={styles.stopText}>학습 그만두기</Text>
+          </TouchableOpacity>
+        </>
+      )}
     </View>
   );
 }
@@ -139,5 +151,20 @@ const styles = StyleSheet.create({
   },
   reportIconRight: {
     marginLeft: 4,
+  },
+  dividerGap: {
+    marginTop: 16,
+  },
+  stopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+  },
+  stopText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.ratingAgain,
   },
 });

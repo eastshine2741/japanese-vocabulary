@@ -256,7 +256,6 @@ export type ReelsSongDetail = {
   minLineCount: number
   maxLineCount: number | null
   maxLyricsSpanMs: number
-  maxVocabularyPerLine: number
   lines: ReelsLyricLine[]
 }
 
@@ -266,23 +265,27 @@ export type ReelsLyricLine = {
   originalText: string
   koreanLyrics: string | null
   tokens: LyricToken[]
-  recommendedVocabulary: ReelsVocabulary[]
   selectable: boolean
   ineligibleReason: string | null
-}
-
-export type ReelsVocabulary = {
-  japanese: string
-  reading: string
-  korean: string
-  partOfSpeech?: string | null
-  partOfSpeechLabel?: string | null
-  jlpt?: string | null
 }
 
 export type ReelsSource = {
   /** admin API base 기준 MV 스트림 상대 경로. 미디어 토큰이 query 에 들어 있다. */
   mvPath: string
+}
+
+export type ReelsRenderJobStatus = "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED"
+
+/** 서버가 뒤에서 돌리는 렌더. 브라우저를 닫아도 계속되고 끝난 결과는 몇 시간 남는다. */
+export type ReelsRenderJob = {
+  id: string
+  songId: number
+  title: string
+  artist: string
+  status: ReelsRenderJobStatus
+  error: string | null
+  createdAt: string
+  finishedAt: string | null
 }
 
 export type ReelsRenderRequest = {
@@ -343,3 +346,12 @@ export type SongReportChangeOp =
   | { op: "SET_TOKEN_READING"; lineIndex: number; charStart: number; charEnd: number; value: string }
   | { op: "SET_TOKEN_MEANING"; lineIndex: number; charStart: number; charEnd: number; value: string }
   | { op: "REPLACE_LINE_TOKENS"; lineIndex: number; tokens: LyricToken[] }
+
+export type FeatureFlag = {
+  key: string
+  startAt: string | null
+  endAt: string | null
+  description: string
+  on: boolean
+  updatedAt: string | null
+}

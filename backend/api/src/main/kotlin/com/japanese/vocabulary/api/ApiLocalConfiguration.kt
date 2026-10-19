@@ -1,5 +1,8 @@
 package com.japanese.vocabulary.api
 
+import com.japanese.vocabulary.artist.cache.ArtistTopSongsCache
+import com.japanese.vocabulary.artist.controller.ArtistController
+import com.japanese.vocabulary.artist.service.ArtistDetailService
 import com.japanese.vocabulary.auth.controller.AuthController
 import com.japanese.vocabulary.common.exception.GlobalExceptionHandler
 import com.japanese.vocabulary.config.ClockConfig
@@ -16,6 +19,7 @@ import com.japanese.vocabulary.observability.HttpClientMetricsConfig
 import com.japanese.vocabulary.api.recommendation.service.SongRecommendationHomeService
 import com.japanese.vocabulary.karaoke.controller.KaraokeSongController
 import com.japanese.vocabulary.recommendation.controller.SongRecommendationController
+import com.japanese.vocabulary.rewardcard.controller.RewardCardController
 import com.japanese.vocabulary.song.cache.SongSearchCache
 import com.japanese.vocabulary.song.controller.SearchHistoryController
 import com.japanese.vocabulary.song.controller.SongController
@@ -42,6 +46,9 @@ import org.springframework.context.annotation.Import
     SecurityConfig::class,
     SentryConfig::class,
     GlobalExceptionHandler::class,
+    ArtistController::class,
+    ArtistDetailService::class,
+    ArtistTopSongsCache::class,
     AuthController::class,
     DeckController::class,
     FlashcardController::class,
@@ -50,6 +57,7 @@ import org.springframework.context.annotation.Import
     AnalysisNotificationController::class,
     AnalysisNotificationService::class,
     SongRecommendationController::class,
+    RewardCardController::class,
     KaraokeSongController::class,
     SongRecommendationHomeService::class,
     SearchHistoryController::class,

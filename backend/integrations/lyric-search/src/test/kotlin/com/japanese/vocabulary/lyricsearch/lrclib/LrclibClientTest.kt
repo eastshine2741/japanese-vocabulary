@@ -1,6 +1,6 @@
 package com.japanese.vocabulary.lyricsearch.lrclib
 
-import com.japanese.vocabulary.lyricsearch.ItunesArtistAliasVerifier
+import com.japanese.vocabulary.lyricsearch.AppleMusicArtistAliasVerifier
 import com.japanese.vocabulary.lyricsearch.SongQueryNormalizer
 import org.assertj.core.api.Assertions.assertThat
 import org.hamcrest.Matchers.startsWith
@@ -96,7 +96,7 @@ class LrclibClientTest {
         val builder = RestClient.builder()
         val server = MockRestServiceServer.bindTo(builder).build()
         expectations(server)
-        val verifier = mockk<ItunesArtistAliasVerifier>()
+        val verifier = mockk<AppleMusicArtistAliasVerifier>()
         every { verifier.isSameArtist(any(), any()) } answers { sameArtist(firstArg(), secondArg()) }
         return LrclibClient(builder, verifier)
     }

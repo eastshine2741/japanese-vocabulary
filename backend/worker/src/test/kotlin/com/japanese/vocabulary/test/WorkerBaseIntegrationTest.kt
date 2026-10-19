@@ -6,6 +6,7 @@ import com.japanese.vocabulary.lyricsearch.utaitedb.UtaitedbClient
 import com.japanese.vocabulary.lyricsearch.vocadb.VocadbClient
 import com.japanese.vocabulary.messagequeue.SongAnalysisWorkQueuePublisher
 import com.japanese.vocabulary.mvsearch.client.youtube.YoutubeClient
+import com.japanese.vocabulary.songsearch.client.applemusic.AppleMusicClient
 import com.japanese.vocabulary.translation.client.gemini.GeminiClient
 import com.japanese.vocabulary.translation.client.jev.JevClient
 import com.japanese.vocabulary.translation.client.jev.dto.JevAnswer
@@ -14,6 +15,7 @@ import com.japanese.vocabulary.translation.service.JishoService
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.clearMocks
 import io.mockk.coEvery
+import io.mockk.every
 import org.junit.jupiter.api.BeforeEach
 
 abstract class WorkerBaseIntegrationTest : BaseIntegrationTest() {
@@ -39,6 +41,9 @@ abstract class WorkerBaseIntegrationTest : BaseIntegrationTest() {
     @MockkBean
     protected lateinit var youtubeClient: YoutubeClient
 
+    @MockkBean
+    protected lateinit var appleMusicClient: AppleMusicClient
+
     /** 브로커 없이 컨텍스트를 띄운다. 발행 자체는 통합 테스트 대상이 아니다. */
     @MockkBean(relaxed = true)
     protected lateinit var songAnalysisWorkQueuePublisher: SongAnalysisWorkQueuePublisher
@@ -62,9 +67,12 @@ abstract class WorkerBaseIntegrationTest : BaseIntegrationTest() {
             vocadbClient,
             utaitedbClient,
             youtubeClient,
+            appleMusicClient,
             answers = true,
             recordedCalls = true,
         )
+        // 분석이 끝나면 아티스트를 찾는다. 카탈로그에 없는 곡으로 두어 곡 분석 테스트가 신경 쓰지 않게 한다.
+        every { appleMusicClient.findSongArtist(any(), any()) } returns null
     }
 
     /**

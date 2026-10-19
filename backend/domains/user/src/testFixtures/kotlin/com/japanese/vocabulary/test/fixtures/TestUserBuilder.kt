@@ -10,14 +10,14 @@ class TestUserBuilder(private val em: EntityManager) {
     private var providerSub: String = "sub-$seq"
     private var username: String = "user$seq"
     private var email: String? = null
-    private var name: String? = null
+    private var name: String = UserEntity.DEFAULT_NAME
     private var profileImageKey: String? = null
 
     fun withProvider(value: String) = apply { provider = value }
     fun withProviderSub(value: String) = apply { providerSub = value }
     fun withUsername(value: String) = apply { username = value }
     fun withEmail(value: String?) = apply { email = value }
-    fun withName(value: String?) = apply { name = value }
+    fun withName(value: String) = apply { name = value }
     fun withProfileImageKey(value: String?) = apply { profileImageKey = value }
 
     fun build(): UserEntity = UserEntity(

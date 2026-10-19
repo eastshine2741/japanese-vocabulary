@@ -7,7 +7,7 @@ import com.japanese.vocabulary.notification.service.PushNotificationService
 import com.japanese.vocabulary.studystats.repository.DailyStudySummaryRepository
 import com.japanese.vocabulary.studystats.service.StreakCalculator
 import com.japanese.vocabulary.studystats.util.KstClock
-import com.japanese.vocabulary.user.repository.UserSettingsRepository
+import com.japanese.vocabulary.user.repository.UserRepository
 import org.slf4j.LoggerFactory
 import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -21,7 +21,7 @@ import java.time.LocalDate
  * 여기서 정하고, notification 모듈은 토큰·제목·본문·data 만 받는다.
  *
  * 공통 대상:
- *  - 기기 토큰이 있고 notificationsEnabled (설정 행이 없으면 켜진 것으로 본다)
+ *  - 기기 토큰이 있다
  *  - 학습 이력이 있다 (daily_study_summary 행 1개 이상). 한 번도 안 한 유저는 대상이 아니다.
  *  - 발송 시점 오늘(KST 04:00 경계) 리뷰가 없다
  *
@@ -32,7 +32,7 @@ import java.time.LocalDate
 class StreakReminderTask(
     private val pushNotificationService: PushNotificationService,
     private val deviceTokenRepository: DeviceTokenRepository,
-    private val userSettingsRepository: UserSettingsRepository,
+    private val userRepository: UserRepository,
     private val dailyStudySummaryRepository: DailyStudySummaryRepository,
     private val streakCalculator: StreakCalculator,
     private val kstClock: KstClock,
@@ -56,7 +56,6 @@ class StreakReminderTask(
         val candidates = findCandidates(slot, today)
         // 23:00 알림(NIGHT는 연속이 살아 있는 유저만 받는다)에만 오늘 학습일이 끝나는 시각을 싣는다.
         // 새 클라는 이걸로 카운트다운을 띄우고, 구버전 클라는 모르는 키라 무시한다.
-        // Android 에서 앱이 직접 그려야 하므로 data-only 로 보낸다.
         val timer = slot == Slot.NIGHT
         val expiresAt = kstClock.endOf(today).toEpochMilli().toString()
         var sent = 0
@@ -68,8 +67,9 @@ class StreakReminderTask(
                 put("body", c.message.body)
                 if (timer) put("expiresAt", expiresAt)
             }
+            // Android 는 앱이 제목 색·카운트다운을 직접 그리므로 슬롯과 무관하게 data-only.
             val ok = pushNotificationService.send(
-                c.userId, c.token, c.message.title, c.message.body, data, androidDataOnly = timer,
+                c.userId, c.token, c.message.title, c.message.body, data, androidDataOnly = true,
             )
             if (ok) sent++ else failed++
         }
@@ -84,20 +84,20 @@ class StreakReminderTask(
     fun findCandidates(slot: Slot, today: LocalDate): List<StreakReminderCandidate> {
         val tokensByUserId = deviceTokenRepository.findAll().groupBy { it.userId }
         if (tokensByUserId.isEmpty()) return emptyList()
-
-        val settingsByUserId = userSettingsRepository.findAll().associateBy { it.userId }
+        // 탈퇴 유저의 토큰이 남아 있어도 이름이 없으니 보내지 않는다.
+        val namesByUserId = userRepository.findAllById(tokensByUserId.keys)
+            .filter { it.deletedAt == null }
+            .associate { it.id!! to it.name }
 
         val out = mutableListOf<StreakReminderCandidate>()
         for ((userId, tokens) in tokensByUserId) {
-            val settings = settingsByUserId[userId]
-            if (settings != null && !settings.settings.notificationsEnabled) continue
-
             val lastStudyDate = dailyStudySummaryRepository.findLastDateKst(userId) ?: continue
             val todayRow = dailyStudySummaryRepository.findByUserIdAndDateKst(userId, today)
             if (todayRow != null && todayRow.reviewCount > 0) continue
 
             val streak = streakCalculator.currentStreak(userId, today)
-            val message = StreakReminderMessage.compose(slot, streak, lastStudyDate, today) ?: continue
+            val name = namesByUserId[userId] ?: continue
+            val message = StreakReminderMessage.compose(slot, streak, lastStudyDate, today, name) ?: continue
 
             for (token in tokens) {
                 out += StreakReminderCandidate(userId = userId, token = token.token, message = message)

@@ -6,13 +6,19 @@ data class AdminReelsPromoData(
     val headline: String,
     /** 상단 헤드라인 글자 크기(px). 없으면 기본 크기. 엔드카드 헤드라인은 고정 문구라 영향이 없다. */
     val headlineFontSize: Int? = null,
+    /** 계정명·헤드라인을 기본 자리에서 위아래로 옮기는 px(+ 가 아래). 없으면 0. */
+    val headlineOffsetY: Int? = null,
     val instagramHandle: String,
     val catchphrase: String,
     val sourceStartFrame: Int,
-    /** 없으면 캔버스를 꽉 채운다(cover). */
+    /** 첫 키프레임 전까지의 MV 배치. 없으면 캔버스를 꽉 채운다(cover). */
     val mvFrame: AdminReelsMvFrame? = null,
+    /** startFrame 오름차순. 각 키프레임부터 다음 키프레임 전까지 그 배치를 쓴다. */
+    val mvKeyframes: List<AdminReelsMvKeyframe>? = null,
     /** 가사 원문 글자 배율. 없으면 1(기본 크기). 긴 줄을 맞추는 자동 축소 위에 곱해진다. */
     val lyricScale: Double? = null,
+    /** 가사 블록을 기본 자리에서 위아래로 옮기는 px(+ 가 아래). 없으면 0. */
+    val lyricOffsetY: Int? = null,
     /** 마지막 선택 줄이 끝나는 프레임. 이 프레임부터 엔드카드다. */
     val lyricsEndFrame: Int,
     /** 곡 전체 가사 줄 수. 엔드카드 앱 목업의 "n/전체" 표시용. */

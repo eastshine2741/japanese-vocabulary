@@ -65,8 +65,9 @@ spring:
 
 song-analysis:
   worker:
-    # 한 파드가 동시에 분석하는 곡 수. 병목이 외부 API 대기라 스레드 수를 늘려도 메모리 부담은 작다.
-    concurrency: ${SONG_ANALYSIS_CONCURRENCY:3}
+    # 한 파드가 동시에 실행하는 단계 수(리스너 스레드 수). 단계 사이에서 큐를 기다리는 곡은 세지 않는다.
+    # 병목이 외부 API 대기라 메모리 부담은 작지만, 2 vCPU 노드에서 8 이상은 CPU 경합이 걱정된다.
+    concurrency: ${SONG_ANALYSIS_CONCURRENCY:6}
     # 요청부터 분석 완료까지 유저가 기다리는 상한. 이걸 넘겨 끝날 재시도는 기다리지 않는다 —
     # 단계 실행 자체를 끊지는 않고, HTTP 호출의 재시도 대기만 이 마감 앞에서 멈춘다.
     time-budget: 5m
@@ -119,6 +120,12 @@ jisho:
 
 youtube:
   api-key: ${YOUTUBE_API_KEY}
+
+apple-music:
+  # MusicKit key that signs the catalog developer token. Blank boots but fails the first catalog call.
+  team-id: ${APPLE_MUSIC_TEAM_ID:}
+  key-id: ${APPLE_MUSIC_KEY_ID:}
+  private-key-base64: ${APPLE_MUSIC_PRIVATE_KEY_BASE64:}
 
 sentry:
   dsn: ${SENTRY_DSN_WORKER:}

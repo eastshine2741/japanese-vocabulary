@@ -1,0 +1,2 @@
+UPDATE users SET name = '사용자' WHERE name IS NULL;
+ALTER TABLE users MODIFY COLUMN name VARCHAR(100) NOT NULL;

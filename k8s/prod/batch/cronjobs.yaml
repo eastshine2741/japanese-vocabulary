@@ -210,10 +210,114 @@ spec:
 apiVersion: batch/v1
 kind: CronJob
 metadata:
+  name: reward-card-backfill
+spec:
+  # 카드 기능 전부터 담아 둔 곡을 카드로 채운다. 알림은 reward-card-backfill-push 가 따로 보낸다. 새 앱이 퍼진 뒤 한 번만 수동으로 돌린다. 스케줄은 절대 오지 않는 날짜로 두고 suspend 한다
+  schedule: "0 0 31 2 *"
+  timeZone: "Asia/Seoul"
+  suspend: true
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      # 끝에 모든 카드를 조용히 발급하므로 다시 돌리면 그 사이 쌓인 연출이 사라진다. 실패해도 자동으로 다시 돌리지 않는다.
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          enableServiceLinks: false
+          imagePullSecrets:
+            - name: ghcr-pull
+          containers:
+            - name: batch
+              image: ${BATCH_IMAGE}
+              imagePullPolicy: IfNotPresent
+              args:
+                - "--task=reward-card-backfill"
+              env:
+                - name: GOOGLE_APPLICATION_CREDENTIALS
+                  value: /var/secrets/firebase/service-account.json
+              envFrom:
+                - configMapRef:
+                    name: batch-config
+                - secretRef:
+                    name: batch-secret
+              volumeMounts:
+                - name: firebase-credentials
+                  mountPath: /var/secrets/firebase
+                  readOnly: true
+              resources:
+                requests:
+                  cpu: 200m
+                  memory: 512Mi
+                limits:
+                  memory: 1Gi
+          volumes:
+            - name: firebase-credentials
+              secret:
+                secretName: firebase-credentials
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: reward-card-backfill-push
+spec:
+  # reward-card-backfill 로 곡 카드가 생긴 유저에게 알린다. 채우기를 마친 뒤 한 번만 수동으로 돌린다. 스케줄은 절대 오지 않는 날짜로 두고 suspend 한다
+  schedule: "0 0 31 2 *"
+  timeZone: "Asia/Seoul"
+  suspend: true
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      # 보낸 기록을 남기지 않아 다시 돌리면 또 보낸다. 실패해도 자동으로 다시 돌리지 않는다.
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          enableServiceLinks: false
+          imagePullSecrets:
+            - name: ghcr-pull
+          containers:
+            - name: batch
+              image: ${BATCH_IMAGE}
+              imagePullPolicy: IfNotPresent
+              args:
+                - "--task=reward-card-backfill-push"
+              env:
+                - name: GOOGLE_APPLICATION_CREDENTIALS
+                  value: /var/secrets/firebase/service-account.json
+              envFrom:
+                - configMapRef:
+                    name: batch-config
+                - secretRef:
+                    name: batch-secret
+              volumeMounts:
+                - name: firebase-credentials
+                  mountPath: /var/secrets/firebase
+                  readOnly: true
+              resources:
+                requests:
+                  cpu: 200m
+                  memory: 512Mi
+                limits:
+                  memory: 1Gi
+          volumes:
+            - name: firebase-credentials
+              secret:
+                secretName: firebase-credentials
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
   name: karaoke-collect
 spec:
   # 노래방(TJ·금영) 일본 신곡 수집 → 분석 요청 → 구독자 알림. 첫 배포는 args 에 --backfill 을 붙여 한 번 돌린다
-  schedule: "0 18 * * *"
+  schedule: "0 15 * * *"
   timeZone: "Asia/Seoul"
   suspend: false
   concurrencyPolicy: Forbid
@@ -264,6 +368,58 @@ spec:
                 - name: firebase-credentials
                   mountPath: /var/secrets/firebase
                   readOnly: true
+          volumes:
+            - name: firebase-credentials
+              secret:
+                secretName: firebase-credentials
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: artist-link
+spec:
+  # 분석 완료 때 아티스트를 잇지 못한 곡을 Apple Music 에서 다시 찾아 잇는다
+  schedule: "0 5 * * *"
+  timeZone: "Asia/Seoul"
+  suspend: false
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      # 못 이은 곡은 다음 날 실행이 다시 찾는다. 바로 재시도하면 카탈로그에 없는 곡까지 전부 다시 검색한다.
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          enableServiceLinks: false
+          imagePullSecrets:
+            - name: ghcr-pull
+          containers:
+            - name: batch
+              image: ${BATCH_IMAGE}
+              imagePullPolicy: IfNotPresent
+              args:
+                - "--task=artist-link"
+              env:
+                - name: GOOGLE_APPLICATION_CREDENTIALS
+                  value: /var/secrets/firebase/service-account.json
+              envFrom:
+                - configMapRef:
+                    name: batch-config
+                - secretRef:
+                    name: batch-secret
+              volumeMounts:
+                - name: firebase-credentials
+                  mountPath: /var/secrets/firebase
+                  readOnly: true
+              resources:
+                requests:
+                  cpu: 200m
+                  memory: 512Mi
+                limits:
+                  memory: 1Gi
           volumes:
             - name: firebase-credentials
               secret:

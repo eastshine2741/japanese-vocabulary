@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: share-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: share-web
+  template:
+    metadata:
+      labels:
+        app: share-web
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull
+      containers:
+        - name: share-web
+          image: ${SHARE_WEB_IMAGE}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /index.html
+              port: 80
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /index.html
+              port: 80
+            periodSeconds: 30
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 64Mi

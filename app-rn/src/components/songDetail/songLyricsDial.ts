@@ -4,14 +4,14 @@ import { katakanaToHiragana } from '../../utils/readingConverter';
 import type { CurrentPlayingLyricLine, CurrentPlayingWord } from './CurrentPlayingWordsSheet';
 
 /** 줄과 줄 사이. 포커스 띠는 이 간격을 덮지 않는다. */
-export const LINE_GAP = 22;
-/** 아직 재보지 않은 줄의 임시 높이. 접힌 줄 하나(글자 26 + 위아래 여백 12씩)에 맞췄다. */
-export const DEFAULT_LINE_HEIGHT = 50;
-/** 한 줄을 넘기는 데 필요한 드래그 거리. 접힌 줄의 간격(높이 + LINE_GAP)과 같아서 손가락과 가사가 같이 움직인다. */
+export const LINE_GAP = 6;
+/** 아직 재보지 않은 줄의 임시 높이. 일본어 + 단어 뜻 + 번역 한 줄씩(위아래 여백 14씩)에 맞췄다. */
+export const DEFAULT_LINE_HEIGHT = 102;
+/** 한 줄을 넘기는 데 필요한 드래그 거리. 보통 줄의 간격(높이 + LINE_GAP)과 같아서 손가락과 가사가 같이 움직인다. */
 export const DRAG_STEP = DEFAULT_LINE_HEIGHT + LINE_GAP;
 
 const KANJI_RE = /[一-鿿]/;
-/** 색 띠를 두르지 않는 품사 — 조사·기호는 학습 대상이 아니다. */
+/** 색 띠와 뜻을 달지 않는 품사 — 조사·기호는 학습 대상이 아니고, 뜻이 글자보다 길어 칸만 넓힌다. */
 const MUTED_POS = new Set(['PARTICLE', 'SYMBOL', 'SUPPLEMENTARY_SYMBOL', 'WHITESPACE']);
 
 export interface TokenCell {
@@ -41,6 +41,7 @@ function findTokenWord(token: Token, words: CurrentPlayingWord[]): CurrentPlayin
 }
 
 function tokenMeaning(token: Token, word: CurrentPlayingWord | null): string | null {
+  if (token.partOfSpeech && MUTED_POS.has(token.partOfSpeech)) return null;
   return token.koreanText ?? word?.senses?.[0]?.meaning ?? word?.koreanText ?? null;
 }
 

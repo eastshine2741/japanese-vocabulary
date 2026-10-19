@@ -2,6 +2,7 @@ package com.japanese.vocabulary.deck.controller
 
 import com.japanese.vocabulary.deck.dto.CreateDeckDto
 import com.japanese.vocabulary.deck.dto.CreateDeckRequest
+import com.japanese.vocabulary.deck.dto.DeckDeletionPreviewResponse
 import com.japanese.vocabulary.deck.dto.DeckDetailResponse
 import com.japanese.vocabulary.deck.dto.DeckDto
 import com.japanese.vocabulary.deck.dto.DeckListResponse
@@ -12,6 +13,7 @@ import com.japanese.vocabulary.deck.dto.SongDeckSummaryDto
 import com.japanese.vocabulary.deck.dto.DeckDetailDto
 import com.japanese.vocabulary.deck.dto.DeckListDto
 import com.japanese.vocabulary.deck.dto.DeckSummaryDto
+import com.japanese.vocabulary.deck.service.DeckDeletionService
 import com.japanese.vocabulary.deck.service.DeckService
 import com.japanese.vocabulary.word.dto.WordListDto
 import com.japanese.vocabulary.word.dto.WordListItemDto
@@ -30,7 +32,10 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/decks")
-class DeckController(private val deckService: DeckService) {
+class DeckController(
+    private val deckService: DeckService,
+    private val deckDeletionService: DeckDeletionService,
+) {
 
     @GetMapping
     fun getDeckList(@RequestParam(required = false) cursor: Long?): DeckListResponse =
@@ -60,12 +65,16 @@ class DeckController(private val deckService: DeckService) {
     fun getDeckDetail(@PathVariable deckId: Long): DeckDetailResponse =
         deckService.getDeckDetail(currentUserId(), deckId).toResponse()
 
-    /** 단어장만 지운다 — 안의 단어는 남는다. 전체 단어장은 지울 수 없다. */
+    /** 이 단어장에만 속한 단어와 그 곡 카드도 함께 지운다. 전체 단어장은 지울 수 없다. */
     @DeleteMapping("/{deckId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun deleteDeck(@PathVariable deckId: Long) {
-        deckService.deleteDeck(currentUserId(), deckId)
+        deckDeletionService.delete(currentUserId(), deckId)
     }
+
+    @GetMapping("/{deckId}/deletion-preview")
+    fun getDeletionPreview(@PathVariable deckId: Long): DeckDeletionPreviewResponse =
+        deckDeletionService.preview(currentUserId(), deckId)
 
     @GetMapping("/{deckId}/words")
     fun getDeckWords(

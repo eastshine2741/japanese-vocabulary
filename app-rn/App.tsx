@@ -33,6 +33,7 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import AppNavigator, { RootStackParamList } from './src/navigation/AppNavigator';
 import { AnalysisPillOverlay } from './src/components/analysisPill';
 import { StreakCelebrationHost } from './src/components/streak';
+import { RewardCardRevealHost } from './src/components/rewardCards/RewardCardReveal';
 import { navigationRef, flushPending } from './src/navigation/navigationRef';
 import { tokenStorage } from './src/utils/tokenStorage';
 import { isJwtExpired, getJwtUserId } from './src/utils/jwt';
@@ -45,6 +46,7 @@ import { applyGlobalTypography } from './src/theme/typography';
 import { useHomeChromeStore } from './src/stores/homeChromeStore';
 import { useAndroidNavigationBarStyle } from './src/hooks/useAndroidNavigationBarStyle';
 import { scheduleOtaUpdateCheck } from './src/services/otaUpdates';
+import { listenShareLinks } from './src/services/shareLinkHandler';
 
 GoogleSignin.configure({
   webClientId: process.env.EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID ?? '',
@@ -153,8 +155,10 @@ function App() {
   useEffect(() => {
     registerNotificationHandlers();
     scheduleOtaUpdateCheck();
-    initBaseURL().then(() =>
-      tokenStorage.getToken().then((token) => {
+    let unlistenShareLinks: (() => void) | undefined;
+    initBaseURL().then(() => {
+      unlistenShareLinks = listenShareLinks();
+      return tokenStorage.getToken().then((token) => {
         const valid = !!token && !isJwtExpired(token);
         setAnalyticsUserId(valid ? getJwtUserId(token!) : null);
         if (valid) {
@@ -162,8 +166,9 @@ function App() {
           requestPermissionAndRegisterToken();
         }
         setInitialRoute(valid ? 'Main' : 'Login');
-      }),
-    );
+      });
+    });
+    return () => unlistenShareLinks?.();
   }, []);
 
   return (
@@ -185,6 +190,7 @@ function App() {
               <AppNavigator initialRoute={initialRoute} />
               <AnalysisPillOverlay />
               <StreakCelebrationHost />
+              <RewardCardRevealHost />
             </NavigationContainer>
           )}
         </BottomSheetModalProvider>

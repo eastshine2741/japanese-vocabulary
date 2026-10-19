@@ -19,8 +19,8 @@ class AdminTokenAuthFilter(
         val authHeader = request.getHeader("Authorization")
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             val token = authHeader.removePrefix("Bearer ")
-            if (adminTokenService.validate(token) != null) {
-                SecurityContextHolder.getContext().authentication = AdminAuthentication()
+            adminTokenService.validate(token)?.let { claims ->
+                SecurityContextHolder.getContext().authentication = AdminAuthentication(claims.expiration.toInstant())
             }
         }
         filterChain.doFilter(request, response)

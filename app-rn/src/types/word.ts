@@ -120,3 +120,10 @@ export function joinMeanings(senses: WordSense[] | undefined): string {
 export function flattenExamples(senses: WordSense[] | undefined): SenseExample[] {
   return (senses ?? []).flatMap(s => s.examples ?? []);
 }
+
+/** 학습 중인 곡의 예문을 앞으로 당긴다. 나머지는 원래 순서를 지킨다. */
+export function flattenExamplesForSong(senses: WordSense[] | undefined, songId: number | null): SenseExample[] {
+  const examples = flattenExamples(senses);
+  if (songId == null) return examples;
+  return [...examples.filter(ex => ex.songId === songId), ...examples.filter(ex => ex.songId !== songId)];
+}

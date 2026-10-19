@@ -7,7 +7,6 @@ import io.jsonwebtoken.security.Keys
 import org.springframework.stereotype.Component
 import java.nio.charset.StandardCharsets
 import java.time.Clock
-import java.time.Duration
 import java.time.Instant
 import java.util.Date
 
@@ -41,16 +40,17 @@ class AdminTokenService(
 
     /**
      * 릴스 미리보기 `<video src>` 용 토큰. video 태그는 Authorization 헤더를 못 붙여 query 로 넘기므로,
-     * 어드민 토큰이 URL 에 남지 않게 곡 하나의 MV 스트림 전용 짧은 토큰을 따로 발급한다.
+     * 어드민 토큰이 URL 에 남지 않게 곡 하나의 MV 스트림 전용 토큰을 따로 발급한다.
+     * 에디터는 이 URL 을 다시 받지 않으므로 로그인 세션([expiresAt])과 같이 끝나야 편집 중에 재생이 끊기지 않는다.
      */
-    fun issueMediaToken(songId: Long): String {
+    fun issueMediaToken(songId: Long, expiresAt: Instant): String {
         val now = Instant.now(clock)
         return Jwts.builder()
             .subject(AdminAuthentication.PRINCIPAL)
             .claim("scope", MEDIA_SCOPE)
             .claim("songId", songId)
             .issuedAt(Date.from(now))
-            .expiration(Date.from(now.plus(MEDIA_TOKEN_TTL)))
+            .expiration(Date.from(expiresAt))
             .signWith(key)
             .compact()
     }
@@ -77,7 +77,6 @@ class AdminTokenService(
 
     companion object {
         const val MEDIA_SCOPE = "reels-mv"
-        val MEDIA_TOKEN_TTL: Duration = Duration.ofMinutes(30)
     }
 }
 

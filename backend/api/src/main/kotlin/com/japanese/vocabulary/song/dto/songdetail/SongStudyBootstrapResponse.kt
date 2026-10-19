@@ -2,6 +2,7 @@ package com.japanese.vocabulary.song.dto.songdetail
 
 import com.japanese.vocabulary.flashcard.dto.FlashcardDto
 import com.japanese.vocabulary.flashcard.model.FlashcardMemory
+import com.japanese.vocabulary.rewardcard.dto.RewardCardRevealDto
 
 data class SongStudyBootstrapResponse(
     val deckId: Long,
@@ -13,4 +14,6 @@ data class SongStudyBootstrapResponse(
      * 리뷰 전 칸은 항상 REMAINING 이다 — 앱이 기억 이동을 셀 때 이 값만 있으면 된다.
      */
     val reviewedMemory: FlashcardMemory,
+    /** 곡의 첫 rating 이라 대개 곡 카드(와 아티스트 카드) 획득이 실린다. */
+    val rewardCards: List<RewardCardRevealDto> = emptyList(),
 )
