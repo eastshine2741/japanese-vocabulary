@@ -182,8 +182,8 @@ export default function HomeTab() {
     navigation.navigate('SongDetail', { songId: visibleSongId, origin: 'Home' });
   }, [navigation, visibleSongId]);
 
-  const openExampleSource = useCallback((songId: number) => {
-    navigation.navigate('SongDetail', { songId, origin: 'Home' });
+  const openExampleSource = useCallback((songId: number, lineIndex: number | null) => {
+    navigation.navigate('SongDetail', { songId, origin: 'Home', initialLyricIndex: lineIndex ?? undefined });
   }, [navigation]);
 
   const editWord = useEditWordFromStack(stack.refreshCurrentCard);

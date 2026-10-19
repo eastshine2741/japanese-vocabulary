@@ -909,12 +909,21 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
   busyWordKey,
   onStartWordReview,
 }: PlaybackOverlaysProps) {
+  // 가사 줄을 지정해 들어오면(예문) 가사 시트를 펼친 채 그 줄 시각부터 튼다.
+  const initialSheetIndex = initialLyricIndex != null ? 1 : 0;
+  const lineSeekMs = initialLyricIndex != null ? lines[initialLyricIndex]?.startTimeMs ?? undefined : undefined;
+  const startSeekMs = initialSeekMs ?? lineSeekMs;
   const mvBarRef = useRef<SongDetailMvBarRef>(null);
   const wordsSheetRef = useRef<AppBottomSheetRef>(null);
-  const wordsSheetIndexRef = useRef(0);
-  const wordsSheetAnimatedIndex = useSharedValue(0);
+  const wordsSheetIndexRef = useRef(initialSheetIndex);
+  const wordsSheetAnimatedIndex = useSharedValue(initialSheetIndex);
   const setCurrentMs = usePlayerStore(s => s.setCurrentMs);
   const setDurationMs = usePlayerStore(s => s.setDurationMs);
+  useEffect(() => {
+    if (initialSeekMs == null && lineSeekMs != null) setCurrentMs(lineSeekMs);
+    // 화면 진입 때 한 번만 맞춘다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const handleSyncedPageChange = useCallback((line: React.ComponentProps<typeof CurrentPlayingWordsSheet>['lines'][number]) => {
     if (line.startTimeMs == null) return;
     mvBarRef.current?.seekToMs(line.startTimeMs);
@@ -934,7 +943,7 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
       title={title}
       artist={artist}
       youtubeUrl={youtubeUrl}
-      initialSeekMs={initialSeekMs}
+      initialSeekMs={startSeekMs}
       embedded
       expandProgress={wordsSheetAnimatedIndex}
       onCurrentTimeChange={setCurrentMs}
@@ -944,7 +953,7 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
   ), [
     artist,
     handleToggleWordsSheet,
-    initialSeekMs,
+    startSeekMs,
     wordsSheetAnimatedIndex,
     setCurrentMs,
     setDurationMs,
@@ -962,6 +971,7 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
       lineWordIndexes={lineWordIndexes}
       lyricType={lyricType}
       fallbackLineIndex={initialLyricIndex}
+      initialIndex={initialSheetIndex}
       bottomInset={bottomInset}
       header={mvBarHeader}
       headerHeight={SONG_DETAIL_MV_BAR_HEIGHT}
