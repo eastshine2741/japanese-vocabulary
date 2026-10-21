@@ -53,3 +53,11 @@ management:
   health:
     redis:
       enabled: false
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      # 대시보드가 파드를 합친 지연 백분위를 histogram_quantile 로 계산하려면 버킷이 있어야 한다.
+      percentiles-histogram:
+        http.server.requests: true
+        http.client.requests: true

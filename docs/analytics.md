@@ -102,6 +102,19 @@ WHERE screen = 'SongDetail'
 - GA4 `user_id` 는 `users.id`. DB 지표와 같은 키로 조인한다.
 - dev/prod 는 Firebase 프로젝트를 공유하고 패키지명으로 스트림이 갈린다. 분석은 prod 스트림(`dev.eastshine.kotonoha`)만 본다.
 
+## Grafana 에서 BigQuery 보기
+
+Grafana(데이터소스 uid `bigquery`)는 GA4 export 를 직접 쿼리한다. 스캔한 바이트만큼 과금되므로 패널 쿼리는 `events_*` 를 반드시 대시보드 시간 범위로 자른다. 안 자르면 새로고침마다 전체 기간을 긁고, 데이터소스의 쿼리당 상한(1GiB)에 걸리면 패널이 에러로 뜬다.
+
+```sql
+WHERE (_TABLE_SUFFIX BETWEEN FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul')) AND FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))
+    OR _TABLE_SUFFIX BETWEEN CONCAT('intraday_', FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul')))
+                         AND CONCAT('intraday_', FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))))
+```
+
+- 아직 확정되지 않은 날(오늘)은 `events_intraday_YYYYMMDD` 에만 있다. `'intraday_…'` 는 숫자 범위 `BETWEEN` 에 안 걸리므로 따로 넣어야 오늘이 보인다.
+- 날짜는 `'Asia/Seoul'` 로 자른다. 테이블은 GA4 프로퍼티 시간대(KST) 날짜로 나뉘어서, UTC 로 자르면 KST 00–09시 동안 오늘 intraday 테이블이 범위 밖이 된다. 일별 집계 패널도 `event_date` 로 묶는다.
+
 ## GA4 프로퍼티 설정
 
 - Google Signals **OFF** — 켜면 소규모 데이터가 thresholding 으로 가려진다.

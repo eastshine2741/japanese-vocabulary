@@ -90,6 +90,18 @@ kubectl rollout restart -n <ns> statefulset/rabbitmq
 DLQ(`song-analysis.work.dlq`)에 메시지가 쌓이면 브로커가 아니라 worker 환경(주로 DB 접근)을 본다.
 분석 자체의 실패는 `song_analysis_work` 행이 `FAILED` 로 남고 DLQ 에는 오지 않는다.
 
+## Prod Monitoring
+
+`k8s/observability/install.sh` 가 kube-prometheus-stack 을, `deploy.sh` 가 앱·MySQL·RabbitMQ ServiceMonitor 를 올린다.
+
+- Grafana 는 `https://grafana.kotonoha.eastshine.dev` 에 공개되고 built-in admin 로그인 하나로만 막힌다. DNS 레코드는 `api` 와 같은 이유로 proxy 를 끈다 (Universal SSL 이 2단계 서브도메인을 덮지 않는다). 라우트는 `k8s/observability/grafana-ingress.yaml` 이다. 인증 없는 Grafana `/metrics` 는 공개 라우트에서 빠지고 Prometheus 는 Service 로 긁는다.
+- `GRAFANA_ADMIN_USER`·`GRAFANA_ADMIN_PASSWORD` 는 Grafana DB 에 사용자가 하나도 없을 때만 쓰인다. PVC 에 DB 가 남아 있으면 `install.sh` 를 다시 돌려도 기존 계정의 이름·비밀번호는 그대로다. 그래서 바꿀 땐 손으로 먼저 바꾸고 `.env.prod` 를 맞춘 다음 `install.sh` 를 돌린다 (dashboard sidecar 가 이 값으로 reload API 를 부르므로 어긋나면 reload 가 401 로 실패한다).
+  - 이름: `kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80` 후 `http://localhost:3000` 에 admin 으로 로그인 → Administration → Users and access → Users → `admin` → Username 을 `GRAFANA_ADMIN_USER` 로 바꾼다.
+  - 비밀번호: `kubectl -n monitoring exec deploy/kube-prometheus-stack-grafana -c grafana -- grafana cli admin reset-admin-password '<새 비밀번호>'`
+- mysqld-exporter 는 MySQL StatefulSet 사이드카가 아니라 별도 Deployment(`k8s/prod/mysql/exporter.yaml`)라서, 바꿔도 MySQL 이 재시작되지 않는다. 계정(`exporter@'10.42.%'`, 파드 대역)은 entrypoint 가 아니라 `deploy.sh` 가 매 배포 root 로 맞춘다. entrypoint 의 계정 생성은 빈 datadir 첫 부팅 때만 돌아 기존 DB 에 들어가지 않는다. 비밀번호는 `mysql-exporter` Secret 에 있고, Secret 이 없을 때만 새로 만든다.
+- `long_query_time` 은 같은 단계에서 `SET PERSIST` 로 1초로 건다 (datadir 의 `mysqld-auto.cnf` 에 남아 재시작 없이 유지된다). 슬로 쿼리 로그는 꺼 둔다. `Slow_queries` 카운터는 로그와 무관하게 오르고, 어떤 쿼리인지는 perf_schema 다이제스트 패널에서 본다. 로그를 켜면 FILE·TABLE(`mysql.slow_log`, CSV 엔진) 모두 로테이션 없이 10Gi PVC 에 쌓인다. 기존 커넥션은 접속 때 받은 세션 값을 쓰므로 앱이 재연결해야 1초 기준이 다 적용된다.
+- `grafana-bigquery` Secret 은 env 로 읽혀서, 키만 바꾸면 Grafana 가 모른다. `kubectl -n monitoring rollout restart deploy/kube-prometheus-stack-grafana`.
+
 ## Dev MySQL Dump Restore
 
 Use a local dump when a fresh worktree namespace should start from the shared dev DB contents.
@@ -150,4 +162,21 @@ DEPLOY_NS=issue-21 npx expo run:android
 | `SHARE_TOKEN_KEYS` | 카드 공유 링크 서명 키. `kid:secret`(secret 32자 이상)을 쉼표로 잇고 첫 키로 서명한다. prod 필수(`.env.prod`, 예 `s1:$(openssl rand -hex 32)`), dev 는 기본값. 키를 버리면 올라간 링크가 깨지므로 바꿀 땐 새 키를 앞에 붙이고 옛 키를 남긴다 |
 | `SHARE_DEV_ORIGIN` | dev 전용. 카드 공유 링크 호스트 (기본 `http://localhost`, 링크는 `<origin>/<ns>/c/{token}`). 폰에서 열려면 앱 `EXPO_PUBLIC_BACKEND_URL` 의 호스트를 `http://<IP>.sslip.io` 로 쓴다 — X 는 IP 주소를 링크로 보지 않아 23자로 줄여 세지 않고 전부 세서 글자 수를 넘긴다 |
 | `SHARE_APP_SCHEME` | dev 는 `deploy.sh` 가 `kotonoha.<ns 영숫자만>` 으로 채운다(앱 scheme 과 같은 규칙). prod 는 기본 `kotonoha` |
+| `GRAFANA_BIGQUERY_SA_KEY_BASE64` | `.env.prod` only. Grafana BigQuery 데이터소스(uid `bigquery`)용 서비스 계정 키 `base64 -w0`. `install.sh` 가 `monitoring/grafana-bigquery` Secret 으로 만든다. 한 번만 만든다: 아래 명령과 BigQuery 하루 할당량 |
 | `DISCORD_ALERT_WEBHOOK_URL` | `.env.prod` only. Discord webhook for prod Alertmanager (warning/critical); `k8s/observability/install.sh` fills it into `k8s/observability/alertmanager.yaml` and stores the result as the `monitoring/alertmanager-config` Secret |
+
+`GRAFANA_BIGQUERY_SA_KEY_BASE64` 서비스 계정 (Browser 역할이 없어 데이터소스 설정 화면의 프로젝트 드롭다운은 비지만, `defaultProject` 가 고정이라 쿼리엔 지장 없다):
+
+```bash
+P=japanese-vocabulary-490916
+SA=grafana-bigquery@$P.iam.gserviceaccount.com
+gcloud iam service-accounts create grafana-bigquery --project "$P"
+gcloud projects add-iam-policy-binding "$P" --member "serviceAccount:$SA" --role roles/bigquery.jobUser
+bq query --project_id "$P" --location asia-northeast3 --use_legacy_sql=false \
+  "GRANT \`roles/bigquery.dataViewer\` ON SCHEMA \`$P.analytics_539684755\` TO 'serviceAccount:$SA'"
+gcloud iam service-accounts keys create grafana-bigquery.json --iam-account "$SA"
+base64 -w0 grafana-bigquery.json   # → GRAFANA_BIGQUERY_SA_KEY_BASE64, 그다음 json 파일은 지운다
+```
+
+BigQuery 하루 할당량 (콘솔에서 한 번): IAM & Admin → Quotas & System Limits → Service 필터 `BigQuery API` → "Query usage per day" 선택 → Edit → Unlimited 해제 → `0.01`(TiB, 약 10 GB) → Submit request.
+데이터소스의 `MaxBytesBilled`(1GiB)는 쿼리 1건마다의 상한이라, 새로고침이 반복되면 하루 총량은 막지 못한다. 이 할당량은 프로젝트 전체(모든 사용자·도구) 합계라 넘으면 태평양 시간 자정까지 이 프로젝트의 BigQuery 쿼리가 전부 `usageQuotaExceeded` 로 실패한다.

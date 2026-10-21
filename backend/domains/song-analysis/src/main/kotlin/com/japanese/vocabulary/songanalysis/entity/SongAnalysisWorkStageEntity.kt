@@ -12,6 +12,7 @@ import jakarta.persistence.Table
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
+import java.math.BigDecimal
 import java.time.Instant
 
 /**
@@ -55,6 +56,10 @@ class SongAnalysisWorkStageEntity(
     @Column(name = "started_at")
     var startedAt: Instant? = null,
 
+    /** 이번 시도의 LLM 비용. 시도마다 새로 잰다 — 앞 시도의 비용은 그 실행이 끝날 때 이미 집계됐다. */
+    @Column(name = "llm_cost_usd", nullable = false, precision = 12, scale = 6)
+    var llmCostUsd: BigDecimal = BigDecimal.ZERO,
+
     @Column(name = "finished_at")
     var finishedAt: Instant? = null,
 
@@ -71,19 +76,22 @@ class SongAnalysisWorkStageEntity(
         attempt += 1
         startedAt = now
         finishedAt = null
+        llmCostUsd = BigDecimal.ZERO
         errorCode = null
         errorClass = null
         errorMessage = null
     }
 
-    fun complete(output: String?, now: Instant) {
+    fun complete(output: String?, llmCostUsd: Double, now: Instant) {
         status = SongAnalysisStageStatus.COMPLETED
         this.output = output
+        this.llmCostUsd = BigDecimal.valueOf(llmCostUsd)
         finishedAt = now
     }
 
-    fun fail(failure: SongAnalysisStageFailure, now: Instant) {
+    fun fail(failure: SongAnalysisStageFailure, llmCostUsd: Double, now: Instant) {
         status = SongAnalysisStageStatus.FAILED
+        this.llmCostUsd = BigDecimal.valueOf(llmCostUsd)
         errorCode = failure.code
         errorClass = failure.errorClass?.take(MAX_ERROR_CLASS_LENGTH)
         errorMessage = failure.detail?.take(MAX_ERROR_MESSAGE_LENGTH)

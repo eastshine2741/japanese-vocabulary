@@ -3,6 +3,8 @@ package com.japanese.vocabulary.translation.client.gemini
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.japanese.vocabulary.common.retry.TransientHttpErrors
+import com.japanese.vocabulary.translation.client.LlmCostMeter
+import com.japanese.vocabulary.translation.client.LlmPricingProperties
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.mockk.every
 import io.mockk.mockk
@@ -123,6 +125,7 @@ class GeminiClientRetryTest {
             objectMapper = ObjectMapper().registerKotlinModule(),
             meterRegistry = SimpleMeterRegistry(),
             geminiCallLogger = mockk<GeminiCallLogger>().also { every { it.record(any(), any(), any(), any(), any(), any()) } returns Unit },
+            llmCostMeter = LlmCostMeter(LlmPricingProperties(), SimpleMeterRegistry()),
         )
         return client to server
     }

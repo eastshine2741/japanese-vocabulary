@@ -41,6 +41,7 @@ class SongAnalysisWorkStageLedgerTest : WorkerBaseIntegrationTest() {
     @Autowired private lateinit var songRepository: SongRepository
     @Autowired private lateinit var lyricRepository: LyricRepository
     @Autowired private lateinit var meterRegistry: MeterRegistry
+    @Autowired private lateinit var gauges: SongAnalysisWorkGauges
 
     @Test
     fun `claiming the first stage starts the work and the stage`() {
@@ -58,13 +59,39 @@ class SongAnalysisWorkStageLedgerTest : WorkerBaseIntegrationTest() {
     }
 
     @Test
+    fun `the oldest pending gauge reports how long the oldest pending work has waited`() {
+        seedWork("待機")
+        gauges.refresh()
+
+        // 갱신 뒤에 흐른 시간도 대기 시간에 들어가야 한다.
+        clock.advance(Duration.ofSeconds(90))
+
+        assertThat(meterRegistry.get(MetricNames.SONG_ANALYSIS_OLDEST_PENDING_AGE).gauge().value()).isGreaterThanOrEqualTo(90.0)
+    }
+
+    /** 단계 비용은 시도마다 새로 잰다. 재개한 작업의 앞 실행 단계는 이번 실행 비용에 들어가지 않는다. */
+    @Test
+    fun `run cost sums only the stages this run started`() {
+        val work = seedWork("費用")
+        val first = workService.claimStage(work.id!!, SongAnalysisWorkStage.FIRST, redelivered = false)!!
+        workService.completeStage(first.ref, "{}", llmCostUsd = 0.25)
+        val second = workService.claimStage(work.id!!, SongAnalysisWorkStage.FIRST.next!!, redelivered = false)!!
+        workService.failStage(second.ref, SongAnalysisWorkListener.classify(IllegalStateException("boom")), llmCostUsd = 0.125)
+
+        assertThat(workService.runLlmCostUsd(work.id!!, first.startedAt)).isEqualTo(0.375)
+        assertThat(workService.runLlmCostUsd(work.id!!, first.startedAt.plusSeconds(3600))).isZero()
+    }
+
+    @Test
     fun `the works gauge counts pending and running works from the ledger`() {
+        gauges.refresh()
         val pendingBefore = worksGauge(SongAnalysisWorkStatus.PENDING)
         val runningBefore = worksGauge(SongAnalysisWorkStatus.RUNNING)
         seedWork("待機")
         val running = seedWork("実行")
 
         workService.claimStage(running.id!!, SongAnalysisWorkStage.FIRST, redelivered = false)
+        gauges.refresh()
 
         assertThat(worksGauge(SongAnalysisWorkStatus.PENDING)).isEqualTo(pendingBefore + 1)
         assertThat(worksGauge(SongAnalysisWorkStatus.RUNNING)).isEqualTo(runningBefore + 1)
@@ -134,9 +161,9 @@ class SongAnalysisWorkStageLedgerTest : WorkerBaseIntegrationTest() {
         val work = seedWork("停止")
         val claimed = workService.claimStage(work.id!!, SongAnalysisWorkStage.FIRST, redelivered = false)!!
 
-        val failedCount = workService.failStaleRunning(olderThan = staleThreshold(), limit = 5)
+        val timedOut = workService.failStaleRunning(olderThan = staleThreshold(), limit = 5)
 
-        assertThat(failedCount).isEqualTo(1)
+        assertThat(timedOut.map { it.workId }).containsExactly(work.id)
         val refreshed = workRepository.findById(work.id!!).orElseThrow()
         assertThat(refreshed.status).isEqualTo(SongAnalysisWorkStatus.FAILED)
         assertThat(refreshed.errorCode).isEqualTo("SONG_ANALYSIS_WORK_TIMEOUT")
@@ -150,12 +177,12 @@ class SongAnalysisWorkStageLedgerTest : WorkerBaseIntegrationTest() {
         val work = seedWork("進行中")
         workService.claimStage(work.id!!, SongAnalysisWorkStage.FIRST, redelivered = false)
 
-        val failedCount = workService.failStaleRunning(
+        val timedOut = workService.failStaleRunning(
             olderThan = Instant.now(clock).minus(Duration.ofMinutes(10)),
             limit = 5,
         )
 
-        assertThat(failedCount).isZero
+        assertThat(timedOut).isEmpty()
     }
 
     @Test

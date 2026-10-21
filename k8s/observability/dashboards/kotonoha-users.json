@@ -1,0 +1,728 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "uid": "kotonoha-users",
+  "title": "Kotonoha — Users",
+  "tags": [
+    "kotonoha"
+  ],
+  "timezone": "Asia/Seoul",
+  "weekStart": "monday",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "",
+  "liveNow": false,
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "links": [
+    {
+      "type": "dashboards",
+      "tags": [
+        "kotonoha"
+      ],
+      "asDropdown": false,
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false,
+      "title": "Kotonoha",
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    }
+  ],
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "type": "stat",
+      "title": "오늘",
+      "datasource": {
+        "type": "grafana-bigquery-datasource",
+        "uid": "bigquery"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-bigquery-datasource",
+            "uid": "bigquery"
+          },
+          "editorMode": "code",
+          "rawQuery": true,
+          "format": 1,
+          "rawSql": "SELECT\n  COUNT(DISTINCT IF(event_name = 'session_start', user_pseudo_id, NULL)) AS dau,\n  COUNT(DISTINCT IF(event_name = 'card_rate', user_pseudo_id, NULL)) AS learners,\n  COUNTIF(event_name = 'card_rate') AS ratings\nFROM `japanese-vocabulary-490916.analytics_539684755.events_*`\nWHERE (_TABLE_SUFFIX BETWEEN FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul')) AND FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))\n    OR _TABLE_SUFFIX BETWEEN CONCAT('intraday_', FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul'))) AND CONCAT('intraday_', FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))))\n  AND event_date BETWEEN FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul')) AND FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))\n  AND app_info.id = 'dev.eastshine.kotonoha'\n  AND COALESCE(user_id, '') <> '1'\n  AND event_name IN ('session_start', 'card_rate')"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "dau"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "DAU (기기)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "learners"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "학습자 (기기)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ratings"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "평가"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "timeFrom": "now/d",
+      "hideTimeOverride": false,
+      "id": 1,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "가입자",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "max(kotonoha_users_registered)",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "id": 2,
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "가입자",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "max(kotonoha_users_registered)",
+          "legendFormat": "가입자",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 3,
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 8,
+        "h": 4
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "DAU · 학습자 (일별, 기기)",
+      "datasource": {
+        "type": "grafana-bigquery-datasource",
+        "uid": "bigquery"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-bigquery-datasource",
+            "uid": "bigquery"
+          },
+          "editorMode": "code",
+          "rawQuery": true,
+          "format": 0,
+          "rawSql": "SELECT\n  TIMESTAMP(PARSE_DATE('%Y%m%d', event_date), 'Asia/Seoul') AS time,\n  COUNT(DISTINCT IF(event_name = 'session_start', user_pseudo_id, NULL)) AS dau,\n  COUNT(DISTINCT IF(event_name = 'card_rate', user_pseudo_id, NULL)) AS learners,\n  COUNTIF(event_name = 'card_rate' AND (SELECT COALESCE(value.int_value, CAST(value.double_value AS INT64)) FROM UNNEST(event_params) WHERE key = 'rating') = 1) AS r1,\n  COUNTIF(event_name = 'card_rate' AND (SELECT COALESCE(value.int_value, CAST(value.double_value AS INT64)) FROM UNNEST(event_params) WHERE key = 'rating') = 2) AS r2,\n  COUNTIF(event_name = 'card_rate' AND (SELECT COALESCE(value.int_value, CAST(value.double_value AS INT64)) FROM UNNEST(event_params) WHERE key = 'rating') = 3) AS r3,\n  COUNTIF(event_name = 'card_rate' AND (SELECT COALESCE(value.int_value, CAST(value.double_value AS INT64)) FROM UNNEST(event_params) WHERE key = 'rating') = 4) AS r4\nFROM `japanese-vocabulary-490916.analytics_539684755.events_*`\nWHERE (_TABLE_SUFFIX BETWEEN FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul')) AND FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))\n    OR _TABLE_SUFFIX BETWEEN CONCAT('intraday_', FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul'))) AND CONCAT('intraday_', FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))))\n  AND event_date BETWEEN FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul')) AND FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))\n  AND app_info.id = 'dev.eastshine.kotonoha'\n  AND COALESCE(user_id, '') <> '1'\n  AND event_name IN ('session_start', 'card_rate')\nGROUP BY time\nORDER BY time"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "dau"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "DAU"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "learners"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "학습자"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "time",
+                "dau",
+                "learners"
+              ]
+            }
+          }
+        }
+      ],
+      "id": 4,
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 9
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "평가 (일별)",
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Dashboard --"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "datasource",
+            "uid": "-- Dashboard --"
+          },
+          "panelId": 4
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 80,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "r1"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "다시"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "r2"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "어려움"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "r3"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "알고 있음"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "r4"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "쉬움"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "time",
+                "r1",
+                "r2",
+                "r3",
+                "r4"
+              ]
+            }
+          }
+        }
+      ],
+      "id": 5,
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 9
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "설치 누적 (기간)",
+      "datasource": {
+        "type": "grafana-bigquery-datasource",
+        "uid": "bigquery"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-bigquery-datasource",
+            "uid": "bigquery"
+          },
+          "editorMode": "code",
+          "rawQuery": true,
+          "format": 0,
+          "rawSql": "SELECT\n  time,\n  SUM(installs) OVER (ORDER BY time) AS installs,\n  SUM(android_removes) OVER (ORDER BY time) AS android_removes\nFROM (\n  SELECT\n    TIMESTAMP(PARSE_DATE('%Y%m%d', event_date), 'Asia/Seoul') AS time,\n    COUNTIF(event_name = 'first_open') AS installs,\n    COUNTIF(event_name = 'app_remove' AND platform = 'ANDROID') AS android_removes\n  FROM `japanese-vocabulary-490916.analytics_539684755.events_*`\n  WHERE (_TABLE_SUFFIX BETWEEN FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul')) AND FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))\n      OR _TABLE_SUFFIX BETWEEN CONCAT('intraday_', FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul'))) AND CONCAT('intraday_', FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))))\n    AND event_date BETWEEN FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul')) AND FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))\n    AND app_info.id = 'dev.eastshine.kotonoha'\n    AND COALESCE(user_id, '') <> '1'\n    AND event_name IN ('first_open', 'app_remove')\n  GROUP BY time\n)\nORDER BY time"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "installs"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "설치 (first_open)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "android_removes"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Android 삭제"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 6,
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "설치 · 삭제 (일별)",
+      "datasource": {
+        "type": "grafana-bigquery-datasource",
+        "uid": "bigquery"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-bigquery-datasource",
+            "uid": "bigquery"
+          },
+          "editorMode": "code",
+          "rawQuery": true,
+          "format": 0,
+          "rawSql": "SELECT\n  TIMESTAMP(PARSE_DATE('%Y%m%d', event_date), 'Asia/Seoul') AS time,\n  COUNTIF(event_name = 'first_open' AND platform = 'ANDROID') AS android,\n  COUNTIF(event_name = 'first_open' AND platform = 'IOS') AS ios,\n  COUNTIF(event_name = 'app_remove' AND platform = 'ANDROID') AS android_removes\nFROM `japanese-vocabulary-490916.analytics_539684755.events_*`\nWHERE (_TABLE_SUFFIX BETWEEN FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul')) AND FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))\n    OR _TABLE_SUFFIX BETWEEN CONCAT('intraday_', FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul'))) AND CONCAT('intraday_', FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))))\n  AND event_date BETWEEN FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul')) AND FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))\n  AND app_info.id = 'dev.eastshine.kotonoha'\n  AND COALESCE(user_id, '') <> '1'\n  AND event_name IN ('first_open', 'app_remove')\nGROUP BY time\nORDER BY time"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 80,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "android"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Android 설치"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ios"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "iOS 설치"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "android_removes"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Android 삭제"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 7,
+      "gridPos": {
+        "x": 12,
+        "y": 13,
+        "w": 12,
+        "h": 8
+      }
+    }
+  ]
+}

@@ -52,6 +52,15 @@ The listener runs each stage with `runBlocking(Dispatchers.IO)`: the listener th
 - `KARAOKE`: batch `karaoke-collect` for a newly listed karaoke song without an analyzed song (`docs/karaoke-new-songs.md`)
 
 
+## LLM cost and work metrics
+
+- **Prices live in worker config** (`kotonoha.llm.pricing`, USD per 1M tokens, keyed by the model name the client sends). Changing a model means changing that table: a model missing from it is costed at 0 with one warning, so analysis never fails over pricing. Model names contain dots, so the keys must stay bracket-quoted or Spring binds them wrong.
+- **Gemini billing assumptions.** `promptTokenCount` already includes `cachedContentTokenCount`, so only the remainder is billed at the input price; thinking tokens are billed at the output price; `totalTokenCount` is not recorded because it double counts. Jev bills input only.
+- **Work cost is stored on stage rows** (`song_analysis_work_stage.llm_cost_usd`, V50), written in the same transaction that finishes the stage. Stages of one work run on different worker pods, so no single process sees the whole work; the work's cost is the sum of the rows whose `started_at` is in the current run. A resumed work therefore does not re-count the earlier run's stages, which that run already reported when it failed. Each attempt resets its row's cost.
+- **What is not in the work cost.** A stage that times out or is taken over loses its in-memory spend (the row closes at 0); the per-call `kotonoha_llm_cost_usd_total` counter still has it, so cost totals should be read from the counter and the per-work summary used for distribution.
+- **Timeouts are recorded by the sweeper** (`outcome=timeout`), since the listener that owned the stage never finished it.
+
+
 ## One Active Work Per Song
 
 `createOrReuse` reads `(raw_title, raw_artist)` with `FOR UPDATE` before inserting. When no active row

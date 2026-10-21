@@ -8,6 +8,7 @@ import com.japanese.vocabulary.songanalysis.dto.toDto
 import com.japanese.vocabulary.songanalysis.dto.ClaimedSongAnalysisStage
 import com.japanese.vocabulary.songanalysis.dto.SongAnalysisStageRef
 import com.japanese.vocabulary.songanalysis.dto.SongAnalysisStageTarget
+import com.japanese.vocabulary.songanalysis.dto.TimedOutSongAnalysisWork
 import com.japanese.vocabulary.songanalysis.dto.toSnapshot
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisStageFailure
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisStageStatus
@@ -25,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.data.domain.Pageable
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 @Service
 class SongAnalysisWorkService(
@@ -181,10 +183,10 @@ class SongAnalysisWorkService(
      * 트랜잭션에서 한 쓰기를 롤백해야 한다.
      */
     @Transactional
-    fun completeStage(ref: SongAnalysisStageRef, output: String?): Boolean {
+    fun completeStage(ref: SongAnalysisStageRef, output: String?, llmCostUsd: Double = 0.0): Boolean {
         val (work, row) = lockCurrent(ref) ?: return false
         val now = Instant.now()
-        row.complete(output, now)
+        row.complete(output, llmCostUsd, now)
         val next = ref.stage.next
         if (next == null) {
             work.markCompleted(now)
@@ -197,10 +199,10 @@ class SongAnalysisWorkService(
     }
 
     @Transactional
-    fun failStage(ref: SongAnalysisStageRef, failure: SongAnalysisStageFailure): Boolean {
+    fun failStage(ref: SongAnalysisStageRef, failure: SongAnalysisStageFailure, llmCostUsd: Double = 0.0): Boolean {
         val (work, row) = lockCurrent(ref) ?: return false
         val now = Instant.now()
-        row.fail(failure, now)
+        row.fail(failure, llmCostUsd, now)
         work.markFailed(failure.code, failure.userMessage, now)
         return true
     }
@@ -246,6 +248,19 @@ class SongAnalysisWorkService(
     fun countByStatus(status: SongAnalysisWorkStatus): Long = songAnalysisWorkRepository.countByStatus(status)
 
     @Transactional(readOnly = true)
+    fun oldestPendingSince(): Instant? = songAnalysisWorkRepository.findOldestPendingSince()
+
+    /** [since] 에 시작된 실행의 LLM 비용. 재개한 작업의 앞 실행 단계는 그 실행이 이미 집계했으므로 뺀다. */
+    @Transactional(readOnly = true)
+    fun runLlmCostUsd(workId: Long, since: Instant): Double = runLlmCostUsd(stageRepository.findByWorkIdOrderByIdAsc(workId), since)
+
+    // DATETIME(6) 은 마이크로초로 반올림하므로, 메모리의 시각과 비교하면 첫 단계가 1µs 차이로 빠질 수 있다.
+    private fun runLlmCostUsd(rows: List<SongAnalysisWorkStageEntity>, since: Instant): Double {
+        val from = since.truncatedTo(ChronoUnit.MICROS)
+        return rows.filter { it.startedAt?.isBefore(from) == false }.sumOf { it.llmCostUsd }.toDouble()
+    }
+
+    @Transactional(readOnly = true)
     fun stages(workId: Long): List<SongAnalysisWorkStageEntity> = stageRepository.findByWorkIdOrderByIdAsc(workId)
 
     /**
@@ -274,7 +289,7 @@ class SongAnalysisWorkService(
      * 브로커의 재배달이 먼저 넘겨받으므로, 여기 걸리는 건 재배달도 못 받은 경우다.
      */
     @Transactional
-    fun failStaleRunning(olderThan: Instant, limit: Int): Int {
+    fun failStaleRunning(olderThan: Instant, limit: Int): List<TimedOutSongAnalysisWork> {
         val expired = songAnalysisWorkRepository.findStaleRunningForUpdate(
             olderThan,
             Pageable.ofSize(limit),
@@ -286,15 +301,23 @@ class SongAnalysisWorkService(
             errorClass = null,
             detail = "No progress since before $olderThan",
         )
-        expired.forEach { work ->
-            work.currentStage
-                ?.let { stageRepository.findByWorkIdAndStage(work.id!!, it) }
+        val timedOut = expired.map { work ->
+            val rows = stageRepository.findByWorkIdOrderByIdAsc(work.id!!)
+            // 멈춘 시도의 비용은 그 worker 의 메모리에만 있었으므로 0 으로 닫는다. 호출별 카운터에는 남아 있다.
+            rows.firstOrNull { it.stage == work.currentStage }
                 ?.takeIf { it.status == SongAnalysisStageStatus.RUNNING }
-                ?.fail(timeout, now)
+                ?.fail(timeout, 0.0, now)
             work.markFailed(timeout.code, timeout.userMessage, now)
+            TimedOutSongAnalysisWork(
+                workId = work.id!!,
+                stage = work.currentStage,
+                triggerSource = work.triggerSource,
+                startedAt = work.startedAt,
+                llmCostUsd = work.startedAt?.let { runLlmCostUsd(rows, it) } ?: 0.0,
+            )
         }
         songAnalysisWorkRepository.saveAllAndFlush(expired)
-        return expired.size
+        return timedOut
     }
 
     /**

@@ -17,6 +17,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import java.util.concurrent.atomic.DoubleAdder
 
 /**
  * 단계 하나를 실행하고 산출물을 원장에 남긴다. 앞 단계 산출물은 원장에서 읽으므로, 실패한 단계부터
@@ -38,15 +39,16 @@ class SongAnalysisStageExecutor(
 ) {
     private val logger = LoggerFactory.getLogger(SongAnalysisStageExecutor::class.java)
 
-    suspend fun execute(claimed: ClaimedSongAnalysisStage) {
+    /** [llmCost] 는 이 단계 실행의 LLM 호출들이 더해 가고, 단계가 끝날 때 단계 행에 남는다. */
+    suspend fun execute(claimed: ClaimedSongAnalysisStage, llmCost: DoubleAdder) {
         when (claimed.ref.stage) {
             SongAnalysisWorkStage.FETCH_LYRICS -> fetchLyrics(claimed)
             SongAnalysisWorkStage.FETCH_YOUTUBE -> fetchYoutube(claimed)
             SongAnalysisWorkStage.CREATE_SONG_AND_LYRIC -> createSongAndLyric(claimed)
-            SongAnalysisWorkStage.ANALYZE_LYRICS -> analyzeLyrics(claimed)
-            SongAnalysisWorkStage.SELECT_SENSES -> selectSenses(claimed)
-            SongAnalysisWorkStage.TRANSLATE_SENSES -> translateSenses(claimed)
-            SongAnalysisWorkStage.COMPLETE -> complete(claimed)
+            SongAnalysisWorkStage.ANALYZE_LYRICS -> analyzeLyrics(claimed, llmCost)
+            SongAnalysisWorkStage.SELECT_SENSES -> selectSenses(claimed, llmCost)
+            SongAnalysisWorkStage.TRANSLATE_SENSES -> translateSenses(claimed, llmCost)
+            SongAnalysisWorkStage.COMPLETE -> complete(claimed, llmCost)
         }
     }
 
@@ -79,8 +81,8 @@ class SongAnalysisStageExecutor(
      * 번역과 단어 준비(분절 → 규칙·사전)를 동시에 돌린다. 갈래가 하나 끝날 때마다 산출물을 남기므로,
      * 다른 갈래가 실패해도 끝난 갈래는 다음 시도가 다시 하지 않는다.
      */
-    private suspend fun analyzeLyrics(claimed: ClaimedSongAnalysisStage) {
-        val source = sourceOf(claimed)
+    private suspend fun analyzeLyrics(claimed: ClaimedSongAnalysisStage, llmCost: DoubleAdder) {
+        val source = sourceOf(claimed, llmCost)
         var state = claimed.previousOutput?.let { codec.read(it, AnalyzeLyricsOutput::class.java) } ?: AnalyzeLyricsOutput()
         if (claimed.previousOutput != null) {
             logger.info(
@@ -113,26 +115,26 @@ class SongAnalysisStageExecutor(
                 }
             }
         }
-        finish(claimed, state)
+        finish(claimed, state, llmCost)
     }
 
-    private suspend fun selectSenses(claimed: ClaimedSongAnalysisStage) {
-        val source = sourceOf(claimed)
+    private suspend fun selectSenses(claimed: ClaimedSongAnalysisStage, llmCost: DoubleAdder) {
+        val source = sourceOf(claimed, llmCost)
         val analyzed = Outputs(claimed).analyzed()
         val selected = translationService.selectSenses(source, analyzed.translation!!, analyzed.words!!)
-        finish(claimed, SelectSensesOutput(selected))
+        finish(claimed, SelectSensesOutput(selected), llmCost)
     }
 
-    private suspend fun translateSenses(claimed: ClaimedSongAnalysisStage) {
-        val source = sourceOf(claimed)
+    private suspend fun translateSenses(claimed: ClaimedSongAnalysisStage, llmCost: DoubleAdder) {
+        val source = sourceOf(claimed, llmCost)
         val outputs = Outputs(claimed)
         val selected = outputs.read(SongAnalysisWorkStage.SELECT_SENSES, SelectSensesOutput::class.java)
         val korean = translationService.translateSenses(selected.selectedSenseByKey, outputs.analyzed().words!!, source.callContext)
-        finish(claimed, TranslateSensesOutput(korean))
+        finish(claimed, TranslateSensesOutput(korean), llmCost)
     }
 
-    private suspend fun complete(claimed: ClaimedSongAnalysisStage) {
-        val source = sourceOf(claimed)
+    private suspend fun complete(claimed: ClaimedSongAnalysisStage, llmCost: DoubleAdder) {
+        val source = sourceOf(claimed, llmCost)
         val outputs = Outputs(claimed)
         val analyzed = outputs.analyzed()
         val lines = translationService.assemble(
@@ -152,8 +154,8 @@ class SongAnalysisStageExecutor(
         logger.info("[workId={}] Song analysis completed", claimed.ref.workId)
     }
 
-    private fun finish(claimed: ClaimedSongAnalysisStage, output: Any) {
-        if (!workService.completeStage(claimed.ref, codec.write(output))) {
+    private fun finish(claimed: ClaimedSongAnalysisStage, output: Any, llmCost: DoubleAdder? = null) {
+        if (!workService.completeStage(claimed.ref, codec.write(output), llmCost?.sum() ?: 0.0)) {
             throw SongAnalysisStageSupersededException(claimed.ref)
         }
     }
@@ -162,14 +164,16 @@ class SongAnalysisStageExecutor(
      * 분석할 가사. 곡·가사 행은 [SongAnalysisWorkStage.COMPLETE] 에서야 생기므로 FETCH_LYRICS 산출물을
      * 읽는다. CREATE_SONG_AND_LYRIC 을 거친 옛 작업은 기존 가사를 재사용했을 수 있어, 그 가사를 읽는다.
      */
-    private fun sourceOf(claimed: ClaimedSongAnalysisStage): TranslationPipelineSource {
-        claimed.work.lyricId?.let { lyricId ->
+    private fun sourceOf(claimed: ClaimedSongAnalysisStage, llmCost: DoubleAdder): TranslationPipelineSource {
+        val source = claimed.work.lyricId?.let { lyricId ->
             val lyric = lyricRepository.findById(lyricId).orElseThrow { BusinessException(ErrorCode.LYRIC_NOT_FOUND) }
-            return translationService.sourceOf(lyric, claimed.ref.workId)
+            translationService.sourceOf(lyric, claimed.ref.workId)
+        } ?: run {
+            val prepared = Outputs(claimed).read(SongAnalysisWorkStage.FETCH_LYRICS, FetchLyricsOutput::class.java)
+            val context = GeminiCallContext(songId = claimed.work.songId, lyricId = null, workId = claimed.ref.workId)
+            TranslationPipelineSource.from(prepared.lines, context)
         }
-        val prepared = Outputs(claimed).read(SongAnalysisWorkStage.FETCH_LYRICS, FetchLyricsOutput::class.java)
-        val context = GeminiCallContext(songId = claimed.work.songId, lyricId = null, workId = claimed.ref.workId)
-        return TranslationPipelineSource.from(prepared.lines, context)
+        return source.copy(callContext = source.callContext.copy(stage = claimed.ref.stage.name, llmCostUsd = llmCost))
     }
 
     /** 앞 단계 산출물. 없으면 원장이 깨진 것이라 이 단계는 실패로 기록된다. */

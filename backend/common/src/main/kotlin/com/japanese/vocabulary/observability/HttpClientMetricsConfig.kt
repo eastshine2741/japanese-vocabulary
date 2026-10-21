@@ -12,7 +12,7 @@ import org.springframework.web.reactive.function.client.DefaultClientRequestObse
 /**
  * Adds an `api` tag to `http.client.requests` by classifying (host, path). Match is strict:
  * broad suffixes like `*.apple.com` or `*.googleapis.com` would over-match. Unknown
- * destinations get `other`.
+ * destinations get `other`. `api_group` rolls those up so a dashboard panel survives a new provider.
  *
  * Two beans because RestClient and WebClient use separate convention types.
  */
@@ -22,26 +22,43 @@ class HttpClientMetricsConfig {
     fun restClientObservationConvention(): RestClientConv = object : RestClientConv() {
         override fun getLowCardinalityKeyValues(context: RestClientCtx): KeyValues =
             super.getLowCardinalityKeyValues(context)
-                .and("api", classify(context.carrier?.uri))
+                .and(apiKeyValues(classify(context.carrier?.uri)))
     }
 
     @Bean
     fun webClientObservationConvention(): WebClientConv = object : WebClientConv() {
         override fun getLowCardinalityKeyValues(context: WebClientCtx): KeyValues =
             super.getLowCardinalityKeyValues(context)
-                .and("api", classify(context.carrier?.build()?.url()))
+                .and(apiKeyValues(classify(context.carrier?.build()?.url())))
     }
 
-    private fun classify(uri: URI?): String {
-        val host = uri?.host ?: return "other"
-        val path = uri.path.orEmpty()
-        return when {
-            host == "api.music.apple.com" -> "apple-music"
-            host == "www.googleapis.com" && path.startsWith("/youtube/") -> "youtube"
-            host == "generativelanguage.googleapis.com" -> "gemini"
-            host == "lrclib.net" -> "lrclib"
-            host == "vocadb.net" -> "vocadb"
-            host == "utaitedb.net" -> "utaitedb"
+    companion object {
+        private fun apiKeyValues(api: String): KeyValues = KeyValues.of("api", api, "api_group", groupOf(api))
+
+        fun classify(uri: URI?): String {
+            val host = uri?.host ?: return "other"
+            val path = uri.path.orEmpty()
+            return when {
+                host == "api.music.apple.com" -> "apple-music"
+                host == "www.googleapis.com" && path.startsWith("/youtube/") -> "youtube"
+                host == "generativelanguage.googleapis.com" -> "gemini"
+                host == "api.typesafe.ai" -> "jev"
+                host == "jisho.org" -> "jisho"
+                host == "lrclib.net" -> "lrclib"
+                host == "vocadb.net" -> "vocadb"
+                host == "utaitedb.net" -> "utaitedb"
+                host == "api.github.com" -> "github"
+                else -> "other"
+            }
+        }
+
+        fun groupOf(api: String): String = when (api) {
+            "gemini", "jev" -> "llm"
+            "jisho" -> "dictionary"
+            "lrclib" -> "lyrics"
+            "apple-music", "vocadb", "utaitedb" -> "music-meta"
+            "youtube" -> "video"
+            "github" -> "ops"
             else -> "other"
         }
     }

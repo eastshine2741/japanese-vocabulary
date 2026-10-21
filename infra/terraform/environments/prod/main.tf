@@ -23,6 +23,14 @@ module "dns" {
       content = "65.109.222.159"
       proxied = false
     }
+    # Universal SSL 은 2단계 서브도메인을 덮지 않아 proxy 를 끄고 cert-manager 인증서로 받는다
+    grafana_kotonoha = {
+      name    = "grafana.kotonoha.eastshine.dev"
+      type    = "A"
+      ttl     = 1
+      content = "65.109.222.159"
+      proxied = false
+    }
   }
 }
 

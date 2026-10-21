@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.song.worker
 
+import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.messagequeue.SongAnalysisWorkQueuePublisher
 import com.japanese.vocabulary.songanalysis.service.SongAnalysisWorkService
 import org.slf4j.LoggerFactory
@@ -22,6 +23,7 @@ import java.time.Instant
 class SongAnalysisWorkSweeper(
     private val workService: SongAnalysisWorkService,
     private val publisher: SongAnalysisWorkQueuePublisher,
+    private val workMetrics: SongAnalysisWorkMetrics,
 ) {
     private val logger = LoggerFactory.getLogger(SongAnalysisWorkSweeper::class.java)
 
@@ -32,8 +34,20 @@ class SongAnalysisWorkSweeper(
                 olderThan = Instant.now().minus(STALE_RUNNING_AGE),
                 limit = BATCH_SIZE,
             )
-            if (expired > 0) {
-                logger.warn("Marked {} stale song analysis work rows as FAILED", expired)
+            if (expired.isNotEmpty()) {
+                logger.warn("Marked {} stale song analysis work rows as FAILED: {}", expired.size, expired.map { it.workId })
+            }
+            expired.forEach { work ->
+                // started_at 이 없는 건 단계 원장 이전 파이프라인의 작업이라 잴 기준이 없다.
+                val startedAt = work.startedAt ?: return@forEach
+                workMetrics.recordFinished(
+                    outcome = "timeout",
+                    failedStage = work.stage,
+                    errorCode = ErrorCode.SONG_ANALYSIS_WORK_TIMEOUT.name,
+                    triggerSource = work.triggerSource,
+                    startedAt = startedAt,
+                    llmCostUsd = work.llmCostUsd,
+                )
             }
         } catch (e: Exception) {
             logger.error("Failed to sweep expired song analysis work", e)

@@ -16,6 +16,7 @@ import com.japanese.vocabulary.song.worker.SongAnalysisStageExecutor
 import com.japanese.vocabulary.song.worker.SongAnalysisWorkCompletionService
 import com.japanese.vocabulary.song.worker.SongAnalysisWorkGauges
 import com.japanese.vocabulary.song.worker.SongAnalysisWorkListener
+import com.japanese.vocabulary.song.worker.SongAnalysisWorkMetrics
 import com.japanese.vocabulary.song.worker.SongAnalysisWorkSweeper
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
@@ -39,5 +40,6 @@ import org.springframework.context.annotation.Import
     SongAnalysisSongCreator::class,
     SongAnalysisWorkSweeper::class,
     SongAnalysisWorkGauges::class,
+    SongAnalysisWorkMetrics::class,
 )
 class WorkerLocalConfiguration

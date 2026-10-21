@@ -320,6 +320,24 @@ fi
 STEP_START=$SECONDS
 echo "[apply] infra (mysql + redis + rabbitmq)..."
 envsubst < "$K8S_DIR/mysql/secret.template.yaml" | kubectl apply -n "$NS" -f -
+if [[ "$DEPLOY_ENV" == "prod" ]]; then
+  # 조회 오류를 '없음'으로 읽어 새로 만들면 MySQL 계정 비밀번호와 어긋나므로 NotFound 일 때만 만든다.
+  # 대입으로 받아야 kubectl 오류에서 set -e 가 멈춘다 ([[ ]] 안의 치환은 실패를 삼킨다).
+  MYSQL_EXPORTER_SECRET="$(kubectl get secret mysql-exporter -n "$NS" --ignore-not-found -o name)"
+  if [[ -z "$MYSQL_EXPORTER_SECRET" ]]; then
+    MYSQL_EXPORTER_PASSWORD="$(openssl rand -hex 24)"
+    printf '%s' "$MYSQL_EXPORTER_PASSWORD" \
+      | kubectl create secret generic mysql-exporter -n "$NS" --from-file=password=/dev/stdin \
+          --dry-run=client -o yaml \
+      | kubectl apply -f -
+  else
+    MYSQL_EXPORTER_PASSWORD="$(kubectl get secret mysql-exporter -n "$NS" -o jsonpath='{.data.password}' | base64 -d)"
+    if [[ -z "$MYSQL_EXPORTER_PASSWORD" ]]; then
+      echo "Error: Secret mysql-exporter has no password key" >&2
+      exit 1
+    fi
+  fi
+fi
 kubectl apply -n "$NS" -f "$K8S_DIR/mysql/statefulset.yaml"
 kubectl apply -n "$NS" -f "$K8S_DIR/mysql/service.yaml"
 kubectl apply -n "$NS" -f "$K8S_DIR/redis/"
@@ -380,6 +398,22 @@ fi
 kubectl delete job migration -n "$NS" --ignore-not-found
 envsubst < "$K8S_DIR/migration/job.yaml" | kubectl apply -n "$NS" -f -
 kubectl wait --for=condition=complete -n "$NS" job/migration --timeout=120s
+if [[ "$DEPLOY_ENV" == "prod" ]]; then
+  # MYSQL_USER 처럼 entrypoint 가 만드는 계정은 빈 datadir 첫 부팅 때만 생긴다. 이미 있는 DB 에도
+  # 들어가도록 매 배포 root 로 맞춘다. 비밀번호는 인자 대신 stdin 으로 넘긴다.
+  # exporter 는 별도 파드라 host 를 파드 대역(k3s 기본 cluster-cidr 10.42.0.0/16)으로 연다.
+  # 슬로 로그는 끈 채 둔다. Slow_queries 카운터는 로그와 무관하게 long_query_time 만 따른다.
+  echo "[mysql] ensuring exporter user + long_query_time..."
+  kubectl exec -i -n "$NS" statefulset/mysql -c mysql -- sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot' <<SQL
+CREATE USER IF NOT EXISTS 'exporter'@'10.42.%' IDENTIFIED BY '$MYSQL_EXPORTER_PASSWORD' WITH MAX_USER_CONNECTIONS 3;
+ALTER USER 'exporter'@'10.42.%' IDENTIFIED BY '$MYSQL_EXPORTER_PASSWORD' WITH MAX_USER_CONNECTIONS 3;
+GRANT PROCESS, REPLICATION CLIENT ON *.* TO 'exporter'@'10.42.%';
+GRANT SELECT ON performance_schema.* TO 'exporter'@'10.42.%';
+SET PERSIST long_query_time = 1;
+SQL
+  unset MYSQL_EXPORTER_PASSWORD
+  kubectl apply -n "$NS" -f "$K8S_DIR/mysql/exporter.yaml"
+fi
 echo "  → $((SECONDS - STEP_START))s"
 
 STEP_START=$SECONDS
@@ -447,7 +481,8 @@ else
   envsubst < "$K8S_DIR/admin-web/ingress.yaml" | kubectl apply -n "$NS" -f -
 fi
 
-for sm in "$K8S_DIR/api/servicemonitor.yaml" "$K8S_DIR/worker/servicemonitor.yaml" "$K8S_DIR/admin-api/servicemonitor.yaml"; do
+for sm in "$K8S_DIR/api/servicemonitor.yaml" "$K8S_DIR/worker/servicemonitor.yaml" "$K8S_DIR/admin-api/servicemonitor.yaml" \
+  "$K8S_DIR/mysql/servicemonitor.yaml" "$K8S_DIR/rabbitmq/servicemonitor.yaml"; do
   [[ -f "$sm" ]] && kubectl apply -n "$NS" -f "$sm"
 done
 echo "  → $((SECONDS - STEP_START))s"

@@ -6,6 +6,7 @@ import com.japanese.vocabulary.common.retry.ExponentialBackoff
 import com.japanese.vocabulary.common.retry.TransientHttpErrors
 import com.japanese.vocabulary.common.retry.currentRetryDeadline
 import com.japanese.vocabulary.observability.MetricNames
+import com.japanese.vocabulary.translation.client.LlmCostMeter
 import com.japanese.vocabulary.translation.client.gemini.dto.SegLineDto
 import com.japanese.vocabulary.translation.client.gemini.dto.SenseTranslationDto
 import com.japanese.vocabulary.translation.client.gemini.dto.TranslationResultDto
@@ -44,6 +45,7 @@ class GeminiClient(
     private val objectMapper: ObjectMapper,
     private val meterRegistry: MeterRegistry,
     private val geminiCallLogger: GeminiCallLogger,
+    private val llmCostMeter: LlmCostMeter,
 ) {
     private val logger = LoggerFactory.getLogger(GeminiClient::class.java)
     private val backoff = ExponentialBackoff(maxAttempts, initialBackoff)
@@ -199,7 +201,7 @@ class GeminiClient(
                 ?: throw RuntimeException("Empty response from Gemini API")
             responseJson = runCatching { objectMapper.writeValueAsString(response) }.getOrNull()
 
-            recordTokenUsage(call, model, response)
+            recordTokenUsage(call, model, context, response)
             GeminiResponseGuard.verifyComplete(call, model, response, maxOutputTokens)
 
             val text = extractText(response)
@@ -218,6 +220,7 @@ class GeminiClient(
                 Timer.builder(MetricNames.GEMINI_CALL_DURATION)
                     .tag("call", call)
                     .tag("model", model)
+                    .tag("stage", context.stage ?: "none")
                     .tag("outcome", outcome)
                     .publishPercentileHistogram()
                     .register(meterRegistry)
@@ -225,18 +228,38 @@ class GeminiClient(
         }
     }
 
-    private fun recordTokenUsage(call: String, model: String, response: Map<*, *>) {
+    /**
+     * `promptTokenCount` already includes `cachedContentTokenCount`, so the uncached remainder is billed at the
+     * input price. Thoughts are billed at the output price. `totalTokenCount` would double count, so it is not kept.
+     */
+    private fun recordTokenUsage(call: String, model: String, context: GeminiCallContext, response: Map<*, *>) {
         val usage = response["usageMetadata"] as? Map<*, *> ?: return
-        recordTokens(call, model, "prompt", (usage["promptTokenCount"] as? Number)?.toLong() ?: 0L)
-        recordTokens(call, model, "candidates", (usage["candidatesTokenCount"] as? Number)?.toLong() ?: 0L)
-        recordTokens(call, model, "total", (usage["totalTokenCount"] as? Number)?.toLong() ?: 0L)
+        fun count(key: String) = (usage[key] as? Number)?.toLong() ?: 0L
+        val prompt = count("promptTokenCount")
+        val candidates = count("candidatesTokenCount")
+        val thoughts = count("thoughtsTokenCount")
+        val cached = count("cachedContentTokenCount")
+        recordTokens(call, model, context, "prompt", prompt)
+        recordTokens(call, model, context, "candidates", candidates)
+        recordTokens(call, model, context, "thoughts", thoughts)
+        recordTokens(call, model, context, "cached", cached)
+        llmCostMeter.record(
+            provider = "gemini",
+            call = call,
+            model = model,
+            context = context,
+            inputTokens = (prompt - cached).coerceAtLeast(0),
+            outputTokens = candidates + thoughts,
+            cachedInputTokens = cached,
+        )
     }
 
-    private fun recordTokens(call: String, model: String, kind: String, count: Long) {
+    private fun recordTokens(call: String, model: String, context: GeminiCallContext, kind: String, count: Long) {
         if (count <= 0) return
         Counter.builder(MetricNames.GEMINI_TOKENS)
             .tag("call", call)
             .tag("model", model)
+            .tag("stage", context.stage ?: "none")
             .tag("kind", kind)
             .register(meterRegistry)
             .increment(count.toDouble())
