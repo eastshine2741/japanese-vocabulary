@@ -17,6 +17,9 @@ decide who gets what: `batch` (streak reminder CronJob), `worker` (analysis-comp
   app renders it from `data.title` / `data.body`; iOS still gets a visible APNs alert. The 23:00 slot
   also carries `data.expiresAt` (epoch ms of the next 04:00 KST) for the client countdown. Titles
   call the user by `users.name` (NOT NULL, `사용자` when left blank).
+- Permission: the app never asks at launch or login; those only register the token when permission is
+  already granted. It asks from the streak celebration CTA (re-asked 3 days after "다음에") and the karaoke
+  new-songs toggle.
 - Client rendering: `app-rn/modules/streak-notification` (local Expo module, Android only) draws every
   streak reminder with colored title and body (red with a countdown, green without — dark green on a light shade, bright green in system dark mode). With
   `expiresAt` it adds a count-down chronometer until then and removes the notification at that point.

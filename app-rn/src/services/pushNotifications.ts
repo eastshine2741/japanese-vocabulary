@@ -18,6 +18,7 @@ import { navigate } from '../navigation/navigationRef';
 import { findSongCard } from '../components/rewardCards/cardKinds';
 import { useAuthStore } from '../stores/authStore';
 import { useRewardCardStore } from '../stores/rewardCardStore';
+import { preferenceStorage } from '../utils/preferenceStorage';
 import {
   addStreakPressListener,
   consumeInitialStreakPress,
@@ -70,9 +71,35 @@ async function requestPermission(): Promise<boolean> {
   }
 }
 
-export async function requestPermissionAndRegisterToken(): Promise<void> {
+/** 앱 시작·로그인 때. 권한은 여기서 묻지 않고, 이미 허용된 기기만 토큰을 올린다. */
+export async function registerTokenIfPermitted(): Promise<void> {
   if (!FIREBASE_ENABLED) return;
-  if (await requestPermission()) await registerToken();
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status === 'granted') await registerToken();
+  } catch {
+    // ignore — 권한을 못 읽으면 다음 기회에 묻는다
+  }
+}
+
+/** 축하 화면은 매일 뜨므로 "다음에" 직후 다시 물으면 거절이 굳는다. 사흘 쉬고 다시 묻는다. */
+const STREAK_REMINDER_ASK_SNOOZE_MS = 3 * 24 * 60 * 60 * 1000;
+
+/** 연속 학습 축하 화면에서 알림을 물을지. OS 가 다이얼로그를 더 띄우지 않으면 묻지 않는다. */
+export async function shouldAskStreakReminderPermission(): Promise<boolean> {
+  if (!FIREBASE_ENABLED || Platform.OS === 'web') return false;
+  try {
+    const { status, canAskAgain } = await Notifications.getPermissionsAsync();
+    if (status === 'granted' || !canAskAgain) return false;
+    const snoozedAt = await preferenceStorage.getStreakReminderAskSnoozedAt();
+    return snoozedAt === null || Date.now() - snoozedAt >= STREAK_REMINDER_ASK_SNOOZE_MS;
+  } catch {
+    return false;
+  }
+}
+
+export function snoozeStreakReminderAsk(): void {
+  preferenceStorage.saveStreakReminderAskSnoozedAt(Date.now()).catch(() => {});
 }
 
 async function registerToken(): Promise<void> {
