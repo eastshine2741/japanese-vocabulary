@@ -41,7 +41,7 @@ import { ScreenViewParams, setAnalyticsUserId, trackScreenView } from './src/ser
 import { initBaseURL } from './src/api/client';
 import { useSettingsStore } from './src/stores/settingsStore';
 import SplashScreen from './src/screens/SplashScreen';
-import { registerNotificationHandlers, requestPermissionAndRegisterToken } from './src/services/pushNotifications';
+import { registerNotificationHandlers, registerTokenIfPermitted } from './src/services/pushNotifications';
 import { applyGlobalTypography } from './src/theme/typography';
 import { useHomeChromeStore } from './src/stores/homeChromeStore';
 import { useAndroidNavigationBarStyle } from './src/hooks/useAndroidNavigationBarStyle';
@@ -163,7 +163,7 @@ function App() {
         setAnalyticsUserId(valid ? getJwtUserId(token!) : null);
         if (valid) {
           useSettingsStore.getState().loadSettings();
-          requestPermissionAndRegisterToken();
+          registerTokenIfPermitted();
         }
         setInitialRoute(valid ? 'Main' : 'Login');
       });

@@ -5,10 +5,16 @@ import * as SecureStore from 'expo-secure-store';
 // 앱에 별도 key-value 저장소가 없어 tokenStorage 와 같은 백엔드를 쓴다.
 const ANALYSIS_PILL_DOCK_KEY = 'analysis_pill_dock';
 const CARD_WEAR_INTRO_SEEN_KEY = 'card_wear_intro_seen';
+const STREAK_REMINDER_ASK_SNOOZED_AT_KEY = 'streak_reminder_ask_snoozed_at';
 
 export type AnalysisPillDock = 'top' | 'bottom';
 
 const isDock = (value: string | null): value is AnalysisPillDock => value === 'top' || value === 'bottom';
+
+const toEpochMs = (value: string | null): number | null => {
+  const n = Number(value);
+  return value && Number.isFinite(n) ? n : null;
+};
 
 export const preferenceStorage = Platform.OS === 'web'
   ? {
@@ -25,6 +31,12 @@ export const preferenceStorage = Platform.OS === 'web'
       async saveCardWearIntroSeen(): Promise<void> {
         localStorage.setItem(CARD_WEAR_INTRO_SEEN_KEY, '1');
       },
+      async getStreakReminderAskSnoozedAt(): Promise<number | null> {
+        return toEpochMs(localStorage.getItem(STREAK_REMINDER_ASK_SNOOZED_AT_KEY));
+      },
+      async saveStreakReminderAskSnoozedAt(epochMs: number): Promise<void> {
+        localStorage.setItem(STREAK_REMINDER_ASK_SNOOZED_AT_KEY, String(epochMs));
+      },
     }
   : {
       async getAnalysisPillDock(): Promise<AnalysisPillDock | null> {
@@ -39,5 +51,11 @@ export const preferenceStorage = Platform.OS === 'web'
       },
       async saveCardWearIntroSeen(): Promise<void> {
         await SecureStore.setItemAsync(CARD_WEAR_INTRO_SEEN_KEY, '1');
+      },
+      async getStreakReminderAskSnoozedAt(): Promise<number | null> {
+        return toEpochMs(await SecureStore.getItemAsync(STREAK_REMINDER_ASK_SNOOZED_AT_KEY));
+      },
+      async saveStreakReminderAskSnoozedAt(epochMs: number): Promise<void> {
+        await SecureStore.setItemAsync(STREAK_REMINDER_ASK_SNOOZED_AT_KEY, String(epochMs));
       },
     };
