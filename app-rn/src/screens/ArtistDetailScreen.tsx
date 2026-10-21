@@ -343,11 +343,7 @@ export default function ArtistDetailScreen({ navigation, route }: Props) {
         if (!navigation.isFocused()) return;
         navigation.navigate('SongDetail', { songId: state.studyData?.song.id, origin: 'artist_detail' });
       } else if (state.status === 'error') {
-        setErrorDialogMessage(
-          state.errorCode === 'LYRICS_NOT_FOUND'
-            ? `${song.title}의 가사를 찾을 수 없었어요.`
-            : getErrorMessage(state.errorCode),
-        );
+        setErrorDialogMessage(getErrorMessage(state.errorCode));
       }
     });
   }, [analyze, navigation, isChecking]);

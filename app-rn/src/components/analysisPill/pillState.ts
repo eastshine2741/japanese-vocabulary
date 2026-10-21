@@ -43,12 +43,15 @@ export const PILL_TITLE = {
   failed: '분석에 실패했어요',
 } as const;
 
+// 가사 미발견은 다시 시도해도 같은 결과라 재시도 대신 지원 확대를 알린다. 부제 한 줄(약 164px)을 다 써서 곡명은 뺀다.
+export const LYRICS_NOT_FOUND_TITLE = '가사를 찾지 못했어요';
+export const LYRICS_NOT_FOUND_NOTE = '빠르게 서비스를 확대하겠습니다';
+
 /** 탭이 곧바로 songDetail 로 가는 완료 pill 의 부제. 곡명 뒤에 붙여 알린다. */
 export const STUDY_HINT_NOTE = ' · 탭해서 학습 시작';
 
 // 실패 pill 부제에 들어가는 짧은 사유. 전체 문장은 errorMessages 에 있지만 pill 한 줄엔 안 맞는다.
 const FAILURE_REASON: Record<string, string> = {
-  LYRICS_NOT_FOUND: '가사를 찾지 못했어요',
   SONG_ANALYSIS_WORK_TIMEOUT: '시간이 너무 오래 걸렸어요',
 };
 const DEFAULT_FAILURE_REASON = '잠시 후 다시 시도해주세요';
@@ -61,17 +64,20 @@ const restNote = (jobs: AnalysisJob[]) => (jobs.length > 1 ? ` 외 ${jobs.length
 
 const byLatestSettled = (a: AnalysisJob, b: AnalysisJob) => (b.settledAt ?? 0) - (a.settledAt ?? 0);
 
-const failedState = (job: AnalysisJob): PillState => ({
-  tone: 'failed',
-  title: PILL_TITLE.failed,
-  song: job.title,
-  note: ` · ${failureReason(job.errorCode)}`,
-  arts: [job.artworkUrl],
-  expandable: false,
-  tapSongId: null,
-  dismissWorkId: job.workId,
-  studyHint: false,
-});
+const failedState = (job: AnalysisJob): PillState => {
+  const lyricsNotFound = job.errorCode === 'LYRICS_NOT_FOUND';
+  return {
+    tone: 'failed',
+    title: lyricsNotFound ? LYRICS_NOT_FOUND_TITLE : PILL_TITLE.failed,
+    song: lyricsNotFound ? null : job.title,
+    note: lyricsNotFound ? LYRICS_NOT_FOUND_NOTE : ` · ${failureReason(job.errorCode)}`,
+    arts: [job.artworkUrl],
+    expandable: false,
+    tapSongId: null,
+    dismissWorkId: job.workId,
+    studyHint: false,
+  };
+};
 
 /** spec/AnalyzingPill 의 상태 5개를 진행 중인 작업 목록에서 계산한다. */
 export function derivePillState(jobs: AnalysisJob[]): PillState | null {
