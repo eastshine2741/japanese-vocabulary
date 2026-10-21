@@ -14,7 +14,7 @@ kubectl --context kotonoha-prod -n kotonoha exec -i mysql-0 -- \
   sh -c 'mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"' < query.sql
 ```
 
-운영자 계정(`users.id = 1`)은 항상 제외한다. 스트릭은 freeze 규칙 때문에 `date_kst` 를 직접 세지 말고 `StreakCalculator` 를 쓴다.
+운영자 계정(`users.id IN (1, 32)`)은 항상 제외한다. 스트릭은 freeze 규칙 때문에 `date_kst` 를 직접 세지 말고 `StreakCalculator` 를 쓴다.
 
 ```sql
 -- D1 / D7 리텐션 (가입일 코호트별)
@@ -32,7 +32,7 @@ LEFT JOIN daily_study_summary d7
   ON d7.user_id = u.id
  AND d7.date_kst = DATE(CONVERT_TZ(u.created_at, '+00:00', '+09:00')) + INTERVAL 7 DAY
  AND d7.review_count > 0
-WHERE u.id <> 1
+WHERE u.id NOT IN (1, 32)
 GROUP BY cohort
 ORDER BY cohort;
 ```
@@ -41,7 +41,7 @@ ORDER BY cohort;
 -- 주간 활성 복습 유저
 SELECT YEARWEEK(date_kst, 3) AS iso_week, COUNT(DISTINCT user_id) AS active_reviewers
 FROM daily_study_summary
-WHERE review_count > 0 AND user_id <> 1
+WHERE review_count > 0 AND user_id NOT IN (1, 32)
 GROUP BY iso_week
 ORDER BY iso_week;
 ```
@@ -56,7 +56,14 @@ SongDetail `screen_view` 에는 `song_id`, `origin`(진입 경로) 파라미터�
 - `ga_session_id` 가 빠진 `screen_view` 가 있어(약 13%) 세션이 아니라 `user_pseudo_id` 로 묶고 30분 상한으로 자른다.
 
 ```sql
-WITH events AS (
+WITH excluded AS (  -- 운영자 설치·스토어 테스트 기기 (해석 주의 참고)
+  SELECT DISTINCT user_pseudo_id
+  FROM `japanese-vocabulary-490916.analytics_539684755.events_*`
+  WHERE user_id IN ('1', '32')
+     OR device.mobile_model_name = 'IN2025'
+     OR (app_info.install_source = 'manual_install' AND device.mobile_brand_name IS NULL)
+),
+events AS (
   SELECT
     user_pseudo_id,
     (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'firebase_screen') AS screen,
@@ -64,7 +71,7 @@ WITH events AS (
   FROM `japanese-vocabulary-490916.analytics_539684755.events_*`
   WHERE event_name = 'screen_view'
     AND app_info.id = 'dev.eastshine.kotonoha'
-    AND COALESCE(user_id, '') <> '1'
+    AND user_pseudo_id NOT IN (SELECT user_pseudo_id FROM excluded)
 ),
 spans AS (
   SELECT
@@ -98,6 +105,11 @@ WHERE screen = 'SongDetail'
 
 ## 해석 주의
 
+- **스토어 자동 테스트 기기는 빼고 센다.** Play 에 빌드(rc 포함, 내부 테스트 트랙)를 올릴 때마다 사전 출시 보고서 로봇이 새 설치로 찍히고 로그인 화면을 수십 번 오가, 설치·로그인 이탈이 두 배로 부풀었다.
+  - Android: `device.mobile_model_name = 'IN2025'`(Play 설치, 위치 없음, 업로드 날에 몰림), `app_info.install_source = 'manual_install' AND device.mobile_brand_name IS NULL`(미국, Google 테스트 환경)
+  - iOS 심사: 위치가 San Jose·Santa Clara 등 실리콘밸리인 iPad·iPhone 이 로그인 화면만 보고 나간다. 기기 키로는 못 거르니 이탈 수가 작을 땐 눈으로 확인한다.
+- **운영자는 이벤트가 아니라 설치 단위로 뺀다.** 운영자는 빌드마다 재설치해 로그인 전 이벤트가 `user_id` 없이 남는다. `user_id IN ('1','32')` 가 한 번이라도 찍힌 `user_pseudo_id` 를 통째로 빼지 않으면 "로그인 화면에서 나간 신규"로 잡힌다.
+- **재설치는 새 유저가 아니다.** GA `user_pseudo_id` 는 설치마다 바뀐다. `first_open` 의 `previous_first_open_count > 0` 이면 같은 기기 재설치다.
 - `song_analyze_result` 는 **앱이 본 결과**다. 유저가 기다리지 않고 나가면 유실되므로 `song_analysis_work` 와 수가 다르다. 그 차이가 이 이벤트를 남기는 이유다.
 - GA4 `user_id` 는 `users.id`. DB 지표와 같은 키로 조인한다.
 - dev/prod 는 Firebase 프로젝트를 공유하고 패키지명으로 스트림이 갈린다. 분석은 prod 스트림(`dev.eastshine.kotonoha`)만 본다.
