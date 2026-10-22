@@ -186,7 +186,7 @@ export default function SettingsScreen() {
           <View style={styles.row}>
             <View style={styles.rowText}>
               <Text style={styles.label}>진동 반응</Text>
-              <Text style={styles.description}>가사를 넘기거나 카드를 열 때 진동이 울려요.</Text>
+              <Text style={styles.description}>카드를 학습하거나 가사를 넘길 때 진동이 울려요.</Text>
             </View>
             <Switch
               value={hapticsEnabled}
