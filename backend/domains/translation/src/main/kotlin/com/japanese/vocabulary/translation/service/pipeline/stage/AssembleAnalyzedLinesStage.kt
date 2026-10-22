@@ -2,6 +2,7 @@ package com.japanese.vocabulary.translation.service.pipeline.stage
 
 import com.japanese.vocabulary.song.model.AnalyzedLine
 import com.japanese.vocabulary.song.model.PartOfSpeech
+import com.japanese.vocabulary.song.model.SungReading
 import com.japanese.vocabulary.song.model.Token
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
 import com.japanese.vocabulary.translation.model.AssembleAnalyzedLinesInput
@@ -26,6 +27,7 @@ class AssembleAnalyzedLinesStage : PipelineStage<AssembleAnalyzedLinesInput, Lis
                 index = line.index,
                 koreanLyrics = input.translationMap[line.index]?.koreanLyrics,
                 tokens = buildTokens(
+                    text = line.text,
                     tokens = tokens,
                     ruleResolvedByKey = wordPreparation.ruleResolvedByKey,
                     lexical = wordPreparation.lexical,
@@ -37,6 +39,7 @@ class AssembleAnalyzedLinesStage : PipelineStage<AssembleAnalyzedLinesInput, Lis
     }
 
     private fun buildTokens(
+        text: String,
         tokens: List<PipelineToken>,
         ruleResolvedByKey: Map<PipelineTokenKey, RuleResolvedToken>,
         lexical: LexicalResolution,
@@ -65,7 +68,7 @@ class AssembleAnalyzedLinesStage : PipelineStage<AssembleAnalyzedLinesInput, Lis
                     baseForm = rule.baseForm,
                     // Prefer the reading sung on this line: the table is keyed by headword, so a longer
                     // surface lost morae (なんだ read ダ). The table is the fallback for rewritten tokens.
-                    reading = readingFor(token.surface, rule.partOfSpeech, token.usedReading.ifBlank { rule.reading }),
+                    reading = sungReading(text, token, rule.partOfSpeech, token.usedReading.ifBlank { rule.reading }),
                     baseFormReading = rule.baseFormReading,
                     partOfSpeech = rule.partOfSpeech,
                     charStart = token.charStart,
@@ -85,8 +88,9 @@ class AssembleAnalyzedLinesStage : PipelineStage<AssembleAnalyzedLinesInput, Lis
                 baseForm = baseForm,
                 // Inflected reading from segmentation, dictionary reading from the chosen entry
                 // (行って keeps イッテ while 行く reads イク).
-                reading = readingFor(
-                    token.surface,
+                reading = sungReading(
+                    text,
+                    token,
                     partOfSpeech,
                     dictionaryReading(token, option, baseForm) ?: token.usedReading.ifBlank { null },
                 ),
@@ -115,16 +119,9 @@ class AssembleAnalyzedLinesStage : PipelineStage<AssembleAnalyzedLinesInput, Lis
         return reading.takeUnless { JapaneseText.readingsAgree(it, token.usedReading) }
     }
 
-    /**
-     * [reading], with a particle's spelling corrected to what is sung (the model answers ワ for は
-     * only ~3 times in 4). には and とは (expressions) and それでは (conjunction) are corrected too.
-     */
-    private fun readingFor(surface: String, partOfSpeech: PartOfSpeech, reading: String?): String? =
-        when (partOfSpeech) {
-            PartOfSpeech.PARTICLE -> JapaneseText.particleReading(surface) ?: reading
-            PartOfSpeech.EXPRESSION, PartOfSpeech.CONJUNCTION -> JapaneseText.trailingTopicReading(surface) ?: reading
-            else -> reading
-        }
+    /** The model answers ワ for a sung は only ~3 times in 4, so the spelling is corrected here. */
+    private fun sungReading(text: String, token: PipelineToken, partOfSpeech: PartOfSpeech, reading: String?): String? =
+        SungReading.of(token.surface, partOfSpeech, reading, text.getOrNull(token.charStart - 1))
 
     /**
      * jisho jlpt is an entry-level array (e.g. ["jlpt-n1","jlpt-n5"]); reduce to the EASIEST level

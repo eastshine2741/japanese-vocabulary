@@ -123,6 +123,11 @@ describe('convertLineReading — a long vowel belongs to one word, so conversion
       .toBe('테이루');
   });
 
+  it('finds the inflection of a verb whose final は is stored as sung', () => {
+    expect(convertLineReading('探していたのは', [token('探していたのは', 'サガシテイタノワ', 0, 'VERB')], 'KOREAN'))
+      .toBe('사가시테이타노와');
+  });
+
   it('still marks the long vowel in the kanji part of a verb', () => {
     expect(convertLineReading('制する', [token('制する', 'セイスル', 0, 'VERB')], 'KOREAN')).toBe('세-스루');
     expect(convertLineReading('先生', [token('先生', 'センセイ', 0, 'NOUN')], 'KOREAN')).toBe('센세-');

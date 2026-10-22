@@ -105,37 +105,6 @@ class JapaneseTextTest {
         assertThat(JapaneseText.isKatakanaOnly("Hip hop")).isFalse
     }
 
-    /** は is written ハ and sung ワ — the one place transliterating the surface is not enough. */
-    @Test
-    fun `reads a particle as it is sung`() {
-        assertThat(JapaneseText.particleReading("は")).isEqualTo("ワ")
-        assertThat(JapaneseText.particleReading("へ")).isEqualTo("エ")
-        assertThat(JapaneseText.particleReading("には")).isEqualTo("ニワ")
-        assertThat(JapaneseText.particleReading("までは")).isEqualTo("マデワ")
-        assertThat(JapaneseText.particleReading("へと")).isEqualTo("エト")
-    }
-
-    /** Null means "transliteration already has it right", so the caller keeps the reading it holds. */
-    @Test
-    fun `leaves a particle whose spelling is already its reading`() {
-        assertThat(JapaneseText.particleReading("を")).isNull() // ヲ and オ both read 오
-        assertThat(JapaneseText.particleReading("が")).isNull()
-        assertThat(JapaneseText.particleReading("って")).isNull()
-        assertThat(JapaneseText.particleReading("猫は")).isNull() // not kana, so it has no reading here
-        assertThat(JapaneseText.particleReading("")).isNull()
-    }
-
-    /** には is tagged an expression, and only its last は is the particle: はじめまして keeps its ハ. */
-    @Test
-    fun `reads the topic particle at the end of an expression as it is sung`() {
-        assertThat(JapaneseText.trailingTopicReading("には")).isEqualTo("ニワ")
-        assertThat(JapaneseText.trailingTopicReading("とは")).isEqualTo("トワ")
-        assertThat(JapaneseText.trailingTopicReading("それでは")).isEqualTo("ソレデワ")
-        assertThat(JapaneseText.trailingTopicReading("はじめまして")).isNull()
-        assertThat(JapaneseText.trailingTopicReading("としても")).isNull()
-        assertThat(JapaneseText.trailingTopicReading("私は")).isNull()
-    }
-
     /** ハァ and ハア are one reading written two ways, so neither corrects the other. */
     @Test
     fun `tells a small-kana spelling apart from a different reading`() {

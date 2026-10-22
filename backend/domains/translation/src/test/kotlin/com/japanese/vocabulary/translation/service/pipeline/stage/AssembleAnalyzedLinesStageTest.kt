@@ -166,6 +166,19 @@ class AssembleAnalyzedLinesStageTest {
     }
 
     @Test
+    fun `reads a counter 時 by the character before it in the line`(): Unit = runBlocking {
+        val raw = "8時過ぎ"
+        val tokens = listOf(
+            token(raw, "時", "時", "トキ", "トキ"),
+            token(raw, "過ぎ", "過ぎる", "スギ", "スギル"),
+        )
+
+        val line = assemble(raw, tokens).single()
+
+        assertThat(line.tokens.map { it.reading }).containsExactly("ジ", "スギ")
+    }
+
+    @Test
     fun `takes the dictionary reading when the surface is the dictionary form`(): Unit = runBlocking {
         // The model misreads a word jisho spells out on the same token: 痛々しい is イタイタシイ.
         val raw = "痛々しい"
