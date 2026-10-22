@@ -22,8 +22,8 @@ object SungReading {
     /** The app has no Hangul for these, so a surface spelled with them keeps the model's reading. */
     private const val ARCHAIC_KANA = "ゎゐゑゕゖヮヰヱヵヶヷヸヹヺ"
 
-    /** Kana words that really end in は. */
-    private val WORDS_ENDING_IN_HA = setOf("いろは", "このは", "ことのは", "あげは")
+    /** Kana words and laughter that really end in は. */
+    private val WORDS_ENDING_IN_HA = setOf("いろは", "このは", "ことのは", "あげは", "あは", "うは", "わは")
 
     /**
      * [reading] corrected to what is sung, or [reading] itself when it already is. [previousChar] is
@@ -36,7 +36,8 @@ object SungReading {
         // (まったく read マッタクト). One of the same length is kept: デワナイ, ハア, ユウ are sung so.
         val spelled = if (isModernKana(surface) && katakana.length != surface.length) toKatakana(surface) else katakana
         return when {
-            partOfSpeech == PartOfSpeech.PARTICLE && isModernKana(surface) ->
+            // Only は/へ: rewriting every particle undoes the model's ネエ for ねぇ, which converts better.
+            partOfSpeech == PartOfSpeech.PARTICLE && isModernKana(surface) && surface.any { it in PARTICLE_KANA } ->
                 surface.map { ch -> PARTICLE_KANA[ch] ?: toKatakana(ch.toString()).first() }.joinToString("")
             endsInTopicParticle(surface, partOfSpeech) && spelled.endsWith('ハ') -> spelled.dropLast(1) + 'ワ'
             surface == "時" && spelled == "トキ" && previousChar?.isDigitAnyWidth() == true -> "ジ"

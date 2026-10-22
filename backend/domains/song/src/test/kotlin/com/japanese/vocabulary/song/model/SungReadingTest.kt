@@ -25,6 +25,13 @@ class SungReadingTest {
         assertThat(sung("を", PARTICLE, "ヲ")).isEqualTo("ヲ") // ヲ and オ both read 오
     }
 
+    @Test
+    fun `keeps the model's reading of a particle with no は or へ`() {
+        assertThat(sung("ねぇ", PARTICLE, "ネエ")).isEqualTo("ネエ")
+        assertThat(sung("なぁ", PARTICLE, "ナア")).isEqualTo("ナア")
+        assertThat(sung("を", PARTICLE, "オ")).isEqualTo("オ")
+    }
+
     /** Whatever the tag, a final hiragana は is the topic particle. Only that one: はじめまして keeps ハ. */
     @Test
     fun `reads a trailing topic は as it is sung whatever the part of speech`() {
@@ -42,6 +49,7 @@ class SungReadingTest {
         assertThat(sung("あっはっは", OTHER, "アッハッハ")).isEqualTo("アッハッハ")
         assertThat(sung("ははは", OTHER, "ハハハ")).isEqualTo("ハハハ")
         assertThat(sung("あは", INTERJECTION, "アハ")).isEqualTo("アハ")
+        assertThat(sung("あは", OTHER, "アハ")).isEqualTo("アハ")
     }
 
     /** The model's reading of a kana word sometimes takes the next token's kana or loses a mora. */
