@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TextInput,
-  Pressable,
   StyleSheet,
   ActivityIndicator,
   BackHandler,
@@ -24,6 +23,7 @@ import { authApi, UsernameAvailabilityReason } from '../api/authApi';
 import { TOS_URL, PRIVACY_URL } from '../config/legal';
 import { Colors } from '../theme/theme';
 import { AppBar } from '../components/AppBar';
+import { Button } from '../components/ui';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { consumePendingShareLink } from '../services/shareLinkHandler';
 
@@ -261,24 +261,13 @@ export default function SignupScreen({ navigation, route }: Props) {
 
         <View style={styles.footer}>
           {error && status === 'error' && <Text style={styles.error}>{error}</Text>}
-          <Pressable
+          <Button
+            label="Kotonoha 시작하기"
+            size="lg"
             onPress={handleSubmit}
             disabled={!canSubmit}
-            style={({ pressed }) => [
-              styles.submitBtn,
-              !canSubmit && styles.submitBtnDisabled,
-              pressed && canSubmit && styles.submitBtnPressed,
-            ]}
-          >
-            {submitting ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <>
-                <Text style={styles.submitLabel}>Kotonoha 시작하기</Text>
-                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
-              </>
-            )}
-          </Pressable>
+            loading={submitting}
+          />
 
           <View style={styles.terms}>
             <Text style={styles.termsLine}>계속 진행하면 다음 사항에 동의하는 것입니다</Text>
@@ -358,23 +347,6 @@ const styles = StyleSheet.create({
   footer: { paddingHorizontal: 24, paddingBottom: 40, paddingTop: 8, gap: 14 },
   error: { color: Colors.ratingAgain, textAlign: 'center', fontSize: 13 },
 
-  submitBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    height: 54,
-    borderRadius: 9999,
-    backgroundColor: Colors.primary,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  submitBtnDisabled: { backgroundColor: Colors.border, shadowOpacity: 0, elevation: 0 },
-  submitBtnPressed: { opacity: 0.9 },
-  submitLabel: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
 
   terms: { alignItems: 'center', marginTop: 6 },
   termsLine: { fontSize: 12, color: Colors.textMuted, textAlign: 'center' },

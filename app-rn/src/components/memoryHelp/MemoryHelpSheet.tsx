@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
-import { BackHandler, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { BackHandler, StyleSheet, Text, View } from 'react-native';
 import { AppBottomSheetModal, AppBottomSheetModalRef, AppBottomSheetView } from '../bottomSheet';
 import { Colors } from '../../theme/theme';
 import { Typography } from '../../theme/typography';
+import { Button, SheetHeader } from '../ui';
 
 export interface MemoryHelpSheetRef {
   present: () => void;
@@ -74,7 +75,7 @@ export const MemoryHelpSheet = React.memo(
         <AppBottomSheetView>
           <View style={styles.container}>
             <View style={styles.body}>
-              <Text style={styles.title}>장기기억과 단기기억</Text>
+              <SheetHeader title="장기기억과 단기기억" />
               <View style={styles.items}>
                 {HELP_ITEMS.map(item => (
                   <View key={item.title} style={styles.item}>
@@ -98,15 +99,7 @@ export const MemoryHelpSheet = React.memo(
             </View>
 
             <View style={styles.ctaWrap}>
-              <TouchableOpacity
-                style={styles.confirmButton}
-                onPress={handleClose}
-                activeOpacity={0.85}
-                accessibilityRole="button"
-                accessibilityLabel="확인"
-              >
-                <Text style={styles.confirmLabel}>확인</Text>
-              </TouchableOpacity>
+              <Button label="확인" onPress={handleClose} />
             </View>
           </View>
         </AppBottomSheetView>
@@ -123,12 +116,6 @@ const styles = StyleSheet.create({
     gap: 20,
     paddingHorizontal: 24,
     paddingBottom: 4,
-  },
-  title: {
-    ...Typography.headingBold,
-    color: Colors.textPrimary,
-    fontSize: 20,
-    lineHeight: 26,
   },
   items: {
     gap: 14,
@@ -195,17 +182,5 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingHorizontal: 24,
     paddingBottom: 28,
-  },
-  confirmButton: {
-    height: 48,
-    borderRadius: 9999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.primary,
-  },
-  confirmLabel: {
-    ...Typography.bodySemiBold,
-    color: '#FFFFFF',
-    fontSize: 14,
   },
 });
