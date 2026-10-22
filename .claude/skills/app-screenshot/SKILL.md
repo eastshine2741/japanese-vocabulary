@@ -9,16 +9,21 @@ description: app-rn 프론트엔드 작업 결과를 expo web + Playwright 로 �
 
 ## 1. 웹 서버
 
-워크트리의 `app-rn/` 에서, 유저가 쓰는 서버와 겹치지 않는 포트(예: 8093)로 백그라운드 실행한다.
+여러 워크트리가 동시에 찍으므로 포트를 고정하지 않는다. 이 워크트리 `app-rn/` 에서 뜬 서버가 있으면 그 포트를 쓰고, 없으면 빈 포트를 골라 백그라운드로 띄운다.
 
 ```bash
-EXPO_PUBLIC_FIREBASE_DISABLED=1 BROWSER=none npx expo start --web --port 8093 < /dev/null > <scratchpad>/expo.log 2>&1
+# 이 워크트리 서버 찾기: 비어 있지 않으면 그 포트를 쓴다
+for pid in $(ss -ltnp | grep -o 'pid=[0-9]*' | cut -d= -f2 | sort -u); do
+  [ "$(readlink /proc/$pid/cwd)" = "$PWD" ] && ss -ltnp | grep "pid=$pid," | grep -o ':80[0-9][0-9] ' ; done
+# 없으면 빈 포트로 띄운다
+PORT=$(for p in $(seq 8090 8199); do ss -ltn | grep -q ":$p " || { echo $p; break; }; done)
+EXPO_PUBLIC_FIREBASE_DISABLED=1 BROWSER=none npx expo start --web --port $PORT < /dev/null > <scratchpad>/expo.log 2>&1
 ```
 
 - `EXPO_PUBLIC_FIREBASE_DISABLED=1` 이 없으면 `No Firebase App '[DEFAULT]'` 로 하얀 화면만 나온다.
 - `CI=1` 을 붙이지 않는다. Metro 가 파일 감시를 끄고 옛 번들을 계속 준다.
-- 준비는 로그의 `Waiting on http://localhost:8093` 로 판단한다.
-- 서버를 끌 때 `pkill -f "expo start ..."` 는 그 명령을 돌리는 셸까지 죽인다. `ss -ltnp | grep :8093` 으로 pid 를 찾아 kill 한다.
+- 준비는 로그의 `Waiting on http://localhost:<PORT>` 로 판단한다.
+- 서버를 끌 때 `pkill -f "expo start ..."` 는 그 명령을 돌리는 셸까지 죽인다. `ss -ltnp | grep :<PORT>` 로 pid 를 찾아 kill 한다. 다른 워크트리의 서버는 끄지 않는다.
 
 ## 2. 로그인
 
@@ -39,7 +44,7 @@ async (page) => {
   await page.setViewportSize({ width: 390, height: 844 });
   // 필요할 때만: dev DB 에 없는 상태는 응답만 가짜로 준다. DB 는 고치지 않는다.
   await page.route('**/api/reward-cards/pending', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ reveals: [] }) }));
-  await page.goto('http://localhost:8093');
+  await page.goto('http://localhost:<PORT>');
   await page.evaluate((t) => {
     localStorage.setItem('jwt_token', t);
     localStorage.setItem('user_name', '<name>');
@@ -51,6 +56,7 @@ async (page) => {
 }
 ```
 
+- Playwright MCP 는 `--isolated` 로 등록돼 있어야 세션마다 따로 브라우저를 띄운다. `Browser is already in use` 가 나면 등록에서 빠진 것이니 `claude mcp get playwright` 로 확인한다. 브라우저를 닫으면 localStorage 가 사라지니 매번 토큰을 넣는다.
 - 저장 경로는 워크트리 안이어야 한다(Playwright MCP 가 그 밖은 막는다). `.playwright-mcp/` 에 둔다.
 - 부분만 볼 땐 `clip`, 세밀하게 볼 땐 `scale: 'device'`.
 - 애니메이션은 짧은 간격으로 여러 장 찍어 md5 로 프레임이 바뀌는지 본다.
