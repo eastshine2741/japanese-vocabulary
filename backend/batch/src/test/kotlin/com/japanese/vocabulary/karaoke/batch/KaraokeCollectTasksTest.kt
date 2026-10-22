@@ -39,7 +39,7 @@ import java.time.YearMonth
 import java.util.concurrent.atomic.AtomicLong
 
 @TestPropertySource(properties = ["push.firebase.enabled=true"])
-class KaraokeCollectTaskTest : BatchBaseIntegrationTest() {
+class KaraokeCollectTasksTest : BatchBaseIntegrationTest() {
 
     @MockkBean private lateinit var firebaseApp: FirebaseApp
     @MockkBean private lateinit var tjClient: TjClient
@@ -47,7 +47,8 @@ class KaraokeCollectTaskTest : BatchBaseIntegrationTest() {
     @MockkBean private lateinit var appleMusicClient: AppleMusicClient
     @MockkBean(relaxed = true) private lateinit var queuePublisher: SongAnalysisWorkQueuePublisher
 
-    @Autowired private lateinit var task: KaraokeCollectTask
+    @Autowired private lateinit var tjTask: KaraokeTjCollectTask
+    @Autowired private lateinit var kyTask: KaraokeKyCollectTask
     @Autowired private lateinit var kstClock: KstClock
 
     private lateinit var today: LocalDate
@@ -89,7 +90,7 @@ class KaraokeCollectTaskTest : BatchBaseIntegrationTest() {
         val subscriber = newUser(notifications = true)
         newUser(notifications = false)
 
-        task.run(DefaultApplicationArguments())
+        runBoth()
 
         val rows = karaokeRows()
         assertThat(rows.map { it.vendor to it.number }).containsExactlyInAnyOrder(
@@ -118,10 +119,10 @@ class KaraokeCollectTaskTest : BatchBaseIntegrationTest() {
     @Test
     fun `second run adds nothing and sends nothing`() {
         newUser(notifications = true)
-        task.run(DefaultApplicationArguments())
+        runBoth()
         sentMessages.clear()
 
-        task.run(DefaultApplicationArguments())
+        runBoth()
 
         assertThat(karaokeRows()).hasSize(4)
         assertThat(sentMessages).isEmpty()
@@ -129,12 +130,12 @@ class KaraokeCollectTaskTest : BatchBaseIntegrationTest() {
 
     @Test
     fun `follows KY to a new number band through the book and finds its neighbours missing from the book`() {
-        task.run(DefaultApplicationArguments())
+        kyTask.run(DefaultApplicationArguments())
         every { kyClient.bookNumbers() } returns setOf(57740, 57741, 57742, 51800, 60010)
         every { kyClient.song(60010) } returns ky(60010, "新しい歌", "新人", YearMonth.from(today).plusMonths(1))
         every { kyClient.song(60011) } returns ky(60011, "主題歌 (\"アニメ\"OP)", "新人", YearMonth.from(today).plusMonths(1))
 
-        task.run(DefaultApplicationArguments())
+        kyTask.run(DefaultApplicationArguments())
 
         assertThat(karaokeRows().filter { it.vendor == KaraokeVendor.KY }.map { it.number })
             .containsExactlyInAnyOrder(57740, 57741, 60010, 60011)
@@ -148,17 +149,28 @@ class KaraokeCollectTaskTest : BatchBaseIntegrationTest() {
         entityManager.clear()
         every { kyClient.song(57740) } returns null
 
-        assertThatThrownBy { task.run(DefaultApplicationArguments()) }
+        assertThatThrownBy { kyTask.run(DefaultApplicationArguments()) }
             .isInstanceOf(IllegalStateException::class.java)
             .hasMessageContaining("KY")
-        assertThat(karaokeRows().map { it.number }).contains(90170)
+    }
+
+    @Test
+    fun `a failing TJ run still notifies KY rows and fails the job`() {
+        newUser(notifications = true)
+        kyTask.run(DefaultApplicationArguments())
+        every { tjClient.newSongs(any()) } throws IllegalStateException("TJ down")
+
+        assertThatThrownBy { tjTask.run(DefaultApplicationArguments()) }.hasMessageContaining("TJ down")
+
+        assertThat(karaokeRows()).allSatisfy { assertThat(it.notifiedAt).isNotNull() }
+        assertThat(sentMessages.single().fieldValue<Map<String, String>>("data")["body"]).isEqualTo("唱를 확인해보세요")
     }
 
     @Test
     fun `backfill takes the whole TJ list and marks rows notified without sending`() {
         newUser(notifications = true)
 
-        task.run(DefaultApplicationArguments("--backfill"))
+        tjTask.run(DefaultApplicationArguments("--backfill"))
 
         val rows = karaokeRows()
         assertThat(rows.map { it.number }).contains(90100)
@@ -167,13 +179,18 @@ class KaraokeCollectTaskTest : BatchBaseIntegrationTest() {
     }
 
     @Test
-    fun `a later completed analysis is linked by the next run`() {
-        task.run(DefaultApplicationArguments())
+    fun `a later completed analysis is linked by the next KY run`() {
+        tjTask.run(DefaultApplicationArguments())
         val song = analyzedSong("夜明けの歌", "Vaundy")
 
-        task.run(DefaultApplicationArguments())
+        kyTask.run(DefaultApplicationArguments())
 
         assertThat(karaokeRows().single { it.number == 90171 }.songId).isEqualTo(song.id)
+    }
+
+    private fun runBoth() {
+        kyTask.run(DefaultApplicationArguments())
+        tjTask.run(DefaultApplicationArguments())
     }
 
     private fun ky(number: Int, title: String, artist: String, releaseMonth: YearMonth) =
