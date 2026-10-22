@@ -46,7 +46,8 @@ export const StackReviewOverlay = React.memo(function StackReviewOverlay({
         {queueTotal > 0 && (
           <View style={styles.pills} pointerEvents="none">
             {remaining && (
-              <View style={styles.counterPill}>
+              <View style={[styles.counterPill, styles.timePill]}>
+                <Feather name="clock" size={12} color="rgba(255,255,255,0.90)" />
                 <Text style={styles.counterText}>{remaining}</Text>
               </View>
             )}
@@ -97,10 +98,16 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   counterPill: {
+    justifyContent: 'center',
     paddingVertical: 7,
     paddingHorizontal: 12,
     borderRadius: 999,
     backgroundColor: 'rgba(0,0,0,0.40)',
+  },
+  timePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
   counterText: {
     color: 'rgba(255,255,255,0.90)',

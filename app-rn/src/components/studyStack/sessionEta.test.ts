@@ -20,8 +20,8 @@ describe('remainingTimeLabel', () => {
   });
 
   it('분으로 반올림하고 1분 아래는 1분으로 보여준다', () => {
-    expect(remainingTimeLabel(40, 5)).toBe('약 3분');
-    expect(remainingTimeLabel(3, 5)).toBe('약 1분');
-    expect(remainingTimeLabel(120, 10)).toBe('약 20분');
+    expect(remainingTimeLabel(40, 5)).toBe('3분');
+    expect(remainingTimeLabel(3, 5)).toBe('1분');
+    expect(remainingTimeLabel(120, 10)).toBe('20분');
   });
 });

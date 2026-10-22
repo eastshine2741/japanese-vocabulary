@@ -17,5 +17,5 @@ export function estimateSecondsPerCard(gaps: number[]): number {
 export function remainingTimeLabel(remainingCards: number, secondsPerCard: number): string | null {
   if (remainingCards <= 0) return null;
   const minutes = Math.max(1, Math.round((remainingCards * secondsPerCard) / 60));
-  return `약 ${minutes}분`;
+  return `${minutes}분`;
 }
