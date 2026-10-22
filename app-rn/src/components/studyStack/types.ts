@@ -75,4 +75,6 @@ export interface StudySessionProgress {
   progress: number;
   /** 큐 대비 진행률 0~1 (스택 카운터 바) */
   queueProgress: number;
+  /** 이 유저의 카드당 예상 초. 곡이 바뀌어도 이어서 잰다. */
+  secondsPerCard: number;
 }

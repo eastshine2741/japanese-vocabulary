@@ -249,10 +249,11 @@ export default function HomeTab() {
         position={counterPosition}
         queueTotal={counterTotal}
         queueProgress={session.queueProgress}
+        secondsPerCard={session.secondsPerCard}
         showProgress={showProgress}
       />
     </Animated.View>
-  ), [overlayStyle, counterPosition, counterTotal, session.queueProgress, showProgress]);
+  ), [overlayStyle, counterPosition, counterTotal, session.queueProgress, session.secondsPerCard, showProgress]);
 
   return (
     <View style={styles.screen} {...immersePan.panHandlers}>

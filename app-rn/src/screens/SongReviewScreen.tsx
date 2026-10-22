@@ -72,6 +72,7 @@ export default function SongReviewScreen({ navigation, route }: Props) {
       position={counterPosition}
       queueTotal={counterTotal}
       queueProgress={session.queueProgress}
+      secondsPerCard={session.secondsPerCard}
       showProgress={status === 'ready' && !isComplete}
       onBack={goBack}
     />
