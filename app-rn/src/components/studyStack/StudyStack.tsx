@@ -30,6 +30,8 @@ export interface StudyStackProps {
   /** 홈 확장 상태처럼 카드를 탭하면 immersive 로도 전환해야 하는 경우. */
   requireImmersedInteraction?: boolean;
   onRequestImmerse?: () => void;
+  /** 완주 카드의 카드 받기가 받을 곡. 없으면 모든 곡의 받을 카드. */
+  claimSongId?: number;
 }
 
 /** 크롬에 독립적인 카드 스택. 크롬은 그리지 않는다. */
@@ -44,6 +46,7 @@ export const StudyStack = React.memo(function StudyStack({
   contentInsetBottom,
   requireImmersedInteraction = false,
   onRequestImmerse,
+  claimSongId,
 }: StudyStackProps) {
   const {
     status,
@@ -148,6 +151,7 @@ export const StudyStack = React.memo(function StudyStack({
           entranceProgress={completionEntranceProgress}
           memoryDiff={memoryDiff}
           sessionReviewedCount={session.reviewedCount}
+          claimSongId={claimSongId}
           onContinueDue={continueDue}
           onRecommended={startRecommended}
           onSearch={onSearch}

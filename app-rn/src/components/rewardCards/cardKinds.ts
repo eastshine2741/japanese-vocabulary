@@ -18,17 +18,25 @@ export function songTierName(level: CardLevel, mastered: boolean): string {
   return mastered ? SONG_MASTER_NAME : SONG_TIER_NAME[level];
 }
 
+// 기본(레벨 0) 카드는 새로 나오지 않아 계단에 없다.
 export const SONG_CARD_KINDS: readonly SongCardKind[] = [
-  { key: 'level-0', level: 0, mastered: false },
   { key: 'level-1', level: 1, mastered: false },
   { key: 'level-2', level: 2, mastered: false },
   { key: 'level-3', level: 3, mastered: false },
   { key: 'master', level: 3, mastered: true },
 ];
 
-/** 곡 카드 승급 계단 자리. 마스터는 완곡 다음 칸이다. */
-export function songRung(card: SongRewardCard): number {
-  return card.mastered ? 4 : card.level;
+/** 이미 받은 기본 카드 칸. 그 카드를 가진 곡에서만 보인다. */
+export const LEGACY_BASIC_KIND: SongCardKind = { key: 'level-0', level: 0, mastered: false };
+
+/** 한 곡의 카드 칸. 기본 카드를 가졌으면 계단 앞에 그 칸을 붙인다. */
+export function songCardKindsOf(cards: readonly SongRewardCard[]): readonly SongCardKind[] {
+  return songCardOfKind(cards, LEGACY_BASIC_KIND) ? [LEGACY_BASIC_KIND, ...SONG_CARD_KINDS] : SONG_CARD_KINDS;
+}
+
+/** 곡 카드 승급 계단(SONG_CARD_KINDS) 자리. 마스터는 완곡 다음 칸이고, 계단에 없는 기본 카드는 -1 이다. */
+export function songRung(card: SongCardGrade): number {
+  return card.mastered ? SONG_CARD_KINDS.length - 1 : card.level - 1;
 }
 
 /** 지금 등급이 막 시작된 마스터 곡 수에서 한 곡 모자란 카드. 기본 카드면 null. */

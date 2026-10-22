@@ -42,3 +42,4 @@ admin-web/coverage/
 
 # Local dev database dump baseline
 local/mysql/
+.playwright-mcp/

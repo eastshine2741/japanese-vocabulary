@@ -22,6 +22,7 @@ import com.japanese.vocabulary.test.fixtures.TestSongBuilder
 import com.japanese.vocabulary.test.fixtures.TestUserBuilder
 import com.japanese.vocabulary.test.fixtures.TestWordBuilder
 import com.japanese.vocabulary.user.entity.UserEntity
+import com.japanese.vocabulary.word.entity.WordEntity
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -41,8 +42,10 @@ class RewardCardBackfillTaskTest : BatchBaseIntegrationTest() {
         val song = newSong(artist)
         val early = TestUserBuilder(entityManager).build()
         val late = TestUserBuilder(entityManager).build()
+        val idle = TestUserBuilder(entityManager).build()
         studyWord(early, song, "胸", reviewed = true)
-        studyWord(late, song, "雨", reviewed = false)
+        studyWord(late, song, "胸", reviewed = true)
+        studyWord(idle, song, "雨", reviewed = false)
 
         val dry = task.dryRun()
         assertThat(songCards(early, song)).isEmpty()
@@ -51,15 +54,17 @@ class RewardCardBackfillTaskTest : BatchBaseIntegrationTest() {
         assertThat(dry.newSongCards).isEqualTo(result.newSongCards)
         assertThat(dry.newArtistCards).isEqualTo(result.newArtistCards)
 
-        assertThat(result.newSongCards).isEqualTo(3)
+        assertThat(result.newSongCards).isEqualTo(2)
         val earlyCards = songCards(early, song)
         val lateCards = songCards(late, song)
-        assertThat(earlyCards.map { it.grade to it.acquiredSeq }).containsExactly(SongCardGrade.BASIC to 1, SongCardGrade.BRONZE to 1)
+        assertThat(earlyCards.map { it.grade to it.acquiredSeq }).containsExactly(SongCardGrade.BRONZE to 1)
         assertThat(earlyCards).allSatisfy {
             assertThat(it.isIssued).isTrue()
             assertThat(it.signature).isEmpty()
         }
-        assertThat(lateCards.map { it.grade to it.acquiredSeq }).containsExactly(SongCardGrade.BASIC to 2)
+        assertThat(lateCards.map { it.grade to it.acquiredSeq }).containsExactly(SongCardGrade.BRONZE to 2)
+        // 끝낸 단계가 없으면 기본 카드도 만들지 않는다.
+        assertThat(songCards(idle, song)).isEmpty()
         val artistCard = artistCardRepository.findByUserIdAndArtistIdIn(early.id!!, listOf(artist.id!!)).single()
         assertThat(artistCard.grade).isEqualTo(ArtistCardGrade.BASIC)
         assertThat(artistCard.isIssued).isTrue()
@@ -73,12 +78,16 @@ class RewardCardBackfillTaskTest : BatchBaseIntegrationTest() {
         val first = newSong(artist = null)
         val second = newSong(artist = null)
         val filled = TestUserBuilder(entityManager).build()
-        studyWord(filled, first, "胸", reviewed = true)
-        studyWord(filled, second, "雨", reviewed = false)
+        val chorus = studyWord(filled, first, "胸", reviewed = true)
+        // 같은 단어가 두 곡 단어장에 담기면 두 곡 모두 후렴 단계를 끝낸다.
+        val secondDeck = DeckEntity(userId = filled.id!!, songId = second.id!!, title = second.title, description = second.artist)
+            .also { entityManager.persist(it) }
+        entityManager.persist(DeckWordEntity(deckId = secondDeck.id!!, wordId = chorus.id!!))
+        entityManager.flush()
         val rated = TestUserBuilder(entityManager).build()
         val ratedSong = newSong(artist = null)
         // 플래그를 켠 뒤 rating 으로 받아 서명까지 한 카드는 채운 카드가 아니다.
-        rewardCardService.achieveSongs(rated.id!!, listOf(SongAchievementDto(ratedSong.id!!, null, SongCardGrade.BASIC)))
+        rewardCardService.achieveSongs(rated.id!!, listOf(SongAchievementDto(ratedSong.id!!, null, SongCardGrade.BRONZE)))
         entityManager.flush()
         val ratedCard = songCardRepository.findByUserIdAndSongIdIn(rated.id!!, listOf(ratedSong.id!!)).single()
         clock.advance(Duration.ofMinutes(1))
@@ -195,7 +204,7 @@ class RewardCardBackfillTaskTest : BatchBaseIntegrationTest() {
         scoreComponents = WordScoreComponents(0.0, 0.0, 0.0, 0.0, 1.0),
     )
 
-    private fun studyWord(user: UserEntity, song: SongEntity, japanese: String, reviewed: Boolean) {
+    private fun studyWord(user: UserEntity, song: SongEntity, japanese: String, reviewed: Boolean): WordEntity {
         val deck = DeckEntity(userId = user.id!!, songId = song.id!!, title = song.title, description = song.artist)
             .also { entityManager.persist(it) }
         val word = TestWordBuilder(entityManager).forUser(user).withJapaneseText(japanese).build()
@@ -203,5 +212,6 @@ class RewardCardBackfillTaskTest : BatchBaseIntegrationTest() {
         val card = TestFlashcardBuilder(entityManager, clock).forUser(user).ofWord(word).dueAt(clock.instant()).build()
         if (reviewed) card.lastReview = clock.instant()
         entityManager.flush()
+        return word
     }
 }

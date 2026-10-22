@@ -6,5 +6,8 @@ enum class SongCardGrade {
 
     companion object {
         fun ofCompletedTiers(count: Int): SongCardGrade = entries[count.coerceIn(0, GOLD.ordinal)]
+
+        /** [grade] 까지 카드로 나오는 등급. BASIC 은 기존 행 호환용이라 새로 만들지 않는다 — 첫 rating 에 연출이 끼어들면 첫 세션이 끊긴다. */
+        fun cardsUpTo(grade: SongCardGrade): List<SongCardGrade> = entries.filter { it in BRONZE..grade }
     }
 }

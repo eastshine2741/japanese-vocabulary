@@ -4,7 +4,7 @@ import { songApi } from '../api/songApi';
 import { DUMMY_ARTIST_CARDS, DUMMY_SONG_CARDS, DUMMY_SONG_GRADE_RULE, findDummyLyrics } from '../components/rewardCards/dummyRewardCards';
 import { pickLines } from '../components/rewardCards/cardLyric';
 import { paintFromArt } from '../components/rewardCards/artColors';
-import { serverTargetId, toArtistCard, toRevealTarget, toSongCard } from '../components/rewardCards/serverRewardCards';
+import { type ServerRevealTarget, serverTargetId, toArtistCard, toRevealTarget, toSongCard } from '../components/rewardCards/serverRewardCards';
 import { CardSignature } from '../components/rewardCards/signature';
 import { ArtistRewardCard, CardLyricLine, SongRewardCard } from '../components/rewardCards/types';
 import { type LineWord, pickLineWords, toCardLine } from '../components/songDetail/songCardSample';
@@ -30,6 +30,11 @@ export interface RewardCardRevealTarget {
   fromGrade?: string | null;
 }
 
+/** 받았지만 아직 열지 않은 서버 연출. 곡 카드면 targetId 가 songId, 아티스트 카드면 artistId. */
+export interface UnclaimedReveal extends ServerRevealTarget {
+  targetId: number;
+}
+
 export interface CardSet {
   songCards: SongRewardCard[];
   artistCards: ArtistRewardCard[];
@@ -47,6 +52,8 @@ interface RewardCardState extends CardSet {
   lyricWords: Record<string, LineWord[]>;
   /** 띄울 연출 차례. 한 번에 하나만 열고, 닫히면 다음을 연다. */
   queue: RewardCardRevealTarget[];
+  /** 받을 카드. 유저가 누르기 전엔 차례에 넣지 않는다. */
+  unclaimed: UnclaimedReveal[];
   /** 지금 열려 있는 연출. */
   active: RewardCardRevealTarget | null;
   pendingChecked: boolean;
@@ -57,10 +64,13 @@ interface RewardCardState extends CardSet {
   loadServerCards: () => Promise<void>;
   /** 서버 카드를 아직 안 받았으면 받는다. */
   ensureServerCards: () => void;
-  /** rating 응답의 연출. 카드를 다시 받은 뒤 차례에 넣는다. 연속 학습 축하가 떠 있으면 그 화면이 닫힌 뒤에 뜬다. */
+  /** rating 응답의 연출. 카드를 다시 받은 뒤 받을 카드에 넣는다. */
   receiveReveals: (reveals: RewardCardRevealDto[] | undefined) => Promise<void>;
-  /** 앱을 연 뒤 한 번, 서명 전에 끈 카드와 못 본 강화를 다시 띄운다. */
+  /** 앱을 연 뒤 한 번, 서명 전에 끈 카드와 못 본 강화를 받을 카드에 넣는다. */
   checkPendingOnce: () => Promise<void>;
+  /** 그 곡의 받을 곡 카드와 그 곡 아티스트의 받을 아티스트 카드를 차례에 넣는다. 연속 학습 축하가 떠 있으면 그 화면이 닫힌 뒤에 뜬다. */
+  claimSong: (songId: number) => void;
+  claimAll: () => void;
   /** 개발용 — 가진 카드를 다시 획득 화면으로 띄운다. 서버에는 보내지 않는다. */
   revealCard: (kind: RewardCardKind, cardId: string) => void;
   /** 개발용 — 가진 아티스트 카드의 강화 화면을 띄운다. */
@@ -90,6 +100,14 @@ export async function toCardSet(res: RewardCardsResponse): Promise<CardSet> {
 const DUMMY: CardSet = { songCards: DUMMY_SONG_CARDS, artistCards: DUMMY_ARTIST_CARDS, songGradeRule: DUMMY_SONG_GRADE_RULE };
 const EMPTY: CardSet = { songCards: [], artistCards: [], songGradeRule: null };
 
+/** 그 곡을 받을 때 함께 받는 카드: 그 곡의 곡 카드와 그 곡 아티스트의 아티스트 카드. */
+export function songClaimFilter(songCards: readonly SongRewardCard[], songId: number): (reveal: UnclaimedReveal) => boolean {
+  const artistIds = new Set(songCards.filter((c) => c.songId === songId).map((c) => c.artistId));
+  return (r) => (r.kind === 'song' ? r.targetId === songId : artistIds.has(r.targetId));
+}
+
+const revealKey = (reveal: { kind: RewardCardKind; cardId: string }) => `${reveal.kind}:${reveal.cardId}`;
+
 function mapCards<T extends { id: string }>(cards: T[], cardId: string, fn: (card: T) => T): T[] {
   return cards.map((card) => (card.id === cardId ? fn(card) : card));
 }
@@ -103,6 +121,7 @@ const initial = {
   lyricLines: {},
   lyricWords: {},
   queue: [],
+  unclaimed: [],
   active: null,
   pendingChecked: false,
   wearIntroSeen: false,
@@ -117,12 +136,21 @@ export const useRewardCardStore = create<RewardCardState>((set, get) => {
     });
 
   const findSong = (cardId: string) => get().songCards.find((card) => card.id === cardId);
+  const findOwned = (kind: RewardCardKind, cardId: string) =>
+    kind === 'song' ? findSong(cardId) : get().artistCards.find((card) => card.id === cardId);
+
+  const claim = (pick: (reveal: UnclaimedReveal) => boolean) =>
+    set((state) => {
+      const picked = state.unclaimed.filter(pick);
+      if (picked.length === 0) return {};
+      return { queue: [...state.queue, ...picked], unclaimed: state.unclaimed.filter((r) => !pick(r)) };
+    });
 
   return {
     ...initial,
 
     setSource: (source) => {
-      set((state) => ({ source, ...state[source], queue: [], active: null }));
+      set((state) => ({ source, ...state[source], queue: [], unclaimed: [], active: null }));
       if (source === 'server') get().loadServerCards();
     },
 
@@ -141,11 +169,19 @@ export const useRewardCardStore = create<RewardCardState>((set, get) => {
       if (source === 'server' && (serverStatus === 'idle' || serverStatus === 'error')) get().loadServerCards();
     },
 
-    // 더미를 보는 동안엔 띄우지 않는다. 서버에 남아 있어 다음에 앱을 열면 다시 뜬다.
+    // 획득 연출은 받기를 눌러야 연다 — rating 흐름을 끊지 않게.
+    // 더미를 보는 동안엔 받지 않는다. 서버에 남아 있어 다음에 앱을 열면 다시 받는다.
     receiveReveals: async (reveals) => {
       if (!reveals || reveals.length === 0 || get().source !== 'server') return;
       await get().loadServerCards();
-      set((state) => ({ queue: [...state.queue, ...reveals.map(toRevealTarget)] }));
+      set((state) => {
+        const incoming = reveals.map((dto) => ({ ...toRevealTarget(dto), targetId: dto.targetId }));
+        const opened = new Set([...state.queue, ...(state.active ? [state.active] : [])].map(revealKey));
+        // 서명 전 아티스트 카드가 또 강화되면 같은 카드의 새 연출로 바꾼다.
+        const fresh = incoming.filter((r) => !opened.has(revealKey(r)));
+        const freshKeys = new Set(fresh.map(revealKey));
+        return { unclaimed: [...state.unclaimed.filter((r) => !freshKeys.has(revealKey(r))), ...fresh] };
+      });
     },
 
     checkPendingOnce: async () => {
@@ -157,6 +193,10 @@ export const useRewardCardStore = create<RewardCardState>((set, get) => {
         set({ pendingChecked: false });
       }
     },
+
+    claimSong: (songId) => claim(songClaimFilter(get().songCards, songId)),
+
+    claimAll: () => claim(() => true),
 
     // 막 발급된 카드는 서명 전이다. 다시 띄워도 새로 서명하게 비운다.
     revealCard: (kind, cardId) => {
@@ -181,6 +221,10 @@ export const useRewardCardStore = create<RewardCardState>((set, get) => {
     closeReveal: () => {
       const { active } = get();
       set({ active: null });
+      // 서명을 확인하지 못한 획득은 다시 받을 수 있게 돌려 둔다. 서버에도 서명 전으로 남아 있다.
+      if (active?.server && !active.upgrade && 'targetId' in active && findOwned(active.kind, active.cardId)?.signature == null) {
+        set((state) => ({ unclaimed: [active as UnclaimedReveal, ...state.unclaimed] }));
+      }
       const id = active ? serverTargetId(active.cardId) : null;
       if (!active?.server || !active.upgrade || !active.grade || id == null) return;
       // 실패하면 서버에 남아 다음에 앱을 열 때 다시 뜬다.
@@ -245,7 +289,7 @@ export const useRewardCardStore = create<RewardCardState>((set, get) => {
       if (signature.length === 0) return;
       const signOnce = <T extends { signature: CardSignature | null }>(card: T): T =>
         card.signature === null ? { ...card, signature } : card;
-      const before = kind === 'song' ? findSong(cardId) : get().artistCards.find((card) => card.id === cardId);
+      const before = findOwned(kind, cardId);
       if (!before || before.signature !== null) return;
       patch((cards) =>
         kind === 'song'
