@@ -68,6 +68,10 @@ kubectl create job --from=cronjob/streak-reminder-evening sr-$(date +%s) -n <ns>
 # 가사 단어 후보 백필은 스케줄이 없는 수동 전용 CronJob 이다. 인자를 바꾸려면 Job 을 직접 편집한다.
 kubectl create job --from=cronjob/lyric-word-candidate-backfill backfill-$(date +%s) -n <ns>
 
+# 가사 토큰 reading 을 SungReading 규칙으로 다시 쓴다(재분석 없음). 먼저 Job args 에 --dryRun=true 를 붙여 로그로 바뀔 곳을 본다.
+# lyrics 에 낙관적 락이 없어 같은 시각의 재분석·제보 승인을 덮어쓸 수 있다. 분석 작업이 없을 때 돌린다.
+kubectl create job --from=cronjob/lyric-reading-backfill reading-$(date +%s) -n <ns>
+
 # 큐 상태
 kubectl exec -n <ns> statefulset/rabbitmq -- rabbitmqctl list_queues name messages
 kubectl exec -n <ns> statefulset/rabbitmq -- rabbitmqctl list_bindings

@@ -304,7 +304,9 @@ function inflectionStartOf(token: ReadingToken, reading: string): number {
   const tail = token.surface.match(TRAILING_HIRAGANA)?.[0];
   if (tail == null) return Infinity;
   const katakana = [...tail].map(ch => String.fromCharCode(ch.charCodeAt(0) + 0x60)).join('');
-  return reading.endsWith(katakana) ? reading.length - katakana.length : Infinity;
+  // A final は is the topic particle, stored as sung (探していたのは → サガシテイタノワ).
+  const sung = katakana.replace(/ハ$/, 'ワ');
+  return reading.endsWith(katakana) || reading.endsWith(sung) ? reading.length - katakana.length : Infinity;
 }
 
 function appendReading(buffer: SyllableBuffer, token: ReadingToken, display: ReadingDisplay): void {
