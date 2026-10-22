@@ -17,6 +17,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useHapticStore } from '../stores/hapticStore';
+import { useLyricTranslationStore } from '../stores/lyricTranslationStore';
 import { userApi } from '../api/userApi';
 import { tokenStorage } from '../utils/tokenStorage';
 import { resetAllStores } from '../utils/resetAllStores';
@@ -55,6 +56,8 @@ export default function SettingsScreen() {
 
   const hapticsEnabled = useHapticStore(s => s.enabled);
   const setHapticsEnabled = useHapticStore(s => s.setEnabled);
+  const showLyricTranslation = useLyricTranslationStore(s => s.show);
+  const setShowLyricTranslation = useLyricTranslationStore(s => s.setShow);
 
   const [showServerDialog, setShowServerDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -180,6 +183,19 @@ export default function SettingsScreen() {
             <Switch
               value={showKoreanPronunciation}
               onValueChange={handleShowKoreanPronunciationChange}
+              trackColor={{ true: Colors.stateRetrievability, false: Colors.border }}
+              thumbColor={Colors.surface}
+            />
+          </View>
+
+          <View style={styles.row}>
+            <View style={styles.rowText}>
+              <Text style={styles.label}>한국어 번역 표시</Text>
+              <Text style={styles.description}>재생 화면에서 가사의 한국어 번역을 표시해요.</Text>
+            </View>
+            <Switch
+              value={showLyricTranslation}
+              onValueChange={setShowLyricTranslation}
               trackColor={{ true: Colors.stateRetrievability, false: Colors.border }}
               thumbColor={Colors.surface}
             />

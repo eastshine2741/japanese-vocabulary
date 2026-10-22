@@ -48,6 +48,7 @@ import { useAndroidNavigationBarStyle } from './src/hooks/useAndroidNavigationBa
 import { scheduleOtaUpdateCheck } from './src/services/otaUpdates';
 import { listenShareLinks } from './src/services/shareLinkHandler';
 import { useHapticStore } from './src/stores/hapticStore';
+import { useLyricTranslationStore } from './src/stores/lyricTranslationStore';
 
 GoogleSignin.configure({
   webClientId: process.env.EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID ?? '',
@@ -156,6 +157,7 @@ function App() {
   useEffect(() => {
     registerNotificationHandlers();
     useHapticStore.getState().load();
+    useLyricTranslationStore.getState().load();
     scheduleOtaUpdateCheck();
     let unlistenShareLinks: (() => void) | undefined;
     initBaseURL().then(() => {

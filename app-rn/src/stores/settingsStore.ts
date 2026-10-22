@@ -26,6 +26,7 @@ interface SettingsState {
   setShowFurigana: (value: boolean) => void;
   toggleKaraokeNewSongNotifications: () => Promise<void>;
   toggleStreakReminderNotifications: () => Promise<void>;
+  toggleShowKoreanPronunciation: () => Promise<void>;
   save: () => Promise<void>;
 }
 
@@ -41,6 +42,7 @@ function settingsPayload(state: SettingsState): UserSettingsDTO {
 }
 
 type NotificationKey = 'karaokeNewSongNotifications' | 'streakReminderNotifications';
+type ToggleKey = NotificationKey | 'showKoreanPronunciation';
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   status: 'loading',
@@ -80,8 +82,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setShowKoreanPronunciation: (value) => set({ showKoreanPronunciation: value, saveSuccess: false }),
   setShowFurigana: (value) => set({ showFurigana: value, saveSuccess: false }),
 
-  toggleKaraokeNewSongNotifications: () => toggleNotification('karaokeNewSongNotifications'),
-  toggleStreakReminderNotifications: () => toggleNotification('streakReminderNotifications'),
+  toggleKaraokeNewSongNotifications: () => toggleSetting('karaokeNewSongNotifications'),
+  toggleStreakReminderNotifications: () => toggleSetting('streakReminderNotifications'),
+  toggleShowKoreanPronunciation: () => toggleSetting('showKoreanPronunciation'),
 
   save: async () => {
     set({ isSaving: true, saveSuccess: false });
@@ -95,14 +98,14 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 }));
 
 // PUT /api/settings 는 설정 전체를 덮어쓴다. 읽어 오기 전에는 저장하지 않는다.
-async function toggleNotification(key: NotificationKey) {
+async function toggleSetting(key: ToggleKey) {
   const { getState, setState } = useSettingsStore;
   if (getState().status !== 'loaded') await getState().loadSettings();
   if (getState().status !== 'loaded') return;
 
   const next = !getState()[key];
   setState({ [key]: next });
-  if (next) requestPermissionForOptIn();
+  if (next && key !== 'showKoreanPronunciation') requestPermissionForOptIn();
   try {
     await flashcardApi.updateSettings(settingsPayload(getState()));
   } catch {
