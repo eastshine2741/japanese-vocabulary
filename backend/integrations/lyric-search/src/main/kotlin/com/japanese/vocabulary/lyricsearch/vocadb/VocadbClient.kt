@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.lyricsearch.vocadb
 
+import com.japanese.vocabulary.lyricsearch.LyricProviderRetry
 import com.japanese.vocabulary.lyricsearch.LyricsResult
 import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
@@ -7,8 +8,8 @@ import org.springframework.web.client.RestClient
 
 @Order(2)
 @Component
-class VocadbClient(restClientBuilder: RestClient.Builder) :
-    VocadbCompatibleClient(restClientBuilder, "https://vocadb.net") {
+class VocadbClient(restClientBuilder: RestClient.Builder, retry: LyricProviderRetry) :
+    VocadbCompatibleClient(restClientBuilder, "https://vocadb.net", retry) {
 
     override val providerName = "VocaDB"
 

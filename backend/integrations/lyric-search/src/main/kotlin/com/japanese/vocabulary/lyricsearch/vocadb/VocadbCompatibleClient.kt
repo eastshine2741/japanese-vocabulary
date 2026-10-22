@@ -2,11 +2,13 @@ package com.japanese.vocabulary.lyricsearch.vocadb
 
 import com.japanese.vocabulary.common.retry.TransientHttpErrors
 import com.japanese.vocabulary.lyricsearch.LyricProvider
+import com.japanese.vocabulary.lyricsearch.LyricProviderRetry
 import com.japanese.vocabulary.lyricsearch.LyricsResult
 import com.japanese.vocabulary.lyricsearch.NormalizedSongQuery
 import com.japanese.vocabulary.lyricsearch.vocadb.dto.VocadbArtistSearchResponse
 import com.japanese.vocabulary.lyricsearch.vocadb.dto.VocadbSearchResponse
 import com.japanese.vocabulary.lyricsearch.vocadb.dto.VocadbSongDto
+import kotlinx.coroutines.CancellationException
 import org.slf4j.LoggerFactory
 import org.springframework.web.client.RestClient
 import org.springframework.web.util.UriBuilder
@@ -15,6 +17,7 @@ import org.springframework.web.util.UriBuilder
 abstract class VocadbCompatibleClient(
     restClientBuilder: RestClient.Builder,
     baseUrl: String,
+    private val retry: LyricProviderRetry,
 ) : LyricProvider {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -32,7 +35,7 @@ abstract class VocadbCompatibleClient(
      * first and passing `artistId[]` is the only server-side artist filter; the plain keyword
      * search stays as a fallback for artists VocaDB does not list.
      */
-    final override fun search(query: NormalizedSongQuery): LyricsResult? {
+    final override suspend fun search(query: NormalizedSongQuery): LyricsResult? {
         return try {
             val artistIds = resolveArtistIds(query.artistParts)
             if (artistIds.isNotEmpty()) {
@@ -40,27 +43,28 @@ abstract class VocadbCompatibleClient(
             }
             searchByKeyword(query)
         } catch (e: Exception) {
-            // An outage is not a miss: the caller retries it and must not report "no lyrics".
-            if (TransientHttpErrors.isTransient(e)) throw e
+            // An outage that outlived the request retries is not a miss: it must not report "no lyrics".
+            if (e is CancellationException || TransientHttpErrors.isTransient(e)) throw e
             logger.warn("$providerName lyrics search failed for: ${query.originalArtist} - ${query.originalTitle}", e)
             null
         }
     }
 
-    private fun resolveArtistIds(artistParts: List<String>): List<Long> {
+    private suspend fun resolveArtistIds(artistParts: List<String>): List<Long> {
         return artistParts.flatMap { part ->
-            val response = restClient.get()
-                .uri { uriBuilder ->
-                    uriBuilder.path("/api/artists")
-                        .queryParam("query", part)
-                        .queryParam("fields", "Names")
-                        .queryParam("maxResults", 5)
-                        .queryParam("nameMatchMode", "Auto")
-                        .build()
-                }
-                .retrieve()
-                .body(VocadbArtistSearchResponse::class.java)
-                ?: return@flatMap emptyList()
+            val response = retry.call(providerName) {
+                restClient.get()
+                    .uri { uriBuilder ->
+                        uriBuilder.path("/api/artists")
+                            .queryParam("query", part)
+                            .queryParam("fields", "Names")
+                            .queryParam("maxResults", 5)
+                            .queryParam("nameMatchMode", "Auto")
+                            .build()
+                    }
+                    .retrieve()
+                    .body(VocadbArtistSearchResponse::class.java)
+            } ?: return@flatMap emptyList()
 
             response.items
                 .filter { VocadbSongMatcher.isSameArtist(part, it) }
@@ -68,34 +72,36 @@ abstract class VocadbCompatibleClient(
         }.distinct()
     }
 
-    private fun searchWithinArtists(query: NormalizedSongQuery, artistIds: List<Long>): LyricsResult? {
+    private suspend fun searchWithinArtists(query: NormalizedSongQuery, artistIds: List<Long>): LyricsResult? {
         logger.info(
             "Lyric search attempt | provider={} | strategy=artist-scoped | query='{}' | artistIds={}",
             providerName, query.normalizedTitle, artistIds
         )
-        val response = restClient.get()
-            .uri { uriBuilder ->
-                songSearchUri(uriBuilder, query.normalizedTitle)
-                    .apply { artistIds.forEach { queryParam("artistId[]", it) } }
-                    .build()
-            }
-            .retrieve()
-            .body(VocadbSearchResponse::class.java)
-            ?: return null
+        val response = retry.call(providerName) {
+            restClient.get()
+                .uri { uriBuilder ->
+                    songSearchUri(uriBuilder, query.normalizedTitle)
+                        .apply { artistIds.forEach { queryParam("artistId[]", it) } }
+                        .build()
+                }
+                .retrieve()
+                .body(VocadbSearchResponse::class.java)
+        } ?: return null
 
         return firstWithLyrics(response.items) { VocadbSongMatcher.matchesWithinArtist(query, it) }
     }
 
-    private fun searchByKeyword(query: NormalizedSongQuery): LyricsResult? {
+    private suspend fun searchByKeyword(query: NormalizedSongQuery): LyricsResult? {
         logger.info(
             "Lyric search attempt | provider={} | strategy=keyword-search | query='{}' | artistFilter={}",
             providerName, query.normalizedTitle, query.artistParts
         )
-        val response = restClient.get()
-            .uri { uriBuilder -> songSearchUri(uriBuilder, query.normalizedTitle).build() }
-            .retrieve()
-            .body(VocadbSearchResponse::class.java)
-            ?: return null
+        val response = retry.call(providerName) {
+            restClient.get()
+                .uri { uriBuilder -> songSearchUri(uriBuilder, query.normalizedTitle).build() }
+                .retrieve()
+                .body(VocadbSearchResponse::class.java)
+        } ?: return null
 
         return firstWithLyrics(response.items) { VocadbSongMatcher.matches(query, it) }
     }

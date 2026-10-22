@@ -1,19 +1,22 @@
 package com.japanese.vocabulary.lyricsearch.utaitedb
 
+import com.japanese.vocabulary.lyricsearch.LyricProviderRetry
 import com.japanese.vocabulary.lyricsearch.SongQueryNormalizer
 import org.assertj.core.api.Assertions.assertThat
 import org.hamcrest.Matchers.startsWith
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import org.springframework.http.MediaType
 import org.springframework.test.web.client.MockRestServiceServer
 import org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo
 import org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess
 import org.springframework.web.client.RestClient
+import java.time.Duration
 
 class UtaitedbClientTest {
 
     @Test
-    fun `searches utaitedb and reports the hit as a UtaiteDB id`() {
+    fun `searches utaitedb and reports the hit as a UtaiteDB id`(): Unit = runBlocking {
         val builder = RestClient.builder()
         val server = MockRestServiceServer.bindTo(builder).build()
         server.expect(requestTo(startsWith("https://utaitedb.net/api/artists")))
@@ -29,7 +32,7 @@ class UtaitedbClientTest {
                 )
             )
 
-        val result = UtaitedbClient(builder)
+        val result = UtaitedbClient(builder, LyricProviderRetry(maxAttempts = 3, initialBackoff = Duration.ZERO))
             .search(SongQueryNormalizer.normalize(title = "ロキ", artist = "みきとP", durationSeconds = 230))!!
 
         assertThat(result.utaitedbId).isEqualTo(38167)

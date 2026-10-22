@@ -6,7 +6,7 @@ interface LyricProvider {
     /**
      * null means the provider answered and has no lyrics for this song. A provider that could not
      * answer — a dropped connection, a 5xx, a 429 — throws instead, so the caller can retry it and
-     * tell an outage apart from a miss.
+     * tell an outage apart from a miss. Each request is retried on its own through [LyricProviderRetry].
      */
-    fun search(query: NormalizedSongQuery): LyricsResult?
+    suspend fun search(query: NormalizedSongQuery): LyricsResult?
 }

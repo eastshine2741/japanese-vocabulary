@@ -1,8 +1,10 @@
 package com.japanese.vocabulary.lyricsearch.vocadb
 
+import com.japanese.vocabulary.lyricsearch.LyricProviderRetry
 import com.japanese.vocabulary.lyricsearch.SongQueryNormalizer
 import org.assertj.core.api.Assertions.assertThat
 import org.hamcrest.Matchers.startsWith
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -13,6 +15,7 @@ import org.springframework.test.web.client.match.MockRestRequestMatchers.request
 import org.springframework.test.web.client.response.MockRestResponseCreators.withStatus
 import org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess
 import org.springframework.web.client.RestClient
+import java.time.Duration
 
 /**
  * Sohbana's 『恋』 ranks 18th among 2,428 songs whose title starts with 恋, so a popularity-sorted
@@ -21,7 +24,7 @@ import org.springframework.web.client.RestClient
 class VocadbClientTest {
 
     @Test
-    fun `resolves the artist id and searches songs within that artist`() {
+    fun `resolves the artist id and searches songs within that artist`(): Unit = runBlocking {
         val client = clientWith { server ->
             server.expect(requestTo(startsWithPath("/api/artists"))).andExpect(queryParam("query", "Sohbana"))
                 .andRespond(withSuccess(artists(artist(67369, "Sohbana", "Sohbanasick")), MediaType.APPLICATION_JSON))
@@ -36,7 +39,7 @@ class VocadbClientTest {
     }
 
     @Test
-    fun `ignores artist search hits that only share a prefix with the requested artist`() {
+    fun `ignores artist search hits that only share a prefix with the requested artist`(): Unit = runBlocking {
         val client = clientWith { server ->
             server.expect(requestTo(startsWithPath("/api/artists")))
                 .andRespond(withSuccess(artists(artist(1, "Sohbanana", null)), MediaType.APPLICATION_JSON))
@@ -48,7 +51,7 @@ class VocadbClientTest {
     }
 
     @Test
-    fun `falls back to the keyword search when the artist is not on VocaDB`() {
+    fun `falls back to the keyword search when the artist is not on VocaDB`(): Unit = runBlocking {
         val client = clientWith { server ->
             server.expect(requestTo(startsWithPath("/api/artists")))
                 .andRespond(withSuccess(artists(), MediaType.APPLICATION_JSON))
@@ -62,7 +65,7 @@ class VocadbClientTest {
     }
 
     @Test
-    fun `falls back to the keyword search when the artist-scoped search has no song with lyrics`() {
+    fun `falls back to the keyword search when the artist-scoped search has no song with lyrics`(): Unit = runBlocking {
         val client = clientWith { server ->
             server.expect(requestTo(startsWithPath("/api/artists")))
                 .andRespond(withSuccess(artists(artist(67369, "Sohbana", null)), MediaType.APPLICATION_JSON))
@@ -75,7 +78,7 @@ class VocadbClientTest {
 
     /** A Cloudflare bot challenge is a 403: not an outage to retry, so the next provider gets a turn. */
     @Test
-    fun `a 403 reads as no lyrics`() {
+    fun `a 403 reads as no lyrics`(): Unit = runBlocking {
         val client = clientWith { server ->
             server.expect(requestTo(startsWithPath("/api/artists"))).andRespond(withStatus(HttpStatus.FORBIDDEN))
         }
@@ -106,6 +109,6 @@ class VocadbClientTest {
         val builder = RestClient.builder()
         val server = MockRestServiceServer.bindTo(builder).build()
         expectations(server)
-        return VocadbClient(builder)
+        return VocadbClient(builder, LyricProviderRetry(maxAttempts = 3, initialBackoff = Duration.ZERO))
     }
 }

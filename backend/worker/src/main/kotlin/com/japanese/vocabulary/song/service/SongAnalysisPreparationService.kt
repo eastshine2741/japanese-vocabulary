@@ -31,9 +31,8 @@ class SongAnalysisPreparationService(
     private val youtubeMvSearchService: YoutubeMvSearchService,
     private val lyricRepository: LyricRepository,
     /**
-     * Lyric and MV providers had no retry at all, and swallowed every error as "not found": a
-     * 90-second lrclib 503 run read as LYRICS_NOT_FOUND. A whole provider search is retried as one
-     * unit, only for [TransientHttpErrors], and never past the analysis deadline.
+     * The whole YouTube search is retried as one unit, only for [TransientHttpErrors], and never past
+     * the analysis deadline. Lyric providers retry each request themselves (`LyricProviderRetry`).
      */
     @Value("\${song-analysis.provider-retry.max-attempts:3}") providerMaxAttempts: Int,
     @Value("\${song-analysis.provider-retry.initial-backoff:1s}") providerInitialBackoff: Duration,
@@ -192,7 +191,7 @@ class SongAnalysisPreparationService(
         for (provider in lyricProviders) {
             logger.info("Trying provider: {}", provider.providerName)
             val result = try {
-                withProviderRetry(provider.providerName) { provider.search(query) }
+                provider.search(query)
             } catch (e: Exception) {
                 if (!TransientHttpErrors.isTransient(e)) throw e
                 logger.warn("Provider {} unavailable after retries: {}", provider.providerName, e.message)
