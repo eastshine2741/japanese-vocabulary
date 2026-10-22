@@ -56,7 +56,7 @@ async (page) => {
 }
 ```
 
-- Playwright MCP 는 `--isolated` 로 등록돼 있어야 세션마다 따로 브라우저를 띄운다. `Browser is already in use` 가 나면 등록에서 빠진 것이니 `claude mcp get playwright` 로 확인한다. 브라우저를 닫으면 localStorage 가 사라지니 매번 토큰을 넣는다.
+- Playwright MCP 는 `--isolated --headless` 로 등록돼 있어야 세션마다 창 없이 따로 브라우저를 띄운다. `Browser is already in use` 가 나면 등록에서 빠진 것이니 `claude mcp get playwright` 로 확인한다. 브라우저를 닫으면 localStorage 가 사라지니 매번 토큰을 넣는다.
 - 저장 경로는 워크트리 안이어야 한다(Playwright MCP 가 그 밖은 막는다). `.playwright-mcp/` 에 둔다.
 - 부분만 볼 땐 `clip`, 세밀하게 볼 땐 `scale: 'device'`.
 - 애니메이션은 짧은 간격으로 여러 장 찍어 md5 로 프레임이 바뀌는지 본다.
@@ -65,5 +65,4 @@ async (page) => {
 ## 지킬 것
 
 - 쓰기 요청(서명, 리뷰, 저장)을 일으키는 버튼은 누르지 않는다. dev 서버에 실제로 기록된다.
-- 띄운 Playwright 창은 유저도 만질 수 있다. 화면이 예상과 다르면 유저가 누른 건지 먼저 의심하고, `browser_network_requests` 로 GET 이 아닌 요청이 있었는지 확인해 알린다.
 - 가짜로 준 응답은 결과 보고에 밝힌다.
