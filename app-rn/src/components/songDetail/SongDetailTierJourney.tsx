@@ -252,18 +252,23 @@ const TierDot = React.memo(function TierDot({ status }: { status: SongWordTierSt
 const RewardBanner = React.memo(function RewardBanner({
   card,
   tint,
+  accent,
+  ink,
   caption,
   title,
-  ratio,
+  progress,
   active = false,
   accessibilityLabel,
   onPress,
 }: {
   card: SongRewardCard;
   tint: readonly [string, string, ...string[]];
+  /** 진행 바 색. 앱 초록 대신 카드 재질 색이라야 띠 배경과 어울린다. */
+  accent: string;
+  ink: string;
   caption: string;
   title: string;
-  ratio?: number;
+  progress?: { ratio: number; label: string };
   active?: boolean;
   accessibilityLabel: string;
   onPress: () => void;
@@ -271,7 +276,7 @@ const RewardBanner = React.memo(function RewardBanner({
   const fonts = useCardFonts();
   return (
     <TouchableOpacity
-      style={[styles.banner, active && styles.bannerActive]}
+      style={styles.banner}
       onPress={onPress}
       activeOpacity={0.8}
       accessibilityRole="button"
@@ -284,15 +289,27 @@ const RewardBanner = React.memo(function RewardBanner({
         style={[StyleSheet.absoluteFill, styles.bannerTint, active && styles.bannerTintActive]}
       />
       <View style={styles.bannerCopy}>
-        <Text style={styles.bannerCaption} numberOfLines={1}>{caption}</Text>
-        <Text style={[styles.bannerTitle, active && styles.bannerTitleActive]} numberOfLines={1}>{title}</Text>
-        {ratio != null && (
-          <View style={styles.bannerTrack}>
-            <View style={[styles.bannerFill, { width: `${Math.min(1, Math.max(0, ratio)) * 100}%` }]} />
+        <Text style={[styles.bannerCaption, { color: ink }]} numberOfLines={1}>{caption}</Text>
+        <Text style={[styles.bannerTitle, { color: ink }]} numberOfLines={1}>{title}</Text>
+        {progress != null && (
+          <View style={styles.bannerProgress}>
+            <View style={styles.bannerTrack}>
+              <View
+                style={[
+                  styles.bannerFill,
+                  { backgroundColor: accent, width: `${Math.min(1, Math.max(0, progress.ratio)) * 100}%` },
+                ]}
+              />
+            </View>
+            <Text style={[styles.bannerCount, { color: ink }]}>{progress.label}</Text>
           </View>
         )}
       </View>
-      <Feather name="chevron-right" size={16} color={active ? Colors.primary : Colors.textMuted} />
+      {active ? (
+        <View style={[styles.bannerClaim, { backgroundColor: ink }]}>
+          <Text style={styles.bannerClaimLabel}>받기</Text>
+        </View>
+      ) : null}
       <View style={styles.bannerCardSlot}>
         <View style={styles.bannerCard}>
           <SongCardFront card={card} width={BANNER_CARD_WIDTH} fonts={fonts} thumb />
@@ -320,17 +337,20 @@ const TierRewardBanner = React.memo(function TierRewardBanner({
   const total = Math.max(0, tier.totalCount);
   const done = total - buildTierSegments(tier).remainingCount;
   const name = SONG_TIER_NAME[level];
-  const caption = state === 'owned' ? '받은 카드' : `단계 완료 보상 · ${done}/${total}`;
-  const title = state === 'claim' ? `${name} 카드 받기` : `${name} 카드`;
+  const material = LEVEL_MATERIAL[level];
+  const caption = state === 'owned' ? '받은 카드' : '단계 완료 보상';
+  const title = `${name} 카드`;
   return (
     <RewardBanner
       card={card}
-      tint={LEVEL_MATERIAL[level].frame}
+      tint={material.frame}
+      accent={material.frame[3]}
+      ink={material.chipText}
       caption={caption}
       title={title}
-      ratio={state === 'owned' ? undefined : total > 0 ? done / total : 1}
+      progress={state === 'progress' ? { ratio: total > 0 ? done / total : 1, label: `${done}/${total}` } : undefined}
       active={state === 'claim'}
-      accessibilityLabel={`${caption} ${title}${state === 'claim' ? '' : '. 카드 보기'}`}
+      accessibilityLabel={`${caption} ${title}${state === 'claim' ? ' 받기' : `, ${done}/${total}. 카드 보기`}`}
       onPress={handlePress}
     />
   );
@@ -352,22 +372,21 @@ const MasterRewardBanner = React.memo(function MasterRewardBanner({
   const percent = Math.round(progress.longTermRatio * 100);
   const caption = state === 'owned'
     ? '받은 카드'
-    : state === 'claim' || progress.level === 3
-      ? `단어의 90%를 장기기억 시 (지금 ${percent}%)`
-      : '완곡 후, 단어의 90%를 장기기억 시';
-  const title = state === 'claim'
-    ? `${SONG_MASTER_NAME} 카드 받기`
-    : state === 'owned' ? `${SONG_MASTER_NAME} 카드` : `${SONG_MASTER_NAME} 카드 획득`;
+    : progress.level === 3 || state === 'claim' ? '단어의 90%를 장기기억 시' : '완곡 후 단어의 90%를 장기기억 시';
+  const title = `${SONG_MASTER_NAME} 카드`;
+  const showProgress = state === 'progress' && progress.level === 3;
   return (
     <Animated.View layout={relayout}>
       <RewardBanner
         card={card}
         tint={MASTER_CHIP.frame}
+        accent={MASTER_ACCENT}
+        ink={MASTER_CHIP.chipText}
         caption={caption}
         title={title}
-        ratio={state !== 'owned' && progress.level === 3 ? progress.longTermRatio / SONG_CARD_MASTER_RATIO : undefined}
+        progress={showProgress ? { ratio: progress.longTermRatio / SONG_CARD_MASTER_RATIO, label: `${percent}%` } : undefined}
         active={state === 'claim'}
-        accessibilityLabel={`${caption} ${title}${state === 'claim' ? '' : '. 카드 보기'}`}
+        accessibilityLabel={`${caption} ${title}${state === 'claim' ? ' 받기' : showProgress ? `, 지금 ${percent}%. 카드 보기` : '. 카드 보기'}`}
         onPress={onPress}
       />
     </Animated.View>
@@ -533,8 +552,9 @@ const TierStat = React.memo(function TierStat({
 });
 
 const CTA_SUBTLE_COLOR = '#FFFFFFC4';
-const BANNER_HEIGHT = 60;
+const BANNER_HEIGHT = 68;
 const BANNER_CARD_WIDTH = 64;
+const MASTER_ACCENT = MASTER_CHIP.frame[3];
 const STAT_HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 };
 
 const styles = StyleSheet.create({
@@ -648,52 +668,65 @@ const styles = StyleSheet.create({
   banner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 10,
     height: BANNER_HEIGHT,
     paddingLeft: 14,
     overflow: 'hidden',
     borderRadius: 12,
     backgroundColor: Colors.surface,
   },
-  bannerActive: {
-    borderWidth: 1.5,
-    borderColor: Colors.primary,
-  },
   bannerTint: {
-    opacity: 0.22,
+    opacity: 0.28,
   },
   bannerTintActive: {
-    opacity: 0.4,
+    opacity: 0.5,
   },
   bannerCopy: {
     flex: 1,
-    gap: 2,
+    gap: 1,
   },
   bannerCaption: {
     ...Typography.bodySemiBold,
-    color: Colors.textSecondary,
     fontSize: 11.5,
+    opacity: 0.6,
   },
   bannerTitle: {
     ...Typography.bodyBold,
-    color: Colors.textPrimary,
     fontSize: 15,
   },
-  bannerTitleActive: {
-    color: Colors.primary,
+  bannerProgress: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+    marginRight: 4,
   },
   bannerTrack: {
-    height: 3,
-    marginTop: 3,
-    marginRight: 8,
-    borderRadius: 3,
+    flex: 1,
+    height: 4,
+    borderRadius: 4,
     overflow: 'hidden',
-    backgroundColor: Colors.tierTrack,
+    backgroundColor: '#FFFFFFB3',
   },
   bannerFill: {
     height: '100%',
-    borderRadius: 3,
-    backgroundColor: Colors.primary,
+    borderRadius: 4,
+  },
+  bannerCount: {
+    ...Typography.bodySemiBold,
+    fontSize: 11,
+    opacity: 0.7,
+    fontVariant: ['tabular-nums'],
+  },
+  bannerClaim: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 9999,
+  },
+  bannerClaimLabel: {
+    ...Typography.bodyBold,
+    color: '#FFFFFF',
+    fontSize: 12.5,
   },
   bannerCardSlot: {
     alignSelf: 'stretch',
