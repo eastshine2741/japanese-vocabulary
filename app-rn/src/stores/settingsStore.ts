@@ -24,6 +24,7 @@ interface SettingsState {
   setShowKoreanPronunciation: (value: boolean) => void;
   setShowFurigana: (value: boolean) => void;
   toggleKaraokeNewSongNotifications: () => Promise<void>;
+  toggleShowKoreanPronunciation: () => Promise<void>;
   save: () => Promise<void>;
 }
 
@@ -79,6 +80,19 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       await flashcardApi.updateSettings(settingsPayload(get()));
     } catch {
       set({ karaokeNewSongNotifications: !next });
+    }
+  },
+
+  toggleShowKoreanPronunciation: async () => {
+    if (get().status !== 'loaded') await get().loadSettings();
+    if (get().status !== 'loaded') return;
+
+    const next = !get().showKoreanPronunciation;
+    set({ showKoreanPronunciation: next });
+    try {
+      await flashcardApi.updateSettings(settingsPayload(get()));
+    } catch {
+      set({ showKoreanPronunciation: !next });
     }
   },
 
