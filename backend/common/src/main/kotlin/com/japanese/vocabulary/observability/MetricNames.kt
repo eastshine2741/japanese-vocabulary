@@ -5,7 +5,7 @@ object MetricNames {
     const val SONG_ANALYSIS_WORK_DURATION = "kotonoha.song.analysis.work.duration"
     const val SONG_ANALYSIS_STAGE_DURATION = "kotonoha.song.analysis.stage.duration"
     const val SONG_ANALYSIS_WORKS = "kotonoha.song.analysis.works"
-    const val SONG_ANALYSIS_WORK_COST = "kotonoha.song.analysis.work.cost.usd"
+    const val SONG_ANALYSIS_WORK_TIMEOUTS = "kotonoha.song.analysis.work.timeouts"
     const val SONG_ANALYSIS_OLDEST_PENDING_AGE = "kotonoha.song.analysis.oldest.pending.age"
     const val GEMINI_CALL_DURATION = "kotonoha.gemini.call.duration"
     const val GEMINI_TOKENS = "kotonoha.gemini.tokens"

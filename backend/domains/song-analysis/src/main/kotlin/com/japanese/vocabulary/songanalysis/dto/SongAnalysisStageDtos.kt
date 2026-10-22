@@ -29,15 +29,6 @@ data class ClaimedSongAnalysisStage(
     val previousOutput: String?,
 )
 
-/** sweeper 가 시간 초과로 닫은 작업. 리스너가 기록하지 못한 작업 지표를 sweeper 가 대신 남긴다. */
-data class TimedOutSongAnalysisWork(
-    val workId: Long,
-    val stage: SongAnalysisWorkStage?,
-    val triggerSource: SongAnalysisTriggerSource,
-    val startedAt: Instant?,
-    val llmCostUsd: Double,
-)
-
 /** 단계 실행에 필요한 작업 행의 값. 잠금 밖에서 읽히므로 엔티티 대신 값으로 넘긴다. */
 data class SongAnalysisWorkSnapshot(
     val workId: Long,

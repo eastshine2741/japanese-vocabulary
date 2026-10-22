@@ -23,7 +23,7 @@ import org.springframework.messaging.handler.annotation.Header
 import org.springframework.stereotype.Component
 import java.net.InetAddress
 import java.time.Duration
-import java.util.concurrent.atomic.DoubleAdder
+import java.time.Instant
 import kotlin.coroutines.CoroutineContext
 
 /**
@@ -43,7 +43,6 @@ class SongAnalysisWorkListener(
     private val workService: SongAnalysisWorkService,
     private val executor: SongAnalysisStageExecutor,
     private val meterRegistry: MeterRegistry,
-    private val workMetrics: SongAnalysisWorkMetrics,
     @Value("\${song-analysis.worker.time-budget:5m}") private val timeBudget: Duration,
 ) {
     private val logger = LoggerFactory.getLogger(SongAnalysisWorkListener::class.java)
@@ -80,9 +79,9 @@ class SongAnalysisWorkListener(
     private fun run(claimed: ClaimedSongAnalysisStage, dispatcher: CoroutineContext) {
         val sample = Timer.start(meterRegistry)
         val deadline = claimed.startedAt.plus(timeBudget)
-        val llmCost = DoubleAdder()
         val outcome = try {
-            runBlocking(dispatcher + RetryDeadline(deadline)) { executor.execute(claimed, llmCost) }
+            runBlocking(dispatcher + RetryDeadline(deadline)) { executor.execute(claimed) }
+            if (claimed.ref.stage.next == null) recordWorkDuration(claimed, "success")
             "success"
         } catch (e: SongAnalysisStageSupersededException) {
             logger.warn("[workId={}] {}", claimed.ref.workId, e.message)
@@ -93,43 +92,39 @@ class SongAnalysisWorkListener(
                 "[workId={}] {} attempt {} failed with {}",
                 claimed.ref.workId, claimed.ref.stage, claimed.ref.attempt, failure.code, e,
             )
-            if (workService.failStage(claimed.ref, failure, llmCost.sum())) {
-                recordWorkFinished(claimed, "failed", claimed.ref.stage, failure.code)
-            }
+            if (workService.failStage(claimed.ref, failure)) recordWorkDuration(claimed, "failed", failure)
             "failed"
         }
-        if (outcome == "success" && claimed.ref.stage.next == null) recordWorkFinished(claimed, "success", null, null)
         sample.stop(
             Timer.builder(MetricNames.SONG_ANALYSIS_STAGE_DURATION)
                 .tag("stage", claimed.ref.stage.name)
                 .tag("outcome", outcome)
                 .publishPercentileHistogram()
-                .maximumExpectedValue(SongAnalysisWorkMetrics.HISTOGRAM_MAX)
+                .maximumExpectedValue(HISTOGRAM_MAX)
                 .register(meterRegistry),
         )
     }
 
-    /**
-     * 작업 비용은 앞 단계들이 다른 파드에서 단계 행에 남긴 값까지 합해야 하므로 원장에서 읽는다.
-     * 원장은 이미 닫혔으니, 지표 기록이 실패해도 메시지를 DLQ 로 보내지 않는다.
-     */
-    private fun recordWorkFinished(
-        claimed: ClaimedSongAnalysisStage,
-        outcome: String,
-        failedStage: SongAnalysisWorkStage?,
-        errorCode: String?,
-    ) = runCatching {
-        workMetrics.recordFinished(
-            outcome = outcome,
-            failedStage = failedStage,
-            errorCode = errorCode,
-            triggerSource = claimed.work.triggerSource,
-            startedAt = claimed.startedAt,
-            llmCostUsd = workService.runLlmCostUsd(claimed.ref.workId, claimed.startedAt),
-        )
-    }.onFailure { logger.warn("[workId={}] Failed to record work metrics", claimed.ref.workId, it) }
+    /** 요청부터가 아니라 이번 실행이 시작된 뒤부터다. 관리자가 이어 돌린 작업도 그 실행만 잰다. */
+    private fun recordWorkDuration(claimed: ClaimedSongAnalysisStage, outcome: String, failure: SongAnalysisStageFailure? = null) {
+        Timer.builder(MetricNames.SONG_ANALYSIS_WORK_DURATION)
+            .tag("outcome", outcome)
+            .tag("failed_stage", if (failure == null) "none" else claimed.ref.stage.name)
+            .tag("error_code", failure?.code ?: "none")
+            .tag("trigger_source", claimed.work.triggerSource.name)
+            .publishPercentileHistogram()
+            .maximumExpectedValue(HISTOGRAM_MAX)
+            .register(meterRegistry)
+            .record(Duration.between(claimed.startedAt, Instant.now()))
+    }
 
     companion object {
+        /**
+         * 타이머 히스토그램의 기본 상한은 30초라 그보다 긴 값은 모두 +Inf 버킷에 떨어지고 백분위가 30초로
+         * 눌린다. 작업은 분 단위이고 시간 초과 판정이 10분이므로 그만큼 버킷을 연다.
+         */
+        private val HISTOGRAM_MAX: Duration = Duration.ofMinutes(10)
+
         /**
          * 유저에게 보이는 코드는 셋으로만 나눈다: 도메인이 판정한 결과(가사 없음 등), 외부 서비스
          * 장애가 재시도 뒤에도 남은 경우, 그 밖의 모든 것. 원인을 찾는 데 필요한 예외 클래스와 메시지

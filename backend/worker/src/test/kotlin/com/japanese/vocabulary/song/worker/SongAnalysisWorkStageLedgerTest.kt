@@ -67,18 +67,6 @@ class SongAnalysisWorkStageLedgerTest : WorkerBaseIntegrationTest() {
     }
 
     @Test
-    fun `run cost sums only the stages this run started`() {
-        val work = seedWork("費用")
-        val first = workService.claimStage(work.id!!, SongAnalysisWorkStage.FIRST, redelivered = false)!!
-        workService.completeStage(first.ref, "{}", llmCostUsd = 0.25)
-        val second = workService.claimStage(work.id!!, SongAnalysisWorkStage.FIRST.next!!, redelivered = false)!!
-        workService.failStage(second.ref, SongAnalysisWorkListener.classify(IllegalStateException("boom")), llmCostUsd = 0.125)
-
-        assertThat(workService.runLlmCostUsd(work.id!!, first.startedAt)).isEqualTo(0.375)
-        assertThat(workService.runLlmCostUsd(work.id!!, first.startedAt.plusSeconds(3600))).isZero()
-    }
-
-    @Test
     fun `the works gauge counts pending and running works from the ledger`() {
         val pendingBefore = worksGauge(SongAnalysisWorkStatus.PENDING)
         val runningBefore = worksGauge(SongAnalysisWorkStatus.RUNNING)
@@ -116,8 +104,8 @@ class SongAnalysisWorkStageLedgerTest : WorkerBaseIntegrationTest() {
 
         assertThat(takeover).isNotNull
         assertThat(takeover!!.ref.attempt).isEqualTo(2)
-        assertThat(workService.completeStage(original.ref, "{}", llmCostUsd = 0.0)).isFalse
-        assertThat(workService.completeStage(takeover.ref, "{}", llmCostUsd = 0.0)).isTrue
+        assertThat(workService.completeStage(original.ref, "{}")).isFalse
+        assertThat(workService.completeStage(takeover.ref, "{}")).isTrue
         assertThat(workRepository.findById(work.id!!).orElseThrow().currentStage).isEqualTo(SongAnalysisWorkStage.FIRST.next)
     }
 
@@ -126,7 +114,7 @@ class SongAnalysisWorkStageLedgerTest : WorkerBaseIntegrationTest() {
         val work = seedWork("次へ")
         val claimed = workService.claimStage(work.id!!, SongAnalysisWorkStage.FIRST, redelivered = false)!!
 
-        workService.completeStage(claimed.ref, """{"lines":1}""", llmCostUsd = 0.0)
+        workService.completeStage(claimed.ref, """{"lines":1}""")
 
         assertThat(workRepository.findById(work.id!!).orElseThrow().currentStage).isEqualTo(SongAnalysisWorkStage.FETCH_YOUTUBE)
         assertThat(workService.completedOutputs(work.id!!)).containsEntry(SongAnalysisWorkStage.FIRST, """{"lines":1}""")
@@ -155,14 +143,14 @@ class SongAnalysisWorkStageLedgerTest : WorkerBaseIntegrationTest() {
         val work = seedWork("停止")
         val claimed = workService.claimStage(work.id!!, SongAnalysisWorkStage.FIRST, redelivered = false)!!
 
-        val timedOut = workService.failStaleRunning(olderThan = staleThreshold(), limit = 5)
+        val failedCount = workService.failStaleRunning(olderThan = staleThreshold(), limit = 5)
 
-        assertThat(timedOut.map { it.workId }).containsExactly(work.id)
+        assertThat(failedCount).isEqualTo(1)
         val refreshed = workRepository.findById(work.id!!).orElseThrow()
         assertThat(refreshed.status).isEqualTo(SongAnalysisWorkStatus.FAILED)
         assertThat(refreshed.errorCode).isEqualTo("SONG_ANALYSIS_WORK_TIMEOUT")
         assertThat(stage(work, SongAnalysisWorkStage.FIRST).status).isEqualTo(SongAnalysisStageStatus.FAILED)
-        assertThat(workService.completeStage(claimed.ref, "{}", llmCostUsd = 0.0)).isFalse
+        assertThat(workService.completeStage(claimed.ref, "{}")).isFalse
         assertThat(workService.recordProgress(claimed.ref, "{}")).isFalse
     }
 
@@ -171,12 +159,12 @@ class SongAnalysisWorkStageLedgerTest : WorkerBaseIntegrationTest() {
         val work = seedWork("進行中")
         workService.claimStage(work.id!!, SongAnalysisWorkStage.FIRST, redelivered = false)
 
-        val timedOut = workService.failStaleRunning(
+        val failedCount = workService.failStaleRunning(
             olderThan = Instant.now(clock).minus(Duration.ofMinutes(10)),
             limit = 5,
         )
 
-        assertThat(timedOut).isEmpty()
+        assertThat(failedCount).isZero
     }
 
     @Test
@@ -206,7 +194,7 @@ class SongAnalysisWorkStageLedgerTest : WorkerBaseIntegrationTest() {
     fun `running work whose next stage never started is reported as a lost message`() {
         val work = seedWork("迷子")
         val claimed = workService.claimStage(work.id!!, SongAnalysisWorkStage.FIRST, redelivered = false)!!
-        workService.completeStage(claimed.ref, "{}", llmCostUsd = 0.0)
+        workService.completeStage(claimed.ref, "{}")
 
         val lost = workService.findLostMessages(olderThan = staleThreshold(), limit = 10)
 
@@ -227,7 +215,7 @@ class SongAnalysisWorkStageLedgerTest : WorkerBaseIntegrationTest() {
     fun `resume reopens the failed stage and asks for it again`() {
         val work = seedWork("再開")
         val claimed = runToStage(work, SongAnalysisWorkStage.ANALYZE_LYRICS)
-        workService.failStage(claimed, SongAnalysisWorkListener.classify(IllegalStateException("boom")), llmCostUsd = 0.0)
+        workService.failStage(claimed, SongAnalysisWorkListener.classify(IllegalStateException("boom")))
 
         val resumed = workService.resume(work.id!!)
 
@@ -242,7 +230,7 @@ class SongAnalysisWorkStageLedgerTest : WorkerBaseIntegrationTest() {
     fun `resume is refused while another work for the same song is active`() {
         val work = seedWork("競合")
         val claimed = runToStage(work, SongAnalysisWorkStage.FETCH_LYRICS)
-        workService.failStage(claimed, SongAnalysisWorkListener.classify(IllegalStateException("boom")), llmCostUsd = 0.0)
+        workService.failStage(claimed, SongAnalysisWorkListener.classify(IllegalStateException("boom")))
         seedWork("競合")
 
         assertThatThrownBy { workService.resume(work.id!!) }
@@ -272,7 +260,7 @@ class SongAnalysisWorkStageLedgerTest : WorkerBaseIntegrationTest() {
     fun `work that timed out waiting for its next stage can be resumed at that stage`() {
         val work = seedWork("待機切れ")
         val claimed = workService.claimStage(work.id!!, SongAnalysisWorkStage.FIRST, redelivered = false)!!
-        workService.completeStage(claimed.ref, "{}", llmCostUsd = 0.0)
+        workService.completeStage(claimed.ref, "{}")
         workService.failStaleRunning(olderThan = staleThreshold(), limit = 5)
 
         workService.resume(work.id!!)
@@ -299,7 +287,7 @@ class SongAnalysisWorkStageLedgerTest : WorkerBaseIntegrationTest() {
         while (true) {
             val claimed = workService.claimStage(work.id!!, stage, redelivered = false)!!
             if (stage == target) return claimed.ref
-            workService.completeStage(claimed.ref, "{}", llmCostUsd = 0.0)
+            workService.completeStage(claimed.ref, "{}")
             stage = stage.next!!
         }
     }

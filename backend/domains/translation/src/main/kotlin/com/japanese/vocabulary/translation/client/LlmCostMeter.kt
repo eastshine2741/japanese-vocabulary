@@ -1,7 +1,6 @@
 package com.japanese.vocabulary.translation.client
 
 import com.japanese.vocabulary.observability.MetricNames
-import com.japanese.vocabulary.translation.client.gemini.GeminiCallContext
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
 import org.slf4j.LoggerFactory
@@ -21,10 +20,7 @@ data class LlmPricingProperties(
     )
 }
 
-/**
- * Adds one call's cost to the counter and to the stage run's accumulator ([GeminiCallContext.llmCostUsd]).
- * A model missing from the price table must not fail analysis, so it costs 0 and warns once per model.
- */
+/** A model missing from the price table must not fail analysis, so it costs 0 and warns once per model. */
 @Component
 class LlmCostMeter(
     private val properties: LlmPricingProperties,
@@ -37,17 +33,14 @@ class LlmCostMeter(
         provider: String,
         call: String,
         model: String,
-        context: GeminiCallContext,
         inputTokens: Long,
         outputTokens: Long = 0,
         cachedInputTokens: Long = 0,
     ) {
         val usd = costUsd(model, inputTokens, outputTokens, cachedInputTokens)
         if (usd <= 0.0) return
-        context.llmCostUsd?.add(usd)
         Counter.builder(MetricNames.LLM_COST)
             .tag("provider", provider)
-            .tag("stage", context.stageTag)
             .tag("call", call)
             .tag("model", model)
             .register(meterRegistry)

@@ -103,9 +103,9 @@ class JevClient(
             val response = objectMapper.readValue(responseJson, JevResponse::class.java)
             response.model?.let { answeredBy = it }
             response.usage?.let {
-                recordTokens(call, context, "input", it.inputTokens)
+                recordTokens(call, "input", it.inputTokens)
                 // Priced by the configured model, not the concrete version the response names.
-                llmCostMeter.record("jev", call, model, context, inputTokens = it.inputTokens)
+                llmCostMeter.record("jev", call, model, inputTokens = it.inputTokens)
             }
             return response.answers
         } catch (e: Throwable) {
@@ -118,7 +118,6 @@ class JevClient(
             sample.stop(
                 Timer.builder(MetricNames.JEV_CALL_DURATION)
                     .tag("call", call)
-                    .tag("stage", context.stageTag)
                     .tag("outcome", outcome)
                     .publishPercentileHistogram()
                     .maximumExpectedValue(Duration.ofMinutes(5))
@@ -127,11 +126,10 @@ class JevClient(
         }
     }
 
-    private fun recordTokens(call: String, context: GeminiCallContext, kind: String, count: Long) {
+    private fun recordTokens(call: String, kind: String, count: Long) {
         if (count <= 0) return
         Counter.builder(MetricNames.JEV_TOKENS)
             .tag("call", call)
-            .tag("stage", context.stageTag)
             .tag("kind", kind)
             .register(meterRegistry)
             .increment(count.toDouble())

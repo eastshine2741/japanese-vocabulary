@@ -52,12 +52,6 @@ The listener runs each stage with `runBlocking(Dispatchers.IO)`: the listener th
 - `KARAOKE`: batch `karaoke-collect` for a newly listed karaoke song without an analyzed song (`docs/karaoke-new-songs.md`)
 
 
-## LLM cost and work metrics
-
-- A work's cost is the sum of its stage rows whose `started_at` falls in the current run. Stages of one work run on different worker pods, so no single process sees the whole work.
-- A stage that times out or is taken over closes at 0 because its spend lived only in that worker's memory. Read cost totals from the per-call `kotonoha_llm_cost_usd_total` counter and use the per-work summary only for distribution.
-
-
 ## One Active Work Per Song
 
 `createOrReuse` reads `(raw_title, raw_artist)` with `FOR UPDATE` before inserting. When no active row

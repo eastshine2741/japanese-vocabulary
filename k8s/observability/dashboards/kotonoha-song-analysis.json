@@ -190,7 +190,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(increase(kotonoha_song_analysis_work_duration_seconds_count{outcome=\"timeout\"}[$__range])) or vector(0)",
+          "expr": "sum(increase(kotonoha_song_analysis_work_timeouts_total[$__range])) or vector(0)",
           "legendFormat": "__auto",
           "range": false,
           "instant": true
@@ -1240,7 +1240,7 @@
     },
     {
       "type": "timeseries",
-      "title": "단계별 토큰",
+      "title": "호출별 토큰",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -1252,8 +1252,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (stage) (increase({__name__=~\"kotonoha_gemini_tokens_total|kotonoha_jev_tokens_total\",kind!=\"cached\"}[$__interval]))",
-          "legendFormat": "{{stage}}",
+          "expr": "sum by (call) (increase({__name__=~\"kotonoha_gemini_tokens_total|kotonoha_jev_tokens_total\",kind!=\"cached\"}[$__interval]))",
+          "legendFormat": "{{call}}",
           "range": true,
           "instant": false
         }
@@ -1455,7 +1455,7 @@
     },
     {
       "type": "timeseries",
-      "title": "단계별 비용",
+      "title": "호출별 비용",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -1467,8 +1467,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (stage) (increase(kotonoha_llm_cost_usd_total[$__interval]))",
-          "legendFormat": "{{stage}}",
+          "expr": "sum by (call) (increase(kotonoha_llm_cost_usd_total[$__interval]))",
+          "legendFormat": "{{call}}",
           "range": true,
           "instant": false
         }
@@ -1582,223 +1582,8 @@
       }
     },
     {
-      "type": "table",
-      "title": "경로별 작업당 비용",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "histogram_quantile(0.5, sum by (trigger_source, le) (increase(kotonoha_song_analysis_work_cost_usd_bucket[$__range])))",
-          "legendFormat": "__auto",
-          "range": false,
-          "instant": true,
-          "format": "table"
-        },
-        {
-          "refId": "B",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "histogram_quantile(0.95, sum by (trigger_source, le) (increase(kotonoha_song_analysis_work_cost_usd_bucket[$__range])))",
-          "legendFormat": "__auto",
-          "range": false,
-          "instant": true,
-          "format": "table"
-        },
-        {
-          "refId": "C",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum by (trigger_source) (increase(kotonoha_song_analysis_work_cost_usd_sum[$__range])) / sum by (trigger_source) (increase(kotonoha_song_analysis_work_cost_usd_count[$__range]))",
-          "legendFormat": "__auto",
-          "range": false,
-          "instant": true,
-          "format": "table"
-        },
-        {
-          "refId": "D",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum by (trigger_source) (increase(kotonoha_song_analysis_work_cost_usd_count[$__range]))",
-          "legendFormat": "__auto",
-          "range": false,
-          "instant": true,
-          "format": "table"
-        },
-        {
-          "refId": "E",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum by (trigger_source) (increase(kotonoha_song_analysis_work_cost_usd_sum[$__range]))",
-          "legendFormat": "__auto",
-          "range": false,
-          "instant": true,
-          "format": "table"
-        }
-      ],
-      "transformations": [
-        {
-          "id": "merge",
-          "options": {}
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true
-            },
-            "renameByName": {
-              "trigger_source": "경로",
-              "Value #A": "p50",
-              "Value #B": "p95",
-              "Value #C": "평균",
-              "Value #D": "작업 수",
-              "Value #E": "합계"
-            }
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            }
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "text",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "p50"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "currencyUSD"
-              },
-              {
-                "id": "decimals",
-                "value": 4
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "p95"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "currencyUSD"
-              },
-              {
-                "id": "decimals",
-                "value": 4
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "평균"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "currencyUSD"
-              },
-              {
-                "id": "decimals",
-                "value": 4
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "작업 수"
-            },
-            "properties": [
-              {
-                "id": "decimals",
-                "value": 0
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "합계"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "currencyUSD"
-              },
-              {
-                "id": "decimals",
-                "value": 2
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm",
-        "footer": {
-          "show": false,
-          "reducer": [
-            "sum"
-          ]
-        },
-        "sortBy": [
-          {
-            "displayName": "합계",
-            "desc": true
-          }
-        ]
-      },
-      "id": 23,
-      "gridPos": {
-        "x": 0,
-        "y": 57,
-        "w": 12,
-        "h": 7
-      }
-    },
-    {
       "type": "timeseries",
-      "title": "작업당 평균 비용",
+      "title": "완료 작업당 평균 비용",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -1810,8 +1595,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (trigger_source) (increase(kotonoha_song_analysis_work_cost_usd_sum[6h])) / sum by (trigger_source) (increase(kotonoha_song_analysis_work_cost_usd_count[6h]))",
-          "legendFormat": "{{trigger_source}}",
+          "expr": "sum(increase(kotonoha_llm_cost_usd_total[6h])) / sum(increase(kotonoha_song_analysis_work_duration_seconds_count{outcome=\"success\"}[6h]))",
+          "legendFormat": "평균",
           "range": true,
           "instant": false
         }
@@ -1853,11 +1638,12 @@
       "interval": "10m",
       "id": 24,
       "gridPos": {
-        "x": 12,
+        "x": 0,
         "y": 57,
-        "w": 12,
+        "w": 24,
         "h": 7
-      }
+      },
+      "description": "실패한 작업의 비용도 분자에 들어간다."
     }
   ]
 }

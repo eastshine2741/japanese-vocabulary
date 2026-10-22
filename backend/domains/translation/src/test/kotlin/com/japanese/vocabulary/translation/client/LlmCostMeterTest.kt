@@ -2,12 +2,10 @@ package com.japanese.vocabulary.translation.client
 
 import com.japanese.vocabulary.observability.MetricNames
 import com.japanese.vocabulary.translation.client.LlmPricingProperties.ModelPrice
-import com.japanese.vocabulary.translation.client.gemini.GeminiCallContext
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.within
 import org.junit.jupiter.api.Test
-import java.util.concurrent.atomic.DoubleAdder
 
 class LlmCostMeterTest {
 
@@ -24,17 +22,12 @@ class LlmCostMeterTest {
     }
 
     @Test
-    fun `adds the cost to the counter and the stage run accumulator`() {
-        val accumulator = DoubleAdder()
-        val context = GeminiCallContext(songId = null, lyricId = null, workId = 1, stage = "ANALYZE_LYRICS", llmCostUsd = accumulator)
+    fun `adds each call's cost to the counter`() {
+        meter.record("gemini", "translation", "pro", inputTokens = 1000, outputTokens = 100)
+        meter.record("gemini", "translation", "pro", inputTokens = 1000, outputTokens = 100)
 
-        meter.record("gemini", "translation", "pro", context, inputTokens = 1000, outputTokens = 100)
-        meter.record("gemini", "translation", "pro", context, inputTokens = 1000, outputTokens = 100)
-
-        assertThat(accumulator.sum()).isCloseTo(0.0064, within(1e-12))
         val counter = meterRegistry.get(MetricNames.LLM_COST)
             .tag("provider", "gemini")
-            .tag("stage", "ANALYZE_LYRICS")
             .tag("call", "translation")
             .tag("model", "pro")
             .counter()
@@ -43,12 +36,8 @@ class LlmCostMeterTest {
 
     @Test
     fun `a model missing from the price table costs nothing instead of failing`() {
-        val accumulator = DoubleAdder()
-        val context = GeminiCallContext(songId = null, lyricId = null, llmCostUsd = accumulator)
+        meter.record("gemini", "segment", "unknown-model", inputTokens = 1000, outputTokens = 100)
 
-        meter.record("gemini", "segment", "unknown-model", context, inputTokens = 1000, outputTokens = 100)
-
-        assertThat(accumulator.sum()).isZero()
         assertThat(meterRegistry.find(MetricNames.LLM_COST).counters()).isEmpty()
     }
 }

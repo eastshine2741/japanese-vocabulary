@@ -37,7 +37,7 @@ class SongAnalysisSongCreator(
         val songId = requireNotNull(created.song.id)
         val lyricId = requireNotNull(created.lyric.id)
         val current = workService.attachPlayerReady(claimed.ref, songId, lyricId, youtubeUrl) &&
-            workService.completeStage(claimed.ref, codec.write(CreateSongAndLyricOutput(songId, lyricId)), llmCostUsd = 0.0)
+            workService.completeStage(claimed.ref, codec.write(CreateSongAndLyricOutput(songId, lyricId)))
         if (!current) throw SongAnalysisStageSupersededException(claimed.ref)
     }
 }

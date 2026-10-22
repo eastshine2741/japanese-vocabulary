@@ -201,7 +201,7 @@ class GeminiClient(
                 ?: throw RuntimeException("Empty response from Gemini API")
             responseJson = runCatching { objectMapper.writeValueAsString(response) }.getOrNull()
 
-            recordTokenUsage(call, model, context, response)
+            recordTokenUsage(call, model, response)
             GeminiResponseGuard.verifyComplete(call, model, response, maxOutputTokens)
 
             val text = extractText(response)
@@ -220,7 +220,6 @@ class GeminiClient(
                 Timer.builder(MetricNames.GEMINI_CALL_DURATION)
                     .tag("call", call)
                     .tag("model", model)
-                    .tag("stage", context.stageTag)
                     .tag("outcome", outcome)
                     .publishPercentileHistogram()
                     // 버킷 기본 상한이 30초라 그보다 긴 호출은 p95 가 30초에 붙는다.
@@ -234,34 +233,32 @@ class GeminiClient(
      * `promptTokenCount` already includes `cachedContentTokenCount`, so the uncached remainder is billed at the
      * input price. Thoughts are billed at the output price. `totalTokenCount` would double count, so it is not kept.
      */
-    private fun recordTokenUsage(call: String, model: String, context: GeminiCallContext, response: Map<*, *>) {
+    private fun recordTokenUsage(call: String, model: String, response: Map<*, *>) {
         val usage = response["usageMetadata"] as? Map<*, *> ?: return
         fun count(key: String) = (usage[key] as? Number)?.toLong() ?: 0L
         val prompt = count("promptTokenCount")
         val candidates = count("candidatesTokenCount")
         val thoughts = count("thoughtsTokenCount")
         val cached = count("cachedContentTokenCount")
-        recordTokens(call, model, context, "prompt", prompt)
-        recordTokens(call, model, context, "candidates", candidates)
-        recordTokens(call, model, context, "thoughts", thoughts)
-        recordTokens(call, model, context, "cached", cached)
+        recordTokens(call, model, "prompt", prompt)
+        recordTokens(call, model, "candidates", candidates)
+        recordTokens(call, model, "thoughts", thoughts)
+        recordTokens(call, model, "cached", cached)
         llmCostMeter.record(
             provider = "gemini",
             call = call,
             model = model,
-            context = context,
             inputTokens = (prompt - cached).coerceAtLeast(0),
             outputTokens = candidates + thoughts,
             cachedInputTokens = cached,
         )
     }
 
-    private fun recordTokens(call: String, model: String, context: GeminiCallContext, kind: String, count: Long) {
+    private fun recordTokens(call: String, model: String, kind: String, count: Long) {
         if (count <= 0) return
         Counter.builder(MetricNames.GEMINI_TOKENS)
             .tag("call", call)
             .tag("model", model)
-            .tag("stage", context.stageTag)
             .tag("kind", kind)
             .register(meterRegistry)
             .increment(count.toDouble())

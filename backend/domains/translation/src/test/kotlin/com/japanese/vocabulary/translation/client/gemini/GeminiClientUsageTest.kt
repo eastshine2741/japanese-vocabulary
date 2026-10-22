@@ -18,7 +18,6 @@ import org.springframework.test.web.client.match.MockRestRequestMatchers.anythin
 import org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess
 import org.springframework.web.client.RestClient
 import java.time.Duration
-import java.util.concurrent.atomic.DoubleAdder
 
 class GeminiClientUsageTest {
 
@@ -29,15 +28,13 @@ class GeminiClientUsageTest {
         val builder = RestClient.builder()
         val server = MockRestServiceServer.bindTo(builder).build()
         server.expect(anything()).andRespond(withSuccess(RESPONSE, MediaType.APPLICATION_JSON))
-        val accumulator = DoubleAdder()
-        val context = GeminiCallContext(songId = 1, lyricId = 1, stage = "ANALYZE_LYRICS", llmCostUsd = accumulator)
+        val context = GeminiCallContext(songId = 1, lyricId = 1)
 
         runBlocking { client(builder).translateLyrics(listOf(mapOf("index" to 0, "text" to "恋")), context) }
 
         // (1000 - 400) × 2 + 400 × 0.2 + (100 + 50) × 12, per million
-        assertThat(accumulator.sum()).isCloseTo(0.00308, within(1e-12))
-        fun tokens(kind: String) = meterRegistry.get(MetricNames.GEMINI_TOKENS)
-            .tag("stage", "ANALYZE_LYRICS").tag("kind", kind).counter().count()
+        assertThat(meterRegistry.get(MetricNames.LLM_COST).counter().count()).isCloseTo(0.00308, within(1e-12))
+        fun tokens(kind: String) = meterRegistry.get(MetricNames.GEMINI_TOKENS).tag("kind", kind).counter().count()
         assertThat(tokens("prompt")).isEqualTo(1000.0)
         assertThat(tokens("candidates")).isEqualTo(100.0)
         assertThat(tokens("thoughts")).isEqualTo(50.0)

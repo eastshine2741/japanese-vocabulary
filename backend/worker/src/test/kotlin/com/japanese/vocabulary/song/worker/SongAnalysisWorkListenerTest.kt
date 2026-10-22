@@ -33,7 +33,6 @@ import java.time.Instant
 import java.util.Optional
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
-import kotlin.math.abs
 
 class SongAnalysisWorkListenerTest {
 
@@ -51,9 +50,7 @@ class SongAnalysisWorkListenerTest {
         mvSearchDefectReporter = mockk(),
     )
     private val meterRegistry = SimpleMeterRegistry()
-    private val listener = SongAnalysisWorkListener(
-        workService, executor, meterRegistry, SongAnalysisWorkMetrics(meterRegistry), Duration.ofMinutes(5),
-    )
+    private val listener = SongAnalysisWorkListener(workService, executor, meterRegistry, Duration.ofMinutes(5))
 
     /**
      * 번역과 분절은 각자 Gemini 를 수십 초씩 기다린다. 리스너가 디스패처 없이 runBlocking 하면 둘이
@@ -82,7 +79,7 @@ class SongAnalysisWorkListenerTest {
         listener.onMessage(SongAnalysisWorkMessage(WORK_ID, SongAnalysisWorkStage.ANALYZE_LYRICS), redelivered = false)
 
         assertThat(sawEachOther).containsExactly(true, true)
-        verify(exactly = 1) { workService.completeStage(any(), any(), any()) }
+        verify(exactly = 1) { workService.completeStage(any(), any()) }
     }
 
     @Test
@@ -101,42 +98,16 @@ class SongAnalysisWorkListenerTest {
                         it.errorClass == "java.lang.IllegalStateException" &&
                         it.detail!!.contains("bad answer")
                 },
-                any(),
             )
         }
     }
 
-    /** 두 갈래가 병렬로 더한 비용이 단계 행으로 가고, 호출에는 단계 이름이 붙는다. */
     @Test
-    fun `the stage run's llm cost from both branches is written with the stage`() {
-        stubAnalyzeStage()
-        val stages = mutableListOf<String?>()
-        coEvery { translationService.translateLyrics(any()) } answers {
-            val context = firstArg<TranslationPipelineSource>().callContext
-            synchronized(stages) { stages += context.stage }
-            context.llmCostUsd!!.add(0.01)
-            mapOf(0 to TranslationResultDto(0, "고양이"))
-        }
-        coEvery { translationService.segmentLyrics(any()) } answers {
-            val context = firstArg<TranslationPipelineSource>().callContext
-            synchronized(stages) { stages += context.stage }
-            context.llmCostUsd!!.add(0.02)
-            SegmentationStageResult(emptyList(), emptyMap())
-        }
-
-        listener.onMessage(SongAnalysisWorkMessage(WORK_ID, SongAnalysisWorkStage.ANALYZE_LYRICS), redelivered = false)
-
-        assertThat(stages).containsOnly("ANALYZE_LYRICS").hasSize(2)
-        verify(exactly = 1) { workService.completeStage(REF, any(), match { abs(it - 0.03) < 1e-9 }) }
-    }
-
-    @Test
-    fun `a failed work is timed with the stage and code it failed with and its run cost`() {
+    fun `a failed work is timed with the stage and code it failed with`() {
         stubAnalyzeStage()
         coEvery { translationService.translateLyrics(any()) } throws IllegalStateException("bad answer")
         coEvery { translationService.segmentLyrics(any()) } returns SegmentationStageResult(emptyList(), emptyMap())
-        every { workService.failStage(REF, any(), any()) } returns true
-        every { workService.runLlmCostUsd(WORK_ID, any()) } returns 0.05
+        every { workService.failStage(REF, any()) } returns true
 
         listener.onMessage(SongAnalysisWorkMessage(WORK_ID, SongAnalysisWorkStage.ANALYZE_LYRICS), redelivered = false)
 
@@ -147,24 +118,6 @@ class SongAnalysisWorkListenerTest {
             .tag("trigger_source", "USER_APP")
             .timer()
         assertThat(timer.count()).isEqualTo(1)
-        val cost = meterRegistry.get(MetricNames.SONG_ANALYSIS_WORK_COST)
-            .tag("outcome", "failed")
-            .tag("trigger_source", "USER_APP")
-            .summary()
-        assertThat(cost.totalAmount()).isEqualTo(0.05)
-    }
-
-    /** 실패가 펜스에 걸리면(다른 worker 가 넘겨받았으면) 작업은 아직 끝나지 않았다. */
-    @Test
-    fun `a superseded failure does not finish the work`() {
-        stubAnalyzeStage()
-        coEvery { translationService.translateLyrics(any()) } throws IllegalStateException("bad answer")
-        coEvery { translationService.segmentLyrics(any()) } returns SegmentationStageResult(emptyList(), emptyMap())
-        every { workService.failStage(REF, any(), any()) } returns false
-
-        listener.onMessage(SongAnalysisWorkMessage(WORK_ID, SongAnalysisWorkStage.ANALYZE_LYRICS), redelivered = false)
-
-        assertThat(meterRegistry.find(MetricNames.SONG_ANALYSIS_WORK_DURATION).timers()).isEmpty()
     }
 
     private fun stubAnalyzeStage() {
@@ -191,7 +144,7 @@ class SongAnalysisWorkListenerTest {
             previousOutput = null,
         )
         every { workService.recordProgress(any(), any()) } returns true
-        every { workService.completeStage(any(), any(), any()) } returns true
+        every { workService.completeStage(any(), any()) } returns true
         every { lyricRepository.findById(LYRIC_ID) } returns Optional.of(lyric)
         every { translationService.sourceOf(lyric, WORK_ID) } returns
             TranslationPipelineSource.from(lyric.rawContent, GeminiCallContext(songId = 1, lyricId = LYRIC_ID))
