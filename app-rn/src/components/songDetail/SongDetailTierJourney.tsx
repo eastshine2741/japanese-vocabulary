@@ -1,10 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { LayoutChangeEvent, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, {
   Easing,
   FadeIn,
   LayoutAnimationConfig,
   LinearTransition,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withTiming,
 } from 'react-native-reanimated';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -42,7 +47,7 @@ interface SongDetailTierJourneyProps {
 }
 
 /** 보상 띠 상태. 카드는 단계를 끝낸 순간 생기지만 유저가 띠를 눌러 받아야 연출이 뜬다. */
-type RewardState = 'progress' | 'claim' | 'owned';
+export type RewardState = 'progress' | 'claim' | 'owned';
 
 const SWITCH_DURATION = 300;
 const CONTENT_FADE_DURATION = 220;
@@ -248,61 +253,114 @@ const TierDot = React.memo(function TierDot({ status }: { status: SongWordTierSt
   );
 });
 
+const SHEEN_WIDTH = 120;
+const SHEEN_SWEEP_MS = 900;
+const SHEEN_REST_MS = 2600;
+const SHEEN_COLORS = ['#FFFFFF00', '#FFFFFFD9', '#FFFFFF00'] as const;
+
+/** 받을 카드가 있는 띠에만 금속 광택이 주기적으로 한 번 훑고 지나가, 눌러야 할 띠로 읽히게 한다. */
+const BannerSheen = React.memo(function BannerSheen() {
+  const [width, setWidth] = useState(0);
+  const progress = useSharedValue(0);
+  useEffect(() => {
+    if (width === 0) return;
+    progress.value = withRepeat(
+      withDelay(SHEEN_REST_MS, withTiming(1, { duration: SHEEN_SWEEP_MS, easing: Easing.inOut(Easing.quad) })),
+      -1,
+    );
+  }, [progress, width]);
+  const sweep = useAnimatedStyle(() => ({
+    transform: [{ translateX: -SHEEN_WIDTH + progress.value * (width + SHEEN_WIDTH * 2) }, { skewX: '-20deg' }],
+  }));
+  const handleLayout = useCallback((e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width), []);
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none" onLayout={handleLayout}>
+      <Animated.View style={[styles.sheen, sweep]}>
+        <LinearGradient colors={SHEEN_COLORS} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} />
+      </Animated.View>
+    </View>
+  );
+});
+
 /** 칩 크기로는 카드가 안 읽혀서 큰 앞면의 위쪽만 줄 밖으로 잘라 보인다. */
 const RewardBanner = React.memo(function RewardBanner({
   card,
   tint,
+  activeTint,
+  accent,
+  ink,
   caption,
   title,
-  ratio,
+  progress,
   active = false,
   accessibilityLabel,
   onPress,
 }: {
   card: SongRewardCard;
   tint: readonly [string, string, ...string[]];
+  /** 받을 카드가 있으면 띠 전체를 이 재질로 진하게 칠해 띠 자체가 버튼처럼 켜진다. 글씨가 읽히는 명암이어야 한다. */
+  activeTint: readonly [string, string, ...string[]];
+  /** 진행 바 색. 앱 초록 대신 카드 재질 색이라야 띠 배경과 어울린다. */
+  accent: string;
+  ink: string;
   caption: string;
   title: string;
-  ratio?: number;
+  progress?: { ratio: number; label: string };
   active?: boolean;
   accessibilityLabel: string;
   onPress: () => void;
 }) {
   const fonts = useCardFonts();
   return (
-    <TouchableOpacity
-      style={[styles.banner, active && styles.bannerActive]}
-      onPress={onPress}
-      activeOpacity={0.8}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-    >
-      <LinearGradient
-        colors={tint}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[StyleSheet.absoluteFill, styles.bannerTint, active && styles.bannerTintActive]}
-      />
-      <View style={styles.bannerCopy}>
-        <Text style={styles.bannerCaption} numberOfLines={1}>{caption}</Text>
-        <Text style={[styles.bannerTitle, active && styles.bannerTitleActive]} numberOfLines={1}>{title}</Text>
-        {ratio != null && (
-          <View style={styles.bannerTrack}>
-            <View style={[styles.bannerFill, { width: `${Math.min(1, Math.max(0, ratio)) * 100}%` }]} />
-          </View>
-        )}
-      </View>
-      <Feather name="chevron-right" size={16} color={active ? Colors.primary : Colors.textMuted} />
-      <View style={styles.bannerCardSlot}>
-        <View style={styles.bannerCard}>
-          <SongCardFront card={card} width={BANNER_CARD_WIDTH} fonts={fonts} thumb />
+    <View>
+      {/* 받을 카드가 있으면 띠 아래에 진한 턱을 깔아 눌리는 버튼으로 보이게 하고, 누르면 띠가 턱을 덮으며 내려앉는다.
+          그림자는 턱에 둔다. iOS 는 overflow hidden 인 띠의 그림자를 그리지 않는다. */}
+      {active && <View style={{ ...styles.bannerLip, backgroundColor: accent, shadowColor: accent }} />}
+      <Pressable
+        style={({ pressed }) => [
+          styles.banner,
+          active && { ...styles.bannerActive, shadowColor: accent },
+          active ? (pressed ? styles.bannerPressed : styles.bannerRaised) : pressed && styles.bannerDimmed,
+        ]}
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+      >
+        <LinearGradient
+          colors={active ? activeTint : tint}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[StyleSheet.absoluteFill, !active && styles.bannerTint]}
+        />
+        {active && <BannerSheen />}
+        <View style={styles.bannerCopy}>
+          <Text style={[styles.bannerCaption, { color: ink }]} numberOfLines={1}>{caption}</Text>
+          <Text style={[styles.bannerTitle, { color: ink }]} numberOfLines={1}>{title}</Text>
+          {progress != null && (
+            <View style={styles.bannerProgress}>
+              <View style={styles.bannerTrack}>
+                <View
+                  style={[
+                    styles.bannerFill,
+                    { backgroundColor: accent, width: `${Math.min(1, Math.max(0, progress.ratio)) * 100}%` },
+                  ]}
+                />
+              </View>
+              <Text style={[styles.bannerCount, { color: ink }]}>{progress.label}</Text>
+            </View>
+          )}
         </View>
-      </View>
-    </TouchableOpacity>
+        <View style={styles.bannerCardSlot}>
+          <View style={styles.bannerCard}>
+            <SongCardFront card={card} width={BANNER_CARD_WIDTH} fonts={fonts} thumb />
+          </View>
+        </View>
+      </Pressable>
+    </View>
   );
 });
 
-const TierRewardBanner = React.memo(function TierRewardBanner({
+export const TierRewardBanner = React.memo(function TierRewardBanner({
   tier,
   song,
   level,
@@ -320,24 +378,31 @@ const TierRewardBanner = React.memo(function TierRewardBanner({
   const total = Math.max(0, tier.totalCount);
   const done = total - buildTierSegments(tier).remainingCount;
   const name = SONG_TIER_NAME[level];
-  const caption = state === 'owned' ? '받은 카드' : `단계 완료 보상 · ${done}/${total}`;
-  const title = state === 'claim' ? `${name} 카드 받기` : `${name} 카드`;
+  const material = LEVEL_MATERIAL[level];
+  const [caption, title] = state === 'claim'
+    ? ['이 단계를 끝냈어요', `${name} 카드 받기`]
+    : state === 'owned'
+      ? ['이 단계를 끝냈어요', `${name} 카드를 받았어요`]
+      : ['이 단계를 끝내면', `${name} 카드를 받아요`];
   return (
     <RewardBanner
       card={card}
-      tint={LEVEL_MATERIAL[level].frame}
+      tint={material.frame}
+      activeTint={material.body}
+      accent={material.frame[3]}
+      ink={material.chipText}
       caption={caption}
       title={title}
-      ratio={state === 'owned' ? undefined : total > 0 ? done / total : 1}
+      progress={state === 'progress' ? { ratio: total > 0 ? done / total : 1, label: `${done}/${total}` } : undefined}
       active={state === 'claim'}
-      accessibilityLabel={`${caption} ${title}${state === 'claim' ? '' : '. 카드 보기'}`}
+      accessibilityLabel={`${caption} ${title}${state === 'claim' ? '' : `, ${done}/${total}. 카드 보기`}`}
       onPress={handlePress}
     />
   );
 });
 
 /** 마스터는 공부할 단어 묶음이 아니라 복습으로 채워지는 기억 목표라 단계 줄에 잇지 않고 여정 끝 보상으로만 둔다. */
-const MasterRewardBanner = React.memo(function MasterRewardBanner({
+export const MasterRewardBanner = React.memo(function MasterRewardBanner({
   song,
   progress,
   state,
@@ -350,24 +415,25 @@ const MasterRewardBanner = React.memo(function MasterRewardBanner({
 }) {
   const card = useMemo(() => songCardPreview(song, 3, true), [song]);
   const percent = Math.round(progress.longTermRatio * 100);
-  const caption = state === 'owned'
-    ? '받은 카드'
-    : state === 'claim' || progress.level === 3
-      ? `단어의 90%를 장기기억 시 (지금 ${percent}%)`
-      : '완곡 후, 단어의 90%를 장기기억 시';
-  const title = state === 'claim'
-    ? `${SONG_MASTER_NAME} 카드 받기`
-    : state === 'owned' ? `${SONG_MASTER_NAME} 카드` : `${SONG_MASTER_NAME} 카드 획득`;
+  const [caption, title] = state === 'claim'
+    ? ['단어의 90%를 장기기억했어요', `${SONG_MASTER_NAME} 카드 받기`]
+    : state === 'owned'
+      ? ['단어의 90%를 장기기억했어요', `${SONG_MASTER_NAME} 카드를 받았어요`]
+      : [progress.level === 3 ? '단어의 90%를 장기기억하면' : '완곡 후 단어의 90%를 장기기억하면', `${SONG_MASTER_NAME} 카드를 받아요`];
+  const showProgress = state === 'progress' && progress.level === 3;
   return (
     <Animated.View layout={relayout}>
       <RewardBanner
         card={card}
         tint={MASTER_CHIP.frame}
+        activeTint={MASTER_CHIP.frame}
+        accent={MASTER_ACCENT}
+        ink={MASTER_CHIP.chipText}
         caption={caption}
         title={title}
-        ratio={state !== 'owned' && progress.level === 3 ? progress.longTermRatio / SONG_CARD_MASTER_RATIO : undefined}
+        progress={showProgress ? { ratio: progress.longTermRatio / SONG_CARD_MASTER_RATIO, label: `${percent}%` } : undefined}
         active={state === 'claim'}
-        accessibilityLabel={`${caption} ${title}${state === 'claim' ? '' : '. 카드 보기'}`}
+        accessibilityLabel={`${caption} ${title}${state === 'claim' ? '' : showProgress ? `, 지금 ${percent}%. 카드 보기` : '. 카드 보기'}`}
         onPress={onPress}
       />
     </Animated.View>
@@ -533,8 +599,10 @@ const TierStat = React.memo(function TierStat({
 });
 
 const CTA_SUBTLE_COLOR = '#FFFFFFC4';
-const BANNER_HEIGHT = 60;
+const BANNER_HEIGHT = 68;
 const BANNER_CARD_WIDTH = 64;
+const BANNER_LIP = 4;
+const MASTER_ACCENT = MASTER_CHIP.frame[3];
 const STAT_HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 };
 
 const styles = StyleSheet.create({
@@ -648,52 +716,84 @@ const styles = StyleSheet.create({
   banner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 10,
     height: BANNER_HEIGHT,
     paddingLeft: 14,
     overflow: 'hidden',
     borderRadius: 12,
     backgroundColor: Colors.surface,
   },
+  bannerRaised: {
+    marginBottom: BANNER_LIP,
+  },
+  bannerPressed: {
+    marginTop: BANNER_LIP,
+  },
+  bannerDimmed: {
+    opacity: 0.8,
+  },
+  bannerLip: {
+    position: 'absolute',
+    top: BANNER_LIP,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    borderRadius: 12,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.55,
+    shadowRadius: 14,
+    elevation: 8,
+  },
+  // Android 는 elevation 이 높은 형제를 위에 그려서, 띠도 턱만큼 올려야 턱에 가려지지 않는다.
   bannerActive: {
-    borderWidth: 1.5,
-    borderColor: Colors.primary,
+    elevation: 8,
+  },
+  sheen: {
+    position: 'absolute',
+    top: -20,
+    bottom: -20,
+    left: 0,
+    width: SHEEN_WIDTH,
   },
   bannerTint: {
-    opacity: 0.22,
-  },
-  bannerTintActive: {
-    opacity: 0.4,
+    opacity: 0.28,
   },
   bannerCopy: {
     flex: 1,
-    gap: 2,
+    gap: 1,
   },
   bannerCaption: {
     ...Typography.bodySemiBold,
-    color: Colors.textSecondary,
     fontSize: 11.5,
+    opacity: 0.6,
   },
   bannerTitle: {
     ...Typography.bodyBold,
-    color: Colors.textPrimary,
     fontSize: 15,
   },
-  bannerTitleActive: {
-    color: Colors.primary,
+  bannerProgress: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+    marginRight: 4,
   },
   bannerTrack: {
-    height: 3,
-    marginTop: 3,
-    marginRight: 8,
-    borderRadius: 3,
+    flex: 1,
+    height: 4,
+    borderRadius: 4,
     overflow: 'hidden',
-    backgroundColor: Colors.tierTrack,
+    backgroundColor: '#FFFFFFB3',
   },
   bannerFill: {
     height: '100%',
-    borderRadius: 3,
-    backgroundColor: Colors.primary,
+    borderRadius: 4,
+  },
+  bannerCount: {
+    ...Typography.bodySemiBold,
+    fontSize: 11,
+    opacity: 0.7,
+    fontVariant: ['tabular-nums'],
   },
   bannerCardSlot: {
     alignSelf: 'stretch',
