@@ -16,7 +16,8 @@ decide who gets what: `batch` (streak reminder CronJob), `worker` (analysis-comp
   Both slots are sent with `androidDataOnly = true`: no notification block on Android, so the
   app renders it from `data.title` / `data.body`; iOS still gets a visible APNs alert. The 23:00 slot
   also carries `data.expiresAt` (epoch ms of the next 04:00 KST) for the client countdown. Titles
-  call the user by `users.name` (NOT NULL, `사용자` when left blank).
+  call the user by `users.name` (NOT NULL, `사용자` when left blank). Users can turn it off with
+  `streakReminderNotifications` (settings `동기 부여 메시지`, default true; no settings row counts as on).
 - Permission: the app never asks at launch or login; those only register the token when permission is
   already granted. It asks from the streak celebration CTA (re-asked 3 days after "다음에") and the karaoke
   new-songs toggle.
@@ -29,7 +30,7 @@ decide who gets what: `batch` (streak reminder CronJob), `worker` (analysis-comp
   expo-notifications. The module is native code, so it ships only with a new native build.
 - Karaoke new songs: `KaraokeNewSongNotifier` in `batch`, run by the `karaoke-collect` CronJob at
   `15:00` KST right after collection. One push per run to users with `karaokeNewSongNotifications` (opt-in,
-  default false), the only user-gated push. Payload `data.type` is `karaoke_new_songs`. Rules:
+  default false). Payload `data.type` is `karaoke_new_songs`. Rules:
   `docs/karaoke-new-songs.md`.
 - Reward cards backfilled: `RewardCardBackfillPushTask` in `batch`, run once by hand from the suspended
   `reward-card-backfill-push` CronJob after `reward-card-backfill` has filled the cards. One push to each user who got a new song card. Payload `data.type` is
@@ -48,7 +49,7 @@ decide who gets what: `batch` (streak reminder CronJob), `worker` (analysis-comp
 
 `StreakReminderTask.findCandidates()` reads `DeviceTokenRepository`, `UserSettingsRepository`,
 `DailyStudySummaryRepository` and `StreakCalculator` directly. A user is a candidate when they have a
-token, notifications are on, they have at least one study day, and no review yet on today's KST
+token, `streakReminderNotifications` is not off, they have at least one study day, and no review yet on today's KST
 04:00 study date.
 
 The task flow is:

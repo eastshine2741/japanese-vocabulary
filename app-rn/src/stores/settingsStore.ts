@@ -14,6 +14,7 @@ interface SettingsState {
   showFurigana: boolean;
   dailyGoal: number;
   karaokeNewSongNotifications: boolean;
+  streakReminderNotifications: boolean;
   isSaving: boolean;
   saveSuccess: boolean;
   error: string | null;
@@ -24,13 +25,22 @@ interface SettingsState {
   setShowKoreanPronunciation: (value: boolean) => void;
   setShowFurigana: (value: boolean) => void;
   toggleKaraokeNewSongNotifications: () => Promise<void>;
+  toggleStreakReminderNotifications: () => Promise<void>;
   save: () => Promise<void>;
 }
 
 function settingsPayload(state: SettingsState): UserSettingsDTO {
-  const { showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, dailyGoal, karaokeNewSongNotifications } = state;
-  return { showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, dailyGoal, karaokeNewSongNotifications };
+  const {
+    showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, dailyGoal,
+    karaokeNewSongNotifications, streakReminderNotifications,
+  } = state;
+  return {
+    showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, dailyGoal,
+    karaokeNewSongNotifications, streakReminderNotifications,
+  };
 }
+
+type NotificationKey = 'karaokeNewSongNotifications' | 'streakReminderNotifications';
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   status: 'loading',
@@ -40,6 +50,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   showFurigana: true,
   dailyGoal: 100,
   karaokeNewSongNotifications: false,
+  streakReminderNotifications: true,
   isSaving: false,
   saveSuccess: false,
   error: null,
@@ -56,6 +67,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         showFurigana: settings.showFurigana,
         dailyGoal: settings.dailyGoal,
         karaokeNewSongNotifications: settings.karaokeNewSongNotifications,
+        // 이 필드를 모르는 서버 응답이면 서버 기본값과 같은 켜짐으로 둔다.
+        streakReminderNotifications: settings.streakReminderNotifications ?? true,
       });
     } catch (e: any) {
       set({ status: 'error', error: e.message });
@@ -67,20 +80,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setShowKoreanPronunciation: (value) => set({ showKoreanPronunciation: value, saveSuccess: false }),
   setShowFurigana: (value) => set({ showFurigana: value, saveSuccess: false }),
 
-  // PUT /api/settings 는 설정 전체를 덮어쓴다. 읽어 오기 전에는 저장하지 않는다.
-  toggleKaraokeNewSongNotifications: async () => {
-    if (get().status !== 'loaded') await get().loadSettings();
-    if (get().status !== 'loaded') return;
-
-    const next = !get().karaokeNewSongNotifications;
-    set({ karaokeNewSongNotifications: next });
-    if (next) requestPermissionForOptIn();
-    try {
-      await flashcardApi.updateSettings(settingsPayload(get()));
-    } catch {
-      set({ karaokeNewSongNotifications: !next });
-    }
-  },
+  toggleKaraokeNewSongNotifications: () => toggleNotification('karaokeNewSongNotifications'),
+  toggleStreakReminderNotifications: () => toggleNotification('streakReminderNotifications'),
 
   save: async () => {
     set({ isSaving: true, saveSuccess: false });
@@ -92,3 +93,19 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     }
   },
 }));
+
+// PUT /api/settings 는 설정 전체를 덮어쓴다. 읽어 오기 전에는 저장하지 않는다.
+async function toggleNotification(key: NotificationKey) {
+  const { getState, setState } = useSettingsStore;
+  if (getState().status !== 'loaded') await getState().loadSettings();
+  if (getState().status !== 'loaded') return;
+
+  const next = !getState()[key];
+  setState({ [key]: next });
+  if (next) requestPermissionForOptIn();
+  try {
+    await flashcardApi.updateSettings(settingsPayload(getState()));
+  } catch {
+    setState({ [key]: !next });
+  }
+}

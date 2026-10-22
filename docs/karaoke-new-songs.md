@@ -69,7 +69,7 @@ AFTER_COMMIT 에 받아 같은 제목·가수의 빈 행을 잇는다. 놓친 �
 ## 구독
 
 `UserSettingsData.karaokeNewSongNotifications` (기본 false, opt-in). `PUT /api/settings` 는 설정 전체를 덮어쓰므로
-클라는 설정을 읽어 온 뒤에만 토글을 저장해야 한다. 푸시 대상은 이 값이 켜진, 탈퇴하지 않은 유저. 알림 중 끌 수 있는 것은 이것 하나다.
+클라는 설정을 읽어 온 뒤에만 토글을 저장해야 한다. 푸시 대상은 이 값이 켜진, 탈퇴하지 않은 유저.
 푸시: 제목 `🎤 노래방 신곡이 업데이트되었어요!`, 본문 `唱, 夜明けの歌 외 1곡을 확인해보세요`(곡명 2개까지,
 조사는 한글 받침·`ん` 만 보고 나머지는 `를`), `data = { type: "karaoke_new_songs", title, body }`.
 

@@ -36,18 +36,20 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export default function SettingsScreen() {
   const navigation = useNavigation<Nav>();
   const {
-    status, showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, karaokeNewSongNotifications, isSaving,
-    loadSettings, setShowIntervals, setReadingDisplay, setShowKoreanPronunciation, setShowFurigana, toggleKaraokeNewSongNotifications, save,
+    status, showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, karaokeNewSongNotifications, streakReminderNotifications, isSaving,
+    loadSettings, setShowIntervals, setReadingDisplay, setShowKoreanPronunciation, setShowFurigana, toggleKaraokeNewSongNotifications, toggleStreakReminderNotifications, save,
   } = useSettingsStore(
     useShallow(s => ({
       status: s.status,
       showIntervals: s.showIntervals, readingDisplay: s.readingDisplay,
       showKoreanPronunciation: s.showKoreanPronunciation, showFurigana: s.showFurigana,
       karaokeNewSongNotifications: s.karaokeNewSongNotifications,
+      streakReminderNotifications: s.streakReminderNotifications,
       isSaving: s.isSaving, loadSettings: s.loadSettings,
       setShowIntervals: s.setShowIntervals, setReadingDisplay: s.setReadingDisplay,
       setShowKoreanPronunciation: s.setShowKoreanPronunciation, setShowFurigana: s.setShowFurigana,
-      toggleKaraokeNewSongNotifications: s.toggleKaraokeNewSongNotifications, save: s.save,
+      toggleKaraokeNewSongNotifications: s.toggleKaraokeNewSongNotifications,
+      toggleStreakReminderNotifications: s.toggleStreakReminderNotifications, save: s.save,
     })),
   );
 
@@ -198,6 +200,19 @@ export default function SettingsScreen() {
         </Section>
 
         <Section title="알림">
+          <View style={styles.row}>
+            <View style={styles.rowText}>
+              <Text style={styles.label}>동기 부여 메시지</Text>
+              <Text style={styles.description}>오늘 학습을 안 했으면 저녁 8시와 밤 11시에 알려드려요.</Text>
+            </View>
+            <Switch
+              value={streakReminderNotifications}
+              onValueChange={toggleStreakReminderNotifications}
+              trackColor={{ true: Colors.stateRetrievability, false: Colors.border }}
+              thumbColor={Colors.surface}
+            />
+          </View>
+
           <View style={styles.row}>
             <View style={styles.rowText}>
               <Text style={styles.label}>노래방 신곡 알림</Text>

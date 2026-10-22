@@ -63,4 +63,5 @@ export interface UserSettingsDTO {
   showFurigana: boolean;
   dailyGoal: number;
   karaokeNewSongNotifications: boolean;
+  streakReminderNotifications: boolean;
 }
