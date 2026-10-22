@@ -7,6 +7,7 @@ import { useSongReportStore } from '../../stores/songReportStore';
 import { extractYoutubeVideoId, youtubeThumbnailUrl } from '../../utils/youtube';
 import type { SongReportTypeDto, SubmitSongReportRequest } from '../../types/songReport';
 import { AppSheetTextInput } from '../bottomSheet';
+import { Button, Chip, SectionLabel, SheetHeader } from '../ui';
 import type { CurrentPlayingLyricLine } from './CurrentPlayingWordsSheet';
 import SongReportLineContext from './SongReportLineContext';
 import {
@@ -64,16 +65,7 @@ interface TokenChipProps {
 const TokenChip = React.memo(function TokenChip({ choice, selected, onPress }: TokenChipProps) {
   const handlePress = useCallback(() => onPress(choice.key), [choice.key, onPress]);
 
-  return (
-    <Pressable
-      style={[styles.chip, selected && styles.chipSelected]}
-      onPress={handlePress}
-      accessibilityRole="radio"
-      accessibilityState={{ selected }}
-    >
-      <Text style={[styles.chipLabel, selected && styles.chipLabelSelected]}>{choice.surface}</Text>
-    </Pressable>
-  );
+  return <Chip label={choice.surface} selected={selected} onPress={handlePress} accessibilityRole="radio" />;
 });
 
 function SongReportSheet({
@@ -154,31 +146,12 @@ function SongReportSheet({
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        {detailType ? (
-          <Pressable
-            style={styles.headerButton}
-            onPress={handleBack}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="문제 유형 다시 고르기"
-          >
-            <Feather name="chevron-left" size={18} color={Colors.textSecondary} />
-          </Pressable>
-        ) : null}
-        <Text style={styles.title} numberOfLines={1}>
-          {detailType?.label ?? '어디가 틀렸는지 알려주세요'}
-        </Text>
-        <Pressable
-          style={styles.headerButton}
-          onPress={onClose}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="닫기"
-        >
-          <Feather name="x" size={16} color={Colors.textSecondary} />
-        </Pressable>
-      </View>
+      <SheetHeader
+        title={detailType?.label ?? '어디가 틀렸는지 알려주세요'}
+        onBack={detailType ? handleBack : undefined}
+        backAccessibilityLabel="문제 유형 다시 고르기"
+        onClose={onClose}
+      />
 
       {line ? (
         <SongReportLineContext line={line} focus={lineFocus} />
@@ -204,7 +177,7 @@ function SongReportSheet({
         <>
           {needsToken ? (
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>{detailType.tokenPrompt ?? '어떤 단어인가요?'}</Text>
+              <SectionLabel>{detailType.tokenPrompt ?? '어떤 단어인가요?'}</SectionLabel>
               <View style={styles.chips}>
                 {tokenChoices.map(choice => (
                   <TokenChip
@@ -229,19 +202,12 @@ function SongReportSheet({
             maxLength={SONG_REPORT_SUGGESTION_MAX}
           />
 
-          <Pressable
-            style={[styles.submitButton, !canSubmit && styles.submitButtonDisabled]}
-            onPress={handleSubmit}
-            disabled={!canSubmit}
-            accessibilityRole="button"
-          >
-            <Text style={styles.submitLabel}>{submitting ? '보내는 중...' : '제보 보내기'}</Text>
-          </Pressable>
+          <Button label={submitting ? '보내는 중...' : '제보 보내기'} onPress={handleSubmit} disabled={!canSubmit} />
         </>
       ) : (
         <>
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>문제 유형</Text>
+            <SectionLabel>문제 유형</SectionLabel>
             {groupTypes.length === 0 ? (
               <View style={styles.sectionLoading}>
                 {typesStatus === 'error' ? (
@@ -264,14 +230,7 @@ function SongReportSheet({
             )}
           </View>
 
-          <Pressable
-            style={[styles.submitButton, selectedTypeDto == null && styles.submitButtonDisabled]}
-            onPress={handleNext}
-            disabled={selectedTypeDto == null}
-            accessibilityRole="button"
-          >
-            <Text style={styles.submitLabel}>다음</Text>
-          </Pressable>
+          <Button label="다음" onPress={handleNext} disabled={selectedTypeDto == null} />
         </>
       )}
     </View>
@@ -286,27 +245,6 @@ const styles = StyleSheet.create({
     paddingTop: 4,
     paddingBottom: 28,
     gap: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  title: {
-    flex: 1,
-    fontSize: 19,
-    lineHeight: 26,
-    color: Colors.textPrimary,
-    ...Typography.headingExtraBold,
-  },
-  headerButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.surfaceSubtle,
   },
   mvContext: {
     flexDirection: 'row',
@@ -348,12 +286,6 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: 10,
-  },
-  sectionLabel: {
-    fontSize: 11,
-    lineHeight: 16,
-    color: Colors.textSecondary,
-    ...Typography.bodyBold,
   },
   sectionLoading: {
     height: 40,
@@ -398,30 +330,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 6,
   },
-  chip: {
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'transparent',
-    backgroundColor: Colors.surfaceSubtle,
-  },
-  chipSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primaryBg,
-  },
-  chipLabel: {
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: '500',
-    color: Colors.textPrimary,
-  },
-  chipLabelSelected: {
-    color: Colors.primary,
-    fontWeight: '800',
-  },
   input: {
     minHeight: 72,
     paddingVertical: 14,
@@ -433,21 +341,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 21,
     color: Colors.textPrimary,
-  },
-  submitButton: {
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 999,
-    backgroundColor: Colors.primary,
-  },
-  submitButtonDisabled: {
-    opacity: 0.4,
-  },
-  submitLabel: {
-    fontSize: 14,
-    lineHeight: 19,
-    color: '#FFFFFF',
-    ...Typography.bodyExtraBold,
   },
 });

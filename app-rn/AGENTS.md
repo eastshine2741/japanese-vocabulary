@@ -14,6 +14,7 @@ Applies to `app-rn/`.
 - Use `useMemo` for expensive render-path calculations.
 - Keep `StyleSheet.create()` co-located with components.
 - App typography is loaded in `App.tsx` and centralized in `src/theme/typography.ts`: default text/input font is Inter, and heading/title styles should use the Funnel Sans helpers when matching Pencil typography.
+- 버튼·시트 헤더·선택 칩·액션 시트 행·섹션 라벨은 `src/components/ui` 를 쓴다. 같은 모양을 화면마다 `StyleSheet` 로 다시 그리면 높이·굵기가 어긋난다. 두 곳 이상 반복되는 패턴은 `ui/` 에 올린다. 보상 카드 쇼룸, 완료·축하 스테이지 같은 어두운 무대는 테마가 따로라 예외.
 - 바텀시트는 `src/components/bottomSheet` 의 `AppBottomSheet`/`AppBottomSheetView`/`AppSheet*ScrollView` 를 쓴다. `@gorhom/bottom-sheet` 직접 import 는 그 디렉토리 안에서만. 중첩 스크롤 함정은 `../docs/runbooks/bottom-sheet-nested-scroll.md`.
 - native driver `Animated` 는 같은 view 의 prop 을 Animated 값 ↔ 고정값으로 바꾸지 말고, 재사용 값을 `setValue(0)` 으로 리셋하지 말 것(카드마다 새 인스턴스). iOS prod 에서만 깨진다: `../docs/runbooks/ios-native-animated-pitfalls.md`.
 

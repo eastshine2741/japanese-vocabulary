@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Colors } from '../../theme/theme';
 import { Typography } from '../../theme/typography';
+import { Button, SheetHeader } from '../ui';
 
 interface HelpStep {
   title: string;
@@ -30,7 +31,7 @@ export const SongDetailCoverageHelpSheet = React.memo(function SongDetailCoverag
     <View style={styles.container}>
       <View style={styles.body}>
         <View style={styles.head}>
-          <Text style={styles.title}>이해도는 이렇게 계산해요</Text>
+          <SheetHeader title="이해도는 이렇게 계산해요" />
           <Text style={styles.lead}>전체 가사 중 뜻을 아는 줄의 비율이에요.</Text>
         </View>
 
@@ -50,15 +51,7 @@ export const SongDetailCoverageHelpSheet = React.memo(function SongDetailCoverag
       </View>
 
       <View style={styles.ctaWrap}>
-        <TouchableOpacity
-          style={styles.confirmButton}
-          onPress={onConfirm}
-          activeOpacity={0.85}
-          accessibilityRole="button"
-          accessibilityLabel="확인"
-        >
-          <Text style={styles.confirmLabel}>확인</Text>
-        </TouchableOpacity>
+        <Button label="확인" onPress={onConfirm} />
       </View>
     </View>
   );
@@ -75,12 +68,6 @@ const styles = StyleSheet.create({
   },
   head: {
     gap: 8,
-  },
-  title: {
-    ...Typography.headingBold,
-    color: Colors.textPrimary,
-    fontSize: 20,
-    lineHeight: 26,
   },
   lead: {
     ...Typography.body,
@@ -130,17 +117,5 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingHorizontal: 24,
     paddingBottom: 28,
-  },
-  confirmButton: {
-    height: 48,
-    borderRadius: 9999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.primary,
-  },
-  confirmLabel: {
-    ...Typography.bodySemiBold,
-    color: '#FFFFFF',
-    fontSize: 14,
   },
 });

@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/theme';
+import { Button } from '../ui';
 
 interface Props {
   onConfirm: () => void;
@@ -24,9 +25,7 @@ function FreezeInfoSheet({ onConfirm }: Props) {
         </Text>
       </View>
 
-      <TouchableOpacity style={styles.cta} onPress={onConfirm} activeOpacity={0.8}>
-        <Text style={styles.ctaText}>확인</Text>
-      </TouchableOpacity>
+      <Button label="확인" onPress={onConfirm} style={styles.cta} />
     </View>
   );
 }
@@ -68,16 +67,6 @@ const styles = StyleSheet.create({
   },
   cta: {
     alignSelf: 'stretch',
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
     marginTop: 4,
-  },
-  ctaText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
   },
 });

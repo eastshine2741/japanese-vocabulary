@@ -5,7 +5,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { useShallow } from 'zustand/react/shallow';
 import { AppBar } from '../components/AppBar';
-import { PrimaryButton } from '../components/PrimaryButton';
+import { Button } from '../components/ui';
 import { ForecastChart, ScheduleSummary, SelectionGuide } from '../components/studySchedule';
 import { useOpenAllDeckReview } from '../hooks/useOpenAllDeckReview';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -68,7 +68,8 @@ export default function StudyScheduleScreen({ navigation }: Props) {
 
           {data.dueToday > 0 && (
             <View style={[styles.cta, { paddingBottom: insets.bottom + 12 }]}>
-              <PrimaryButton
+              <Button
+                size="lg"
                 label={`${data.dueToday}개 복습 시작`}
                 icon="play"
                 onPress={startReview}

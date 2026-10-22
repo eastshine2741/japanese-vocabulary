@@ -7,7 +7,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { AppBar } from '../components/AppBar';
 import { AppBottomSheetModal, AppBottomSheetModalRef, AppBottomSheetView } from '../components/bottomSheet';
 import FreezeInfoSheet from '../components/studyStats/FreezeInfoSheet';
-import { PrimaryButton } from '../components/PrimaryButton';
+import { Button } from '../components/ui';
 import { StreakCalendar, StreakHero, StreakStatsRow, buildStreakCalendar, streakMode } from '../components/streak';
 import { FrozenPalette, StreakPalette } from '../components/streak/palette';
 import { useOpenAllDeckReview } from '../hooks/useOpenAllDeckReview';
@@ -129,7 +129,7 @@ export default function StreakScreen({ navigation }: Props) {
           </ScrollView>
 
           <View style={[styles.cta, { paddingBottom: insets.bottom + 12 }]}>
-            <PrimaryButton label="복습 시작하기" icon="play" onPress={handleStart} />
+            <Button size="lg" label="복습 시작하기" icon="play" onPress={handleStart} />
           </View>
         </>
       )}
