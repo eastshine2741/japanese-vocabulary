@@ -24,8 +24,8 @@ decide who gets what: `batch` (streak reminder CronJob), `worker` (analysis-comp
   expo-notifications alert when the module is missing (older native build, iOS) or fails. Taps on
   it come back through the module's `onPress` event / `consumeInitialPress()`, not
   expo-notifications. The module is native code, so it ships only with a new native build.
-- Karaoke new songs: `KaraokeNewSongNotifier` in `batch`, run by the `karaoke-collect` CronJob at
-  `15:00` KST right after collection. One push per run to users with `karaokeNewSongNotifications` (opt-in,
+- Karaoke new songs: `KaraokeNewSongNotifier` in `batch`, run by the `karaoke-tj` CronJob every
+  5 minutes (09:00–22:55 KST) right after TJ collection (it also sends rows the daily `karaoke-ky` added). One push per run with new rows to users with `karaokeNewSongNotifications` (opt-in,
   default false), the only user-gated push. Payload `data.type` is `karaoke_new_songs`. Rules:
   `docs/karaoke-new-songs.md`.
 - Reward cards backfilled: `RewardCardBackfillPushTask` in `batch`, run once by hand from the suspended

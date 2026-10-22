@@ -7,7 +7,6 @@ import com.japanese.vocabulary.karaoke.service.KaraokeCatalogService
 import com.japanese.vocabulary.karaoke.service.KaraokeSongService
 import com.japanese.vocabulary.karaoke.service.KaraokeTitleCleaner
 import com.japanese.vocabulary.karaokelisting.KaraokeListing
-import com.japanese.vocabulary.karaokelisting.KaraokeListingVendor
 import com.japanese.vocabulary.karaokelisting.KyClient
 import com.japanese.vocabulary.karaokelisting.TjClient
 import com.japanese.vocabulary.songsearch.client.applemusic.AppleMusicClient
@@ -31,20 +30,17 @@ class KaraokeListingCollector(
 ) {
     private val logger = LoggerFactory.getLogger(KaraokeListingCollector::class.java)
 
-    data class Result(val registered: Int, val failedVendors: List<KaraokeListingVendor>)
-
     /** [backfill] 은 첫 배포용으로, TJ 의 지난달 1일부터 전부 넣는다. */
-    fun collect(today: LocalDate, backfill: Boolean): Result {
-        val failed = mutableListOf<KaraokeListingVendor>()
-        val listings = mutableListOf<KaraokeListing>()
-        runVendor(KaraokeListingVendor.TJ, failed) { listings += newTjJapanese(today, backfill) }
-        runVendor(KaraokeListingVendor.KY, failed) { listings += newKyJapanese(today) }
+    fun collectTj(today: LocalDate, backfill: Boolean): Int = register(newTjJapanese(today, backfill), today)
 
+    fun collectKy(today: LocalDate): Int = register(newKyJapanese(today), today)
+
+    private fun register(listings: List<KaraokeListing>, today: LocalDate): Int {
         val registered = listings.count { listing ->
             karaokeSongService.register(toRegistration(listing, today)) != null
         }
-        logger.info("karaokeCollect today={} backfill={} found={} registered={}", today, backfill, listings.size, registered)
-        return Result(registered, failed)
+        logger.info("karaokeCollect today={} found={} registered={}", today, listings.size, registered)
+        return registered
     }
 
     private fun newTjJapanese(today: LocalDate, backfill: Boolean): List<KaraokeListing> {
@@ -126,15 +122,6 @@ class KaraokeListingCollector(
         val matches = items.filter { KaraokeTitleCleaner.sameSong(listing.title, listing.artist, it.title, it.artistName) }
         val wanted = ArtistNameNormalizer.normalize(title)
         return matches.firstOrNull { ArtistNameNormalizer.normalize(it.title) == wanted } ?: matches.firstOrNull()
-    }
-
-    private fun runVendor(vendor: KaraokeListingVendor, failed: MutableList<KaraokeListingVendor>, block: () -> Unit) {
-        try {
-            block()
-        } catch (e: Exception) {
-            logger.error("karaokeCollect vendor={} failed", vendor, e)
-            failed += vendor
-        }
     }
 
     private companion object {
