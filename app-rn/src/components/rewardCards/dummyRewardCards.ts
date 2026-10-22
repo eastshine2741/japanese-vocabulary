@@ -1,4 +1,5 @@
 import { ARTIST_GRADE_STEPS } from './artistGrade';
+import { songRung } from './cardKinds';
 import { ArtistRewardCard, CardGoal, CardLyricLine, CardWord, MasteredSong, RubySegment, SongRewardCard } from './types';
 import type { SongGradeRuleDto } from '../../types/rewardCard';
 
@@ -24,7 +25,7 @@ type Seed = Omit<SongRewardCard, 'lyric' | 'signature' | 'goals'> & { lyrics: [s
 function laterGoals(rung: number, next: CardGoal | null): SongRewardCard['goals'] {
   if (next == null) return {};
   const goals: SongRewardCard['goals'] = {};
-  for (let r = rung + 1, k = 0; r <= 4; r++, k++) goals[r] = { current: Math.floor(next.current / (k + 1)), total: next.total + k * 12 };
+  for (let r = rung + 1, k = 0; r <= 3; r++, k++) goals[r] = { current: Math.floor(next.current / (k + 1)), total: next.total + k * 12 };
   return goals;
 }
 
@@ -301,7 +302,7 @@ export const DUMMY_SONG_GRADE_RULE: SongGradeRuleDto = { tierNames: ['후렴 정
 
 export const DUMMY_SONG_CARDS: SongRewardCard[] = seeds.map(({ lyrics: _lyrics, pick, nextGoal, ...card }) => ({
   ...card,
-  goals: laterGoals(card.mastered ? 4 : card.level, nextGoal),
+  goals: laterGoals(songRung(card), nextGoal),
   lyric: SONG_LYRICS[card.id].filter((line) => pick.includes(line.index)),
   signature: null,
 }));

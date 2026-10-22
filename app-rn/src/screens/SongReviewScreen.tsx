@@ -88,6 +88,7 @@ export default function SongReviewScreen({ navigation, route }: Props) {
         overlay={overlay}
         contentInsetTop={insets.top + STACK_REVIEW_CHROME_HEIGHT}
         contentInsetBottom={insets.bottom}
+        claimSongId={source.songId ?? undefined}
       />
     </View>
   );

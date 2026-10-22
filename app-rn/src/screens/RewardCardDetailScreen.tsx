@@ -24,10 +24,10 @@ import { EXPLAINER_IN_MS, EXPLAINER_OUT_MS } from '../components/rewardCards/Car
 import { CARD_RATIO, LEVEL_MATERIAL, MASTER_CHIP, SHOWROOM, songTierName, useCardFonts } from '../components/rewardCards/cardTheme';
 import { useCardTilt } from '../components/rewardCards/useCardTilt';
 import { useRefreshCardsOnReturn } from '../components/rewardCards/useRefreshCardsOnReturn';
-import { SONG_CARD_KINDS, songCardOfKind, songCardSample, songCardsOf, songRung } from '../components/rewardCards/cardKinds';
+import { songCardKindsOf, songCardOfKind, songCardSample, songCardsOf, type SongCardKind } from '../components/rewardCards/cardKinds';
 import { serverTargetId } from '../components/rewardCards/serverRewardCards';
 import { songGradeCondition } from '../components/rewardCards/songGradeCondition';
-import type { CardGoal } from '../components/rewardCards/types';
+import type { CardGoal, SongRewardCard } from '../components/rewardCards/types';
 import { useRewardCardStore } from '../stores/rewardCardStore';
 import { useOwnerCards } from '../stores/userProfileStore';
 
@@ -45,11 +45,18 @@ const FOCUS_INSET = 24;
 
 
 const NO_GOALS: Partial<Record<number, CardGoal>> = {};
+const SONG_TAB_COUNT = songCardKindsOf([]).length;
 
-const SONG_TABS: readonly GradeTab[] = SONG_CARD_KINDS.map((kind) => {
+/** goals 는 계단 자리로 온다. 칸 자리로 옮긴다. */
+function shiftGoals(goals: Partial<Record<number, CardGoal>>, shift: number): Partial<Record<number, CardGoal>> {
+  if (shift === 0) return goals;
+  return Object.fromEntries(Object.entries(goals).map(([rung, goal]) => [Number(rung) + shift, goal]));
+}
+
+function songTab(kind: SongCardKind): GradeTab {
   const material = kind.mastered ? MASTER_CHIP : LEVEL_MATERIAL[kind.level];
   return { key: kind.key, label: songTierName(kind.level, kind.mastered), frame: material.frame, ink: material.chipText };
-});
+}
 
 export default function RewardCardDetailScreen({ navigation, route }: Props) {
   const { cardId, userId } = route.params;
@@ -63,15 +70,20 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
     () => (opened ? songCardsOf(songCards, opened.songId, opened.title) : []),
     [songCards, opened],
   );
-  const songCondition = useCallback((rung: number) => songGradeCondition(rung, gradeRule).full, [gradeRule]);
-  const ownedRung = siblings.reduce((top, c) => Math.max(top, songRung(c)), opened ? songRung(opened) : 0);
+  // 칸 자리는 기본 카드 칸이 앞에 붙으면 계단 자리(songRung)보다 하나 뒤다.
+  const kinds = useMemo(() => songCardKindsOf(siblings), [siblings]);
+  const tabs = useMemo(() => kinds.map(songTab), [kinds]);
+  const tabOf = useCallback((c: SongRewardCard) => kinds.findIndex((k) => k.level === c.level && k.mastered === c.mastered), [kinds]);
+  const shift = tabs.length - SONG_TAB_COUNT;
+  const songCondition = useCallback((tab: number) => songGradeCondition(tab - shift, gradeRule).full, [gradeRule, shift]);
+  const ownedRung = siblings.reduce((top, c) => Math.max(top, tabOf(c)), opened ? tabOf(opened) : 0);
   const [pickedRung, setPickedRung] = useState<number | null>(null);
-  const viewRung = pickedRung ?? (opened ? songRung(opened) : 0);
-  const owned = pickedRung == null ? opened : songCardOfKind(siblings, SONG_CARD_KINDS[viewRung]) ?? undefined;
+  const viewRung = pickedRung ?? (opened ? tabOf(opened) : 0);
+  const owned = pickedRung == null ? opened : songCardOfKind(siblings, kinds[viewRung]) ?? undefined;
   // 아직 받지 않은 등급은 주인 정보를 비운 새 견본이다.
   const card = useMemo(
-    () => owned ?? (opened ? songCardSample(opened, SONG_CARD_KINDS[viewRung]) : undefined),
-    [owned, opened, viewRung],
+    () => owned ?? (opened ? songCardSample(opened, kinds[viewRung]) : undefined),
+    [owned, opened, kinds, viewRung],
   );
   // 견본엔 복습할 때가 된 단어 수가 맞지 않는다.
   const isSample = owned == null;
@@ -240,7 +252,7 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
     );
   }
 
-  const goals = opened?.goals ?? NO_GOALS;
+  const goals = shiftGoals(opened?.goals ?? NO_GOALS, shift);
 
   return (
     <View style={styles.root}>
@@ -297,7 +309,7 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
               </View>
 
               <GradePanel
-                tabs={SONG_TABS}
+                tabs={tabs}
                 owned={ownedRung}
                 selected={viewRung}
                 goals={goals}

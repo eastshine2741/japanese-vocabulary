@@ -35,16 +35,22 @@ describe('rankLine', () => {
 describe('shareCelebration', () => {
   it('곡 카드는 등급 이름 없이 곡 이름으로 축하하고 무엇을 공부했는지 말한다', () => {
     const c = shareCelebration(songShared('SILVER'))!;
-    expect(c.rung).toBe(2);
+    expect(c.rung).toBe(1);
     expect(c.subject).toBe('「アイドル」');
     expect(c.headline).toBe('곡 카드를 얻었어요');
     expect(c.meaning).not.toContain("'");
     expect(c.meaning).not.toContain('SILVER');
   });
 
+  it('이미 받은 기본 카드는 계단 아래에 두고 뜻은 그대로 말한다', () => {
+    const basic = shareCelebration(songShared('BASIC'))!;
+    expect(basic.rung).toBe(-1);
+    expect(basic.meaning).toContain('처음 공부하면');
+  });
+
   it('마스터 카드', () => {
     const master = shareCelebration(songShared('MASTER'))!;
-    expect(master.rung).toBe(4);
+    expect(master.rung).toBe(3);
     expect(master.meaning).toContain('90%');
   });
 
@@ -64,7 +70,7 @@ describe('shareCelebration', () => {
 
   it('계단 조건에 앱 단계 이름을 쓰지 않는다', () => {
     const captions = shareLadder(songShared('GOLD')).map((s) => s.caption);
-    expect(captions).toEqual(['첫 공부', '후렴 단어', '자주 나오는 단어', '가사 전부', '90% 외우기']);
+    expect(captions).toEqual(['후렴 단어', '자주 나오는 단어', '가사 전부', '90% 외우기']);
     expect(shareLadder(artistShared('GOLD', 1)).map((s) => s.caption)[3]).toBe('7곡 외우기');
   });
 });

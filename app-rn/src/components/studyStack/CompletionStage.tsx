@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { songClaimFilter, useRewardCardStore } from '../../stores/rewardCardStore';
 import { Colors } from '../../theme/theme';
 import { Typography } from '../../theme/typography';
 import { ArtworkThumb, CardStage, StageInset } from './CardStage';
@@ -16,6 +17,8 @@ export interface CompletionStageProps {
   memoryDiff?: StudyMemoryDiff;
   /** 이번 세션에서 복습을 마친 카드 수. 0 이면 보여줄 성과가 없다. */
   sessionReviewedCount?: number;
+  /** 카드 받기 버튼이 받을 곡. 없으면 모든 곡의 받을 카드를 받는다. */
+  claimSongId?: number;
   onContinueDue: () => void;
   onRecommended: () => void;
   onSearch: () => void;
@@ -34,6 +37,7 @@ export const CompletionStage = React.memo(function CompletionStage({
   entranceProgress,
   memoryDiff = EMPTY_MEMORY_DIFF,
   sessionReviewedCount = 0,
+  claimSongId,
   onContinueDue,
   onRecommended,
   onSearch,
@@ -53,6 +57,14 @@ export const CompletionStage = React.memo(function CompletionStage({
     ? `이 곡의 ${completedSource.totalCount}개 단어를 복습했어요`
     : '다음 복습 시간이 되면 카드가 다시 나타나요';
   const showMemoryStats = sessionReviewedCount > 0;
+  const hasClaim = useRewardCardStore((s) =>
+    claimSongId == null ? s.unclaimed.length > 0 : s.unclaimed.some(songClaimFilter(s.songCards, claimSongId)),
+  );
+  const handleClaim = useCallback(() => {
+    const store = useRewardCardStore.getState();
+    if (claimSongId == null) store.claimAll();
+    else store.claimSong(claimSongId);
+  }, [claimSongId]);
   const coverEntranceStyle = entranceProgress
     ? {
         opacity: entranceProgress.interpolate({
@@ -252,12 +264,21 @@ export const CompletionStage = React.memo(function CompletionStage({
           <Text style={styles.primaryActionText}>{primaryLabel}</Text>
         </Pressable>
 
-        {(hasNextDue || hasRecommended) && (
+        {/* 카드는 학습의 결과라 다음 학습 CTA 아래 보조 줄에 둔다. */}
+        {(hasNextDue || hasRecommended || hasClaim) && (
           <View style={styles.secondaryActions}>
-            <Pressable style={styles.secondaryAction} onPress={onSearch}>
-              <Feather name="search" size={15} color="rgba(255,255,255,0.6)" />
-              <Text style={styles.secondaryActionText}>새 곡 검색</Text>
-            </Pressable>
+            {hasClaim && (
+              <Pressable style={styles.secondaryAction} onPress={handleClaim}>
+                <Feather name="gift" size={15} color="rgba(255,255,255,0.6)" />
+                <Text style={styles.secondaryActionText}>카드 받기</Text>
+              </Pressable>
+            )}
+            {(hasNextDue || hasRecommended) && (
+              <Pressable style={styles.secondaryAction} onPress={onSearch}>
+                <Feather name="search" size={15} color="rgba(255,255,255,0.6)" />
+                <Text style={styles.secondaryActionText}>새 곡 검색</Text>
+              </Pressable>
+            )}
           </View>
         )}
       </Animated.View>

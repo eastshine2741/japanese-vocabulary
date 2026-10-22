@@ -81,8 +81,10 @@ class RewardCardBackfillTask(
             try {
                 val achievement = songCardGrader.measure(deck.userId, listOf(deck.songId), FlashcardMemory.LONG_TERM_STABILITY_DAYS).singleOrNull() ?: continue
                 val owned = rewardCardService.ownedSongGrades(deck.userId, listOf(deck.songId))[deck.songId].orEmpty()
-                val missing = SongCardGrade.entries.count { it <= achievement.grade && it !in owned }
+                val missing = SongCardGrade.cardsUpTo(achievement.grade).count { it !in owned }
                 newSongCards += missing
+                // 곡 카드가 새로 생길 때만 아티스트 카드도 생긴다.
+                if (missing == 0) continue
                 val artistId = achievement.artistId ?: continue
                 artistsByUser.getOrPut(deck.userId) { mutableSetOf() } += artistId
             } catch (e: Exception) {

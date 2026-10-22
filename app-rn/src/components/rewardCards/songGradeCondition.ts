@@ -15,7 +15,6 @@ const BLANK: SongGradeCondition = { caption: '', short: '', full: '' };
 export function songGradeCondition(rung: number, rule: SongGradeRuleDto | null): SongGradeCondition {
   const kind = SONG_CARD_KINDS[rung];
   if (kind == null) return BLANK;
-  if (!kind.mastered && kind.level === 0) return { caption: '첫 학습', short: '첫 학습', full: '이 곡의 단어 처음 공부하기' };
   if (rule == null) return BLANK;
   if (kind.mastered) {
     const p = rule.masterPercent;

@@ -1,7 +1,7 @@
 import type { SharedRewardCardDto } from '../types/rewardCard';
 import { ARTIST_GRADE_STEPS } from '../components/rewardCards/artistGrade';
 import { cardArtist, cardTitle } from '../components/rewardCards/cardCredit';
-import { SONG_CARD_KINDS, songTierName } from '../components/rewardCards/cardKinds';
+import { SONG_CARD_KINDS, songRung, songTierName } from '../components/rewardCards/cardKinds';
 import type { LadderStep } from '../components/rewardCards/cardLadders';
 import { dueRatio, wearState } from '../components/rewardCards/cardWear';
 import { artistGradeIndex, songGradeOf } from '../components/rewardCards/serverRewardCards';
@@ -42,22 +42,22 @@ export function fanLine(no: number): RankLine {
   return { no: `${no.toLocaleString('ko-KR')}번째`, rest: ' 팬이에요' };
 }
 
-/** 곡 카드 레벨 1~3 은 곡 상세 단계(후렴 정복 → 따라 부르기 → 완곡) 순서다. */
+/** 곡 카드 레벨 1~3 은 곡 상세 단계(후렴 정복 → 따라 부르기 → 완곡) 순서다. 레벨 0 은 이미 받은 기본 카드에만 있다. */
 const SONG_TIER_MEANING = [
   '이 노래 가사 속 일본어 단어를\n처음 공부하면 받는 카드예요',
   '이 노래 후렴에 나오는 단어를\n모두 공부해야 받는 카드예요',
   '이 노래에 자주 나오는 단어까지\n모두 공부해야 받는 카드예요',
   '이 노래 가사의 단어를\n처음부터 끝까지 공부해야 받는 카드예요',
 ];
-const SONG_TIER_CAPTION = ['첫 공부', '후렴 단어', '자주 나오는 단어', '가사 전부'];
+const SONG_TIER_CAPTION = ['', '후렴 단어', '자주 나오는 단어', '가사 전부'];
 
 export function shareCelebration(shared: SharedRewardCardDto): ShareCelebration | null {
   const song = shared.songCard;
   if (song) {
-    const { level, mastered } = songGradeOf(song.grade);
-    const rung = mastered ? 4 : level;
+    const grade = songGradeOf(song.grade);
+    const { level, mastered } = grade;
     return {
-      rung,
+      rung: songRung(grade),
       subject: `「${cardTitle(song.title)}」`,
       headline: '곡 카드를 얻었어요',
       meaning: mastered

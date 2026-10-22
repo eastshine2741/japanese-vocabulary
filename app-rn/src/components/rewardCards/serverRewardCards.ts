@@ -2,7 +2,7 @@ import type { ArtistCardDto, RewardCardRevealDto, SongCardDto } from '../../type
 import { katakanaToHiragana } from '../../utils/readingConverter';
 import { toCardLine } from '../songDetail/songCardSample';
 import { ARTIST_GRADE_STEPS } from './artistGrade';
-import type { SongCardGrade } from './cardKinds';
+import { songRung, type SongCardGrade } from './cardKinds';
 import type { ArtistRewardCard, CardLevel, SongRewardCard } from './types';
 
 const SONG_GRADES = ['BASIC', 'BRONZE', 'SILVER', 'GOLD'] as const;
@@ -41,11 +41,6 @@ export function songGradeOf(grade: string): SongCardGrade {
   return { level: Math.max(0, level) as CardLevel, mastered: false };
 }
 
-function songGradeRung(grade: string): number {
-  const { level, mastered } = songGradeOf(grade);
-  return mastered ? 4 : level;
-}
-
 /** 그 등급이 되는 마스터 곡 수. */
 /** ARTIST_GRADE_STEPS 자리. */
 export function artistGradeIndex(grade: string): number {
@@ -60,6 +55,7 @@ export function toSongCard(dto: SongCardDto): SongRewardCard {
   return {
     id: songCardId(dto.id),
     songId: dto.songId,
+    artistId: dto.artistId,
     title: dto.title,
     artist: dto.artist,
     artworkUrl: dto.artworkUrl ?? '',
@@ -72,7 +68,7 @@ export function toSongCard(dto: SongCardDto): SongRewardCard {
     lyric: dto.lyric.map(toCardLine),
     signature: dto.signature.length > 0 ? dto.signature : null,
     words: dto.words.map((word) => ({ ...word, reading: katakanaToHiragana(word.reading) })),
-    goals: Object.fromEntries(dto.goals.map(({ grade, current, total }) => [songGradeRung(grade), { current, total }])),
+    goals: Object.fromEntries(dto.goals.map(({ grade, current, total }) => [songRung(songGradeOf(grade)), { current, total }])),
     picked: dto.lyricLineIndexes,
     issued: dto.issued,
   };

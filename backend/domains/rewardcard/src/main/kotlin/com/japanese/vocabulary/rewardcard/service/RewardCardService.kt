@@ -183,7 +183,7 @@ class RewardCardService(
             if (linked) cards.filter { it.artistId == null }.forEach { it.artistId = achievement.artistId }
             val artistId = cards.firstNotNullOfOrNull { it.artistId } ?: achievement.artistId
             val owned = cards.map { it.grade }.toSet()
-            val newCards = SongCardGrade.entries.filter { it <= achievement.grade && it !in owned }.map { grade ->
+            val newCards = SongCardGrade.cardsUpTo(achievement.grade).filter { it !in owned }.map { grade ->
                 songCardRepository.save(
                     SongCardEntity(
                         userId = userId,
@@ -197,7 +197,9 @@ class RewardCardService(
                 )
             }
             created += newCards
-            if (artistId != null && (linked || newCards.isNotEmpty())) artistIds += artistId
+            // 기존 BASIC 카드만 있는 곡은 아티스트를 이어도 아티스트 카드를 만들지 않는다. 아티스트 카드는 BRONZE 곡 카드와 함께 생긴다.
+            val linkedCard = linked && cards.any { it.grade >= SongCardGrade.BRONZE }
+            if (artistId != null && (linkedCard || newCards.isNotEmpty())) artistIds += artistId
         }
         songCardRepository.flush()
         return created to syncArtistCards(userId, artistIds, now, silent)
@@ -205,7 +207,7 @@ class RewardCardService(
 
     /**
      * [artistIds] 는 오름차순이어야 한다. 곡 카드가 먼저 flush 돼 이번에 마스터한 곡도 센다.
-     * 팬 번호는 BRONZE 에 처음 닿을 때 매긴다 — 기본 카드는 단어 하나로 받아 팬이라 부르기엔 가볍다.
+     * 팬 번호는 BRONZE 에 처음 닿을 때 매긴다 — 기본 아티스트 카드는 곡 하나의 후렴으로 받아 팬이라 부르기엔 가볍다.
      */
     private fun syncArtistCards(userId: Long, artistIds: SortedSet<Long>, now: Instant, silent: Boolean): List<ArtistCardChange> {
         val masterCounts = masterCounts(userId, artistIds)
