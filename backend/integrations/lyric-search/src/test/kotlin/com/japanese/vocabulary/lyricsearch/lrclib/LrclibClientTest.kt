@@ -1,20 +1,26 @@
 package com.japanese.vocabulary.lyricsearch.lrclib
 
 import com.japanese.vocabulary.lyricsearch.AppleMusicArtistAliasVerifier
+import com.japanese.vocabulary.lyricsearch.LyricProviderRetry
 import com.japanese.vocabulary.lyricsearch.SongQueryNormalizer
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.hamcrest.Matchers.startsWith
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.test.web.client.ExpectedCount
 import org.springframework.test.web.client.MockRestServiceServer
 import org.springframework.test.web.client.match.MockRestRequestMatchers.queryParam
 import org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo
 import org.springframework.test.web.client.response.MockRestResponseCreators.withStatus
 import org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess
+import org.springframework.web.client.HttpServerErrorException
 import org.springframework.web.client.RestClient
+import java.time.Duration
 
 /**
  * The duration fallback in LrcLib search: a same-titled song by another artist with a near duration
@@ -23,7 +29,7 @@ import org.springframework.web.client.RestClient
 class LrclibClientTest {
 
     @Test
-    fun `duration match is rejected when the alias check says it is another artist`() {
+    fun `duration match is rejected when the alias check says it is another artist`(): Unit = runBlocking {
         val client = clientWith(sameArtist = { _, _ -> false }) { server ->
             server.expect(requestTo(startsWithPath("/api/get"))).andRespond(withStatus(HttpStatus.NOT_FOUND))
             server.expect(requestTo(startsWithPath("/api/search"))).andExpect(queryParam("artist_name", "Sohbana"))
@@ -36,7 +42,7 @@ class LrclibClientTest {
     }
 
     @Test
-    fun `duration match is accepted when the alias check confirms the artist`() {
+    fun `duration match is accepted when the alias check confirms the artist`(): Unit = runBlocking {
         val checked = mutableListOf<String>()
         val client = clientWith(sameArtist = { _, candidate -> checked += candidate; candidate == "Aimyon" }) { server ->
             server.expect(requestTo(startsWithPath("/api/get"))).andRespond(withStatus(HttpStatus.NOT_FOUND))
@@ -58,7 +64,7 @@ class LrclibClientTest {
     }
 
     @Test
-    fun `artist name match ignores spacing and needs no alias check`() {
+    fun `artist name match ignores spacing and needs no alias check`(): Unit = runBlocking {
         val client = clientWith(sameArtist = { _, _ -> error("alias check must not run") }) { server ->
             server.expect(requestTo(startsWithPath("/api/get"))).andRespond(withStatus(HttpStatus.NOT_FOUND))
             server.expect(requestTo(startsWithPath("/api/search"))).andExpect(queryParam("artist_name", "%E7%B1%B3%E6%B4%A5%E7%8E%84%E5%B8%AB"))
@@ -75,6 +81,34 @@ class LrclibClientTest {
         val result = client.search(query("Lemon", "米津玄師", 274))!!
 
         assertThat(result.lrclibId).isEqualTo(2)
+    }
+
+    /** A 503 resends only the request that got it; the ones already answered are not sent again. */
+    @Test
+    fun `a 503 retries only the failed request`(): Unit = runBlocking {
+        val client = clientWith(sameArtist = { _, _ -> error("alias check must not run") }) { server ->
+            server.expect(requestTo(startsWithPath("/api/get"))).andRespond(withStatus(HttpStatus.NOT_FOUND))
+            server.expect(requestTo(startsWithPath("/api/search"))).andExpect(queryParam("artist_name", "%E7%B1%B3%E6%B4%A5%E7%8E%84%E5%B8%AB"))
+                .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE))
+            server.expect(requestTo(startsWithPath("/api/search"))).andExpect(queryParam("artist_name", "%E7%B1%B3%E6%B4%A5%E7%8E%84%E5%B8%AB"))
+                .andRespond(withSuccess(candidates(track(2, "米津玄師", 274)), MediaType.APPLICATION_JSON))
+        }
+
+        val result = client.search(query("Lemon", "米津玄師", 274))!!
+
+        assertThat(result.lrclibId).isEqualTo(2)
+    }
+
+    /** Once the retries run out the outage propagates, so the caller does not read it as "no lyrics". */
+    @Test
+    fun `a 503 that outlives the retries propagates`() {
+        val client = clientWith(sameArtist = { _, _ -> error("alias check must not run") }) { server ->
+            server.expect(ExpectedCount.times(3), requestTo(startsWithPath("/api/get")))
+                .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE))
+        }
+
+        assertThatThrownBy { runBlocking { client.search(query("Lemon", "米津玄師", 274)) } }
+            .isInstanceOf(HttpServerErrorException.ServiceUnavailable::class.java)
     }
 
     private fun query(title: String, artist: String, duration: Int) =
@@ -98,6 +132,6 @@ class LrclibClientTest {
         expectations(server)
         val verifier = mockk<AppleMusicArtistAliasVerifier>()
         every { verifier.isSameArtist(any(), any()) } answers { sameArtist(firstArg(), secondArg()) }
-        return LrclibClient(builder, verifier)
+        return LrclibClient(builder, verifier, LyricProviderRetry(maxAttempts = 3, initialBackoff = Duration.ZERO))
     }
 }

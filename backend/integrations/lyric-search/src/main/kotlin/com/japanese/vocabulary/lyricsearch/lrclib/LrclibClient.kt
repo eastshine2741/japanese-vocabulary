@@ -6,9 +6,11 @@ import com.japanese.vocabulary.lyricsearch.JapaneseLyricValidator
 import com.japanese.vocabulary.common.text.ArtistNameNormalizer
 import com.japanese.vocabulary.lyricsearch.AppleMusicArtistAliasVerifier
 import com.japanese.vocabulary.lyricsearch.LyricProvider
+import com.japanese.vocabulary.lyricsearch.LyricProviderRetry
 import com.japanese.vocabulary.lyricsearch.LyricsResult
 import com.japanese.vocabulary.lyricsearch.NormalizedSongQuery
 import com.japanese.vocabulary.lyricsearch.lrclib.dto.LrclibResponse
+import kotlinx.coroutines.CancellationException
 import org.slf4j.LoggerFactory
 import org.springframework.core.annotation.Order
 import org.springframework.web.client.HttpClientErrorException
@@ -21,6 +23,7 @@ import kotlin.math.abs
 class LrclibClient(
     restClientBuilder: RestClient.Builder,
     private val artistAliasVerifier: AppleMusicArtistAliasVerifier,
+    private val retry: LyricProviderRetry,
 ) : LyricProvider {
 
     override val providerName = "LrcLib"
@@ -32,7 +35,7 @@ class LrclibClient(
         .defaultHeader("User-Agent", "JapaneseVocabularyApp/1.0")
         .build()
 
-    override fun search(query: NormalizedSongQuery): LyricsResult? {
+    override suspend fun search(query: NormalizedSongQuery): LyricsResult? {
         return try {
             // 1차: exact match (원본 → 정규화된 아티스트 파트별)
             fetchFromGet(query.originalTitle, query.originalArtist, query.durationSeconds)
@@ -50,32 +53,33 @@ class LrclibClient(
 
             null
         } catch (e: Exception) {
-            // An outage is not a miss: the caller retries it and must not report "no lyrics".
-            if (TransientHttpErrors.isTransient(e)) throw e
+            // An outage that outlived the request retries is not a miss: it must not report "no lyrics".
+            if (e is CancellationException || TransientHttpErrors.isTransient(e)) throw e
             logger.warn("LrcLib lyrics search failed for: ${query.originalArtist} - ${query.originalTitle}", e)
             null
         }
     }
 
-    private fun fetchFromGet(title: String, artist: String, durationSeconds: Int?): LyricsResult? {
+    private suspend fun fetchFromGet(title: String, artist: String, durationSeconds: Int?): LyricsResult? {
         logger.info(
             "Lyric search attempt | provider=LrcLib | strategy=exact-match | title='{}' | artist='{}' | duration={}",
             title, artist, durationSeconds ?: "none"
         )
         val response = try {
-            restClient.get()
-                .uri { uriBuilder ->
-                    uriBuilder.path("/api/get")
-                        .queryParam("track_name", title)
-                        .queryParam("artist_name", artist)
-                        .apply {
-                            durationSeconds?.let { queryParam("duration", it) }
-                        }
-                        .build()
-                }
-                .retrieve()
-                .body(LrclibResponse::class.java)
-                ?: return null
+            retry.call(providerName) {
+                restClient.get()
+                    .uri { uriBuilder ->
+                        uriBuilder.path("/api/get")
+                            .queryParam("track_name", title)
+                            .queryParam("artist_name", artist)
+                            .apply {
+                                durationSeconds?.let { queryParam("duration", it) }
+                            }
+                            .build()
+                    }
+                    .retrieve()
+                    .body(LrclibResponse::class.java)
+            } ?: return null
         } catch (e: HttpClientErrorException.NotFound) {
             return null
         }
@@ -88,7 +92,7 @@ class LrclibClient(
         }
     }
 
-    private fun fetchFromSearch(query: NormalizedSongQuery): LyricsResult? {
+    private suspend fun fetchFromSearch(query: NormalizedSongQuery): LyricsResult? {
         val titles = listOfNotNull(
             query.originalTitle,
             query.normalizedTitle.takeIf { it != query.originalTitle }
@@ -124,15 +128,17 @@ class LrclibClient(
         return null
     }
 
-    private fun searchRequest(
+    private suspend fun searchRequest(
         configure: (org.springframework.web.util.UriBuilder) -> org.springframework.web.util.UriBuilder,
     ): List<LrclibResponse>? {
         return try {
-            restClient.get()
-                .uri { configure(it).build() }
-                .retrieve()
-                .body(Array<LrclibResponse>::class.java)
-                ?.toList()
+            retry.call(providerName) {
+                restClient.get()
+                    .uri { configure(it).build() }
+                    .retrieve()
+                    .body(Array<LrclibResponse>::class.java)
+                    ?.toList()
+            }
         } catch (e: RestClientResponseException) {
             if (TransientHttpErrors.isTransient(e)) throw e
             null

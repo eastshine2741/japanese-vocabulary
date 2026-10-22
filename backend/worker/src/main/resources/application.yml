@@ -84,10 +84,17 @@ song-analysis:
     time-budget: 5m
     # 유실된 메시지 재발행과 멈춘 작업 정리. 재발행 판정이 1분이라 주기도 1분이다.
     sweep-interval-ms: 60000
-  # 가사(lrclib/VocaDB)·YouTube 검색 한 번 전체를 재시도하는 정책. 일시 장애만, 마감 안에서만.
+  # YouTube 검색 한 번 전체를 재시도하는 정책. 일시 장애만, 마감 안에서만.
   provider-retry:
     max-attempts: 3
     initial-backoff: 1s
+
+# 가사 공급자(lrclib/VocaDB/UtaiteDB) HTTP 요청 하나씩 재시도한다. lrclib 503 은 수 초~수십 초 이어져
+# (2026-10 prod 요청의 ~20%) 1s·2s 대기로는 못 넘겼다. 2s·4s·8s·16s, 마감 안에서만.
+lyric-search:
+  retry:
+    max-attempts: 5
+    initial-backoff: 2s
 
 gemini:
   api-key: ${GEMINI_API_KEY}

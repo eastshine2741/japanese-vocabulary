@@ -94,8 +94,8 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         assertThat(lyric.analyzedContent!![0].koreanLyrics).isEqualTo("복숭아빛 열쇠")
         assertThat(lyric.analyzedContent!![0].tokens).isNotEmpty
 
-        verify(exactly = 1) { lrclibClient.search(any()) }
-        verify(exactly = 0) { vocadbClient.search(any()) }
+        coVerify(exactly = 1) { lrclibClient.search(any()) }
+        coVerify(exactly = 0) { vocadbClient.search(any()) }
         verify(exactly = 1) { youtubeClient.searchVideos(any(), any(), any(), any(), any()) }
         coVerify(exactly = 1) { geminiClient.translateLyrics(any(), any()) }
         coVerify(exactly = 1) { geminiClient.segmentAndLemmatize(any(), any(), any()) }
@@ -124,7 +124,7 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         assertThat(refreshedWork.errorCode).isEqualTo("SONG_ANALYSIS_WORK_FAILED")
         assertThat(songRepository.findByArtistAndTitle(ARTIST, TITLE)).isNull()
 
-        verify(exactly = 1) { lrclibClient.search(any()) }
+        coVerify(exactly = 1) { lrclibClient.search(any()) }
         verify(exactly = 1) { youtubeClient.searchVideos(any(), any(), any(), any(), any()) }
         coVerify(exactly = 0) { geminiClient.translateLyrics(any(), any()) }
         coVerify(exactly = 0) { geminiClient.segmentAndLemmatize(any(), any(), any()) }
@@ -198,9 +198,9 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         assertThat(refreshedWork.errorCode).isEqualTo("LYRICS_NOT_FOUND")
         assertThat(songRepository.findByArtistAndTitle(ARTIST, TITLE)).isNull()
 
-        verify(exactly = 1) { lrclibClient.search(any()) }
-        verify(exactly = 1) { vocadbClient.search(any()) }
-        verify(exactly = 1) { utaitedbClient.search(any()) }
+        coVerify(exactly = 1) { lrclibClient.search(any()) }
+        coVerify(exactly = 1) { vocadbClient.search(any()) }
+        coVerify(exactly = 1) { utaitedbClient.search(any()) }
         verify(exactly = 0) { youtubeClient.searchVideos(any(), any(), any(), any(), any()) }
         coVerify(exactly = 0) { geminiClient.translateLyrics(any(), any()) }
         coVerify(exactly = 0) { geminiClient.segmentAndLemmatize(any(), any(), any()) }
@@ -209,7 +209,7 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
     @Test
     fun `lyrics fall back to UtaiteDB when lrclib and VocaDB miss`(): Unit = runBlocking {
         stubLyricsMissing()
-        every { utaitedbClient.search(any()) } returns LyricsResult(utaitedbId = 38167, lyrics = "ももいろの鍵", isSynced = false)
+        coEvery { utaitedbClient.search(any()) } returns LyricsResult(utaitedbId = 38167, lyrics = "ももいろの鍵", isSynced = false)
         stubYoutubeFound()
         stubLyricAnalysis()
         val created = workService.createOrReuse(title = TITLE, artist = ARTIST, durationSeconds = 210)
@@ -245,7 +245,7 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         assertThat(refreshedWork.errorCode).isEqualTo("SONG_ANALYSIS_WORK_FAILED")
         assertThat(songRepository.findByArtistAndTitle(ARTIST, TITLE)).isNull()
 
-        verify(exactly = 1) { lrclibClient.search(any()) }
+        coVerify(exactly = 1) { lrclibClient.search(any()) }
         verify(exactly = 1) { youtubeClient.searchVideos(any(), any(), any(), any(), any()) }
         coVerify(exactly = 1) { geminiClient.translateLyrics(any(), any()) }
         coVerify(exactly = 0) { jevClient.choose(any(), any(), any(), any()) }
@@ -383,17 +383,17 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         assertThat(stage(created.workId, SongAnalysisWorkStage.ANALYZE_LYRICS).attempt).isEqualTo(2)
         assertThat(lyricRepository.findById(resumed.lyricId!!).orElseThrow().analyzedContent!![0].koreanLyrics)
             .isEqualTo("복숭아빛 열쇠")
-        verify(exactly = 1) { lrclibClient.search(any()) }
+        coVerify(exactly = 1) { lrclibClient.search(any()) }
         verify(exactly = 1) { youtubeClient.searchVideos(any(), any(), any(), any(), any()) }
         coVerify(exactly = 1) { geminiClient.translateLyrics(any(), any()) }
         assertThat(songRepository.findByArtistAndTitle(ARTIST, TITLE)!!.id).isEqualTo(resumed.songId)
     }
 
-    /** 공급자가 끝내 답하지 못한 것은 "가사 없음" 이 아니다. 재시도한 뒤 장애로 기록한다. */
+    /** 공급자가 끝내 답하지 못한 것은 "가사 없음" 이 아니다. 장애로 기록한다. 재시도는 공급자 안에서 요청 단위로 한다. */
     @Test
-    fun `lyric provider outage is retried and reported as an outage, not a miss`(): Unit = runBlocking {
+    fun `lyric provider outage is reported as an outage, not a miss`(): Unit = runBlocking {
         stubLyricsFound()
-        every { lrclibClient.search(any()) } throws HttpServerErrorException(HttpStatus.SERVICE_UNAVAILABLE)
+        coEvery { lrclibClient.search(any()) } throws HttpServerErrorException(HttpStatus.SERVICE_UNAVAILABLE)
         val created = workService.createOrReuse(title = TITLE, artist = ARTIST, durationSeconds = 210)
 
         drive(created.workId)
@@ -402,8 +402,8 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         assertThat(refreshed.status).isEqualTo(SongAnalysisWorkStatus.FAILED)
         assertThat(refreshed.currentStage).isEqualTo(SongAnalysisWorkStage.FETCH_LYRICS)
         assertThat(refreshed.errorCode).isEqualTo("SONG_ANALYSIS_PROVIDER_UNAVAILABLE")
-        verify(exactly = 3) { lrclibClient.search(any()) }
-        verify(exactly = 1) { vocadbClient.search(any()) }
+        coVerify(exactly = 1) { lrclibClient.search(any()) }
+        coVerify(exactly = 1) { vocadbClient.search(any()) }
     }
 
     @Test
@@ -420,7 +420,7 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         val refreshed = workRepository.findById(created.workId).orElseThrow()
         assertThat(refreshed.status).isEqualTo(SongAnalysisWorkStatus.PENDING)
         assertThat(stageRepository.findByWorkIdOrderByIdAsc(created.workId)).isEmpty()
-        verify(exactly = 0) { lrclibClient.search(any()) }
+        coVerify(exactly = 0) { lrclibClient.search(any()) }
     }
 
     private fun persistActiveLyric(songId: Long, text: String): LyricEntity {
@@ -485,22 +485,22 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         every { lrclibClient.providerName } returns "LrcLib"
         every { vocadbClient.providerName } returns "VocaDB"
         every { utaitedbClient.providerName } returns "UtaiteDB"
-        every { lrclibClient.search(any()) } returns LyricsResult(
+        coEvery { lrclibClient.search(any()) } returns LyricsResult(
             lrclibId = 12345,
             lyrics = "[00:12.34]ももいろの鍵",
             isSynced = true,
         )
-        every { vocadbClient.search(any()) } returns null
-        every { utaitedbClient.search(any()) } returns null
+        coEvery { vocadbClient.search(any()) } returns null
+        coEvery { utaitedbClient.search(any()) } returns null
     }
 
     private fun stubLyricsMissing() {
         every { lrclibClient.providerName } returns "LrcLib"
         every { vocadbClient.providerName } returns "VocaDB"
         every { utaitedbClient.providerName } returns "UtaiteDB"
-        every { lrclibClient.search(any()) } returns null
-        every { vocadbClient.search(any()) } returns null
-        every { utaitedbClient.search(any()) } returns null
+        coEvery { lrclibClient.search(any()) } returns null
+        coEvery { vocadbClient.search(any()) } returns null
+        coEvery { utaitedbClient.search(any()) } returns null
     }
 
     private fun stubYoutubeFound() {
