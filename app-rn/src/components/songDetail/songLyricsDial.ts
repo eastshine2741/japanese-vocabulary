@@ -129,3 +129,16 @@ export function stepTargetIndex(
   const delta = -Math.round(translationY / DRAG_STEP);
   return Math.max(0, Math.min(lineCount - 1, safeIndex + delta));
 }
+
+/** 더미 안 y 자리에 놓인 줄을 소수 인덱스로 — 이웃한 두 줄의 가운데 사이를 잇는다. 양 끝 밖은 끝 줄. */
+export function slotPositionAt(layouts: SlotLayout[], y: number): number {
+  'worklet';
+  const last = layouts.length - 1;
+  if (last < 0) return 0;
+  for (let i = 0; i < last; i += 1) {
+    const from = layouts[i].top + layouts[i].height / 2;
+    const to = layouts[i + 1].top + layouts[i + 1].height / 2;
+    if (y < to) return i + Math.max(0, (y - from) / (to - from));
+  }
+  return last;
+}
