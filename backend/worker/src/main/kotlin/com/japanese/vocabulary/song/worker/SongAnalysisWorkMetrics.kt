@@ -43,10 +43,7 @@ class SongAnalysisWorkMetrics(
     }
 
     companion object {
-        /**
-         * 타이머 히스토그램의 기본 상한은 30초라 그보다 긴 값은 모두 +Inf 버킷에 떨어지고 백분위가 30초로
-         * 눌린다. 작업은 분 단위이고 시간 초과 판정이 10분이므로 그만큼 버킷을 연다.
-         */
+        // 타이머 버킷 기본 상한이 30초라, 시간 초과 판정(10분)까지 연다.
         val HISTOGRAM_MAX: Duration = Duration.ofMinutes(10)
 
         private val COST_BUCKETS_USD = doubleArrayOf(0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5)

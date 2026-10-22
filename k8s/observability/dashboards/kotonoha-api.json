@@ -7,7 +7,7 @@
   "graphTooltip": 1,
   "id": null,
   "uid": "kotonoha-api",
-  "title": "Kotonoha — API",
+  "title": "API",
   "tags": [
     "kotonoha"
   ],
@@ -116,7 +116,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(http_server_requests_seconds_count{application=\"$application\",uri=~\"$uri\",uri!~\"/actuator.*\"}[$__range]))",
+          "expr": "sum(increase(http_server_requests_seconds_count{application=\"$application\",uri=~\"$uri\",uri!~\"/actuator.*\"}[$__range]))",
           "legendFormat": "__auto",
           "range": false,
           "instant": true
@@ -124,7 +124,7 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "reqps",
+          "unit": "short",
           "color": {
             "mode": "thresholds"
           },
@@ -137,7 +137,7 @@
               }
             ]
           },
-          "decimals": 2
+          "decimals": 0
         },
         "overrides": []
       },
@@ -266,16 +266,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "text",
                 "value": null
-              },
-              {
-                "color": "orange",
-                "value": 0.05
-              },
-              {
-                "color": "red",
-                "value": 0.2
               }
             ]
           },
@@ -393,7 +385,7 @@
     },
     {
       "type": "timeseries",
-      "title": "요청 (uri별)",
+      "title": "uri별 요청",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -470,71 +462,7 @@
     },
     {
       "type": "timeseries",
-      "title": "p50 (uri별)",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "histogram_quantile(0.5, sum by (uri, le) (rate(http_server_requests_seconds_bucket{application=\"$application\",uri=~\"$uri\",uri!~\"/actuator.*\"}[$__rate_interval])))",
-          "legendFormat": "{{uri}}",
-          "range": true,
-          "instant": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 1,
-            "fillOpacity": 5,
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            }
-          },
-          "color": {
-            "mode": "palette-classic"
-          },
-          "min": 0
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max"
-          ],
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "id": 8,
-      "gridPos": {
-        "x": 0,
-        "y": 15,
-        "w": 8,
-        "h": 9
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "p95 (uri별)",
+      "title": "uri별 p95·p99",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -547,7 +475,18 @@
             "uid": "prometheus"
           },
           "expr": "histogram_quantile(0.95, sum by (uri, le) (rate(http_server_requests_seconds_bucket{application=\"$application\",uri=~\"$uri\",uri!~\"/actuator.*\"}[$__rate_interval])))",
-          "legendFormat": "{{uri}}",
+          "legendFormat": "{{uri}} p95",
+          "range": true,
+          "instant": false
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "histogram_quantile(0.99, sum by (uri, le) (rate(http_server_requests_seconds_bucket{application=\"$application\",uri=~\"$uri\",uri!~\"/actuator.*\"}[$__rate_interval])))",
+          "legendFormat": "{{uri}} p99",
           "range": true,
           "instant": false
         }
@@ -571,7 +510,26 @@
           },
           "min": 0
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".* p99$"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "legend": {
@@ -590,73 +548,9 @@
       },
       "id": 9,
       "gridPos": {
-        "x": 8,
+        "x": 0,
         "y": 15,
-        "w": 8,
-        "h": 9
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "p99 (uri별)",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "histogram_quantile(0.99, sum by (uri, le) (rate(http_server_requests_seconds_bucket{application=\"$application\",uri=~\"$uri\",uri!~\"/actuator.*\"}[$__rate_interval])))",
-          "legendFormat": "{{uri}}",
-          "range": true,
-          "instant": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 1,
-            "fillOpacity": 5,
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            }
-          },
-          "color": {
-            "mode": "palette-classic"
-          },
-          "min": 0
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "mean",
-            "max"
-          ],
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "id": 10,
-      "gridPos": {
-        "x": 16,
-        "y": 15,
-        "w": 8,
+        "w": 24,
         "h": 9
       }
     },
@@ -791,68 +685,7 @@
       "gridPos": {
         "x": 0,
         "y": 25,
-        "w": 8,
-        "h": 8
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "상태 코드별 (2xx 제외)",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum by (status) (rate(http_server_requests_seconds_count{application=\"$application\",uri=~\"$uri\",uri!~\"/actuator.*\",status!~\"2..\"}[$__rate_interval]))",
-          "legendFormat": "{{status}}",
-          "range": true,
-          "instant": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps",
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 1,
-            "fillOpacity": 20,
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "mode": "normal",
-              "group": "A"
-            }
-          },
-          "color": {
-            "mode": "palette-classic"
-          },
-          "min": 0
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "calcs": [],
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "id": 13,
-      "gridPos": {
-        "x": 8,
-        "y": 25,
-        "w": 8,
+        "w": 12,
         "h": 8
       }
     },
@@ -915,7 +748,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Value"
+              "options": "건수"
             },
             "properties": [
               {
@@ -944,9 +777,9 @@
       },
       "id": 14,
       "gridPos": {
-        "x": 16,
+        "x": 12,
         "y": 25,
-        "w": 8,
+        "w": 12,
         "h": 8
       }
     }

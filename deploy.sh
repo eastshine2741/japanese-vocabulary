@@ -399,10 +399,8 @@ kubectl delete job migration -n "$NS" --ignore-not-found
 envsubst < "$K8S_DIR/migration/job.yaml" | kubectl apply -n "$NS" -f -
 kubectl wait --for=condition=complete -n "$NS" job/migration --timeout=120s
 if [[ "$DEPLOY_ENV" == "prod" ]]; then
-  # MYSQL_USER 처럼 entrypoint 가 만드는 계정은 빈 datadir 첫 부팅 때만 생긴다. 이미 있는 DB 에도
-  # 들어가도록 매 배포 root 로 맞춘다. 비밀번호는 인자 대신 stdin 으로 넘긴다.
+  # entrypoint 가 만드는 계정은 빈 datadir 첫 부팅 때만 생겨, 이미 있는 DB 에도 들어가게 매 배포 root 로 맞춘다.
   # exporter 는 별도 파드라 host 를 파드 대역(k3s 기본 cluster-cidr 10.42.0.0/16)으로 연다.
-  # 슬로 로그는 끈 채 둔다. Slow_queries 카운터는 로그와 무관하게 long_query_time 만 따른다.
   echo "[mysql] ensuring exporter user + long_query_time..."
   kubectl exec -i -n "$NS" statefulset/mysql -c mysql -- sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot' <<SQL
 CREATE USER IF NOT EXISTS 'exporter'@'10.42.%' IDENTIFIED BY '$MYSQL_EXPORTER_PASSWORD' WITH MAX_USER_CONNECTIONS 3;

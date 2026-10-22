@@ -118,9 +118,10 @@ class JevClient(
             sample.stop(
                 Timer.builder(MetricNames.JEV_CALL_DURATION)
                     .tag("call", call)
-                    .tag("stage", context.stage ?: "none")
+                    .tag("stage", context.stageTag)
                     .tag("outcome", outcome)
                     .publishPercentileHistogram()
+                    .maximumExpectedValue(Duration.ofMinutes(5))
                     .register(meterRegistry),
             )
         }
@@ -130,7 +131,7 @@ class JevClient(
         if (count <= 0) return
         Counter.builder(MetricNames.JEV_TOKENS)
             .tag("call", call)
-            .tag("stage", context.stage ?: "none")
+            .tag("stage", context.stageTag)
             .tag("kind", kind)
             .register(meterRegistry)
             .increment(count.toDouble())

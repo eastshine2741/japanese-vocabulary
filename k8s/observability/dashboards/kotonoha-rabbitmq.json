@@ -7,7 +7,7 @@
   "graphTooltip": 1,
   "id": null,
   "uid": "kotonoha-rabbitmq",
-  "title": "Kotonoha — RabbitMQ",
+  "title": "RabbitMQ",
   "tags": [
     "kotonoha"
   ],
@@ -44,7 +44,7 @@
   "panels": [
     {
       "type": "stat",
-      "title": "work 대기",
+      "title": "대기",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -107,7 +107,7 @@
     },
     {
       "type": "stat",
-      "title": "work 처리 중",
+      "title": "처리 중",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -273,10 +273,6 @@
                 "value": null
               },
               {
-                "color": "orange",
-                "value": 0
-              },
-              {
                 "color": "green",
                 "value": 1
               }
@@ -312,7 +308,7 @@
     },
     {
       "type": "stat",
-      "title": "메모리",
+      "title": "메모리 사용률",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -395,8 +391,19 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "max(rabbitmq_alarms_memory_used_watermark) + max(rabbitmq_alarms_free_disk_space_watermark)",
-          "legendFormat": "__auto",
+          "expr": "max(rabbitmq_alarms_memory_used_watermark)",
+          "legendFormat": "메모리",
+          "range": false,
+          "instant": true
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "max(rabbitmq_alarms_free_disk_space_watermark)",
+          "legendFormat": "디스크",
           "range": false,
           "instant": true
         }
@@ -426,7 +433,17 @@
               "type": "value",
               "options": {
                 "0": {
-                  "text": "OK"
+                  "text": "정상"
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": 1,
+                "to": null,
+                "result": {
+                  "text": "경보"
                 }
               }
             }
@@ -473,7 +490,7 @@
     },
     {
       "type": "timeseries",
-      "title": "대기 (visible)",
+      "title": "대기",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -485,7 +502,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "max by (queue) (rabbitmq_detailed_queue_messages_ready{vhost=\"/\",queue=~\"song-analysis.*\"})",
+          "expr": "max by (queue) (rabbitmq_detailed_queue_messages_ready{vhost=\"/\",queue=\"song-analysis.work\"})",
           "legendFormat": "{{queue}}",
           "range": true,
           "instant": false
@@ -518,7 +535,7 @@
           "displayMode": "list",
           "placement": "bottom",
           "calcs": [],
-          "showLegend": true
+          "showLegend": false
         },
         "tooltip": {
           "mode": "multi",
@@ -535,7 +552,7 @@
     },
     {
       "type": "timeseries",
-      "title": "처리 중 (not visible)",
+      "title": "처리 중",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -547,7 +564,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "max by (queue) (rabbitmq_detailed_queue_messages_unacked{vhost=\"/\",queue=~\"song-analysis.*\"})",
+          "expr": "max by (queue) (rabbitmq_detailed_queue_messages_unacked{vhost=\"/\",queue=\"song-analysis.work\"})",
           "legendFormat": "{{queue}}",
           "range": true,
           "instant": false
@@ -580,7 +597,7 @@
           "displayMode": "list",
           "placement": "bottom",
           "calcs": [],
-          "showLegend": true
+          "showLegend": false
         },
         "tooltip": {
           "mode": "multi",
@@ -609,8 +626,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "max(rabbitmq_detailed_queue_messages{queue=\"song-analysis.work.dlq\"})",
-          "legendFormat": "dlq",
+          "expr": "max by (queue) (rabbitmq_detailed_queue_messages{queue=\"song-analysis.work.dlq\"})",
+          "legendFormat": "{{queue}}",
           "range": true,
           "instant": false
         }
@@ -635,34 +652,14 @@
           "min": 0,
           "decimals": 0
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "dlq"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "song-analysis.work.dlq"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "red"
-                }
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "options": {
         "legend": {
           "displayMode": "list",
           "placement": "bottom",
           "calcs": [],
-          "showLegend": true
+          "showLegend": false
         },
         "tooltip": {
           "mode": "multi",
@@ -692,7 +689,7 @@
             "uid": "prometheus"
           },
           "expr": "sum by (queue) (rate(rabbitmq_detailed_queue_exchange_messages_published_total{vhost=\"/\",queue=~\"song-analysis.*\"}[$__rate_interval]))",
-          "legendFormat": "publish {{queue}}",
+          "legendFormat": "발행 {{queue}}",
           "range": true,
           "instant": false
         },
@@ -703,7 +700,7 @@
             "uid": "prometheus"
           },
           "expr": "sum by (queue) (rate(rabbitmq_detailed_queue_messages_delivered_ack_total{vhost=\"/\",queue=~\"song-analysis.*\"}[$__rate_interval]))",
-          "legendFormat": "deliver {{queue}}",
+          "legendFormat": "전달 {{queue}}",
           "range": true,
           "instant": false
         },
@@ -721,7 +718,7 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
+          "unit": "mps",
           "custom": {
             "drawStyle": "line",
             "lineWidth": 1,
@@ -782,7 +779,7 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
+          "unit": "mps",
           "custom": {
             "drawStyle": "line",
             "lineWidth": 1,
@@ -911,7 +908,7 @@
             "uid": "prometheus"
           },
           "expr": "max(rabbitmq_connections)",
-          "legendFormat": "connections",
+          "legendFormat": "연결",
           "range": true,
           "instant": false
         },
@@ -922,18 +919,7 @@
             "uid": "prometheus"
           },
           "expr": "max(rabbitmq_channels)",
-          "legendFormat": "channels",
-          "range": true,
-          "instant": false
-        },
-        {
-          "refId": "C",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "max(rabbitmq_consumers)",
-          "legendFormat": "consumers",
+          "legendFormat": "채널",
           "range": true,
           "instant": false
         }
@@ -995,7 +981,7 @@
             "uid": "prometheus"
           },
           "expr": "max(rabbitmq_process_resident_memory_bytes)",
-          "legendFormat": "resident",
+          "legendFormat": "사용",
           "range": true,
           "instant": false
         },
@@ -1006,7 +992,7 @@
             "uid": "prometheus"
           },
           "expr": "max(rabbitmq_resident_memory_limit_bytes)",
-          "legendFormat": "limit",
+          "legendFormat": "상한",
           "range": true,
           "instant": false
         }
@@ -1067,7 +1053,7 @@
             "uid": "prometheus"
           },
           "expr": "max(rabbitmq_disk_space_available_bytes)",
-          "legendFormat": "available",
+          "legendFormat": "여유",
           "range": true,
           "instant": false
         }
@@ -1098,7 +1084,7 @@
           "displayMode": "list",
           "placement": "bottom",
           "calcs": [],
-          "showLegend": true
+          "showLegend": false
         },
         "tooltip": {
           "mode": "multi",

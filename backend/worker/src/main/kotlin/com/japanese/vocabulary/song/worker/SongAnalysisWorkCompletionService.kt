@@ -85,7 +85,7 @@ class SongAnalysisWorkCompletionService(
             songRepository.save(song)
         }
 
-        if (!workService.completeStage(ref, output)) throw SongAnalysisStageSupersededException(ref)
+        if (!workService.completeStage(ref, output, llmCostUsd = 0.0)) throw SongAnalysisStageSupersededException(ref)
         eventPublisher.publishEvent(SongAnalysisCompletedEvent(workId, lyric.songId))
     }
 

@@ -56,7 +56,7 @@ class SongAnalysisWorkStageEntity(
     @Column(name = "started_at")
     var startedAt: Instant? = null,
 
-    /** 이번 시도의 LLM 비용. 시도마다 새로 잰다 — 앞 시도의 비용은 그 실행이 끝날 때 이미 집계됐다. */
+    /** 이번 시도의 LLM 비용. 시도마다 새로 잰다. 앞 시도의 비용은 그 실행이 끝날 때 이미 집계됐다. */
     @Column(name = "llm_cost_usd", nullable = false, precision = 12, scale = 6)
     var llmCostUsd: BigDecimal = BigDecimal.ZERO,
 

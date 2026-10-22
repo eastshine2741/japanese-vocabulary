@@ -47,7 +47,7 @@ class LlmCostMeter(
         context.llmCostUsd?.add(usd)
         Counter.builder(MetricNames.LLM_COST)
             .tag("provider", provider)
-            .tag("stage", context.stage ?: "none")
+            .tag("stage", context.stageTag)
             .tag("call", call)
             .tag("model", model)
             .register(meterRegistry)

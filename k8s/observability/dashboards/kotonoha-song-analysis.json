@@ -7,7 +7,7 @@
   "graphTooltip": 1,
   "id": null,
   "uid": "kotonoha-song-analysis",
-  "title": "Kotonoha — Song Analysis",
+  "title": "곡 분석",
   "tags": [
     "kotonoha"
   ],
@@ -44,7 +44,7 @@
   "panels": [
     {
       "type": "stat",
-      "title": "기간 완료",
+      "title": "완료",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -107,7 +107,7 @@
     },
     {
       "type": "stat",
-      "title": "기간 성공률",
+      "title": "성공률",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -178,7 +178,7 @@
     },
     {
       "type": "stat",
-      "title": "기간 시간 초과",
+      "title": "시간 초과",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -249,7 +249,7 @@
     },
     {
       "type": "stat",
-      "title": "기간 LLM 비용",
+      "title": "LLM 비용",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -469,7 +469,7 @@
     },
     {
       "type": "timeseries",
-      "title": "완료 (결과별)",
+      "title": "결과별 완료",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -515,6 +515,10 @@
             },
             "properties": [
               {
+                "id": "displayName",
+                "value": "성공"
+              },
+              {
                 "id": "color",
                 "value": {
                   "mode": "fixed",
@@ -530,6 +534,10 @@
             },
             "properties": [
               {
+                "id": "displayName",
+                "value": "실패"
+              },
+              {
                 "id": "color",
                 "value": {
                   "mode": "fixed",
@@ -544,6 +552,10 @@
               "options": "timeout"
             },
             "properties": [
+              {
+                "id": "displayName",
+                "value": "시간 초과"
+              },
               {
                 "id": "color",
                 "value": {
@@ -591,7 +603,7 @@
             "uid": "prometheus"
           },
           "expr": "sum(increase(kotonoha_song_analysis_work_duration_seconds_count{outcome=\"success\"}[1h])) / sum(increase(kotonoha_song_analysis_work_duration_seconds_count[1h]))",
-          "legendFormat": "1h",
+          "legendFormat": "성공률",
           "range": true,
           "instant": false
         }
@@ -623,7 +635,7 @@
           "displayMode": "list",
           "placement": "bottom",
           "calcs": [],
-          "showLegend": true
+          "showLegend": false
         },
         "tooltip": {
           "mode": "multi",
@@ -641,7 +653,7 @@
     },
     {
       "type": "timeseries",
-      "title": "소요 시간 (성공)",
+      "title": "소요 시간",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -752,7 +764,32 @@
           "min": 0,
           "decimals": 0
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PENDING"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "대기"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "RUNNING"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "실행"
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "legend": {
@@ -770,7 +807,7 @@
       "gridPos": {
         "x": 0,
         "y": 13,
-        "w": 8,
+        "w": 12,
         "h": 8
       }
     },
@@ -789,7 +826,7 @@
             "uid": "prometheus"
           },
           "expr": "max(kotonoha_song_analysis_oldest_pending_age_seconds)",
-          "legendFormat": "oldest",
+          "legendFormat": "최장 대기",
           "range": true,
           "instant": false
         }
@@ -820,7 +857,7 @@
           "displayMode": "list",
           "placement": "bottom",
           "calcs": [],
-          "showLegend": true
+          "showLegend": false
         },
         "tooltip": {
           "mode": "multi",
@@ -829,78 +866,15 @@
       },
       "id": 12,
       "gridPos": {
-        "x": 8,
+        "x": 12,
         "y": 13,
-        "w": 8,
-        "h": 8
-      }
-    },
-    {
-      "type": "timeseries",
-      "title": "시간 초과",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum by (trigger_source) (increase(kotonoha_song_analysis_work_duration_seconds_count{outcome=\"timeout\"}[$__interval]))",
-          "legendFormat": "{{trigger_source}}",
-          "range": true,
-          "instant": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {
-            "drawStyle": "bars",
-            "lineWidth": 1,
-            "fillOpacity": 80,
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "mode": "normal",
-              "group": "A"
-            }
-          },
-          "color": {
-            "mode": "palette-classic"
-          },
-          "min": 0,
-          "decimals": 0
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "calcs": [],
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "interval": "10m",
-      "id": 13,
-      "gridPos": {
-        "x": 16,
-        "y": 13,
-        "w": 8,
+        "w": 12,
         "h": 8
       }
     },
     {
       "type": "table",
-      "title": "실패 (단계 × 코드)",
+      "title": "단계·코드별 실패",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -960,12 +934,39 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Value"
+              "options": "건수"
             },
             "properties": [
               {
                 "id": "decimals",
                 "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "결과"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "success": {
+                        "text": "성공"
+                      },
+                      "failed": {
+                        "text": "실패"
+                      },
+                      "timeout": {
+                        "text": "시간 초과"
+                      }
+                    }
+                  }
+                ]
               }
             ]
           }
@@ -997,7 +998,7 @@
     },
     {
       "type": "timeseries",
-      "title": "실패 (단계별)",
+      "title": "단계별 실패",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -1073,7 +1074,7 @@
     },
     {
       "type": "timeseries",
-      "title": "단계 p95 (성공)",
+      "title": "단계별 p95",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -1097,11 +1098,11 @@
           "custom": {
             "drawStyle": "line",
             "lineWidth": 1,
-            "fillOpacity": 20,
+            "fillOpacity": 0,
             "showPoints": "never",
             "spanNulls": false,
             "stacking": {
-              "mode": "normal",
+              "mode": "none",
               "group": "A"
             }
           },
@@ -1138,7 +1139,7 @@
     },
     {
       "type": "timeseries",
-      "title": "단계 실행 (결과별)",
+      "title": "결과별 단계 실행",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -1192,6 +1193,29 @@
           "sort": "desc"
         }
       },
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^(.*) success$",
+            "renamePattern": "$1 성공"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^(.*) failed$",
+            "renamePattern": "$1 실패"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^(.*) superseded$",
+            "renamePattern": "$1 대체됨"
+          }
+        }
+      ],
       "interval": "10m",
       "id": 18,
       "gridPos": {
@@ -1216,7 +1240,7 @@
     },
     {
       "type": "timeseries",
-      "title": "토큰 (단계 × 종류)",
+      "title": "단계별 토큰",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -1228,19 +1252,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (stage, kind) (increase(kotonoha_gemini_tokens_total[$__interval]))",
-          "legendFormat": "gemini {{stage}} {{kind}}",
-          "range": true,
-          "instant": false
-        },
-        {
-          "refId": "B",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum by (stage, kind) (increase(kotonoha_jev_tokens_total[$__interval]))",
-          "legendFormat": "jev {{stage}} {{kind}}",
+          "expr": "sum by (stage) (increase({__name__=~\"kotonoha_gemini_tokens_total|kotonoha_jev_tokens_total\",kind!=\"cached\"}[$__interval]))",
+          "legendFormat": "{{stage}}",
           "range": true,
           "instant": false
         }
@@ -1286,13 +1299,163 @@
       "gridPos": {
         "x": 0,
         "y": 40,
-        "w": 24,
+        "w": 12,
         "h": 9
       }
     },
     {
       "type": "timeseries",
-      "title": "비용 (단계별)",
+      "title": "종류별 토큰",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (kind) (label_replace(increase({__name__=~\"kotonoha_gemini_tokens_total|kotonoha_jev_tokens_total\",kind!=\"cached\"}[$__interval]), \"kind\", \"prompt\", \"kind\", \"input\"))",
+          "legendFormat": "{{kind}}",
+          "range": true,
+          "instant": false
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(increase(kotonoha_gemini_tokens_total{kind=\"cached\"}[$__interval]))",
+          "legendFormat": "cached",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 80,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "prompt"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "입력"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "candidates"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "출력"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "thoughts"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "생각"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "cached"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "캐시"
+              },
+              {
+                "id": "custom.stacking",
+                "value": {
+                  "mode": "none",
+                  "group": "A"
+                }
+              },
+              {
+                "id": "custom.drawStyle",
+                "value": "line"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "interval": "10m",
+      "id": 25,
+      "gridPos": {
+        "x": 12,
+        "y": 40,
+        "w": 12,
+        "h": 9
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "단계별 비용",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -1356,7 +1519,7 @@
     },
     {
       "type": "timeseries",
-      "title": "비용 (모델별)",
+      "title": "모델별 비용",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -1420,7 +1583,7 @@
     },
     {
       "type": "table",
-      "title": "작업당 비용 (요청 경로별)",
+      "title": "경로별 작업당 비용",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -1534,7 +1697,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Value #A"
+              "options": "p50"
             },
             "properties": [
               {
@@ -1550,7 +1713,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Value #B"
+              "options": "p95"
             },
             "properties": [
               {
@@ -1566,7 +1729,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Value #C"
+              "options": "평균"
             },
             "properties": [
               {
@@ -1582,7 +1745,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Value #D"
+              "options": "작업 수"
             },
             "properties": [
               {
@@ -1594,7 +1757,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Value #E"
+              "options": "합계"
             },
             "properties": [
               {

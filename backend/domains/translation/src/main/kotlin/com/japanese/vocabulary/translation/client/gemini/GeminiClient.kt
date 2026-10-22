@@ -220,9 +220,11 @@ class GeminiClient(
                 Timer.builder(MetricNames.GEMINI_CALL_DURATION)
                     .tag("call", call)
                     .tag("model", model)
-                    .tag("stage", context.stage ?: "none")
+                    .tag("stage", context.stageTag)
                     .tag("outcome", outcome)
                     .publishPercentileHistogram()
+                    // 버킷 기본 상한이 30초라 그보다 긴 호출은 p95 가 30초에 붙는다.
+                    .maximumExpectedValue(Duration.ofMinutes(5))
                     .register(meterRegistry)
             )
         }
@@ -259,7 +261,7 @@ class GeminiClient(
         Counter.builder(MetricNames.GEMINI_TOKENS)
             .tag("call", call)
             .tag("model", model)
-            .tag("stage", context.stage ?: "none")
+            .tag("stage", context.stageTag)
             .tag("kind", kind)
             .register(meterRegistry)
             .increment(count.toDouble())

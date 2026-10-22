@@ -1,7 +1,5 @@
-# grafana.kotonoha.eastshine.dev
-# Grafana 의 /metrics 는 인증 없이 열려 공개 라우트에서 뺀다. Prometheus 는 Service 로 직접 긁어 영향이 없다.
-# IngressRoute 에는 ingress-shim 이 붙지 않아 Certificate 를 명시한다.
-# Middleware 는 다른 namespace 것을 참조할 수 없어(allowCrossNamespace 꺼짐) 여기 따로 둔다.
+# Grafana 의 /metrics 는 인증 없이 열려 공개 라우트에서 뺀다. Prometheus 는 Service 로 직접 긁는다.
+# IngressRoute 엔 ingress-shim 이 안 붙어 Certificate 를 명시하고, Middleware 는 namespace 를 넘어 참조할 수 없어 여기 둔다.
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:

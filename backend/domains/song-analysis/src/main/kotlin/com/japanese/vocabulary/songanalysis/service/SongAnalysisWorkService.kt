@@ -183,7 +183,7 @@ class SongAnalysisWorkService(
      * 트랜잭션에서 한 쓰기를 롤백해야 한다.
      */
     @Transactional
-    fun completeStage(ref: SongAnalysisStageRef, output: String?, llmCostUsd: Double = 0.0): Boolean {
+    fun completeStage(ref: SongAnalysisStageRef, output: String?, llmCostUsd: Double): Boolean {
         val (work, row) = lockCurrent(ref) ?: return false
         val now = Instant.now()
         row.complete(output, llmCostUsd, now)
@@ -199,7 +199,7 @@ class SongAnalysisWorkService(
     }
 
     @Transactional
-    fun failStage(ref: SongAnalysisStageRef, failure: SongAnalysisStageFailure, llmCostUsd: Double = 0.0): Boolean {
+    fun failStage(ref: SongAnalysisStageRef, failure: SongAnalysisStageFailure, llmCostUsd: Double): Boolean {
         val (work, row) = lockCurrent(ref) ?: return false
         val now = Instant.now()
         row.fail(failure, llmCostUsd, now)

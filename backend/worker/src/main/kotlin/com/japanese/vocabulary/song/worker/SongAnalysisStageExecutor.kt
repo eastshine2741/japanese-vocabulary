@@ -42,8 +42,8 @@ class SongAnalysisStageExecutor(
     /** [llmCost] 는 이 단계 실행의 LLM 호출들이 더해 가고, 단계가 끝날 때 단계 행에 남는다. */
     suspend fun execute(claimed: ClaimedSongAnalysisStage, llmCost: DoubleAdder) {
         when (claimed.ref.stage) {
-            SongAnalysisWorkStage.FETCH_LYRICS -> fetchLyrics(claimed)
-            SongAnalysisWorkStage.FETCH_YOUTUBE -> fetchYoutube(claimed)
+            SongAnalysisWorkStage.FETCH_LYRICS -> fetchLyrics(claimed, llmCost)
+            SongAnalysisWorkStage.FETCH_YOUTUBE -> fetchYoutube(claimed, llmCost)
             SongAnalysisWorkStage.CREATE_SONG_AND_LYRIC -> createSongAndLyric(claimed)
             SongAnalysisWorkStage.ANALYZE_LYRICS -> analyzeLyrics(claimed, llmCost)
             SongAnalysisWorkStage.SELECT_SENSES -> selectSenses(claimed, llmCost)
@@ -52,20 +52,20 @@ class SongAnalysisStageExecutor(
         }
     }
 
-    private suspend fun fetchLyrics(claimed: ClaimedSongAnalysisStage) {
+    private suspend fun fetchLyrics(claimed: ClaimedSongAnalysisStage, llmCost: DoubleAdder) {
         val work = claimed.work
         val prepared: FetchLyricsOutput = preparationService.prepareLyrics(work.rawTitle, work.rawArtist, work.durationSeconds)
-        finish(claimed, prepared)
+        finish(claimed, prepared, llmCost)
     }
 
-    private suspend fun fetchYoutube(claimed: ClaimedSongAnalysisStage) {
+    private suspend fun fetchYoutube(claimed: ClaimedSongAnalysisStage, llmCost: DoubleAdder) {
         val work = claimed.work
         val result = preparationService.searchYoutube(work.rawTitle, work.rawArtist, work.durationSeconds)
         // MV 가 없어도 가사 학습은 되므로 작업을 실패시키지 않는다. YouTube 오류는 이미 위로 던져졌다.
         if (result.url == null) {
             mvSearchDefectReporter.report(claimed.ref.workId, work.rawTitle, work.rawArtist, work.durationSeconds, result)
         }
-        finish(claimed, FetchYoutubeOutput(result.url))
+        finish(claimed, FetchYoutubeOutput(result.url), llmCost)
     }
 
     private fun createSongAndLyric(claimed: ClaimedSongAnalysisStage) {
@@ -154,8 +154,8 @@ class SongAnalysisStageExecutor(
         logger.info("[workId={}] Song analysis completed", claimed.ref.workId)
     }
 
-    private fun finish(claimed: ClaimedSongAnalysisStage, output: Any, llmCost: DoubleAdder? = null) {
-        if (!workService.completeStage(claimed.ref, codec.write(output), llmCost?.sum() ?: 0.0)) {
+    private fun finish(claimed: ClaimedSongAnalysisStage, output: Any, llmCost: DoubleAdder) {
+        if (!workService.completeStage(claimed.ref, codec.write(output), llmCost.sum())) {
             throw SongAnalysisStageSupersededException(claimed.ref)
         }
     }

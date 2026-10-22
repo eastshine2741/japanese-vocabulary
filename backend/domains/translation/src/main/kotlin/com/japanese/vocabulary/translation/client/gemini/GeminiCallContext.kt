@@ -14,4 +14,6 @@ data class GeminiCallContext(
     val stage: String? = null,
     /** One stage run's LLM spend. ANALYZE_LYRICS adds to it from parallel calls, hence the adder. */
     val llmCostUsd: DoubleAdder? = null,
-)
+) {
+    val stageTag: String get() = stage ?: "none"
+}
