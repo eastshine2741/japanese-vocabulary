@@ -25,6 +25,7 @@ import {
   TokenCell,
   buildSlotLayouts,
   buildTokenCells,
+  slotPositionAt,
   stepTargetIndex,
 } from './songLyricsDial';
 import type { CurrentPlayingLyricLine, CurrentPlayingWord } from './CurrentPlayingWordsSheet';
@@ -42,7 +43,7 @@ const MODE_TIMING = { duration: 200, easing: Easing.out(Easing.cubic) };
 const DETAIL_FADE_IN_MS = 260;
 const DETAIL_FADE_IN_DELAY_MS = 90;
 const DETAIL_FADE_OUT_MS = 160;
-/** 줄이 넘어갈 때 밝기가 옮겨 가는 시간. */
+/** 손을 뗀 뒤 후보 줄 기준이 옮겨 가는 시간. 물러남이 풀리는 동안만 밝기에 섞인다. */
 const LINE_FADE_MS = 360;
 /** 드래그 중 후보 줄로 띠가 미끄러지는 시간. */
 const HIGHLIGHT_SLIDE_MS = 150;
@@ -265,7 +266,7 @@ interface SlotProps {
   isFocused: boolean;
   slotTop: number;
   busyWordKey: string | null;
-  candidatePosition: SharedValue<number>;
+  focusPosition: SharedValue<number>;
   dynamicProgress: SharedValue<number>;
   stackY: SharedValue<number>;
   trailY: SharedValue<number>;
@@ -280,7 +281,7 @@ const Slot = React.memo(function Slot({
   isFocused,
   slotTop,
   busyWordKey,
-  candidatePosition,
+  focusPosition,
   dynamicProgress,
   stackY,
   trailY,
@@ -296,7 +297,7 @@ const Slot = React.memo(function Slot({
   const animStyle = useAnimatedStyle(() => ({
     transform: [{
       translateY: (trailY.value - stackY.value) * interpolate(
-        index - candidatePosition.value,
+        index - focusPosition.value,
         [0, TRAIL_SPREAD],
         [0, 1],
         Extrapolation.CLAMP,
@@ -305,7 +306,7 @@ const Slot = React.memo(function Slot({
       scale: interpolate(dynamicProgress.value, [0, 1], [1, DYNAMIC_SCALE], Extrapolation.CLAMP),
     }],
     opacity: interpolate(
-      Math.abs(index - candidatePosition.value),
+      Math.abs(index - focusPosition.value),
       DISTANCE_STEPS,
       DISTANCE_OPACITY,
       Extrapolation.CLAMP,
@@ -571,10 +572,22 @@ function SongLyricsDial({
     transform: [{ translateY: stackY.value + dragOffset.value }],
   }));
 
-  // 가만히 있을 때 띠 높이 — 밝기가 옮겨 가는 만큼 두 줄 높이 사이를 오간다.
+  // 가만히 있을 때 화면 가운데 놓인 줄 — 띠와 같은 더미 위치에서 읽는다. 밝기를 따로 굴리면 빠르게 넘길 때
+  // 띠만 새 줄로 가고 밝기는 옛 줄에 남는다.
+  const restPosition = useDerivedValue(
+    () => slotPositionAt(slotLayoutsSV.value, focusCenterSV.value - stackY.value),
+  );
+  // 줄 밝기·꼬리가 재는 기준. 띠처럼 가만히 있을 땐 더미 위치, 드래그 중엔 후보 줄을 따른다.
+  const focusPosition = useDerivedValue(() => interpolate(
+    dynamicProgress.value,
+    [0, 1],
+    [restPosition.value, candidatePosition.value],
+  ));
+
+  // 가만히 있을 때 띠 높이 — 가운데 줄이 옮겨 가는 만큼 두 줄 높이 사이를 오간다.
   const restHeight = useDerivedValue(() => {
     const layouts = slotLayoutsSV.value;
-    const p = candidatePosition.value;
+    const p = restPosition.value;
     const from = layouts[Math.floor(p)]?.height ?? DEFAULT_LINE_HEIGHT;
     const to = layouts[Math.ceil(p)]?.height ?? from;
     return from + (to - from) * (p - Math.floor(p));
@@ -636,7 +649,7 @@ function SongLyricsDial({
                 isFocused={index === safeIndex}
                 slotTop={slotLayouts[index]?.top ?? index * DEFAULT_LINE_HEIGHT}
                 busyWordKey={busyWordKey}
-                candidatePosition={candidatePosition}
+                focusPosition={focusPosition}
                 dynamicProgress={dynamicProgress}
                 stackY={stackY}
                 trailY={trailY}
