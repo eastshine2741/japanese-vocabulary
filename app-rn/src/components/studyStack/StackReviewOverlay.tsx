@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { remainingTimeLabel } from './sessionEta';
 
 /** statusBar 아래 크롬 높이 — appBar 52 + sessionProgress 14. */
 export const STACK_REVIEW_CHROME_HEIGHT = 66;
@@ -13,6 +14,8 @@ export interface StackReviewOverlayProps {
   queueTotal: number;
   /** useStudyStack().session.queueProgress */
   queueProgress: number;
+  /** useStudyStack().session.secondsPerCard */
+  secondsPerCard: number;
   /** 완주 카드에서는 진행 바를 그리지 않는다. */
   showProgress: boolean;
   /** 없으면 뒤로가기 버튼을 그리지 않고 카운터를 앱바 끝으로 보낸다(홈처럼 돌아갈 곳이 없는 화면). */
@@ -24,10 +27,12 @@ export const StackReviewOverlay = React.memo(function StackReviewOverlay({
   position,
   queueTotal,
   queueProgress,
+  secondsPerCard,
   showProgress,
   onBack,
 }: StackReviewOverlayProps) {
   const insets = useSafeAreaInsets();
+  const remaining = showProgress ? remainingTimeLabel(queueTotal - position, secondsPerCard) : null;
 
   return (
     <View style={styles.overlay} pointerEvents="box-none">
@@ -39,8 +44,15 @@ export const StackReviewOverlay = React.memo(function StackReviewOverlay({
           </Pressable>
         )}
         {queueTotal > 0 && (
-          <View style={styles.counterPill} pointerEvents="none">
-            <Text style={styles.counterText}>{position} / {queueTotal}</Text>
+          <View style={styles.pills} pointerEvents="none">
+            {remaining && (
+              <View style={styles.counterPill}>
+                <Text style={styles.counterText}>{remaining}</Text>
+              </View>
+            )}
+            <View style={styles.counterPill}>
+              <Text style={styles.counterText}>{position} / {queueTotal}</Text>
+            </View>
           </View>
         )}
       </View>
@@ -79,6 +91,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.40)',
+  },
+  pills: {
+    flexDirection: 'row',
+    gap: 6,
   },
   counterPill: {
     paddingVertical: 7,

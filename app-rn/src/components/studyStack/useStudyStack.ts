@@ -13,6 +13,7 @@ import { SongDeckSummary } from '../../types/deck';
 import { FlashcardMemory } from '../../types/flashcard';
 import { RewardCardRevealDto } from '../../types/rewardCard';
 import { SongStudyCardDto } from '../../types/song';
+import { estimateSecondsPerCard, MAX_CARD_GAP_SECONDS } from './sessionEta';
 import { sourceFromDeck, sourceFromRecent, sourceFromRecommendation } from './studySource';
 import {
   accumulateMemoryDiff,
@@ -146,6 +147,9 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
   /** n: 이번 세션에서 리뷰를 마친 distinct 카드 수. 페이지네이션으로 같은 카드를 다시 봐도 한 번만 센다. */
   const [distinctReviewedCount, setDistinctReviewedCount] = useState(0);
   const reviewedIdsRef = useRef<Set<number>>(new Set());
+  /** rating 이 저장된 시각 사이 간격(초). 세션을 다시 열어도 같은 유저라 비우지 않는다. */
+  const cardGapsRef = useRef<number[]>([]);
+  const lastReviewedAtRef = useRef<number | null>(null);
   /** 이번 세션에서 기억 칸이 실제로 바뀐 단어 수. 완주 카드가 보여준다. */
   const [memoryDiff, setMemoryDiff] = useState<StudyMemoryDiff>(EMPTY_MEMORY_DIFF);
   // 카드마다 새 인스턴스로 교체한다. setValue(0) 리셋은 React 렌더와 같은 프레임에 반영된다는 보장이 없어
@@ -199,6 +203,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       queueTotal,
       progress,
       queueProgress: queueTotal === 0 ? 0 : Math.min(1, position / queueTotal),
+      secondsPerCard: estimateSecondsPerCard(cardGapsRef.current),
     };
   }, [sessionDueTotal, distinctReviewedCount, completedSource, currentCard, reviewedCount]);
 
@@ -645,6 +650,12 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
         activeSourceRef.current = { ...active, deckId: reviewResult.deckId };
       }
       setMemoryDiff(diff => accumulateMemoryDiff(diff, reviewedCard.memory, reviewResult.memory));
+      const reviewedAt = Date.now();
+      if (lastReviewedAtRef.current != null) {
+        const gap = (reviewedAt - lastReviewedAtRef.current) / 1000;
+        if (gap <= MAX_CARD_GAP_SECONDS) cardGapsRef.current.push(gap);
+      }
+      lastReviewedAtRef.current = reviewedAt;
       setReviewedCount(count => count + 1);
       if (!reviewedIdsRef.current.has(reviewedCard.id)) {
         reviewedIdsRef.current.add(reviewedCard.id);
