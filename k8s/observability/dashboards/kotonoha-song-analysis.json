@@ -1010,7 +1010,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (failed_stage) (increase(kotonoha_song_analysis_work_duration_seconds_count{outcome!=\"success\"}[$__interval]))",
+          "expr": "label_replace(sum by (failed_stage) (increase(kotonoha_song_analysis_work_duration_seconds_count{outcome!=\"success\"}[$__interval])), \"failed_stage\", \"unknown\", \"failed_stage\", \"\")",
           "legendFormat": "{{failed_stage}}",
           "range": true,
           "instant": false
@@ -1252,7 +1252,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (call) (increase({__name__=~\"kotonoha_gemini_tokens_total|kotonoha_jev_tokens_total\",kind!=\"cached\"}[$__interval]))",
+          "expr": "sum by (call) (increase({__name__=~\"kotonoha_gemini_tokens_total|kotonoha_jev_tokens_total\",kind!~\"cached|total\"}[$__interval]))",
           "legendFormat": "{{call}}",
           "range": true,
           "instant": false
@@ -1317,7 +1317,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (kind) (label_replace(increase({__name__=~\"kotonoha_gemini_tokens_total|kotonoha_jev_tokens_total\",kind!=\"cached\"}[$__interval]), \"kind\", \"prompt\", \"kind\", \"input\"))",
+          "expr": "sum by (kind) (label_replace(increase({__name__=~\"kotonoha_gemini_tokens_total|kotonoha_jev_tokens_total\",kind!~\"cached|total\"}[$__interval]), \"kind\", \"prompt\", \"kind\", \"input\"))",
           "legendFormat": "{{kind}}",
           "range": true,
           "instant": false
