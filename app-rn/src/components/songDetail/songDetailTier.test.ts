@@ -81,8 +81,8 @@ describe('getTierStatus', () => {
 });
 
 describe('estimateStudyMinutes', () => {
-  it('rounds 8 due words up to 3 minutes', () => {
-    expect(estimateStudyMinutes(8)).toBe(3);
+  it('rounds 8 due words up to 2 minutes', () => {
+    expect(estimateStudyMinutes(8)).toBe(2);
   });
 
   it('never goes below a minute while there is something to study', () => {

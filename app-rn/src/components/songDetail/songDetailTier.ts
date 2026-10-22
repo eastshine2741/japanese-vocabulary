@@ -1,10 +1,8 @@
 import type { SongWordTierDto, SongWordTierKey } from '../../types/song';
+import { DEFAULT_SECONDS_PER_CARD } from '../studyStack/sessionEta';
 
 /** 레일 점 모양. 끝난 단계는 체크, 그 다음 한 칸이 현재, 나머지는 예정. */
 export type SongWordTierStatus = 'done' | 'current' | 'todo';
-
-/** 카드 한 장 분량의 학습 시간 추정치(초). 8개면 약 3분이 되는 눈금. */
-const SECONDS_PER_DUE_WORD = 20;
 
 /**
  * 한 번도 리뷰 안 한 단어가 없으면 끝난 단계다. 다시 due 가 된 카드는 히어로의 `오늘 복습 N개` 가 맡는다.
@@ -35,7 +33,7 @@ export function getTierStatus(tiers: readonly SongWordTierDto[], index: number):
 /** CTA 의 예상 소요시간(분). 올림이라 1개만 남아도 `약 1분` 으로 보인다. */
 export function estimateStudyMinutes(dueCount: number): number {
   if (dueCount <= 0) return 0;
-  return Math.max(1, Math.ceil((dueCount * SECONDS_PER_DUE_WORD) / 60));
+  return Math.max(1, Math.ceil((dueCount * DEFAULT_SECONDS_PER_CARD) / 60));
 }
 
 export interface SongWordTierSegments {
