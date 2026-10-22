@@ -71,6 +71,7 @@ export function resetAllStores() {
     showFurigana: true,
     dailyGoal: 10,
     karaokeNewSongNotifications: false,
+    streakReminderNotifications: true,
     isSaving: false,
     saveSuccess: false,
     error: null,

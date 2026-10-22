@@ -8,6 +8,7 @@ import com.japanese.vocabulary.studystats.repository.DailyStudySummaryRepository
 import com.japanese.vocabulary.studystats.service.StreakCalculator
 import com.japanese.vocabulary.studystats.util.KstClock
 import com.japanese.vocabulary.user.repository.UserRepository
+import com.japanese.vocabulary.user.repository.UserSettingsRepository
 import org.slf4j.LoggerFactory
 import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -22,6 +23,7 @@ import java.time.LocalDate
  *
  * 공통 대상:
  *  - 기기 토큰이 있다
+ *  - 설정에서 끄지 않았다 (설정 행이 없으면 켜진 것으로 본다)
  *  - 학습 이력이 있다 (daily_study_summary 행 1개 이상). 한 번도 안 한 유저는 대상이 아니다.
  *  - 발송 시점 오늘(KST 04:00 경계) 리뷰가 없다
  *
@@ -33,6 +35,7 @@ class StreakReminderTask(
     private val pushNotificationService: PushNotificationService,
     private val deviceTokenRepository: DeviceTokenRepository,
     private val userRepository: UserRepository,
+    private val userSettingsRepository: UserSettingsRepository,
     private val dailyStudySummaryRepository: DailyStudySummaryRepository,
     private val streakCalculator: StreakCalculator,
     private val kstClock: KstClock,
@@ -82,7 +85,10 @@ class StreakReminderTask(
 
     @Transactional(readOnly = true)
     fun findCandidates(slot: Slot, today: LocalDate): List<StreakReminderCandidate> {
-        val tokensByUserId = deviceTokenRepository.findAll().groupBy { it.userId }
+        val optedOut = userSettingsRepository.findAll()
+            .filter { !it.settings.streakReminderNotifications }
+            .mapTo(HashSet()) { it.userId }
+        val tokensByUserId = deviceTokenRepository.findAll().groupBy { it.userId } - optedOut
         if (tokensByUserId.isEmpty()) return emptyList()
         // 탈퇴 유저의 토큰이 남아 있어도 이름이 없으니 보내지 않는다.
         val namesByUserId = userRepository.findAllById(tokensByUserId.keys)

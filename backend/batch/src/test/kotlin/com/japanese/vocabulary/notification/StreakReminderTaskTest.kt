@@ -7,6 +7,8 @@ import com.japanese.vocabulary.notification.entity.DeviceTokenEntity
 import com.japanese.vocabulary.studystats.entity.DailyStudySummaryEntity
 import com.japanese.vocabulary.test.BatchBaseIntegrationTest
 import com.japanese.vocabulary.user.entity.UserEntity
+import com.japanese.vocabulary.user.entity.UserSettingsEntity
+import com.japanese.vocabulary.user.model.UserSettingsData
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import io.mockk.verify
@@ -80,6 +82,20 @@ class StreakReminderTaskTest : BatchBaseIntegrationTest() {
         val result = candidatesFor(Slot.EVENING, noToken, withToken)
 
         assertThat(result.keys).containsExactly(withToken.id)
+    }
+
+    @Test
+    fun `skips users who turned the reminder off in settings`() {
+        val optedOut = newUser().also { studied(it, 1) }
+        entityManager.persist(UserSettingsEntity(userId = optedOut.id!!, settings = UserSettingsData(streakReminderNotifications = false)))
+        val optedIn = newUser().also { studied(it, 1) }
+        entityManager.persist(UserSettingsEntity(userId = optedIn.id!!, settings = UserSettingsData()))
+        val noSettingsRow = newUser().also { studied(it, 1) }
+        entityManager.flush()
+
+        val result = candidatesFor(Slot.EVENING, optedOut, optedIn, noSettingsRow)
+
+        assertThat(result.keys).containsExactlyInAnyOrder(optedIn.id, noSettingsRow.id)
     }
 
     @Test
