@@ -39,11 +39,10 @@ const SONG_RADIUS = 0.046;
 const SONG_GUIDE = ['단계를 끝낼 때마다 다음 등급 카드를 새로 받아요'];
 const SONG_LAST_GUIDE = ['이 곡의 마지막 등급 카드예요'];
 const SONG_LAST_RUNG = SONG_CARD_KINDS.length - 1;
-const INTRO_GUIDE = ['곡 단어를 처음 공부하면 얻는 카드예요.', '단계를 끝낼 때마다 다음 등급 카드를 새로 받아요'];
 const INTRO_LADDER_DELAY_MS = 500;
 
 /**
- * 카드 획득 — 조건이 채워지면 획득 화면(RewardCardReveal 라우트)을 연다.
+ * 카드 획득 — 유저가 받기를 누른 카드의 획득 화면(RewardCardReveal 라우트)을 차례로 연다.
  * 연속 학습 축하가 떠 있으면 그 화면이 닫힐 때까지 기다린다.
  * 위에 겹쳐 그리면 아래 화면까지 매 프레임 다시 합성돼 끊기므로, 스택 화면으로 띄워 아래 화면을 떼어 낸다.
  */
@@ -242,7 +241,7 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({
             back={<SongCardBack card={card} width={cardW} fonts={fonts} />}
             showcase={<SongCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} />}
             cheer={revealCheer(songRung(card), SONG_LAST_RUNG)}
-            heading={songRung(card) === 0 ? '곡 카드를 얻었어요' : `${songTierName(card.level, card.mastered)} 카드를 얻었어요`}
+            heading={songRung(card) <= 0 ? '곡 카드를 얻었어요' : `${songTierName(card.level, card.mastered)} 카드를 얻었어요`}
             guide={
               <RevealGuide lines={songRung(card) === SONG_LAST_RUNG ? SONG_LAST_GUIDE : SONG_GUIDE} steps={ladder} current={songRung(card)} accent={card.accent} motion={motion} />
             }
@@ -275,7 +274,7 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({
                     </View>
                   </GestureDetector>
                 </View>
-                <RevealGuide lines={INTRO_GUIDE} steps={ladder} current={songRung(card)} accent={card.accent} motion={guideMotion} />
+                <RevealGuide lines={SONG_GUIDE} steps={ladder} current={songRung(card)} accent={card.accent} motion={guideMotion} />
                 <View style={styles.guideActions}>
                   <RevealPrimaryButton label="다음" onPress={handleGuideDone} />
                 </View>

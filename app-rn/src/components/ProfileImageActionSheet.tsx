@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../theme/theme';
+import { View, StyleSheet } from 'react-native';
+import { ActionRow } from './ui';
 
 interface Props {
   onPick: () => void;
@@ -11,15 +10,8 @@ interface Props {
 function ProfileImageActionSheet({ onPick, onRemove }: Props) {
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.actionRow} onPress={onPick} activeOpacity={0.6}>
-        <Ionicons name="image-outline" size={20} color={Colors.textPrimary} />
-        <Text style={styles.actionText}>앨범에서 선택</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.actionRow} onPress={onRemove} activeOpacity={0.6}>
-        <Ionicons name="trash-outline" size={20} color={Colors.ratingAgain} />
-        <Text style={[styles.actionText, styles.actionTextDanger]}>사진 삭제</Text>
-      </TouchableOpacity>
+      <ActionRow icon="image-outline" label="앨범에서 선택" onPress={onPick} />
+      <ActionRow icon="trash-outline" label="사진 삭제" onPress={onRemove} destructive />
     </View>
   );
 }
@@ -31,20 +23,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 4,
     paddingBottom: 16,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 4,
-  },
-  actionText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-  actionTextDanger: {
-    color: Colors.ratingAgain,
   },
 });

@@ -16,6 +16,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useShallow } from 'zustand/react/shallow';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useSettingsStore } from '../stores/settingsStore';
+import { useHapticStore } from '../stores/hapticStore';
 import { userApi } from '../api/userApi';
 import { tokenStorage } from '../utils/tokenStorage';
 import { resetAllStores } from '../utils/resetAllStores';
@@ -49,6 +50,9 @@ export default function SettingsScreen() {
       toggleKaraokeNewSongNotifications: s.toggleKaraokeNewSongNotifications, save: s.save,
     })),
   );
+
+  const hapticsEnabled = useHapticStore(s => s.enabled);
+  const setHapticsEnabled = useHapticStore(s => s.setEnabled);
 
   const [showServerDialog, setShowServerDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -174,6 +178,19 @@ export default function SettingsScreen() {
             <Switch
               value={showKoreanPronunciation}
               onValueChange={handleShowKoreanPronunciationChange}
+              trackColor={{ true: Colors.stateRetrievability, false: Colors.border }}
+              thumbColor={Colors.surface}
+            />
+          </View>
+
+          <View style={styles.row}>
+            <View style={styles.rowText}>
+              <Text style={styles.label}>진동 반응</Text>
+              <Text style={styles.description}>카드를 학습하거나 가사를 넘길 때 진동이 울려요.</Text>
+            </View>
+            <Switch
+              value={hapticsEnabled}
+              onValueChange={setHapticsEnabled}
               trackColor={{ true: Colors.stateRetrievability, false: Colors.border }}
               thumbColor={Colors.surface}
             />

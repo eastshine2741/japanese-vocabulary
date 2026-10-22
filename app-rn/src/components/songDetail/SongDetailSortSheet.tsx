@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { StyleSheet, View } from 'react-native';
 import { Colors } from '../../theme/theme';
+import { Button, Chip, SectionLabel, SheetHeader } from '../ui';
 import { SongDetailWordsSort } from './types';
 
 interface Props {
   value: SongDetailWordsSort;
   onApply: (value: SongDetailWordsSort) => void;
-  onClose?: () => void;
+  onClose: () => void;
 }
 
 interface OptionProps {
@@ -22,15 +22,7 @@ const SortOption = React.memo(function SortOption({ value, label, selected, onSe
     onSelect(value);
   }, [onSelect, value]);
 
-  return (
-    <TouchableOpacity
-      style={[styles.option, selected && styles.optionSelected]}
-      onPress={handlePress}
-      activeOpacity={0.7}
-    >
-      <Text style={[styles.optionText, selected && styles.optionTextSelected]}>{label}</Text>
-    </TouchableOpacity>
-  );
+  return <Chip label={label} selected={selected} onPress={handlePress} style={styles.option} />;
 });
 
 export default function SongDetailSortSheet({ value, onApply, onClose }: Props) {
@@ -47,29 +39,15 @@ export default function SongDetailSortSheet({ value, onApply, onClose }: Props) 
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>정렬</Text>
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={onClose}
-            activeOpacity={0.7}
-            disabled={onClose == null}
-            accessibilityRole="button"
-            accessibilityLabel="정렬 닫기"
-          >
-            <Feather name="x" size={16} color={Colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
+        <SheetHeader title="정렬" onClose={onClose} closeAccessibilityLabel="정렬 닫기" />
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>정렬 기준</Text>
+          <SectionLabel>정렬 기준</SectionLabel>
           <View style={styles.segmented}>
             <SortOption value="appearance" label="등장순" selected={draftValue === 'appearance'} onSelect={setDraftValue} />
             <SortOption value="importance" label="중요도순" selected={draftValue === 'importance'} onSelect={setDraftValue} />
           </View>
         </View>
-        <TouchableOpacity style={styles.applyButton} onPress={apply} activeOpacity={0.7}>
-          <Text style={styles.applyText}>적용</Text>
-        </TouchableOpacity>
+        <Button label="적용" onPress={apply} />
       </View>
     </View>
   );
@@ -90,70 +68,14 @@ const styles = StyleSheet.create({
     paddingLeft: 20,
     backgroundColor: Colors.background,
   },
-  header: {
-    width: '100%',
-    minHeight: 32,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  title: {
-    fontSize: 19,
-    fontWeight: '800',
-    color: Colors.textPrimary,
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 9999,
-    backgroundColor: '#F6F6F6',
-  },
   section: {
     gap: 10,
   },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.textSecondary,
-  },
   segmented: {
-    height: 40,
     flexDirection: 'row',
     gap: 8,
   },
   option: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 9999,
-    backgroundColor: Colors.elevated,
-  },
-  optionSelected: {
-    borderWidth: 1,
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primaryBg,
-  },
-  optionText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: Colors.textSecondary,
-  },
-  optionTextSelected: {
-    fontWeight: '800',
-    color: Colors.primary,
-  },
-  applyButton: {
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 9999,
-    backgroundColor: Colors.primary,
-  },
-  applyText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#FFFFFF',
   },
 });

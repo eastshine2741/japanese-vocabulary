@@ -3,11 +3,11 @@ import {
   Modal,
   View,
   Text,
-  TouchableOpacity,
   Animated,
   StyleSheet,
 } from 'react-native';
 import { Colors } from '../theme/theme';
+import { Button } from './ui';
 
 export interface DialogButton {
   label: string;
@@ -93,28 +93,6 @@ export default function AppDialog({ visible, title, body, children, buttons }: P
     animateOut(onPress);
   }, [animateOut]);
 
-  const btnStyle = (variant: DialogButton['variant']) => {
-    switch (variant) {
-      case 'danger':
-        return styles.btnDanger;
-      case 'secondary':
-        return styles.btnSecondary;
-      default:
-        return styles.btnPrimary;
-    }
-  };
-
-  const btnTextStyle = (variant: DialogButton['variant']) => {
-    switch (variant) {
-      case 'danger':
-        return styles.btnDangerText;
-      case 'secondary':
-        return styles.btnSecondaryText;
-      default:
-        return styles.btnPrimaryText;
-    }
-  };
-
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={() => handlePress(buttons[0].onPress)}>
       <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
@@ -129,15 +107,14 @@ export default function AppDialog({ visible, title, body, children, buttons }: P
           {children}
           <View style={styles.btns}>
             {buttons.map((btn, i) => (
-              <TouchableOpacity
+              <Button
                 key={i}
-                style={[styles.btn, btnStyle(btn.variant), btn.disabled && styles.btnDisabled]}
-                onPress={btn.noDismiss ? btn.onPress : () => handlePress(btn.onPress)}
-                activeOpacity={0.7}
+                label={btn.label}
+                variant={btn.variant}
                 disabled={btn.disabled}
-              >
-                <Text style={btnTextStyle(btn.variant)}>{btn.label}</Text>
-              </TouchableOpacity>
+                onPress={btn.noDismiss ? btn.onPress : () => handlePress(btn.onPress)}
+                style={styles.btn}
+              />
             ))}
           </View>
         </Animated.View>
@@ -174,18 +151,5 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   btns: { flexDirection: 'row', gap: 10, marginTop: 8 },
-  btn: {
-    flex: 1,
-    height: 46,
-    borderRadius: 9999,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  btnPrimary: { backgroundColor: Colors.primary },
-  btnPrimaryText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
-  btnSecondary: { backgroundColor: Colors.elevated },
-  btnSecondaryText: { fontSize: 15, fontWeight: '600', color: Colors.textPrimary },
-  btnDanger: { backgroundColor: Colors.accentRed },
-  btnDangerText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
-  btnDisabled: { opacity: 0.4 },
+  btn: { flex: 1 },
 });

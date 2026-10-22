@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { POS_OPTIONS } from '../types/pos';
 import { Colors } from '../theme/theme';
+import { SheetHeader } from './ui';
 
 interface Props {
   selectedPos: string | null;
@@ -13,7 +14,7 @@ export default function PosPickerList({ selectedPos, onSelect }: Props) {
   return (
     <>
       <View style={styles.header}>
-        <Text style={styles.title}>품사 선택</Text>
+        <SheetHeader title="품사 선택" />
       </View>
       {POS_OPTIONS.map(({ key, label }) => {
         const isSelected = selectedPos === key;
@@ -37,7 +38,6 @@ export default function PosPickerList({ selectedPos, onSelect }: Props) {
 
 const styles = StyleSheet.create({
   header: { paddingHorizontal: 24, paddingTop: 4, paddingBottom: 12 },
-  title: { fontSize: 17, fontWeight: '700', color: Colors.textPrimary },
   item: {
     flexDirection: 'row',
     justifyContent: 'space-between',

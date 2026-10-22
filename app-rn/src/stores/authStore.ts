@@ -5,7 +5,7 @@ import { userApi } from '../api/userApi';
 import { tokenStorage } from '../utils/tokenStorage';
 import { getJwtUserId } from '../utils/jwt';
 import { setAnalyticsUserId } from '../services/analytics';
-import { requestPermissionAndRegisterToken } from '../services/pushNotifications';
+import { registerTokenIfPermitted } from '../services/pushNotifications';
 import { useSettingsStore } from './settingsStore';
 
 type AuthStatus = 'idle' | 'loading' | 'success' | 'needs_signup' | 'error';
@@ -76,7 +76,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         pendingIdToken: null,
         pendingProvider: null,
       });
-      requestPermissionAndRegisterToken();
+      registerTokenIfPermitted();
       // 기존 유저의 저장된 설정을 앱 재시작 없이 바로 반영한다.
       useSettingsStore.getState().loadSettings();
     } catch (e: any) {
@@ -109,7 +109,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         pendingIdToken: null,
         pendingProvider: null,
       });
-      requestPermissionAndRegisterToken();
+      registerTokenIfPermitted();
       // 기존 유저의 저장된 설정을 앱 재시작 없이 바로 반영한다.
       useSettingsStore.getState().loadSettings();
     } catch (e: any) {
@@ -130,7 +130,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         pendingIdToken: null,
         pendingProvider: null,
       });
-      requestPermissionAndRegisterToken();
+      registerTokenIfPermitted();
     } catch (e: any) {
       set({ status: 'error', error: apiErrorMessage(e, 'Sign-up failed') });
     }
@@ -149,7 +149,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         pendingIdToken: null,
         pendingProvider: null,
       });
-      requestPermissionAndRegisterToken();
+      registerTokenIfPermitted();
     } catch (e: any) {
       set({ status: 'error', error: apiErrorMessage(e, 'Sign-up failed') });
     }

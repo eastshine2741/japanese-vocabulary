@@ -14,8 +14,7 @@ import { useDeckDetailStore } from '../stores/deckDetailStore';
 import { usePlayerStore } from '../stores/playerStore';
 import ArtworkImage from '../components/ArtworkImage';
 import MemoryProgressBar from '../components/MemoryProgressBar';
-import { PrimaryButton } from '../components/PrimaryButton';
-import { SecondaryButton } from '../components/SecondaryButton';
+import { Button } from '../components/ui';
 import { AppBar } from '../components/AppBar';
 import { sourceFromDeckDetail } from '../components/studyStack';
 import { Colors, Dimens } from '../theme/theme';
@@ -117,7 +116,8 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
               />
             )}
 
-            <PrimaryButton
+            <Button
+              size="lg"
               icon="layers-outline"
               label="학습하기"
               onPress={handleStartStudy}
@@ -125,7 +125,9 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
               style={styles.primaryBtn}
             />
 
-            <SecondaryButton
+            <Button
+              size="lg"
+              variant="secondary"
               icon="list-outline"
               label="단어 보기"
               onPress={() => navigation.navigate('DeckWordList', { deckId })}
@@ -133,7 +135,9 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
             />
 
             {songId !== null && (
-              <SecondaryButton
+              <Button
+                size="lg"
+                variant="secondary"
                 icon="play-circle-outline"
                 label="곡으로 이동"
                 onPress={handleListenSong}

@@ -30,6 +30,11 @@ import { Ionicons } from '@expo/vector-icons';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStreakStore, type StreakCelebrationContent } from '../../stores/streakStore';
+import {
+  requestPermissionForOptIn,
+  shouldAskStreakReminderPermission,
+  snoozeStreakReminderAsk,
+} from '../../services/pushNotifications';
 import { Typography } from '../../theme/typography';
 import { toDaySlots, type DaySlot } from './celebrationWeek';
 import { CelebrationPalette as P } from './palette';
@@ -226,14 +231,37 @@ const StreakCelebration = React.memo(function StreakCelebration({
     });
   }, [exit]);
 
+  // 앱 시작 대신 여기서 묻는다 — 이미 멈춘 자리라 복습을 끊지 않고, "내일도 학습하면" 바로 아래라 이유를 따로 말하지 않아도 된다.
+  const [askReminder, setAskReminder] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    shouldAskStreakReminderPermission().then(ask => {
+      if (alive) setAskReminder(ask);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const acceptReminder = useCallback(() => {
+    requestPermissionForOptIn();
+    close();
+  }, [close]);
+
+  const declineReminder = useCallback(() => {
+    snoozeStreakReminderAsk();
+    close();
+  }, [close]);
+
   useEffect(() => {
     if (Platform.OS !== 'android') return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      close();
+      if (askReminder) declineReminder();
+      else close();
       return true;
     });
     return () => sub.remove();
-  }, [close]);
+  }, [askReminder, declineReminder, close]);
 
   const screenStyle = useAnimatedStyle(() => ({
     opacity: enter.value * (1 - exit.value),
@@ -338,14 +366,30 @@ const StreakCelebration = React.memo(function StreakCelebration({
           </View>
 
           <Rise progress={ctaIn} from={28} scaleFrom={0.9} style={styles.ctaWrap}>
-            <Pressable
-              style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
-              onPress={close}
-              accessibilityRole="button"
-            >
-              <Text style={styles.ctaLabel}>이어서 학습하기</Text>
-              <Ionicons name="arrow-forward" size={18} color={P.ctaInk} />
-            </Pressable>
+            {askReminder ? (
+              <>
+                <Pressable
+                  style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
+                  onPress={acceptReminder}
+                  accessibilityRole="button"
+                >
+                  <Ionicons name="notifications" size={18} color={P.ctaInk} />
+                  <Text style={styles.ctaLabel}>내일 알림 받기</Text>
+                </Pressable>
+                <Pressable style={styles.later} onPress={declineReminder} accessibilityRole="button" hitSlop={8}>
+                  <Text style={styles.laterLabel}>다음에</Text>
+                </Pressable>
+              </>
+            ) : (
+              <Pressable
+                style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
+                onPress={close}
+                accessibilityRole="button"
+              >
+                <Text style={styles.ctaLabel}>이어서 학습하기</Text>
+                <Ionicons name="arrow-forward" size={18} color={P.ctaInk} />
+              </Pressable>
+            )}
           </Rise>
         </View>
 
@@ -948,5 +992,14 @@ const styles = StyleSheet.create({
     ...Typography.bodyBold,
     fontSize: 17,
     color: P.ctaInk,
+  },
+  later: {
+    alignSelf: 'center',
+    paddingVertical: 14,
+  },
+  laterLabel: {
+    ...Typography.bodySemiBold,
+    fontSize: 15,
+    color: P.sub,
   },
 });

@@ -1,8 +1,9 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Colors } from '../../theme/theme';
 import { Typography } from '../../theme/typography';
+import { Button } from '../ui';
 
 export interface SongReportThanksSheetProps {
   onClose: () => void;
@@ -22,9 +23,7 @@ function SongReportThanksSheet({ onClose }: SongReportThanksSheetProps) {
         </Text>
       </View>
 
-      <Pressable style={styles.button} onPress={onClose} accessibilityRole="button">
-        <Text style={styles.buttonLabel}>확인</Text>
-      </Pressable>
+      <Button label="확인" onPress={onClose} style={styles.button} />
     </View>
   );
 }
@@ -66,16 +65,5 @@ const styles = StyleSheet.create({
   },
   button: {
     alignSelf: 'stretch',
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 999,
-    backgroundColor: Colors.primary,
-  },
-  buttonLabel: {
-    fontSize: 14,
-    lineHeight: 19,
-    color: '#FFFFFF',
-    ...Typography.bodyExtraBold,
   },
 });

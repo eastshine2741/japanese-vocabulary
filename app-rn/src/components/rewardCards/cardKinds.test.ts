@@ -11,8 +11,10 @@ import {
   previousArtistCard,
   songCardOfKind,
   songCardSample,
+  songCardKindsOf,
   songCardStacks,
   songCardsOf,
+  songRung,
 } from './cardKinds';
 import type { ArtistRewardCard, CardLevel, SongRewardCard } from './types';
 
@@ -36,7 +38,12 @@ describe('곡 카드 종류', () => {
 
   it('등급마다 받은 카드가 따로 있고, 없는 등급은 null 이다', () => {
     const mine = songCardsOf(cards, null, '곡');
-    expect(SONG_CARD_KINDS.map(kind => songCardOfKind(mine, kind)?.id ?? null)).toEqual(['b0', 'b1', null, null, 'm']);
+    expect(SONG_CARD_KINDS.map(kind => songCardOfKind(mine, kind)?.id ?? null)).toEqual(['b1', null, null, 'm']);
+  });
+
+  it('계단은 BRONZE 부터이고, 이미 받은 기본 카드는 계단 아래에 놓인다', () => {
+    expect(SONG_CARD_KINDS.map(songRung)).toEqual([0, 1, 2, 3]);
+    expect(songRung(cards[0])).toBe(-1);
   });
 
   it('가장 높은 등급 카드를 고른다', () => {
@@ -44,8 +51,13 @@ describe('곡 카드 종류', () => {
     expect(findSongCard(cards, 1, '없는 곡')).toBeNull();
   });
 
+  it('기본 카드 칸은 그 카드를 가진 곡에만 붙는다', () => {
+    expect(songCardKindsOf(songCardsOf(cards, null, '곡')).map(kind => kind.key)).toEqual(['level-0', 'level-1', 'level-2', 'level-3', 'master']);
+    expect(songCardKindsOf(songCardsOf(cards, null, '다른 곡'))).toBe(SONG_CARD_KINDS);
+  });
+
   it('견본은 그 등급으로 돌리고 새것으로 비운다', () => {
-    expect(songCardSample(cards[0], SONG_CARD_KINDS[3])).toMatchObject({ id: 'b0', level: 3, mastered: false, sample: true, reviewedCount: 0, dueCount: 0 });
+    expect(songCardSample(cards[0], SONG_CARD_KINDS[2])).toMatchObject({ id: 'b0', level: 3, mastered: false, sample: true, reviewedCount: 0, dueCount: 0 });
   });
 });
 

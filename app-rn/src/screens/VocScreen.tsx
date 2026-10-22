@@ -18,7 +18,7 @@ import { apiErrorMessage } from '../api/errors';
 import { collectDeviceInfo } from '../utils/deviceInfo';
 import { Colors } from '../theme/theme';
 import { AppBar } from '../components/AppBar';
-import { PrimaryButton } from '../components/PrimaryButton';
+import { Button } from '../components/ui';
 import AppDialog from '../components/AppDialog';
 import ErrorDialog from '../components/ErrorDialog';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -130,7 +130,8 @@ export default function VocScreen({ navigation }: Props) {
               </View>
             </View>
 
-            <PrimaryButton
+            <Button
+              size="lg"
               label={submitting ? '보내는 중...' : '확인'}
               onPress={handleSubmit}
               disabled={!canSubmit}

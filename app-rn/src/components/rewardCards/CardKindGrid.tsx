@@ -5,7 +5,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ArtistCardFront } from './ArtistCardShowcase';
 import { SongCardFront } from './SongCardShowcase';
 import { ARTIST_GRADE_STEPS, type ArtistGradeStep } from './artistGrade';
-import { SONG_CARD_KINDS, artistCardOfStep, artistCardReaching, artistCardSample, songCardOfKind, type SongCardKind } from './cardKinds';
+import { artistCardOfStep, artistCardReaching, artistCardSample, songCardKindsOf, songCardOfKind, songRung, type SongCardKind } from './cardKinds';
 import { artistCardPreview, songCardPreview, type PreviewArtist, type PreviewSong } from './cardPreview';
 import { CardFonts, songTierName } from './cardTheme';
 import type { ArtistRewardCard, SongRewardCard } from './types';
@@ -46,9 +46,10 @@ export const SongCardKindGrid = React.memo(function SongCardKindGrid({ song, car
   const gradeRule = useRewardCardStore(s => s.songGradeRule);
   const ownerName = useOwnerName();
   const tileWidth = Math.floor((width - GAP * (SONG_COLUMNS - 1)) / SONG_COLUMNS);
+  const kinds = useMemo(() => songCardKindsOf(cards), [cards]);
 
   const handleOpen = useCallback((kind: SongCardKind) => {
-    const condition = songGradeCondition(SONG_CARD_KINDS.indexOf(kind), gradeRule).full;
+    const condition = songGradeCondition(songRung(kind), gradeRule).full;
     const card = songCardOfKind(cards, kind);
     if (card != null) {
       navigation.navigate('RewardCardDetail', { cardId: card.id, ownerName });
@@ -63,13 +64,13 @@ export const SongCardKindGrid = React.memo(function SongCardKindGrid({ song, car
 
   return (
     <View style={styles.grid}>
-      {SONG_CARD_KINDS.map((kind, rung) => (
+      {kinds.map((kind) => (
         <SongKindTile
           key={kind.key}
           kind={kind}
           song={song}
           card={songCardOfKind(cards, kind)}
-          condition={songGradeCondition(rung, gradeRule).short}
+          condition={songGradeCondition(songRung(kind), gradeRule).short}
           width={tileWidth}
           fonts={fonts}
           onPress={handleOpen}

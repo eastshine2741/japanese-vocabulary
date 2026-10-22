@@ -2,8 +2,6 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import {
   View,
   Text,
-  TouchableOpacity,
-  ActivityIndicator,
   BackHandler,
   StyleSheet,
   useWindowDimensions,
@@ -20,6 +18,7 @@ import { useWordForm } from '../hooks/useWordForm';
 import AppDialog from '../components/AppDialog';
 import ErrorDialog from '../components/ErrorDialog';
 import { AppBar } from '../components/AppBar';
+import { Button } from '../components/ui';
 import { AppBottomSheetModal, AppBottomSheetModalRef, AppSheetHandoffScrollView } from '../components/bottomSheet';
 import { Colors } from '../theme/theme';
 
@@ -187,18 +186,7 @@ export default function EditWordScreen({ route, navigation }: Props) {
         </KeyboardAwareScrollView>
 
         <View style={styles.saveArea}>
-          <TouchableOpacity
-            style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]}
-            onPress={handleSavePress}
-            disabled={!canSave}
-            activeOpacity={0.8}
-          >
-            {saving ? (
-              <ActivityIndicator color="#FFF" size="small" />
-            ) : (
-              <Text style={[styles.saveBtnText, !canSave && styles.saveBtnTextDisabled]}>저장</Text>
-            )}
-          </TouchableOpacity>
+          <Button label="저장" size="lg" onPress={handleSavePress} disabled={!canSave} loading={saving} />
         </View>
       </View>
 
@@ -255,21 +243,6 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 24, paddingBottom: 20, gap: 32 },
 
   saveArea: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 20 },
-  saveBtn: {
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: Colors.primaryShadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  saveBtnDisabled: { backgroundColor: Colors.elevated, shadowOpacity: 0, elevation: 0 },
-  saveBtnText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
-  saveBtnTextDisabled: { fontSize: 14, fontWeight: '600', color: Colors.textMuted },
 
   pickerContent: { paddingBottom: 8 },
 });

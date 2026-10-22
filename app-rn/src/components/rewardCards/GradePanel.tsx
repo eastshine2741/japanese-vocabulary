@@ -30,6 +30,7 @@ function GradePanel({ tabs, owned, selected, goals, condition, onSelect }: Props
   const nextGoal = goals[owned + 1];
   const ratio = nextGoal != null ? Math.min(1, nextGoal.current / Math.max(1, nextGoal.total)) : 0;
   const progress = selected > owned ? goals[selected] : undefined;
+  const conditionText = condition(selected);
 
   return (
     <View style={styles.panel}>
@@ -46,18 +47,21 @@ function GradePanel({ tabs, owned, selected, goals, condition, onSelect }: Props
           />
         ))}
       </View>
-      <View style={styles.goal}>
-        <Text style={styles.goalText} numberOfLines={2}>
-          {condition(selected)}
-        </Text>
-        {progress != null && (
-          <Text style={styles.value}>
-            {progress.current}
-            <Text style={styles.total}> / {progress.total}</Text>
+      {/* 기본 카드처럼 조건이 없는 칸은 줄을 비워 두지 않는다. */}
+      {conditionText !== '' && (
+        <View style={styles.goal}>
+          <Text style={styles.goalText} numberOfLines={2}>
+            {conditionText}
           </Text>
-        )}
-        {selected <= owned && <Feather name="check" size={15} color={SHOWROOM.fg} />}
-      </View>
+          {progress != null && (
+            <Text style={styles.value}>
+              {progress.current}
+              <Text style={styles.total}> / {progress.total}</Text>
+            </Text>
+          )}
+          {selected <= owned && <Feather name="check" size={15} color={SHOWROOM.fg} />}
+        </View>
+      )}
     </View>
   );
 }

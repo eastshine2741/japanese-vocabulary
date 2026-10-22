@@ -14,6 +14,7 @@ import { FlashcardMemory } from '../../types/flashcard';
 import { RewardCardRevealDto } from '../../types/rewardCard';
 import { SongStudyCardDto } from '../../types/song';
 import { estimateSecondsPerCard, MAX_CARD_GAP_SECONDS } from './sessionEta';
+import { hapticCardDone, hapticRatingSelect, hapticReveal, hapticSessionComplete } from './studyHaptics';
 import { sourceFromDeck, sourceFromRecent, sourceFromRecommendation } from './studySource';
 import {
   accumulateMemoryDiff,
@@ -210,6 +211,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
   // 첫 진입부터 due 가 없어 바로 뜬 완주 카드는 복습을 마친 게 아니라 세지 않는다.
   useEffect(() => {
     if (!isComplete || reviewedCountRef.current === 0) return;
+    hapticSessionComplete();
     trackReviewComplete({
       mode,
       ...(completedSource?.songId != null && { song_id: completedSource.songId }),
@@ -605,6 +607,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
 
   const reveal = useCallback(() => {
     if (!revealed && currentCardRef.current) {
+      hapticReveal();
       trackCardReveal({ mode, position: reviewedCountRef.current, is_preview: !!currentCardRef.current.saveOnReview });
     }
     setRevealed(true);
@@ -627,6 +630,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     const position = reviewedCountRef.current;
     clearRatingHold();
     setSelectedRating(null);
+    hapticCardDone();
     // API 응답을 기다리지 않고 스와이프 애니메이션을 동시에 시작한다.
     const reviewPromise = reviewCard(reviewedCard, rating);
     const animationPromise = new Promise<void>(resolve => {
@@ -723,6 +727,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       setSelectedRating(null);
       return;
     }
+    hapticRatingSelect();
     setSelectedRating(rating);
     startRatingHold();
   }, [clearRatingHold, startRatingHold]);

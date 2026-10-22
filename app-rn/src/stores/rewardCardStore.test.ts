@@ -34,7 +34,7 @@ const api = vi.mocked(rewardCardApi);
 const store = () => useRewardCardStore.getState();
 
 const songDto = (over: Partial<SongCardDto> = {}): SongCardDto => ({
-  id: 90, songId: 12, title: '群青', artist: 'YOASOBI', artworkUrl: null, artistId: null, grade: 'BASIC',
+  id: 90, songId: 12, title: '群青', artist: 'YOASOBI', artworkUrl: null, artistId: null, grade: 'BRONZE',
   acquiredSeq: 1, lyricLineIndexes: [], lyric: [], words: [], reviewedCount: 0, dueCount: 0, goals: [], signature: [],
   issued: false, createdAt: '2026-10-11T00:00:00Z', ...over,
 });
@@ -48,24 +48,104 @@ describe('rewardCardStore', () => {
   });
   afterEach(() => store().reset());
 
-  it('rating reveals reload cards and open one at a time', async () => {
+  it('rating reveals reload cards and wait to be claimed', async () => {
     api.getCards.mockResolvedValue({ songCards: [songDto()], artistCards: [], songGradeRule: GRADE_RULE });
 
     await store().receiveReveals([
-      { kind: 'SONG', cardId: 90, targetId: 12, grade: 'BASIC', acquiredSeq: 1 },
+      { kind: 'SONG', cardId: 90, targetId: 12, grade: 'BRONZE', acquiredSeq: 1 },
       { kind: 'ARTIST', cardId: 30, targetId: 3, grade: 'BASIC', acquiredSeq: null },
     ]);
 
     expect(store().songCards.map((c) => c.id)).toEqual(['srv-song-90']);
+    expect(store().queue).toEqual([]);
+    expect(store().unclaimed.map((r) => r.cardId)).toEqual(['srv-song-90', 'srv-artist-30']);
+  });
+
+  it('claiming all opens them one at a time', async () => {
+    api.getCards.mockResolvedValue({ songCards: [songDto()], artistCards: [], songGradeRule: GRADE_RULE });
+    await store().receiveReveals([
+      { kind: 'SONG', cardId: 90, targetId: 12, grade: 'BRONZE', acquiredSeq: 1 },
+      { kind: 'ARTIST', cardId: 30, targetId: 3, grade: 'BASIC', acquiredSeq: null },
+    ]);
+
+    store().claimAll();
+
+    expect(store().unclaimed).toEqual([]);
     expect(store().openNextReveal()?.cardId).toBe('srv-song-90');
     expect(store().openNextReveal()).toBeNull();
     store().closeReveal();
     expect(store().openNextReveal()?.cardId).toBe('srv-artist-30');
   });
 
+  it('claiming a song takes its song cards and its artist card only', async () => {
+    api.getCards.mockResolvedValue({
+      songCards: [songDto({ artistId: 3 }), songDto({ id: 95, songId: 13, artistId: 4 })],
+      artistCards: [],
+      songGradeRule: GRADE_RULE,
+    });
+    await store().receiveReveals([
+      { kind: 'SONG', cardId: 90, targetId: 12, grade: 'BRONZE', acquiredSeq: 1 },
+      { kind: 'SONG', cardId: 95, targetId: 13, grade: 'BRONZE', acquiredSeq: 1 },
+      { kind: 'ARTIST', cardId: 30, targetId: 3, grade: 'BASIC', acquiredSeq: null },
+      { kind: 'ARTIST', cardId: 31, targetId: 4, grade: 'BASIC', acquiredSeq: null },
+    ]);
+
+    store().claimSong(12);
+
+    expect(store().queue.map((r) => r.cardId)).toEqual(['srv-song-90', 'srv-artist-30']);
+    expect(store().unclaimed.map((r) => r.cardId)).toEqual(['srv-song-95', 'srv-artist-31']);
+  });
+
+  it('the same card received twice waits once, at its latest grade', async () => {
+    api.getCards.mockResolvedValue({ songCards: [], artistCards: [], songGradeRule: GRADE_RULE });
+    await store().receiveReveals([{ kind: 'ARTIST', cardId: 30, targetId: 3, grade: 'BASIC', acquiredSeq: null }]);
+    await store().receiveReveals([{ kind: 'ARTIST', cardId: 30, targetId: 3, grade: 'BRONZE', acquiredSeq: 2 }]);
+
+    expect(store().unclaimed).toMatchObject([{ cardId: 'srv-artist-30', grade: 'BRONZE' }]);
+  });
+
+  it('pending cards on app open wait to be claimed', async () => {
+    api.getCards.mockResolvedValue({ songCards: [songDto()], artistCards: [], songGradeRule: GRADE_RULE });
+    api.getPending.mockResolvedValue([{ kind: 'SONG', cardId: 90, targetId: 12, grade: 'BRONZE', acquiredSeq: 1 }]);
+
+    await store().checkPendingOnce();
+
+    expect(store().queue).toEqual([]);
+    expect(store().unclaimed.map((r) => r.cardId)).toEqual(['srv-song-90']);
+  });
+
+  it('a claimed card closed without signing can be claimed again, a signed one cannot', async () => {
+    api.getCards.mockResolvedValue({ songCards: [songDto(), songDto({ id: 91, grade: 'SILVER' })], artistCards: [], songGradeRule: GRADE_RULE });
+    await store().receiveReveals([
+      { kind: 'SONG', cardId: 90, targetId: 12, grade: 'BRONZE', acquiredSeq: 1 },
+      { kind: 'SONG', cardId: 91, targetId: 12, grade: 'SILVER', acquiredSeq: 1 },
+    ]);
+    store().claimSong(12);
+
+    store().openNextReveal();
+    store().closeReveal();
+    store().openNextReveal();
+    store().sign('song', 'srv-song-91', ['M 0 0']);
+    store().closeReveal();
+
+    expect(store().unclaimed.map((r) => r.cardId)).toEqual(['srv-song-90']);
+  });
+
+  it('a claimed card missing from the loaded cards goes back to be claimed again', async () => {
+    api.getCards.mockResolvedValue({ songCards: [], artistCards: [], songGradeRule: GRADE_RULE });
+    await store().receiveReveals([{ kind: 'ARTIST', cardId: 30, targetId: 3, grade: 'BASIC', acquiredSeq: null }]);
+    store().claimAll();
+
+    store().openNextReveal();
+    store().closeReveal();
+
+    expect(store().unclaimed.map((r) => r.cardId)).toEqual(['srv-artist-30']);
+  });
+
   it('signing a server reveal issues the card with the picked lines', async () => {
     api.getCards.mockResolvedValue({ songCards: [songDto()], artistCards: [], songGradeRule: GRADE_RULE });
-    await store().receiveReveals([{ kind: 'SONG', cardId: 90, targetId: 12, grade: 'BASIC', acquiredSeq: 1 }]);
+    await store().receiveReveals([{ kind: 'SONG', cardId: 90, targetId: 12, grade: 'BRONZE', acquiredSeq: 1 }]);
+    store().claimAll();
     store().openNextReveal();
 
     store().setLyric('srv-song-90', [3]);
@@ -78,11 +158,12 @@ describe('rewardCardStore', () => {
 
   it('a new grade of an owned song is its own card with its own reveal', async () => {
     api.getCards.mockResolvedValue({
-      songCards: [songDto({ id: 91, grade: 'BRONZE' }), songDto({ issued: true, signature: ['M'] })],
+      songCards: [songDto({ id: 91, grade: 'SILVER' }), songDto({ issued: true, signature: ['M'] })],
       artistCards: [],
       songGradeRule: GRADE_RULE,
     });
-    await store().receiveReveals([{ kind: 'SONG', cardId: 91, targetId: 12, grade: 'BRONZE', acquiredSeq: 4 }]);
+    await store().receiveReveals([{ kind: 'SONG', cardId: 91, targetId: 12, grade: 'SILVER', acquiredSeq: 4 }]);
+    store().claimAll();
     store().openNextReveal();
 
     store().sign('song', 'srv-song-91', ['N']);
@@ -125,6 +206,7 @@ describe('rewardCardStore', () => {
       { kind: 'ARTIST', cardId: 30, targetId: 3, grade: 'BASIC', acquiredSeq: null },
       { kind: 'ARTIST', cardId: 31, targetId: 4, grade: 'BRONZE', acquiredSeq: 12, fromGrade: 'BASIC' },
     ]);
+    store().claimAll();
 
     store().openNextReveal();
     store().closeReveal();
@@ -147,9 +229,9 @@ describe('rewardCardStore', () => {
     store().setSource('dummy');
     expect(store().songCards.map((c) => c.id)).toEqual(['lemon']);
 
-    await store().receiveReveals([{ kind: 'SONG', cardId: 90, targetId: 12, grade: 'BASIC', acquiredSeq: 1 }]);
+    await store().receiveReveals([{ kind: 'SONG', cardId: 90, targetId: 12, grade: 'BRONZE', acquiredSeq: 1 }]);
 
     expect(api.getCards).not.toHaveBeenCalled();
-    expect(store().queue).toEqual([]);
+    expect(store().unclaimed).toEqual([]);
   });
 });

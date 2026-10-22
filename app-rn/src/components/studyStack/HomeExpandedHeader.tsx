@@ -1,20 +1,38 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { Extrapolation, interpolate, SharedValue, useAnimatedStyle } from 'react-native-reanimated';
+import Animated, {
+  Easing,
+  Extrapolation,
+  interpolate,
+  SharedValue,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HomeChipPalette } from '../streak/palette';
 import { streakModeFromWeek } from '../streak/streakCalendar';
+import { useRewardCardStore } from '../../stores/rewardCardStore';
+import { CARD_RATIO, CardFonts, useCardFonts } from '../rewardCards/cardTheme';
+import { SongCardBack, SongCardFront } from '../rewardCards/SongCardShowcase';
 import { useStreakStore } from '../../stores/streakStore';
 import { Colors } from '../../theme/theme';
 import { Typography } from '../../theme/typography';
 import { DeckStrip, DECK_STRIP_HEIGHT } from './DeckStrip';
 import { StreakNudge } from './StreakNudge';
 import { StudySource } from './types';
+import type { SongRewardCard } from '../rewardCards/types';
 
 const APP_BAR_HEIGHT = 62;
 /** 말풍선 꼬리 끝이 칩 아래 4px 에 오도록 앱바 바닥에서 끌어올리는 값. */
 const NUDGE_OVERLAP = 14;
+const CLAIM_CARD_WIDTH = 34;
+const CLAIM_SPIN_PAUSE_MS = 3000;
+const CLAIM_SPIN_MS = 800;
 
 /** 곡 진입 복습과 다르게 홈 최초 진입은 덱 스트립까지 펼친다. */
 export const HOME_HEADER_CONTENT_HEIGHT = APP_BAR_HEIGHT + DECK_STRIP_HEIGHT;
@@ -63,6 +81,13 @@ export const HomeExpandedHeader = React.memo(function HomeExpandedHeader({
   // 통계가 오기 전에 식은 칩을 한 번 보여주고 주황으로 바뀌는 깜빡임을 피한다.
   const chipMode = loaded ? streakModeFromWeek(studiedToday, weekDots) : 'done';
   const chip = HomeChipPalette[chipMode];
+  const unclaimedCount = useRewardCardStore(s => s.unclaimed.length);
+  const claimPreview = useRewardCardStore(s => {
+    const first = s.unclaimed.find(r => r.kind === 'song');
+    return first ? s.songCards.find(c => c.id === first.cardId) : undefined;
+  });
+  const cardFonts = useCardFonts();
+  const handleClaimAll = useCallback(() => useRewardCardStore.getState().claimAll(), []);
   const chipStyles = useMemo(() => ({
     pill: [styles.streak, { backgroundColor: chip.bg }],
     num: [styles.streakNum, { color: chip.ink }],
@@ -91,7 +116,22 @@ export const HomeExpandedHeader = React.memo(function HomeExpandedHeader({
     <Animated.View style={[styles.shell, { height }, shell]} pointerEvents="box-none">
       <View style={{ height: insets.top }} pointerEvents="none" />
       <Animated.View style={[styles.appBar, appBar]} pointerEvents="box-none">
-        {dueRemaining > 0 ? (
+        {/* 카드가 있으면 들어오자마자 알아채야 해서 오늘 복습 블록보다 먼저 이 자리를 쓴다. */}
+        {unclaimedCount > 0 ? (
+          <Pressable style={[styles.todayBlock, styles.claimBlock]} onPress={handleClaimAll} hitSlop={8}>
+            {claimPreview && (
+              <SpinningClaimCard card={claimPreview} fonts={cardFonts} />
+            )}
+            <View>
+              <Text style={styles.todayLead}>카드가</Text>
+              <View style={styles.countPhrase}>
+                <Text style={styles.todayNum}>{unclaimedCount}</Text>
+                <Text style={styles.todayUnit}>장 도착했어요</Text>
+                <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} style={styles.todayChevron} />
+              </View>
+            </View>
+          </Pressable>
+        ) : dueRemaining > 0 ? (
           <Pressable style={styles.todayBlock} onPress={onPressSchedule} hitSlop={8}>
             <View>
               <Text style={styles.todayLead}>오늘 복습할 단어가</Text>
@@ -134,6 +174,46 @@ export const HomeExpandedHeader = React.memo(function HomeExpandedHeader({
   );
 });
 
+/** 받을 카드가 있다는 걸 놓치지 않게 몇 초마다 한 바퀴 돈다. */
+const SpinningClaimCard = React.memo(function SpinningClaimCard({
+  card,
+  fonts,
+}: {
+  card: SongRewardCard;
+  fonts: CardFonts;
+}) {
+  const turn = useSharedValue(0);
+  useEffect(() => {
+    turn.value = withRepeat(
+      // 홈에 들어오자마자 먼저 돌고 쉰다. 360°와 0°는 같은 자세라 쉬는 끝에 되돌려도 티가 안 난다.
+      withSequence(
+        withTiming(360, { duration: CLAIM_SPIN_MS, easing: Easing.inOut(Easing.cubic) }),
+        withDelay(CLAIM_SPIN_PAUSE_MS, withTiming(0, { duration: 0 })),
+      ),
+      -1,
+    );
+  }, [turn]);
+  // 각도로 한 면만 보이게 한다 — backfaceVisibility 는 안드로이드에서 믿을 수 없다.
+  const frontStyle = useAnimatedStyle(() => ({
+    opacity: Math.cos((turn.value * Math.PI) / 180) >= 0 ? 1 : 0,
+    transform: [{ perspective: 400 }, { rotateY: `${turn.value}deg` }],
+  }));
+  const backStyle = useAnimatedStyle(() => ({
+    opacity: Math.cos((turn.value * Math.PI) / 180) < 0 ? 1 : 0,
+    transform: [{ perspective: 400 }, { rotateY: `${turn.value - 180}deg` }],
+  }));
+  return (
+    <View style={styles.claimCardTilt}>
+      <Animated.View style={[styles.claimFace, backStyle]}>
+        <SongCardBack card={card} width={CLAIM_CARD_WIDTH} fonts={fonts} />
+      </Animated.View>
+      <Animated.View style={[styles.claimFace, frontStyle]}>
+        <SongCardFront card={card} width={CLAIM_CARD_WIDTH} fonts={fonts} thumb />
+      </Animated.View>
+    </View>
+  );
+});
+
 const styles = StyleSheet.create({
   shell: {
     position: 'absolute',
@@ -157,6 +237,22 @@ const styles = StyleSheet.create({
   },
   todayBlock: {
     flexShrink: 1,
+  },
+  claimBlock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  claimCardTilt: {
+    width: CLAIM_CARD_WIDTH,
+    height: CLAIM_CARD_WIDTH * CARD_RATIO,
+    transform: [{ rotate: '-4deg' }],
+  },
+  claimFace: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: CLAIM_CARD_WIDTH * 0.046,
+    overflow: 'hidden',
+    backfaceVisibility: 'hidden',
   },
   todayLead: {
     ...Typography.bodySemiBold,

@@ -1,6 +1,6 @@
 import type { CardSignature } from './signature';
 
-/** 0 은 곡 단어를 하나라도 공부하면 받는 카드. 다이아가 하나도 차지 않는다. */
+/** 0 은 기본 카드. 기존 카드 호환용이라 새로 나오지 않는다. */
 export type CardLevel = 0 | 1 | 2 | 3;
 
 /** 후리가나를 붙일 한 덩어리. reading 이 없으면 가나 그대로. */
@@ -30,6 +30,8 @@ export interface CardGoal {
 export interface SongRewardCard {
   id: string;
   songId: number | null;
+  /** 서버 카드만 있다. 곡 카드를 받을 때 그 아티스트 카드를 함께 받는 데 쓴다. */
+  artistId?: number | null;
   title: string;
   artist: string;
   artworkUrl: string;
