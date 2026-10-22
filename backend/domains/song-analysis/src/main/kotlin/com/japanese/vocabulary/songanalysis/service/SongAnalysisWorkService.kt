@@ -246,6 +246,9 @@ class SongAnalysisWorkService(
     fun countByStatus(status: SongAnalysisWorkStatus): Long = songAnalysisWorkRepository.countByStatus(status)
 
     @Transactional(readOnly = true)
+    fun oldestPendingSince(): Instant? = songAnalysisWorkRepository.findOldestPendingSince()
+
+    @Transactional(readOnly = true)
     fun stages(workId: Long): List<SongAnalysisWorkStageEntity> = stageRepository.findByWorkIdOrderByIdAsc(workId)
 
     /**

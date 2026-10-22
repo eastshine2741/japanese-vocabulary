@@ -1,0 +1,32 @@
+# 대시보드가 job="mysql-metrics"(Service 이름)로 고른다.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-metrics
+  labels:
+    app: mysql-metrics
+spec:
+  selector:
+    app: mysqld-exporter
+  ports:
+    - name: metrics
+      port: 9104
+      targetPort: metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: mysql
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: mysql-metrics
+  namespaceSelector:
+    matchNames:
+      - kotonoha
+  endpoints:
+    - port: metrics
+      interval: 30s
+      scrapeTimeout: 10s

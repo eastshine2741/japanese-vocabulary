@@ -1,0 +1,38 @@
+# /metrics 는 노드 합계(알람·연결·채널)만 준다. 큐별 수치는 /metrics/detailed 에서 family 를 골라 받는다.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: rabbitmq
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: rabbitmq
+  namespaceSelector:
+    matchNames:
+      - kotonoha
+  endpoints:
+    - port: prometheus
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      # 두 endpoint 가 같은 포트라 metrics_path 가 없으면 타깃 라벨이 같아 시계열이 겹친다
+      relabelings:
+        - sourceLabels: [__metrics_path__]
+          targetLabel: metrics_path
+    - port: prometheus
+      path: /metrics/detailed
+      interval: 30s
+      scrapeTimeout: 10s
+      relabelings:
+        - sourceLabels: [__metrics_path__]
+          targetLabel: metrics_path
+      params:
+        vhost: ["/"]
+        # queue_delivery_metrics 는 channel_queue_metrics 와 같은 값을 channel 라벨 없이 큐 단위로 준다
+        family:
+          - queue_coarse_metrics
+          - queue_consumer_count
+          - queue_delivery_metrics
+          - queue_exchange_metrics

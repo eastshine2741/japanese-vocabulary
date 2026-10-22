@@ -92,7 +92,7 @@ class SongAnalysisWorkListener(
                 "[workId={}] {} attempt {} failed with {}",
                 claimed.ref.workId, claimed.ref.stage, claimed.ref.attempt, failure.code, e,
             )
-            if (workService.failStage(claimed.ref, failure)) recordWorkDuration(claimed, "failed")
+            if (workService.failStage(claimed.ref, failure)) recordWorkDuration(claimed, "failed", failure)
             "failed"
         }
         sample.stop(
@@ -106,9 +106,12 @@ class SongAnalysisWorkListener(
     }
 
     /** 요청부터가 아니라 이번 실행이 시작된 뒤부터다. 관리자가 이어 돌린 작업도 그 실행만 잰다. */
-    private fun recordWorkDuration(claimed: ClaimedSongAnalysisStage, outcome: String) {
+    private fun recordWorkDuration(claimed: ClaimedSongAnalysisStage, outcome: String, failure: SongAnalysisStageFailure? = null) {
         Timer.builder(MetricNames.SONG_ANALYSIS_WORK_DURATION)
             .tag("outcome", outcome)
+            .tag("failed_stage", if (failure == null) "none" else claimed.ref.stage.name)
+            .tag("error_code", failure?.code ?: "none")
+            .tag("trigger_source", claimed.work.triggerSource.name)
             .publishPercentileHistogram()
             .maximumExpectedValue(HISTOGRAM_MAX)
             .register(meterRegistry)

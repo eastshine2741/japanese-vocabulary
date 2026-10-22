@@ -43,6 +43,13 @@ interface SongAnalysisWorkRepository : JpaRepository<SongAnalysisWorkEntity, Lon
 
     fun countByStatus(status: SongAnalysisWorkStatus): Long
 
+    // PENDING 행의 updated_at 은 생성·재개 때만 움직이므로 "기다리기 시작한 시각" 이다. V33 (status, updated_at) 인덱스를 탄다.
+    @Query(
+        "SELECT MIN(w.updatedAt) FROM SongAnalysisWorkEntity w " +
+            "WHERE w.status = com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus.PENDING"
+    )
+    fun findOldestPendingSince(): Instant?
+
     fun findBySongIdAndStatusInOrderByCreatedAtAsc(
         songId: Long,
         statuses: Collection<SongAnalysisWorkStatus>,

@@ -3,6 +3,7 @@ package com.japanese.vocabulary.song.worker
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.japanese.vocabulary.messagequeue.SongAnalysisWorkMessage
+import com.japanese.vocabulary.observability.MetricNames
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType
 import com.japanese.vocabulary.song.model.LyricLineData
@@ -48,7 +49,8 @@ class SongAnalysisWorkListenerTest {
         codec = SongAnalysisStageCodec(ObjectMapper().registerKotlinModule()),
         mvSearchDefectReporter = mockk(),
     )
-    private val listener = SongAnalysisWorkListener(workService, executor, SimpleMeterRegistry(), Duration.ofMinutes(5))
+    private val meterRegistry = SimpleMeterRegistry()
+    private val listener = SongAnalysisWorkListener(workService, executor, meterRegistry, Duration.ofMinutes(5))
 
     /**
      * 번역과 분절은 각자 Gemini 를 수십 초씩 기다린다. 리스너가 디스패처 없이 runBlocking 하면 둘이
@@ -98,6 +100,24 @@ class SongAnalysisWorkListenerTest {
                 },
             )
         }
+    }
+
+    @Test
+    fun `a failed work is timed with the stage and code it failed with`() {
+        stubAnalyzeStage()
+        coEvery { translationService.translateLyrics(any()) } throws IllegalStateException("bad answer")
+        coEvery { translationService.segmentLyrics(any()) } returns SegmentationStageResult(emptyList(), emptyMap())
+        every { workService.failStage(REF, any()) } returns true
+
+        listener.onMessage(SongAnalysisWorkMessage(WORK_ID, SongAnalysisWorkStage.ANALYZE_LYRICS), redelivered = false)
+
+        val timer = meterRegistry.get(MetricNames.SONG_ANALYSIS_WORK_DURATION)
+            .tag("outcome", "failed")
+            .tag("failed_stage", "ANALYZE_LYRICS")
+            .tag("error_code", "SONG_ANALYSIS_WORK_FAILED")
+            .tag("trigger_source", "USER_APP")
+            .timer()
+        assertThat(timer.count()).isEqualTo(1)
     }
 
     private fun stubAnalyzeStage() {

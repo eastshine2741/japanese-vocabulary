@@ -7,4 +7,5 @@ interface UserRepository : JpaRepository<UserEntity, Long> {
     fun findByProviderAndProviderSub(provider: String, providerSub: String): UserEntity?
     fun findByUsername(username: String): UserEntity?
     fun findByIdAndDeletedAtIsNull(id: Long): UserEntity?
+    fun countByDeletedAtIsNullAndIdNot(id: Long): Long
 }

@@ -2,6 +2,8 @@ package com.japanese.vocabulary.translation.client.jev
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import com.japanese.vocabulary.translation.client.LlmCostMeter
+import com.japanese.vocabulary.translation.client.LlmPricingProperties
 import com.japanese.vocabulary.translation.client.gemini.GeminiCallContext
 import com.japanese.vocabulary.translation.client.gemini.GeminiCallLogger
 import com.japanese.vocabulary.translation.client.jev.dto.JevAnswer
@@ -94,6 +96,7 @@ class JevClientTest {
             objectMapper = ObjectMapper().registerKotlinModule(),
             meterRegistry = SimpleMeterRegistry(),
             callLogger = callLogger,
+            llmCostMeter = LlmCostMeter(LlmPricingProperties(), SimpleMeterRegistry()),
         )
         return client to server
     }

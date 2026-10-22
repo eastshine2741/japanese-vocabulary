@@ -10,6 +10,15 @@ management:
     health:
       probes:
         enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        http.client.requests: true
+      maximum-expected-value:
+        http.client.requests: 5m
 
 spring:
   application:

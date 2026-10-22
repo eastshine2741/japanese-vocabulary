@@ -6,6 +6,7 @@ import com.japanese.vocabulary.common.retry.ExponentialBackoff
 import com.japanese.vocabulary.common.retry.TransientHttpErrors
 import com.japanese.vocabulary.common.retry.currentRetryDeadline
 import com.japanese.vocabulary.observability.MetricNames
+import com.japanese.vocabulary.translation.client.LlmCostMeter
 import com.japanese.vocabulary.translation.client.gemini.dto.SegLineDto
 import com.japanese.vocabulary.translation.client.gemini.dto.SenseTranslationDto
 import com.japanese.vocabulary.translation.client.gemini.dto.TranslationResultDto
@@ -44,6 +45,7 @@ class GeminiClient(
     private val objectMapper: ObjectMapper,
     private val meterRegistry: MeterRegistry,
     private val geminiCallLogger: GeminiCallLogger,
+    private val llmCostMeter: LlmCostMeter,
 ) {
     private val logger = LoggerFactory.getLogger(GeminiClient::class.java)
     private val backoff = ExponentialBackoff(maxAttempts, initialBackoff)
@@ -220,16 +222,36 @@ class GeminiClient(
                     .tag("model", model)
                     .tag("outcome", outcome)
                     .publishPercentileHistogram()
+                    // 버킷 기본 상한이 30초라 그보다 긴 호출은 p95 가 30초에 붙는다.
+                    .maximumExpectedValue(Duration.ofMinutes(5))
                     .register(meterRegistry)
             )
         }
     }
 
+    /**
+     * `promptTokenCount` already includes `cachedContentTokenCount`, so the uncached remainder is billed at the
+     * input price. Thoughts are billed at the output price. `totalTokenCount` would double count, so it is not kept.
+     */
     private fun recordTokenUsage(call: String, model: String, response: Map<*, *>) {
         val usage = response["usageMetadata"] as? Map<*, *> ?: return
-        recordTokens(call, model, "prompt", (usage["promptTokenCount"] as? Number)?.toLong() ?: 0L)
-        recordTokens(call, model, "candidates", (usage["candidatesTokenCount"] as? Number)?.toLong() ?: 0L)
-        recordTokens(call, model, "total", (usage["totalTokenCount"] as? Number)?.toLong() ?: 0L)
+        fun count(key: String) = (usage[key] as? Number)?.toLong() ?: 0L
+        val prompt = count("promptTokenCount")
+        val candidates = count("candidatesTokenCount")
+        val thoughts = count("thoughtsTokenCount")
+        val cached = count("cachedContentTokenCount")
+        recordTokens(call, model, "prompt", prompt)
+        recordTokens(call, model, "candidates", candidates)
+        recordTokens(call, model, "thoughts", thoughts)
+        recordTokens(call, model, "cached", cached)
+        llmCostMeter.record(
+            provider = "gemini",
+            call = call,
+            model = model,
+            inputTokens = (prompt - cached).coerceAtLeast(0),
+            outputTokens = candidates + thoughts,
+            cachedInputTokens = cached,
+        )
     }
 
     private fun recordTokens(call: String, model: String, kind: String, count: Long) {

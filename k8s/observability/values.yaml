@@ -43,15 +43,52 @@ alertmanager:
       limits:
         memory: 128Mi
 
-# Grafana는 내부 전용 (port-forward 접근)
+# Grafana는 grafana.kotonoha.eastshine.dev 로 공개된다 (grafana-ingress.yaml). 막는 것은 built-in admin 로그인 하나뿐.
 grafana:
-  # adminPassword는 install.sh의 --set-string으로 주입
+  # adminUser·adminPassword는 install.sh의 --set-string으로 주입
   defaultDashboardsTimezone: Asia/Seoul
   # 단일 replica + RWO PVC → Multi-Attach 회피
   deploymentStrategy:
     type: Recreate
   service:
     type: ClusterIP
+  # 공개 경로는 차트 Ingress 가 아니라 grafana-ingress.yaml(IngressRoute)이 연다.
+  ingress:
+    enabled: false
+  grafana.ini:
+    server:
+      domain: grafana.kotonoha.eastshine.dev
+      root_url: https://grafana.kotonoha.eastshine.dev
+    security:
+      cookie_secure: true
+      strict_transport_security: true
+    auth.anonymous:
+      enabled: false
+    users:
+      allow_sign_up: false
+
+  # 플러그인은 파드 시작 때 grafana.com 에서 받는다 (GF_PLUGINS_PREINSTALL_SYNC)
+  plugins:
+    - grafana-bigquery-datasource@3.4.3
+  # install.sh 가 .env.prod 의 서비스 계정 키에서 BIGQUERY_CLIENT_EMAIL / BIGQUERY_PRIVATE_KEY 를 만든다
+  envFromSecret: grafana-bigquery
+  # ${VAR} 는 helm 이 아니라 Grafana 가 프로비저닝 때 env 에서 채운다
+  additionalDataSources:
+    - name: BigQuery
+      uid: bigquery
+      type: grafana-bigquery-datasource
+      editable: false
+      jsonData:
+        authenticationType: jwt
+        clientEmail: ${BIGQUERY_CLIENT_EMAIL}
+        defaultProject: japanese-vocabulary-490916
+        tokenUri: https://oauth2.googleapis.com/token
+        # GA4 export 데이터셋(analytics_539684755) 위치와 같아야 한다
+        processingLocation: asia-northeast3
+        # 쿼리 1건당 스캔 상한 1GiB. _TABLE_SUFFIX 를 빠뜨린 패널이 전체 기간을 긁는 것을 막는다
+        MaxBytesBilled: 1073741824
+      secureJsonData:
+        privateKey: ${BIGQUERY_PRIVATE_KEY}
   resources:
     requests:
       cpu: 100m

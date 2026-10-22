@@ -1,7 +1,9 @@
 package com.japanese.vocabulary.song.worker
 
 import com.japanese.vocabulary.messagequeue.SongAnalysisWorkQueuePublisher
+import com.japanese.vocabulary.observability.MetricNames
 import com.japanese.vocabulary.songanalysis.service.SongAnalysisWorkService
+import io.micrometer.core.instrument.MeterRegistry
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.scheduling.annotation.Scheduled
@@ -22,6 +24,7 @@ import java.time.Instant
 class SongAnalysisWorkSweeper(
     private val workService: SongAnalysisWorkService,
     private val publisher: SongAnalysisWorkQueuePublisher,
+    private val meterRegistry: MeterRegistry,
 ) {
     private val logger = LoggerFactory.getLogger(SongAnalysisWorkSweeper::class.java)
 
@@ -34,6 +37,7 @@ class SongAnalysisWorkSweeper(
             )
             if (expired > 0) {
                 logger.warn("Marked {} stale song analysis work rows as FAILED", expired)
+                meterRegistry.counter(MetricNames.SONG_ANALYSIS_WORK_TIMEOUTS).increment(expired.toDouble())
             }
         } catch (e: Exception) {
             logger.error("Failed to sweep expired song analysis work", e)

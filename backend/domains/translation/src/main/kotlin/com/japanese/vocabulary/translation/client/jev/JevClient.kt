@@ -5,6 +5,7 @@ import com.japanese.vocabulary.common.retry.ExponentialBackoff
 import com.japanese.vocabulary.common.retry.currentRetryDeadline
 import com.japanese.vocabulary.common.retry.TransientHttpErrors
 import com.japanese.vocabulary.observability.MetricNames
+import com.japanese.vocabulary.translation.client.LlmCostMeter
 import com.japanese.vocabulary.translation.client.gemini.GeminiCallContext
 import com.japanese.vocabulary.translation.client.gemini.GeminiCallLogger
 import com.japanese.vocabulary.translation.client.jev.dto.JevAnswer
@@ -40,6 +41,7 @@ class JevClient(
     private val objectMapper: ObjectMapper,
     private val meterRegistry: MeterRegistry,
     private val callLogger: GeminiCallLogger,
+    private val llmCostMeter: LlmCostMeter,
 ) {
     private val logger = LoggerFactory.getLogger(JevClient::class.java)
     private val backoff = ExponentialBackoff(maxAttempts, initialBackoff)
@@ -100,7 +102,11 @@ class JevClient(
                 ?: throw RuntimeException("Empty response from Jev API")
             val response = objectMapper.readValue(responseJson, JevResponse::class.java)
             response.model?.let { answeredBy = it }
-            response.usage?.let { recordTokens(call, "input", it.inputTokens) }
+            response.usage?.let {
+                recordTokens(call, "input", it.inputTokens)
+                // Priced by the configured model, not the concrete version the response names.
+                llmCostMeter.record("jev", call, model, inputTokens = it.inputTokens)
+            }
             return response.answers
         } catch (e: Throwable) {
             outcome = "failure"
@@ -114,6 +120,7 @@ class JevClient(
                     .tag("call", call)
                     .tag("outcome", outcome)
                     .publishPercentileHistogram()
+                    .maximumExpectedValue(Duration.ofMinutes(5))
                     .register(meterRegistry),
             )
         }

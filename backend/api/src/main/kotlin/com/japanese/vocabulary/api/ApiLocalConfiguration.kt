@@ -30,6 +30,7 @@ import com.japanese.vocabulary.song.service.SongStudyViewService
 import com.japanese.vocabulary.song.service.songdetail.SongDetailQueryService
 import com.japanese.vocabulary.studystats.controller.StudyStatsController
 import com.japanese.vocabulary.studystats.util.KstClock
+import com.japanese.vocabulary.user.RegisteredUserGauge
 import com.japanese.vocabulary.user.controller.SettingsController
 import com.japanese.vocabulary.user.controller.UserProfileController
 import com.japanese.vocabulary.voc.controller.VocController
@@ -70,6 +71,7 @@ import org.springframework.context.annotation.Import
     SongDetailQueryService::class,
     StudyStatsController::class,
     KstClock::class,
+    RegisteredUserGauge::class,
     SettingsController::class,
     UserProfileController::class,
     VocController::class,

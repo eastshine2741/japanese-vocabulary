@@ -58,6 +58,15 @@ class SongAnalysisWorkStageLedgerTest : WorkerBaseIntegrationTest() {
     }
 
     @Test
+    fun `the oldest pending gauge reports how long the oldest pending work has waited`() {
+        seedWork("待機")
+
+        clock.advance(Duration.ofSeconds(90))
+
+        assertThat(meterRegistry.get(MetricNames.SONG_ANALYSIS_OLDEST_PENDING_AGE).gauge().value()).isGreaterThanOrEqualTo(90.0)
+    }
+
+    @Test
     fun `the works gauge counts pending and running works from the ledger`() {
         val pendingBefore = worksGauge(SongAnalysisWorkStatus.PENDING)
         val runningBefore = worksGauge(SongAnalysisWorkStatus.RUNNING)

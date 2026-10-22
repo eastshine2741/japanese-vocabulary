@@ -11,6 +11,17 @@ management:
     health:
       probes:
         enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      # 대시보드가 파드를 합친 지연 백분위를 histogram_quantile 로 계산하려면 버킷이 있어야 한다.
+      percentiles-histogram:
+        http.server.requests: true
+        http.client.requests: true
+      # 버킷 기본 상한이 30초라 그보다 긴 호출은 p95 가 30초에 붙는다.
+      maximum-expected-value:
+        http.client.requests: 5m
 
 spring:
   application:
@@ -109,6 +120,24 @@ jev:
   retry:
     max-attempts: 3
     initial-backoff: 2s
+
+kotonoha:
+  llm:
+    # USD / 1M 토큰. Gemini 는 Standard 유료 등급의 200k 이하 프롬프트 단가, Jev 는 입력만 과금
+    # (ai.google.dev/gemini-api/docs/pricing, typesafe.ai 기준 2026-10-19). 사고 토큰은 output 단가다.
+    # 모델을 바꾸면 여기도 바꾼다. 표에 없는 모델은 비용이 0 으로 집계된다. 점이 든 키는 [] 로 감싼다.
+    pricing:
+      "[gemini-3.1-pro-preview]":
+        input: 2.00
+        output: 12.00
+        cached-input: 0.20
+      "[gemini-3.1-flash-lite]":
+        input: 0.25
+        output: 1.50
+        cached-input: 0.025
+      jev-latest:
+        input: 0.042
+        output: 0
 
 jisho:
   # Same policy as gemini.retry (ExponentialBackoff: 5xx, 429, dropped connection). A 90-second

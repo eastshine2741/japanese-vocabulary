@@ -4,6 +4,7 @@ import com.japanese.vocabulary.messagequeue.SongAnalysisWorkQueuePublisher
 import com.japanese.vocabulary.songanalysis.dto.SongAnalysisStageTarget
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStage
 import com.japanese.vocabulary.songanalysis.service.SongAnalysisWorkService
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -16,7 +17,7 @@ class SongAnalysisWorkSweeperTest {
 
     private val workService: SongAnalysisWorkService = mockk()
     private val publisher: SongAnalysisWorkQueuePublisher = mockk(relaxed = true)
-    private val sweeper = SongAnalysisWorkSweeper(workService, publisher)
+    private val sweeper = SongAnalysisWorkSweeper(workService, publisher, SimpleMeterRegistry())
 
     @Test
     fun `republishes the stage each work is waiting for`() {
