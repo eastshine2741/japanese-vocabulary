@@ -6,6 +6,7 @@ import * as SecureStore from 'expo-secure-store';
 const ANALYSIS_PILL_DOCK_KEY = 'analysis_pill_dock';
 const CARD_WEAR_INTRO_SEEN_KEY = 'card_wear_intro_seen';
 const STREAK_REMINDER_ASK_SNOOZED_AT_KEY = 'streak_reminder_ask_snoozed_at';
+const HAPTICS_ENABLED_KEY = 'haptics_enabled';
 
 export type AnalysisPillDock = 'top' | 'bottom';
 
@@ -37,6 +38,12 @@ export const preferenceStorage = Platform.OS === 'web'
       async saveStreakReminderAskSnoozedAt(epochMs: number): Promise<void> {
         localStorage.setItem(STREAK_REMINDER_ASK_SNOOZED_AT_KEY, String(epochMs));
       },
+      async getHapticsEnabled(): Promise<boolean> {
+        return localStorage.getItem(HAPTICS_ENABLED_KEY) !== '0';
+      },
+      async saveHapticsEnabled(enabled: boolean): Promise<void> {
+        localStorage.setItem(HAPTICS_ENABLED_KEY, enabled ? '1' : '0');
+      },
     }
   : {
       async getAnalysisPillDock(): Promise<AnalysisPillDock | null> {
@@ -57,5 +64,11 @@ export const preferenceStorage = Platform.OS === 'web'
       },
       async saveStreakReminderAskSnoozedAt(epochMs: number): Promise<void> {
         await SecureStore.setItemAsync(STREAK_REMINDER_ASK_SNOOZED_AT_KEY, String(epochMs));
+      },
+      async getHapticsEnabled(): Promise<boolean> {
+        return (await SecureStore.getItemAsync(HAPTICS_ENABLED_KEY)) !== '0';
+      },
+      async saveHapticsEnabled(enabled: boolean): Promise<void> {
+        await SecureStore.setItemAsync(HAPTICS_ENABLED_KEY, enabled ? '1' : '0');
       },
     };

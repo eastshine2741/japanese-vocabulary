@@ -47,6 +47,7 @@ import { useHomeChromeStore } from './src/stores/homeChromeStore';
 import { useAndroidNavigationBarStyle } from './src/hooks/useAndroidNavigationBarStyle';
 import { scheduleOtaUpdateCheck } from './src/services/otaUpdates';
 import { listenShareLinks } from './src/services/shareLinkHandler';
+import { useHapticStore } from './src/stores/hapticStore';
 
 GoogleSignin.configure({
   webClientId: process.env.EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID ?? '',
@@ -154,6 +155,7 @@ function App() {
 
   useEffect(() => {
     registerNotificationHandlers();
+    useHapticStore.getState().load();
     scheduleOtaUpdateCheck();
     let unlistenShareLinks: (() => void) | undefined;
     initBaseURL().then(() => {

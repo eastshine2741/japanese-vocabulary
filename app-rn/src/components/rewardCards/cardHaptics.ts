@@ -1,10 +1,11 @@
 import { Platform, Vibration } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { hapticsEnabled } from '../../stores/hapticStore';
 import { Pulse, toPattern } from './vibrationPattern';
 
 // 웹·진동 없는 기기에선 조용히 넘어간다.
 const run = (fire: () => Promise<void>) => {
-  if (Platform.OS === 'web') return;
+  if (Platform.OS === 'web' || !hapticsEnabled()) return;
   fire().catch(() => {});
 };
 
@@ -25,6 +26,7 @@ const play = (beats: Beat[]) => beats.forEach(([at, style]) => setTimeout(() => 
  * 기기 기본 세기의 패턴 하나로 몰아 친다. 세기는 고정이라 강약은 울림 길이로 낸다.
  */
 const strong = (android: Pulse[], ios: Beat[]) => {
+  if (!hapticsEnabled()) return;
   if (Platform.OS === 'android') {
     const pattern = toPattern(android);
     strongUntil = Date.now() + pattern.reduce((sum, ms) => sum + ms, 0);
