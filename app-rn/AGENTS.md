@@ -15,6 +15,7 @@ Applies to `app-rn/`.
 - Keep `StyleSheet.create()` co-located with components.
 - App typography is loaded in `App.tsx` and centralized in `src/theme/typography.ts`: default text/input font is Inter, and heading/title styles should use the Funnel Sans helpers when matching Pencil typography.
 - 바텀시트는 `src/components/bottomSheet` 의 `AppBottomSheet`/`AppBottomSheetView`/`AppSheet*ScrollView` 를 쓴다. `@gorhom/bottom-sheet` 직접 import 는 그 디렉토리 안에서만. 중첩 스크롤 함정은 `../docs/runbooks/bottom-sheet-nested-scroll.md`.
+- `EXPO_PUBLIC_PREVIEW=1` 웹 빌드는 앱 대신 `src/preview/*.local.tsx`(gitignore) 의 케이스만 그린다. 디자인 스크린샷용이라 로그인·API 없이 뜬다.
 - native driver `Animated` 는 같은 view 의 prop 을 Animated 값 ↔ 고정값으로 바꾸지 말고, 재사용 값을 `setValue(0)` 으로 리셋하지 말 것(카드마다 새 인스턴스). iOS prod 에서만 깨진다: `../docs/runbooks/ios-native-animated-pitfalls.md`.
 
 ## OTA (EAS Update)

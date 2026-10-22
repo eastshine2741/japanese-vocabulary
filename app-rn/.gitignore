@@ -50,3 +50,4 @@ native-build.json
 
 # fastlane run outputs (CI)
 /fastlane/report.xml
+src/preview/*.local.tsx
