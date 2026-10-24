@@ -298,6 +298,8 @@ else
   echo "[k3s] importing images..."
   docker save "$API_IMAGE" "$BATCH_IMAGE" "$WORKER_IMAGE" "$MIGRATION_IMAGE" "$ADMIN_API_IMAGE" "$ADMIN_WEB_IMAGE" "$SHARE_WEB_IMAGE" "$LANDING_WEB_IMAGE" | sudo k3s ctr images import -
 fi
+# kubelet image GC 는 k3s containerd 만 비워서, docker 에 쌓인 이전 SHA 태그가 디스크를 채우면 노드가 disk-pressure 로 pod 를 내보낸다
+docker images --format '{{.Repository}}:{{.Tag}}' | grep "^${IMAGE_PREFIX}-" | grep -v ":${GIT_SHA}$" | xargs -r docker rmi >/dev/null 2>&1 || true
 echo "  → $((SECONDS - STEP_START))s"
 
 STEP_START=$SECONDS
