@@ -839,6 +839,38 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a te-form followed by the progressive iru is looked up as the verb underneath`(): Unit = runBlocking {
+        fun verb(headword: String, reading: String, pos: String, english: String) = found(
+            JishoDictionaryEntryDto(
+                headword = headword,
+                reading = reading,
+                senses = listOf(JishoOptionDto(pos = listOf(pos), english = english, englishDefinitions = listOf(english))),
+            ),
+        )
+        stub(
+            "ふえる" to verb("増える", "フエル", "Ichidan verb", "to increase"),
+            "わかる" to verb("分かる", "ワカル", "Godan verb with 'ru' ending", "to understand"),
+            "あう" to verb("合う", "アウ", "Godan verb with 'u' ending", "to be correct"),
+            "生きる" to verb("生きる", "イキル", "Ichidan verb", "to live"),
+        )
+        val tokens = listOf(
+            // さあ 日進月歩 いい曲書いてる？ 動員ふえてる？
+            token("ふえてる", "ふえている", "フエテイル", lineIndex = 11),
+            // まあ後戻り出来ないってわかってるからひとりで泣くの
+            token("わかってる", "わかっている", "ワカッテイル", lineIndex = 24),
+            // 「こっちがあってる、こっちに行こう」
+            token("あってる", "あっている", "アッテイル", lineIndex = 28),
+            // ⽣きているだけでまるもうけ — ⽣ is the Kangxi radical U+2F63, not 生.
+            token("⽣きている", "⽣きている", "イキテイル", lineIndex = 14),
+        )
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.map { it.baseForm }
+
+        assertThat(resolved).containsExactly("ふえる", "わかる", "あう", "生きる")
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `a negative verb handed back as the headword is rescued as its dictionary form`(): Unit = runBlocking {
         // The negative いらない was given as the headword for いらん; jisho indexes only 要る.
         stub(

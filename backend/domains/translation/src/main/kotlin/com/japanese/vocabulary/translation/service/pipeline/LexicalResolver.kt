@@ -13,6 +13,7 @@ import com.japanese.vocabulary.translation.model.PipelineTokenKey
 import com.japanese.vocabulary.translation.service.JishoService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import java.text.Normalizer
 
 /**
  * Narrows a jisho lookup to the dictionary entry the token actually means.
@@ -68,6 +69,7 @@ class LexicalResolver(
                 ?: resolveAppearanceSou(token, probeLookups)
                 ?: resolveCompletionSuffix(token, probeLookups)
                 ?: resolveTeAuxMotion(token, probeLookups)
+                ?: resolveTeAuxProgressive(token, probeLookups)
                 ?: resolveNegativeVerb(token, probeLookups)
                 ?: resolvePotentialForm(token, probeLookups)
                 ?: resolveGodanRenyokei(token, probeLookups)
@@ -153,6 +155,7 @@ class LexicalResolver(
                     resolveAppearanceSou(it, probeLookups, logRescue = false) == null &&
                     resolveCompletionSuffix(it, probeLookups, logRescue = false) == null &&
                     resolveTeAuxMotion(it, probeLookups, logRescue = false) == null &&
+                    resolveTeAuxProgressive(it, probeLookups, logRescue = false) == null &&
                     resolveNegativeVerb(it, probeLookups, logRescue = false) == null &&
                     resolvePotentialForm(it, probeLookups, logRescue = false) == null &&
                     resolveGodanRenyokei(it, probeLookups, logRescue = false) == null &&
@@ -193,7 +196,8 @@ class LexicalResolver(
         ) + suruDesiderativeProbes(token) +
             appearanceSouProbes(token).map { it.baseForm } +
             completionSuffixProbes(token).map { it.first } +
-            teAuxMotionProbe(token).map { it.first }
+            teAuxMotionProbe(token).map { it.first } +
+            teAuxProgressiveProbe(token).map { it.first }
 
     /**
      * Grades how well [lookup] pins down the entry [token] means, using the `(headword, reading)` pair.
@@ -777,15 +781,32 @@ class LexicalResolver(
         token: PipelineToken,
         lookups: Map<String, JishoEntryDto>,
         logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? =
+        resolveTeAux(token, teAuxMotionProbe(token), lookups, logRescue, "Stripped motion auxiliary from '{}' to '{}'")
+
+    /** The same safety net for the progressive ている (わかっている → わかる). */
+    private fun resolveTeAuxProgressive(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? =
+        resolveTeAux(token, teAuxProgressiveProbe(token), lookups, logRescue, "Stripped progressive いる from '{}' to '{}'")
+
+    private fun resolveTeAux(
+        token: PipelineToken,
+        probes: List<Pair<String, String?>>,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean,
+        rescueMessage: String,
     ): AcceptedLexicalEntry? {
-        for ((base, reading) in teAuxMotionProbe(token)) {
+        for ((base, reading) in probes) {
             val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: continue
             val verbEntries = accepted.entries.mapNotNull { entry ->
                 val verbSenses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
                 if (verbSenses.isEmpty()) null else entry.copy(senses = verbSenses)
             }
             if (verbEntries.isEmpty()) continue
-            if (logRescue) logger.info("Stripped motion auxiliary from '{}' to '{}'", token.headword, base)
+            if (logRescue) logger.info(rescueMessage, token.headword, base)
             return AcceptedLexicalEntry(base, verbEntries, accepted.provenance)
         }
         return null
@@ -796,17 +817,27 @@ class LexicalResolver(
      * the te-form could come from, paired with its reading. Empty unless the headword is a te-form
      * followed by いく / くる.
      */
-    private fun teAuxMotionProbe(token: PipelineToken): List<Pair<String, String?>> {
-        val teForm = stripTeAuxMotion(token.headword) ?: return emptyList()
-        val readings = stripTeAuxMotion(JapaneseText.toHiragana(token.baseFormReading))
+    private fun teAuxMotionProbe(token: PipelineToken): List<Pair<String, String?>> =
+        teAuxProbe(token.headword, token.baseFormReading, TE_AUX_MOTION_SUFFIXES)
+
+    // NFKC folds the Kangxi radical ⽣ some lyrics carry into 生, which jisho indexes.
+    private fun teAuxProgressiveProbe(token: PipelineToken): List<Pair<String, String?>> = teAuxProbe(
+        Normalizer.normalize(token.headword, Normalizer.Form.NFKC),
+        token.baseFormReading,
+        TE_AUX_PROGRESSIVE_SUFFIXES,
+    )
+
+    private fun teAuxProbe(headword: String, baseFormReading: String, suffixes: List<String>): List<Pair<String, String?>> {
+        val teForm = stripTeAux(headword, suffixes) ?: return emptyList()
+        val readings = stripTeAux(JapaneseText.toHiragana(baseFormReading), suffixes)
             ?.let(::teFormToDictionaryForms)
             ?.map(JapaneseText::toKatakana)
         return teFormToDictionaryForms(teForm).mapIndexed { i, base -> base to readings?.getOrNull(i) }
     }
 
-    /** `飛んでいく` → `飛んで`. Null unless what precedes いく / くる ends in て / で. */
-    private fun stripTeAuxMotion(text: String): String? {
-        val suffix = TE_AUX_MOTION_SUFFIXES.firstOrNull { text.endsWith(it) } ?: return null
+    /** `飛んでいく` → `飛んで`. Null unless what precedes the auxiliary ends in て / で. */
+    private fun stripTeAux(text: String, suffixes: List<String>): String? {
+        val suffix = suffixes.firstOrNull { text.endsWith(it) } ?: return null
         return text.dropLast(suffix.length).takeIf { it.length >= 2 && (it.endsWith("て") || it.endsWith("で")) }
     }
 
@@ -1005,6 +1036,7 @@ class LexicalResolver(
         val COMPLETION_SUFFIXES = listOf("きれない", "きれる", "きれず", "きれぬ", "きる")
 
         val TE_AUX_MOTION_SUFFIXES = listOf("いく", "行く", "くる", "来る")
+        val TE_AUX_PROGRESSIVE_SUFFIXES = listOf("いる", "居る")
 
         /** Te-form ending → the dictionary-form endings it can come from. */
         val TE_FORM_ENDINGS = listOf(
