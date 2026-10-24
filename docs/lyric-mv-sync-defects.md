@@ -70,6 +70,7 @@ MV 오연결·가사 오연결이 FAILED 나 LOW 로 드러난다. 곡을 고치
 |---|---|---|---|---|---|
 | 10-24 | 62 | 63 | 夜に駆ける / YOASOBI | `x8VYWazR5mE` | |
 | 10-24 | 101 | 102 | SToRY / Leo/need | `OWXlri6T4Wk` | |
+| 10-25 | 283 | 284 | 取扱注意 / syudou | `bvRan4JL0dE` | |
 
 ## 원인 미확인
 
