@@ -459,6 +459,33 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `an interjection cut short with a trailing small tsu is queried again without it`(): Unit = runBlocking {
+        // Lyric line: あなたの心の中咲かせな(えいっ). えいっ is the interjection えい; jisho indexes only えい.
+        stub(
+            "えい" to found(
+                JishoDictionaryEntryDto(
+                    headword = "えい",
+                    reading = "エイ",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Interjection (kandoushi)"),
+                            english = "yah!",
+                            englishDefinitions = listOf("yah!", "hey!"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val tokens = listOf(token("えいっ", "えいっ", "エイッ", lineIndex = 10))
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("えい")
+        assertThat(resolved.options.map { it.english }).containsExactly("yah!")
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `an intensifier-prefixed verb is looked up without its prefix`(): Unit = runBlocking {
         // ぶち壊れる is colloquial ぶち + 壊れる; jisho has no entry for the compound.
         stub(

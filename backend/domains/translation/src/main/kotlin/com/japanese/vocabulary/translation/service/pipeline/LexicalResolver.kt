@@ -56,6 +56,7 @@ class LexicalResolver(
                 ?: resolveSuruDesiderative(token, probeLookups)
                 ?: resolveHiraganaQuery(token, probeLookups)
                 ?: resolveSmallVowelElongation(token, probeLookups)
+                ?: resolveTrailingSokuon(token, probeLookups)
                 ?: resolveIntensifierPrefix(token, probeLookups)
                 ?: resolveSuruVerb(token, probeLookups)
                 ?: resolveLongVowelSpelling(token, probeLookups)
@@ -141,6 +142,7 @@ class LexicalResolver(
                     resolveSuruDesiderative(it, probeLookups, logRescue = false) == null &&
                     resolveHiraganaQuery(it, probeLookups, logRescue = false) == null &&
                     resolveSmallVowelElongation(it, probeLookups, logRescue = false) == null &&
+                    resolveTrailingSokuon(it, probeLookups, logRescue = false) == null &&
                     resolveIntensifierPrefix(it, probeLookups, logRescue = false) == null &&
                     resolveSuruVerb(it, probeLookups, logRescue = false) == null &&
                     resolveLongVowelSpelling(it, probeLookups, logRescue = false) == null &&
@@ -177,6 +179,7 @@ class LexicalResolver(
             iAdjectiveProbe(token),
             hiraganaProbe(token),
             smallVowelProbe(token),
+            trailingSokuonProbe(token),
             intensifierPrefixProbe(token),
             suruVerbProbe(token),
             longVowelProbe(token),
@@ -352,6 +355,32 @@ class LexicalResolver(
     private fun smallVowelProbe(token: PipelineToken): String? =
         token.headword.takeIf { it.length >= 2 && !JapaneseText.isKatakanaOnly(it) }
             ?.let(JapaneseText::fullSizeTrailingVowel)
+
+    /**
+     * Safety net for an interjection the lyric cuts short with a trailing っ: `えいっ` is えい, and jisho
+     * indexes only `えい`. Only interjection senses are kept; a bare っ-less stem can be any homophone.
+     */
+    private fun resolveTrailingSokuon(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = trailingSokuonProbe(token) ?: return null
+        val reading = token.baseFormReading.takeIf { it.length >= 2 && it.endsWith("ッ") }?.dropLast(1)
+        val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: return null
+        val interjectionEntries = accepted.entries.mapNotNull { entry ->
+            val senses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.INTERJECTION }
+            if (senses.isEmpty()) null else entry.copy(senses = senses)
+        }
+        if (interjectionEntries.isEmpty()) return null
+        if (logRescue) logger.info("Looked up trailing-sokuon headword '{}' as '{}'", token.headword, base)
+        return AcceptedLexicalEntry(base, interjectionEntries, accepted.provenance)
+    }
+
+    /** `えいっ` → `えい`. Null unless a hiragana headword ends in っ with something before it. */
+    private fun trailingSokuonProbe(token: PipelineToken): String? =
+        token.headword.takeIf { it.length >= 2 && it.endsWith("っ") && !JapaneseText.isKatakanaOnly(it) }
+            ?.dropLast(1)
 
     /**
      * Safety net for a verb the lyric intensifies with colloquial ぶち / ぶっ (ぶち壊れる, ぶっ飛ぶ).
