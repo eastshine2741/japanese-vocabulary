@@ -3,7 +3,7 @@ import { rewardCardApi } from '../api/rewardCardApi';
 import { songApi } from '../api/songApi';
 import { DUMMY_ARTIST_CARDS, DUMMY_SONG_CARDS, DUMMY_SONG_GRADE_RULE, findDummyLyrics } from '../components/rewardCards/dummyRewardCards';
 import { pickLines } from '../components/rewardCards/cardLyric';
-import { paintFromArt } from '../components/rewardCards/artColors';
+import { extractArtColors, loadSavedArtColors, paintSaved } from '../components/rewardCards/artColors';
 import { type ServerRevealTarget, serverTargetId, toArtistCard, toRevealTarget, toSongCard } from '../components/rewardCards/serverRewardCards';
 import { CardSignature } from '../components/rewardCards/signature';
 import { ArtistRewardCard, CardLyricLine, SongRewardCard } from '../components/rewardCards/types';
@@ -88,13 +88,27 @@ interface RewardCardState extends CardSet {
   reset: () => void;
 }
 
-/** 서버 카드를 앱 카드로 바꾸고 아트에서 색을 뽑는다. 남의 프로필 카드도 같은 모양이다. */
+/** 서버 카드를 앱 카드로 바꾸고 남겨 둔 아트 색을 입힌다. 남의 프로필 카드도 같은 모양이다. */
 export async function toCardSet(res: RewardCardsResponse): Promise<CardSet> {
-  const [songCards, artistCards] = await Promise.all([
-    Promise.all(res.songCards.map(toSongCard).map((card) => paintFromArt(card, card.artworkUrl))),
-    Promise.all(res.artistCards.map(toArtistCard).map((card) => paintFromArt(card, card.imageUrl))),
-  ]);
-  return { songCards, artistCards, songGradeRule: res.songGradeRule };
+  await loadSavedArtColors();
+  return paintCardSet({
+    songCards: res.songCards.map(toSongCard),
+    artistCards: res.artistCards.map(toArtistCard),
+    songGradeRule: res.songGradeRule,
+  });
+}
+
+export function paintCardSet(cards: CardSet): CardSet {
+  return {
+    ...cards,
+    songCards: cards.songCards.map((card) => paintSaved(card, card.artworkUrl)),
+    artistCards: cards.artistCards.map((card) => paintSaved(card, card.imageUrl)),
+  };
+}
+
+/** 남겨 둔 색이 없는 카드 아트에서 색을 뽑는다. 새로 뽑은 색이 있으면 true. */
+export function extractCardSetColors(cards: CardSet): Promise<boolean> {
+  return extractArtColors([...cards.songCards.map((c) => c.artworkUrl), ...cards.artistCards.map((c) => c.imageUrl)]);
 }
 
 const DUMMY: CardSet = { songCards: DUMMY_SONG_CARDS, artistCards: DUMMY_ARTIST_CARDS, songGradeRule: DUMMY_SONG_GRADE_RULE };
@@ -146,6 +160,15 @@ export const useRewardCardStore = create<RewardCardState>((set, get) => {
       return { queue: [...state.queue, ...picked], unclaimed: state.unclaimed.filter((r) => !pick(r)) };
     });
 
+  /** 카드를 먼저 그린 뒤, 처음 보는 아트의 색이 뽑히면 입힌다. */
+  const paintServerCards = async () => {
+    if (!(await extractCardSetColors(get().server))) return;
+    set((state) => {
+      const server = paintCardSet(state.server);
+      return { server, ...(state.source === 'server' ? server : {}) };
+    });
+  };
+
   return {
     ...initial,
 
@@ -161,7 +184,9 @@ export const useRewardCardStore = create<RewardCardState>((set, get) => {
         set((state) => ({ server, serverStatus: 'ready', ...(state.source === 'server' ? server : {}) }));
       } catch {
         set({ serverStatus: 'error' });
+        return;
       }
+      paintServerCards();
     },
 
     ensureServerCards: () => {
@@ -174,6 +199,8 @@ export const useRewardCardStore = create<RewardCardState>((set, get) => {
     receiveReveals: async (reveals) => {
       if (!reveals || reveals.length === 0 || get().source !== 'server') return;
       await get().loadServerCards();
+      // 새 카드는 대개 처음 보는 아트다. 연출이 id 팔레트로 열렸다가 색이 바뀌지 않게, 받기 전에 색을 입혀 둔다.
+      await paintServerCards();
       set((state) => {
         const incoming = reveals.map((dto) => ({ ...toRevealTarget(dto), targetId: dto.targetId }));
         const opened = new Set([...state.queue, ...(state.active ? [state.active] : [])].map(revealKey));
