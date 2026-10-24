@@ -768,7 +768,7 @@ class LexicalResolver(
     }
 
     /**
-     * Safety net for a verb the lyric follows with the motion auxiliary ていく / てくる (飛んでいく).
+     * Safety net for a verb the lyric follows with the auxiliary ていく / てくる / ている (飛んでいく, 生きている).
      *
      * The auxiliary is dropped and the te-form conjugated back. んで / って are ambiguous (飛ぶ, 読む,
      * 死ぬ), so every candidate is asked and the first with a verb sense wins.
@@ -785,7 +785,7 @@ class LexicalResolver(
                 if (verbSenses.isEmpty()) null else entry.copy(senses = verbSenses)
             }
             if (verbEntries.isEmpty()) continue
-            if (logRescue) logger.info("Stripped motion auxiliary from '{}' to '{}'", token.headword, base)
+            if (logRescue) logger.info("Stripped te-form auxiliary from '{}' to '{}'", token.headword, base)
             return AcceptedLexicalEntry(base, verbEntries, accepted.provenance)
         }
         return null
@@ -794,7 +794,7 @@ class LexicalResolver(
     /**
      * `飛んでいく` / `トンデイク` → (`飛む`, `トム`), (`飛ぶ`, `トブ`), (`飛ぬ`, `トヌ`): every dictionary form
      * the te-form could come from, paired with its reading. Empty unless the headword is a te-form
-     * followed by いく / くる.
+     * followed by いく / くる / いる / る.
      */
     private fun teAuxMotionProbe(token: PipelineToken): List<Pair<String, String?>> {
         val teForm = stripTeAuxMotion(token.headword) ?: return emptyList()
@@ -804,7 +804,7 @@ class LexicalResolver(
         return teFormToDictionaryForms(teForm).mapIndexed { i, base -> base to readings?.getOrNull(i) }
     }
 
-    /** `飛んでいく` → `飛んで`. Null unless what precedes いく / くる ends in て / で. */
+    /** `飛んでいく` → `飛んで`. Null unless what precedes the auxiliary ends in て / で. */
     private fun stripTeAuxMotion(text: String): String? {
         val suffix = TE_AUX_MOTION_SUFFIXES.firstOrNull { text.endsWith(it) } ?: return null
         return text.dropLast(suffix.length).takeIf { it.length >= 2 && (it.endsWith("て") || it.endsWith("で")) }
@@ -1004,7 +1004,8 @@ class LexicalResolver(
         /** Longest first among overlapping spellings, so きれない is never cut as a shorter suffix. */
         val COMPLETION_SUFFIXES = listOf("きれない", "きれる", "きれず", "きれぬ", "きる")
 
-        val TE_AUX_MOTION_SUFFIXES = listOf("いく", "行く", "くる", "来る")
+        /** The bare る is last and still needs て / で before it, so 書いてる is cut but 来る / いる are not. */
+        val TE_AUX_MOTION_SUFFIXES = listOf("いく", "行く", "くる", "来る", "いる", "居る", "る")
 
         /** Te-form ending → the dictionary-form endings it can come from. */
         val TE_FORM_ENDINGS = listOf(

@@ -839,6 +839,50 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a te-form verb followed by iru is looked up as the bare verb`(): Unit = runBlocking {
+        // さあ 日進月歩 いい曲書いてる？ / 誰も彼もが頭を抱え生きている: jisho has no entry for te-form + いる.
+        stub(
+            "書く" to found(
+                JishoDictionaryEntryDto(
+                    headword = "書く",
+                    reading = "カク",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Godan verb with 'ku' ending", "Transitive verb"),
+                            english = "to write",
+                            englishDefinitions = listOf("to write"),
+                        ),
+                    ),
+                ),
+            ),
+            "生きる" to found(
+                JishoDictionaryEntryDto(
+                    headword = "生きる",
+                    reading = "イキル",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Ichidan verb", "Intransitive verb"),
+                            english = "to live",
+                            englishDefinitions = listOf("to live"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val tokens = listOf(
+            token("書いてる", "書いている", "カイテイル", lineIndex = 11),
+            token("生きている", "生きている", "イキテイル", lineIndex = 25),
+        )
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.toList()
+
+        assertThat(resolved.map { it.baseForm }).containsExactly("書く", "生きる")
+        assertThat(resolved.map { it.options.single().english }).containsExactly("to write", "to live")
+        assertThat(resolved.map { it.options.single().provenance }).containsOnly(JishoLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `a negative verb handed back as the headword is rescued as its dictionary form`(): Unit = runBlocking {
         // The negative いらない was given as the headword for いらん; jisho indexes only 要る.
         stub(
