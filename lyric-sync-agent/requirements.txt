@@ -10,6 +10,7 @@ nvidia-cudnn-cu12==9.*
 pykakasi
 numpy
 soundfile
-yt-dlp
+# [default] 가 yt-dlp-ejs 를 같이 깐다. 없으면 deno 가 있어도 YouTube 서명 풀이를 못 해 받을 수 있는 포맷이 줄어든다.
+yt-dlp[default]
 requests
 pytest
