@@ -30,7 +30,7 @@ import {
 /** 카드가 완전히 사라지는(=다음 카드가 완전히 드러나는) 지점. 드래그도 이 지점까지 막힘없이 따라간다. */
 export const SWIPE_OUT_DISTANCE = -420;
 const SWIPE_COMMIT_DISTANCE = -72;
-/** rating 선택 후 머무는 시간. 이 안에 같은 버튼을 다시 누르면 취소된다. pill 합침 160ms 를 빼고도 문구가 읽히도록 남겨 둔다. */
+/** rating 선택 후 머무는 시간. pill 합침 160ms 를 빼고도 문구가 읽히도록 남겨 둔다. */
 export const RATING_HOLD_MS = 900;
 
 const DUE_PAGE_SIZE = 20;
@@ -87,6 +87,10 @@ export interface StudyStackState {
   reviewError: string | null;
   completedSource: StudySource | null;
   nextDueSource: StudySource | null;
+  /** 완주한 곡에 아직 안 배운 단어가 남았을 때 그 곡. 다음 due 곡이 없을 때만 찾는다. */
+  songNewSource: StudySource | null;
+  /** songNewSource 를 찾는 중. 그동안 완주 카드 CTA 가 추천곡·검색으로 먼저 떴다가 바뀌지 않게 가린다. */
+  songNewPending: boolean;
   recommendedSource: StudySource | null;
   /** mode 'home' 에서만 채워진다. 덱 스트립에 그릴 목록 — 곡 덱이 있으면 due 많은 순 덱 목록, 없으면 추천곡 목록. */
   deckStripItems: StudySource[];
@@ -107,10 +111,14 @@ export interface StudyStackState {
   panHandlers: GestureResponderHandlers;
   reveal: () => void;
   selectRating: (rating: number) => void;
+  /** 홀드 중 pill 탭. 홀드를 기다리지 않고 바로 넘긴다. */
+  commitRating: () => void;
   reload: () => void;
   /** 단어 편집 화면에서 돌아왔을 때 현재 카드의 읽기·뜻만 다시 받는다. 큐·진행도는 건드리지 않는다. */
   refreshCurrentCard: () => Promise<void>;
   continueDue: () => void;
+  /** 완주 카드의 같은 곡 새 단어 CTA. 그 곡의 세션 카드를 다시 연다. */
+  startSongNew: () => void;
   /** 덱 스트립에서 곡을 골랐을 때. 덱이 있으면 그 덱을 열고, 없으면(추천곡) 미리보기 카드를 띄운다. */
   selectSource: (target: StudySource) => void;
   /** 완주 카드의 추천곡 CTA. 그 자리에서 추천곡 미리보기 카드를 띄워 학습을 이어간다. */
@@ -136,6 +144,8 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
   const [completedSource, setCompletedSource] = useState<StudySource | null>(null);
   const [nextDueSource, setNextDueSource] = useState<StudySource | null>(null);
   const [recommendedSource, setRecommendedSource] = useState<StudySource | null>(null);
+  const [songNewSource, setSongNewSource] = useState<StudySource | null>(null);
+  const [songNewPending, setSongNewPending] = useState(false);
   const [deckStripItems, setDeckStripItems] = useState<StudySource[]>([]);
   const [dueTodayCount, setDueTodayCount] = useState(0);
   const [selectedSource, setSelectedSource] = useState<StudySource | null>(null);
@@ -718,19 +728,22 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
 
   /**
    * rating 탭. 선택을 강조한 채 RATING_HOLD_MS 만큼 머문 뒤 자동으로 다음 카드로 넘어간다.
-   * 홀드 중 같은 버튼을 다시 누르면 취소되고, 다른 버튼을 누르면 그쪽으로 바꿔 홀드를 다시 센다.
+   * 홀드 중 다른 버튼을 누르면 그쪽으로 바꿔 홀드를 다시 센다.
    */
   const selectRating = useCallback((rating: number) => {
-    if (busyRef.current) return;
-    if (selectedRatingRef.current === rating) {
-      clearRatingHold();
-      setSelectedRating(null);
-      return;
-    }
+    if (busyRef.current || selectedRatingRef.current === rating) return;
     hapticRatingSelect();
     setSelectedRating(rating);
     startRatingHold();
-  }, [clearRatingHold, startRatingHold]);
+  }, [startRatingHold]);
+
+  // 홀드 중엔 버튼 넷이 사라지고 "N일 뒤에 다시 만나요" pill 만 남아 유저는 이걸 확인 버튼으로 누른다.
+  // 예전처럼 취소로 받으면 누를 때마다 되돌아가 다음 카드로 못 넘어간다.
+  const commitRating = useCallback(() => {
+    if (selectedRatingRef.current == null) return;
+    clearRatingHold();
+    void advanceAfterReviewRef.current();
+  }, [clearRatingHold]);
 
   // 뒷면 위로 스와이프는 홀드를 기다리지 않고 바로 넘기는 단축키다. 드래그 중엔 타이머를
   // 멈추고, 놓았는데 임계값에 못 미치면 제자리로 돌아오면서 홀드를 다시 센다.
@@ -771,6 +784,41 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     }),
     [advanceAfterReview, clearRatingHold, revealed, selectedRating, startRatingHold, translateY],
   );
+
+  // 복습할 곡이 더 없어도 방금 끝낸 곡에 안 배운 단어가 남았으면 그 곡을 이어서 배우게 한다.
+  // 홈에서 due 한 장만 풀고 완주 카드를 본 유저가 곡 상세까지 돌아가서 새 단어를 시작했다.
+  useEffect(() => {
+    setSongNewSource(null);
+    setSongNewPending(false);
+    const completed = completedSource;
+    if (!isComplete || nextDueSource != null || completed?.songId == null) return;
+    const songId = completed.songId;
+    let cancelled = false;
+    setSongNewPending(true);
+    void (async () => {
+      try {
+        const result = await songApi.getStudyCards(songId);
+        if (cancelled) return;
+        const newCount = result.cards.filter(card => !card.inSongDeck).length;
+        if (newCount === 0) return;
+        setSongNewSource({
+          ...completed,
+          deckId: result.deckId ?? completed.deckId,
+          totalCount: newCount,
+          leadWordId: null,
+          previewWord: null,
+          tierKey: null,
+        });
+      } catch {
+        // 넛지가 추천곡·검색으로 내려갈 뿐이다.
+      } finally {
+        if (!cancelled) setSongNewPending(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [completedSource, isComplete, nextDueSource]);
 
   const continueDue = useCallback(() => {
     if (!nextDueSource) return;
@@ -816,6 +864,11 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     startPreview(recommendedSource);
   }, [recommendedSource, startPreview]);
 
+  const startSongNew = useCallback(() => {
+    if (!songNewSource) return;
+    startPreview(songNewSource);
+  }, [songNewSource, startPreview]);
+
   const removeDeck = useCallback((deckId: number) => {
     if (selectedSourceRef.current?.deckId === deckId || activeSourceRef.current?.deckId === deckId) {
       reload();
@@ -845,6 +898,8 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     reviewError,
     completedSource,
     nextDueSource,
+    songNewSource,
+    songNewPending,
     recommendedSource,
     deckStripItems,
     dueTodayCount,
@@ -857,9 +912,11 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     panHandlers,
     reveal,
     selectRating,
+    commitRating,
     reload,
     refreshCurrentCard,
     continueDue,
+    startSongNew,
     selectSource,
     startRecommended,
     removeDeck,
@@ -877,6 +934,8 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     reviewError,
     completedSource,
     nextDueSource,
+    songNewSource,
+    songNewPending,
     recommendedSource,
     deckStripItems,
     dueTodayCount,
@@ -889,9 +948,11 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     panHandlers,
     reveal,
     selectRating,
+    commitRating,
     reload,
     refreshCurrentCard,
     continueDue,
+    startSongNew,
     selectSource,
     startRecommended,
     removeDeck,
