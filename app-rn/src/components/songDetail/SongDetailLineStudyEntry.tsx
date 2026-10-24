@@ -1,52 +1,48 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
-import Svg, { Path } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/theme';
 import { Typography } from '../../theme/typography';
 import { firstLockedPosition, type StudyLine } from '../lineStudy/studyLines';
 
-const WAVE_HEIGHT = 52;
-const WAVES = [
-  { periods: 2, amplitude: 11, durationMs: 4200, opacity: 0.10 },
-  { periods: 3, amplitude: 8, durationMs: 2800, opacity: 0.14 },
-  { periods: 4, amplitude: 5, durationMs: 1900, opacity: 0.18 },
-] as const;
+const EQ_HEIGHT = 26;
+const BAR_WIDTH = 4;
+const BAR_GAP = 3;
 
-/** 가로 2배 길이에 같은 파형을 두 번 그려, 한 폭만큼 밀었다 되돌려도 이음매가 안 보인다. */
-function wavePath(width: number, periods: number, amplitude: number): string {
-  const omega = (2 * Math.PI * periods) / width;
-  let d = `M0 ${WAVE_HEIGHT}`;
-  for (let x = 0; x <= width * 2; x += 4) {
-    d += ` L${x} ${(amplitude * (1 - Math.sin(omega * x))).toFixed(1)}`;
-  }
-  return `${d} L${width * 2} ${WAVE_HEIGHT} Z`;
+/** 막대마다 높이 폭과 박자를 다르게 줘야 제각각 튀는 이퀄라이저로 보인다. 렌더마다 바뀌지 않게 인덱스로 정한다. */
+function barRhythm(index: number) {
+  const r = (seed: number) => {
+    const x = Math.sin(index * 12.9898 + seed * 78.233) * 43758.5453;
+    return x - Math.floor(x);
+  };
+  return {
+    low: 0.12 + r(1) * 0.25,
+    high: 0.55 + r(2) * 0.45,
+    durationMs: 260 + r(3) * 360,
+  };
 }
 
-const WaveLayer = React.memo(function WaveLayer({ width, wave }: { width: number; wave: typeof WAVES[number] }) {
-  const progress = useSharedValue(0);
+const EqualizerBar = React.memo(function EqualizerBar({ index }: { index: number }) {
+  const rhythm = useMemo(() => barRhythm(index), [index]);
+  const level = useSharedValue(rhythm.low);
   useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: wave.durationMs, easing: Easing.linear }), -1);
-  }, [progress, wave.durationMs]);
-  const flow = useAnimatedStyle(() => ({ transform: [{ translateX: (progress.value - 1) * width }] }));
-  const d = useMemo(() => wavePath(width, wave.periods, wave.amplitude), [width, wave.periods, wave.amplitude]);
-  return (
-    <Animated.View style={[styles.waveLayer, { width: width * 2 }, flow]}>
-      <Svg width={width * 2} height={WAVE_HEIGHT}>
-        <Path d={d} fill={Colors.primary} fillOpacity={wave.opacity} />
-      </Svg>
-    </Animated.View>
-  );
+    level.value = withRepeat(withTiming(rhythm.high, { duration: rhythm.durationMs, easing: Easing.inOut(Easing.quad) }), -1, true);
+  }, [level, rhythm]);
+  const bounce = useAnimatedStyle(() => ({ transform: [{ scaleY: level.value }] }));
+  return <Animated.View style={[styles.bar, bounce]} />;
 });
 
-/** 노래를 틀어 두고 배우는 화면이라 카드 바닥에 파형이 흐르게 해, 정적인 섹션 사이에서 눈이 먼저 가게 한다. */
-const FlowingWaves = React.memo(function FlowingWaves() {
+/** 노래를 틀어 두고 배우는 화면이라 카드 바닥에 재생 중 이퀄라이저를 띄워, 정적인 섹션 사이에서 눈이 먼저 가게 한다. */
+const Equalizer = React.memo(function Equalizer() {
   const [width, setWidth] = useState(0);
   const handleLayout = useCallback((e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width), []);
+  const count = Math.floor((width + BAR_GAP) / (BAR_WIDTH + BAR_GAP));
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none" onLayout={handleLayout}>
-      {width > 0 && WAVES.map((wave, i) => <WaveLayer key={i} width={width} wave={wave} />)}
+      <View style={styles.equalizer}>
+        {Array.from({ length: count }, (_, i) => <EqualizerBar key={i} index={i} />)}
+      </View>
     </View>
   );
 });
@@ -78,7 +74,7 @@ export const SongDetailLineStudyEntry = React.memo(function SongDetailLineStudyE
         accessibilityRole="button"
         accessibilityLabel={`${position + 1}번째 줄부터 듣기`}
       >
-        <FlowingWaves />
+        <Equalizer />
         <View style={styles.lines}>
           {previous != null && (
             <View style={styles.line}>
@@ -128,7 +124,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
     paddingTop: 14,
-    paddingBottom: 22,
+    paddingBottom: 34,
     paddingLeft: 14,
     paddingRight: 16,
     borderRadius: 16,
@@ -137,11 +133,26 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     overflow: 'hidden',
   },
-  waveLayer: {
+  equalizer: {
     position: 'absolute',
     left: 0,
+    right: 0,
     bottom: 0,
-    height: WAVE_HEIGHT,
+    height: EQ_HEIGHT,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    gap: BAR_GAP,
+  },
+  // 바닥을 기준으로 늘어나야 막대가 위로만 튄다.
+  bar: {
+    width: BAR_WIDTH,
+    height: EQ_HEIGHT,
+    borderTopLeftRadius: BAR_WIDTH / 2,
+    borderTopRightRadius: BAR_WIDTH / 2,
+    backgroundColor: Colors.primary,
+    opacity: 0.25,
+    transformOrigin: 'bottom',
   },
   pressed: {
     opacity: 0.7,
