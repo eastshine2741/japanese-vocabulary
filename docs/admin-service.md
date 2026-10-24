@@ -53,6 +53,8 @@ Routes:
 - `GET /admin/api/song-analysis-works/{workId}` — 단계별 상태·시도 횟수·실패 원인(`stages`)과 `resumable` 포함
 - `GET /admin/api/song-analysis-works/{workId}/stages/{stage}/output` — 단계 산출물 JSON 원문
 - `POST /admin/api/song-analysis-works/{workId}/resume` — FAILED 작업을 실패한 단계부터 다시 돌린다 (활성 작업이 있거나 단계 원장 이전 작업이면 409)
+- `GET /admin/api/lyric-mv-syncs` — 가사 MV 싱크 결과(`status`·`verdict` 필터). 다시 계산한 행이 위로 온다
+- `GET /admin/api/lyric-mv-syncs/{id}` — 줄마다 원래 시각과 MV 시각. 화면은 MV 를 틀며 줄을 따라가 귀로 확인하는 용도다
 - `GET /admin/api/recommendations` / `POST` `{songId}` / `DELETE /{id}` / `PUT /order` `{ids}` — 홈 추천곡 전역 목록 편집 (`docs/recommended-songs.md`)
 - `GET /admin/api/feature-flags` / `PUT /{key}` `{startAt, endAt, description}` / `DELETE /{key}` — 시각 구간 기능 플래그 (`docs/architecture/feature-flag.md`)
 - `GET /admin/api/users` — 유저마다 `wordCount`, `songDeckCount`, `customDeckCount`, `lastWordSavedAt`, `lastReviewedAt` 포함
