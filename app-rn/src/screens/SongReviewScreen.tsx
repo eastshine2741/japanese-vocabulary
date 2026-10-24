@@ -95,6 +95,7 @@ export default function SongReviewScreen({ navigation, route }: Props) {
         contentInsetTop={insets.top + STACK_REVIEW_CHROME_HEIGHT}
         contentInsetBottom={insets.bottom}
         claimSongId={source.songId ?? undefined}
+        hideCompletion={isLineSession}
       />
     </View>
   );
