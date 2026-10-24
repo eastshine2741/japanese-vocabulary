@@ -8,6 +8,8 @@ from .align import Anchor
 HEAD_JUMP_SECONDS = 1.0
 # Quiet this long before an onset counts as the pause between phrases.
 MIN_SILENCE_SECONDS = 0.3
+# No sung line is shorter than this; a line starting closer to the one before was matched onto the same sound.
+MIN_LINE_SECONDS = 0.3
 
 # Offset fitting: a new segment costs PENALTY, each anchor costs its residual capped at CAP seconds.
 PENALTY, MIN_SEGMENT, CAP = 4.0, 3, 2.0
@@ -46,12 +48,13 @@ def onset_after_silence(voiced: list[bool], hop: float, t0: float, t1: float) ->
 
 
 def drop_out_of_order(anchors: list[Anchor | None]) -> None:
-    """Lines are sung in order. An anchor earlier than the one before it is a mismatch; drop it."""
+    """Lines are sung in order. An anchor not clearly after the one before it is a mismatch; drop it
+    so it is interpolated. Kept, it would share the start and the app would skip the line before."""
     last = float("-inf")
     for i, a in enumerate(anchors):
         if a is None:
             continue
-        if a.start < last:
+        if a.start < last + MIN_LINE_SECONDS:
             anchors[i] = None
         else:
             last = a.start

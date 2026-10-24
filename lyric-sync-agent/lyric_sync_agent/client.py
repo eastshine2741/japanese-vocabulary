@@ -32,7 +32,13 @@ class AdminApi:
         self._post(f"syncs/{sync_id}/fail", {"attempt": attempt, "message": message, "retryable": retryable})
 
     def _post(self, path: str, body: dict) -> None:
-        r = self.session.post(f"{self.base}/{path}", json=body, timeout=TIMEOUT_SECONDS)
+        url = f"{self.base}/{path}"
+        try:
+            r = self.session.post(url, json=body, timeout=TIMEOUT_SECONDS)
+        except requests.ConnectionError:
+            # The kept-alive connection can be closed by the ingress while a song is processed. Sending twice is
+            # safe: if the first one landed, the second gets 409 because the row is no longer RUNNING.
+            r = self.session.post(url, json=body, timeout=TIMEOUT_SECONDS)
         if r.status_code == 409:
             raise Conflict(r.text)
         if 400 <= r.status_code < 500:

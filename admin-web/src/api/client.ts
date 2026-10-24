@@ -4,6 +4,8 @@ import type {
   AdminUserWord,
   FeatureFlag,
   LoginResponse,
+  LyricMvSyncDetail,
+  LyricMvSyncSummary,
   LyricDetail,
   ManualPushResult,
   PageResponse,
@@ -126,6 +128,15 @@ export const adminApi = {
     return request<SongAnalysisWorkDetail>(`/song-analysis-works/${id}/resume`, token, {
       method: "POST",
     })
+  },
+  lyricMvSyncs(token: string, page: number, filter: { status?: string; verdict?: string }) {
+    const params = new URLSearchParams({ page: String(page), size: "20" })
+    if (filter.status) params.set("status", filter.status)
+    if (filter.verdict) params.set("verdict", filter.verdict)
+    return request<PageResponse<LyricMvSyncSummary>>(`/lyric-mv-syncs?${params}`, token)
+  },
+  lyricMvSync(token: string, id: string) {
+    return request<LyricMvSyncDetail>(`/lyric-mv-syncs/${id}`, token)
   },
   songReports(token: string, page: number, status: string) {
     const params = new URLSearchParams({ page: String(page), size: "20", status })
