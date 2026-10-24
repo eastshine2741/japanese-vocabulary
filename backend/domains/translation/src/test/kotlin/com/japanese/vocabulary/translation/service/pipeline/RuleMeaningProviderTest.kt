@@ -131,6 +131,16 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves slang kisshoi as an i-adjective`() {
+        // きっしょいね きっしょいね それ — the っ stretch of きしょい has no jisho headword.
+        val resolved = provider.resolve(PipelineToken(0, "きっしょい", "きっしょい", 0, 5))!!
+
+        assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.ADJECTIVE)
+        assertThat(resolved.reading).isEqualTo("キッショイ")
+        assertThat(resolved.koreanText).isNotBlank()
+    }
+
+    @Test
     fun `does not rule-resolve ambiguous grammar-like words`() {
         assertThat(provider.resolve(token("ない"))).isNull()
         assertThat(provider.resolve(token("から"))).isNull()
