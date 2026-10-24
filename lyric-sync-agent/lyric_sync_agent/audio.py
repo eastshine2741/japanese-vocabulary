@@ -10,6 +10,18 @@ VOICED_HOP = 0.02
 # Vocal stems keep reverb and backing-vocal bleed, so a pause between phrases sits ~20 dB under the lead.
 QUIET_DB = 20
 
+# YouTube refuses these to an anonymous client every time; retrying only burns the retry budget and the backoff.
+UNAVAILABLE_MARKERS = (
+    "Sign in to confirm your age",
+    "Private video",
+    "Video unavailable",
+    "This video has been removed",
+)
+
+
+class VideoUnavailable(Exception):
+    pass
+
 
 def download(video_id: str, workdir: Path) -> Path:
     opts = {
@@ -19,8 +31,13 @@ def download(video_id: str, workdir: Path) -> Path:
         "noprogress": True,
         "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "wav"}],
     }
-    with yt_dlp.YoutubeDL(opts) as ydl:
-        ydl.download([f"https://www.youtube.com/watch?v={video_id}"])
+    try:
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            ydl.download([f"https://www.youtube.com/watch?v={video_id}"])
+    except yt_dlp.utils.DownloadError as e:
+        if any(marker in str(e) for marker in UNAVAILABLE_MARKERS):
+            raise VideoUnavailable(str(e)) from e
+        raise
     return workdir / "mv.wav"
 
 
