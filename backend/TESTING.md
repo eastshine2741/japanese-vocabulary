@@ -14,7 +14,7 @@
 - **컨트롤러 권한·검증·직렬화** → Spring Web 슬라이스 (`@WebMvcTest`)
 
 ### 외부 API 호출은 절연한다
-모든 외부 클라이언트(`AppleMusicClient`, `YoutubeClient`, `LrclibClient`, `VocadbClient`, `UtaitedbClient`, `JishoClient`, `GeminiClient`)는 해당 application 통합테스트에서 `@MockkBean`으로 stub. **테스트가 인터넷에 의존하면 안 됨.**
+모든 외부 클라이언트(`AppleMusicClient`, `YoutubeClient`, `LrclibClient`, `VocadbClient`, `UtaitedbClient`, `GeminiClient`, 사전 조회 `JishoService`)는 해당 application 통합테스트에서 `@MockkBean`으로 stub. **테스트가 인터넷에 의존하면 안 됨.**
 
 ### 시계는 주입된 `Clock` 으로 통제한다
 운영 코드는 `Instant.now()` / `LocalDateTime.now()` 직접 호출 금지 — `Clock` 빈을 주입받아 `Instant.now(clock)` 형태로 사용. 테스트는 `MutableClock` 으로 시간을 advance. FSRS 누적, KST 날짜 전환, freeze 만료 같은 시간 의존 시나리오를 결정적으로 검증 가능.
@@ -333,7 +333,7 @@ class SongAnalysisPreparationServiceTest : BatchBaseIntegrationTest() {
 - delete → flashcard / `deck_word` 선삭제 후 word 삭제 (같은 트랜잭션).
 - `getUserWords` cursor 페이지네이션.
 
-**Jisho 의존성:** `@MockkBean(JishoClient::class)`로 의미 lookup 결과 fixed.
+**사전 의존성:** `@MockkBean(JishoService::class)`로 의미 lookup 결과 fixed.
 
 ### 4.5 deck (Phase 3 예정)
 **핵심 native query (`DeckRepository.getDeckList`):**

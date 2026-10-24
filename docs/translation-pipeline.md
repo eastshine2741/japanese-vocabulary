@@ -71,16 +71,15 @@ segment -> anchor/retry -> rules -> jisho entry-select
   same table as `call_name = select`, `model` = the answering Jev version.
 - Segmentation retries raise temperature; retrying at temperature 0 reproduced
   identical invalid output.
-- `JishoClient` uses the same policy under `jisho.retry.*`. A lookup that errors
-  on every attempt is `FETCH_ERROR`, never cached, and never mistaken for "no
-  entry".
+- Dictionary lookups are local (`docs/architecture/dictionary.md`) and not retried. A lookup
+  that cannot read the file is `FETCH_ERROR`, never mistaken for "no entry".
 - `MAX_DEFECT_RETRIES` covers incomplete anchored text and unresolved headwords.
   Exhaustion keeps the best anchored line instead of failing a whole song for a
   missing word, and reports each word left without a meaning as one
   `ANALYSIS_DEFECT {json}` warning (`AnalysisDefectReporter`; causes
   `DICTIONARY_MISS`, `UNCOVERED`, `SENSE_REJECTED`, `SENSE_MISSING`,
   `PROVIDER_ERROR`). A headword
-  jisho never answered is resent without feedback — the model's headword was not
+  the dictionary never answered is resent without feedback — the model's headword was not
   wrong — and if it still errors it ships like any other defect, tagged
   `PROVIDER_ERROR` so it counts as an outage rather than a word to fix. The log
   line is the input of `.github/scripts/analysis-feedback` (see its README).
@@ -121,9 +120,8 @@ The old `AnalyzedLine.pronounciation` / `koreanPronounciation` fields are gone.
 Old JSON rows still deserialize because unknown keys are ignored, but rows from
 before token-level sung readings may need reanalysis.
 
-## Jisho Cache
+## Dictionary
 
-The Redis key is versioned as `jisho:v5:`. Bump the version whenever the cached
-DTO shape changes or when `JishoClient.distill` would interpret the same raw
-response differently. The cached value is already distilled, so stale distillation
-can preserve bad entry decisions until TTL expiry.
+Lookups read the bundled JMdict file in jisho's response shape. Build rules that the
+resolver depends on (jisho POS labels, search-only spellings left out) are in
+`docs/architecture/dictionary.md`.

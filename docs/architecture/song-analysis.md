@@ -37,9 +37,9 @@ Work status uses only `PENDING`, `RUNNING`, `COMPLETED`, and `FAILED`. Delivery 
 The user waits for `COMPLETE`, and analysis must finish within **5 minutes** (`song-analysis.worker.time-budget`). A retry that would end past that is worth nothing, so:
 
 - **No error-driven message retry.** A failed stage is not requeued. Prod data (Sept 2026) showed every transient failure to be either over within ~2 minutes (Gemini per-minute 429 bursts, lrclib/VocaDB 503s), which an in-process retry absorbs, or far longer (Gemini hanging 180 s three times in a row), which no retry can bring under the budget. A message retry would rerun the whole stage — every Gemini chunk, with different LLM output — for what one HTTP call needed.
-- **In-process retry per HTTP call**, for transport failures, 5xx and 429 only (`TransientHttpErrors`): Gemini (`gemini.retry`), jisho (`jisho.retry`), each lyric-provider request (`lyric-search.retry`), and whole YouTube searches (`song-analysis.provider-retry`). Lyric providers retry per request, not per search: a search sends up to six requests, and an lrclib 503 run (about 20% of its requests in Oct 2026, lasting seconds to tens of seconds) made a whole-search retry resend the answered ones into the overloaded server. Waits use coroutine `delay`, never `Thread.sleep`, and stop at the deadline (`started_at + time-budget`, carried as `RetryDeadline` in the coroutine context): a wait that would end past it is not taken.
+- **In-process retry per HTTP call**, for transport failures, 5xx and 429 only (`TransientHttpErrors`): Gemini (`gemini.retry`), each lyric-provider request (`lyric-search.retry`), and whole YouTube searches (`song-analysis.provider-retry`). Lyric providers retry per request, not per search: a search sends up to six requests, and an lrclib 503 run (about 20% of its requests in Oct 2026, lasting seconds to tens of seconds) made a whole-search retry resend the answered ones into the overloaded server. Waits use coroutine `delay`, never `Thread.sleep`, and stop at the deadline (`started_at + time-budget`, carried as `RetryDeadline` in the coroutine context): a wait that would end past it is not taken.
 - **Timeouts.** `spring.http.client.read-timeout: 120s` (worker). Without it Gemini held a call for 180 s.
-- **Outage vs. miss.** Lyric providers throw transient errors instead of returning "no lyrics". If any provider stayed down and none found lyrics, the stage fails with `SONG_ANALYSIS_PROVIDER_UNAVAILABLE`, not `LYRICS_NOT_FOUND`. jisho is the exception: a lookup that stays down still ships the word without a meaning and logs a `PROVIDER_ERROR` defect.
+- **Outage vs. miss.** Lyric providers throw transient errors instead of returning "no lyrics". If any provider stayed down and none found lyrics, the stage fails with `SONG_ANALYSIS_PROVIDER_UNAVAILABLE`, not `LYRICS_NOT_FOUND`. The dictionary is the exception: a lookup that cannot read the dictionary file still ships the word without a meaning and logs a `PROVIDER_ERROR` defect.
 - **Error codes.** The work row gets one of: the domain's own code (`LYRICS_NOT_FOUND`, ...), `SONG_ANALYSIS_PROVIDER_UNAVAILABLE` (a transient error survived its retries), or `SONG_ANALYSIS_WORK_FAILED` (anything else). The stage row keeps the exception class and message chain for operators.
 
 The listener runs each stage with `runBlocking(Dispatchers.IO)`: the listener thread blocks so the ack follows the work, and the coroutines inside run on the IO pool so the parallel branches and Gemini chunks really run in parallel. A bare `runBlocking` puts them all on the listener thread, one after another.
@@ -216,15 +216,12 @@ Bad Apple!!, 匿名M) against Jev and hand-graded the disagreements.
 - **Known weak spots:** request て after a verb (殴って read as "and then"), auxiliary いく after
   て (流れてく), sentence-final わ nuance, する in 〜にする.
 
-> The jisho Redis cache key carries a schema version (`jisho:v5:`). Bump it whenever the cached DTO
-> changes: unknown-field-tolerant deserialization turns an old cached value into an empty result,
-> which drops meanings and POS with no error in the logs.
 
 ## JLPT Level Source
 
 - 공식 N1~N5 어휘 리스트는 없다(2010 개정 때 出題基準 공개 중단). jisho 를 포함한 모든 리스트가 tanos.co.uk 에서 나온다.
 - jisho `jlpt` 는 난이도가 아니라 리스트 등재 여부다. N1 은 N5~N2 리스트에 없는 상용어가 모이는 잔여 버킷(だけ·パジャマ·了解)이고, 忖度 같은 진짜 상급어는 무태그. entry 단위라 sense 별 등급도 없다.
-- 소스를 바꾼다면 tanos 원본 CSV(`stephenmk/yomitan-jlpt-vocab` 의 `original_data/`, JMdict seq 단위, CC BY)를 `(kanji, kana)` 키로 쓴다. 가나 기준으로 눌러버린 가공본 `jlpt.zip` 은 jisho 와 같은 뭉개짐이 있어 금지. 등급 대신 "난이도"가 필요하면 日本語教育語彙表(JEV, 6단계, tanos 와 독립).
+- 내장 사전(`docs/architecture/dictionary.md`)은 tanos 원본 CSV(`stephenmk/yomitan-jlpt-vocab` 의 `original_data/`, JMdict seq 단위, CC BY)를 엔트리에 붙인다. 가나 기준으로 눌러버린 가공본 `jlpt.zip` 은 같은 가나의 다른 단어까지 뭉개므로 금지. 등급 대신 난이도가 필요하면 사전의 `zipf` 를 쓴다. 日本語教育語彙表(JEV)는 연구·교육용 한정이라 앱에 넣을 수 없다.
 
 ## Major Word Ranking
 

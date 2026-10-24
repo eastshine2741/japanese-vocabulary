@@ -101,6 +101,12 @@ set -a
 source "$ENV_FILE"
 set +a
 
+# worker 의 init container 가 이 URL 에서 사전 파일을 받는다. 비면 파드가 뜨지 않는다.
+if [[ -z "${DICTIONARY_URL:-}" ]]; then
+  echo "Error: DICTIONARY_URL not set in $ENV_FILE (tools/dictionary 로 만든 jmdict sqlite 의 다운로드 URL)" >&2
+  exit 1
+fi
+
 if [[ "$DEPLOY_ENV" == "prod" ]]; then
   if [[ -z "${GHCR_USERNAME:-}" || -z "${GHCR_TOKEN:-}" ]]; then
     echo "Error: GHCR_USERNAME / GHCR_TOKEN not set in $ENV_FILE" >&2

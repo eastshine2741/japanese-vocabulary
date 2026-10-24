@@ -46,8 +46,8 @@ class SegmentLyricsStage(
      *   retry; after [MAX_DEFECT_RETRIES] the best attempt is kept and each defect is reported
      *   through [AnalysisDefectReporter].
      * - A headword the dictionary **never answered** is kept the same way but reported as
-     *   [AnalysisDefectCause.PROVIDER_ERROR] (jisho was down): the retry resends the line without
-     *   feedback, which asks jisho again since errors are not cached.
+     *   [AnalysisDefectCause.PROVIDER_ERROR] (the dictionary file could not be read): the retry resends
+     *   the line without feedback.
      */
     override suspend fun execute(input: TranslationPipelineSource): SegmentationStageResult {
         val acceptedTokens = mutableMapOf<Int, List<PipelineToken>>()

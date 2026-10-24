@@ -7,9 +7,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
 
-    // jisho.org lookups (JishoClient) are cached in Redis. Available transitively via :domains:song,
-    // but declared explicitly here since RedisCache/StringRedisTemplate are used at this site.
-    implementation("org.springframework.boot:spring-boot-starter-data-redis")
+    // Bundled JMdict dictionary file (JmdictDictionary), built by tools/dictionary.
+    implementation("org.xerial:sqlite-jdbc:3.46.1.3")
 
     // LexicalResolverTest stubs JishoService to exercise entry narrowing without a network call.
     // Same mockk the bootstrap modules use; domain modules do not get :common's test fixtures.

@@ -43,7 +43,6 @@ class HttpClientMetricsConfig {
                 host == "www.googleapis.com" && path.startsWith("/youtube/") -> "youtube"
                 host == "generativelanguage.googleapis.com" -> "gemini"
                 host == "api.typesafe.ai" -> "jev"
-                host == "jisho.org" -> "jisho"
                 host == "lrclib.net" -> "lrclib"
                 host == "vocadb.net" -> "vocadb"
                 host == "utaitedb.net" -> "utaitedb"
@@ -54,7 +53,6 @@ class HttpClientMetricsConfig {
 
         fun groupOf(api: String): String = when (api) {
             "gemini", "jev" -> "llm"
-            "jisho" -> "dictionary"
             "lrclib" -> "lyrics"
             "apple-music", "vocadb", "utaitedb" -> "music-meta"
             "youtube" -> "video"

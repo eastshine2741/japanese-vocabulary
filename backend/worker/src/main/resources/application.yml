@@ -146,13 +146,9 @@ kotonoha:
         input: 0.042
         output: 0
 
-jisho:
-  # Same policy as gemini.retry (ExponentialBackoff: 5xx, 429, dropped connection). A 90-second
-  # jisho outage once turned 23 lookups in one song into "no dictionary entry"; four attempts at
-  # 2s, 4s, 8s ride out a blip, and what survives is logged as a PROVIDER_ERROR defect.
-  retry:
-    max-attempts: 4
-    initial-backoff: 2s
+dictionary:
+  # JMdict SQLite built by tools/dictionary; the pod's init container downloads it here.
+  path: ${DICTIONARY_PATH:/dictionary/jmdict.sqlite}
 
 youtube:
   api-key: ${YOUTUBE_API_KEY}

@@ -151,6 +151,7 @@ DEPLOY_NS=issue-21 npx expo run:android
 | `GEMINI_API_KEY` | Gemini — sense-select 을 뺀 단어 뜻 파이프라인 LLM 단계 (`worker`) |
 | `TYPESAFE_API_KEY` | TypeSafe Jev — sense-select 단계 (`worker`) |
 | `OBJECT_STORAGE_ENDPOINT` / `_BUCKET` / `_ACCESS_KEY` / `_SECRET_KEY` / `_PUBLIC_BASE_URL` | Cloudflare R2 (`kotonoha-prod` / `kotonoha-dev`, dev 네임스페이스 공유, `infra/terraform` 이 만든다). 프로필 이미지 업로드. 하나라도 비면 업로드 API 가 503 |
+| `DICTIONARY_URL` | worker init container 가 받는 JMdict SQLite 파일 URL (`docs/architecture/dictionary.md`). 비면 `deploy.sh` 가 멈춘다. 버전이 들어간 이름으로 올려 URL 을 바꾸면 worker 가 다시 뜬다 |
 | `JWT_SECRET` | JWT signing key; defaults to dev key |
 | `GOOGLE_OAUTH_CLIENT_ID` | Google Web OAuth Client ID, same audience as `EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID` |
 | `PENCIL_CLI_KEY` | Pencil CLI auth for headless `.pen` editing |

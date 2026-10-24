@@ -43,3 +43,7 @@ admin-web/coverage/
 # Local dev database dump baseline
 local/mysql/
 .playwright-mcp/
+
+# 사전 빌드 (tools/dictionary)
+tools/dictionary/.venv/
+tools/dictionary/work/
