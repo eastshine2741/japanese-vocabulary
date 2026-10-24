@@ -22,6 +22,7 @@ MV 오연결·가사 오연결이 FAILED 나 LOW 로 드러난다. 곡을 고치
 | 10-25 | 208 | 209 | ライフ / MILGRAM ユノ | `6TlqTp6jgD8` | `(Instrumental)`. MILGRAM 곡이 공식 채널 Instrumental 에 붙는 패턴 | |
 | 10-25 | 214 | 215 | さよならモルテン / ヨルシカ | `B66_-EMRvSI` | 중국어 자막 팬 업로드. 가사가 비어 있어 실패한 것(아래 빈 가사 표) | |
 | 10-25 | 237 | 238 | メーベル / なとり | `Qvbd4g-LIOM` | `Offvocal` 반주 영상 | |
+| 10-25 | 338 | 339 | 独りうた ~September調子はどうだい~ / うじたまい | `gJFvEN0KQiU` | 다른 가수 커버(`さんひ Cover`, 141초, 곡 197초). 4/46줄 | |
 | 10-25 | 276 | 277 | ディープカバー / MILGRAM コトコ | `002zE78Zjg8` | `(Instrumental)`. MILGRAM 네 번째 | |
 
 ## MV 가 가사와 다른 버전
