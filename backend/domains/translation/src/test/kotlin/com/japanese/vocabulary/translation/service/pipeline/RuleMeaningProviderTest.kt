@@ -157,6 +157,20 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves colloquial aada and kooda halves of aada kooda`() {
+        // 俺があーだこーだ言ってる間もアイツは成長中 — segmentation splits あーだこーだ in two,
+        // and jisho has no headword for either long-vowel half.
+        val aada = provider.resolve(PipelineToken(1, "あーだ", "あーだ", 2, 5))!!
+        val kooda = provider.resolve(PipelineToken(2, "こーだ", "こーだ", 5, 8))!!
+
+        assertThat(aada.partOfSpeech).isEqualTo(PartOfSpeech.ADVERB)
+        assertThat(aada.reading).isEqualTo("アーダ")
+        assertThat(aada.koreanText).isNotBlank()
+        assertThat(kooda.reading).isEqualTo("コーダ")
+        assertThat(kooda.koreanText).isNotBlank()
+    }
+
+    @Test
     fun `rewrites doumo koumo pair into deterministic smaller tokens`() {
         val rewritten = provider.rewrite(
             listOf(
