@@ -1,28 +1,68 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { LayoutChangeEvent, Pressable, ScrollView, StyleProp, StyleSheet, Text, useWindowDimensions, View, ViewStyle } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  cancelAnimation,
+  Easing,
+  Extrapolation,
+  FadeIn,
+  FadeOut,
+  interpolate,
+  runOnJS,
+  SharedValue,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import YouTubePlayer, { YouTubePlayerRef } from '../components/YouTubePlayer';
 import { Button } from '../components/ui';
-import { buildStudyLines, firstLockedPosition, isWordSeen, lineWordKeys, StudyLine } from '../components/lineStudy/studyLines';
+import { useArtBackdrop } from '../components/rewardCards/artColors';
+import { buildStudyLines, firstLockedPosition, isWordSeen, lineWordKeys, snapLineIndex, StudyLine } from '../components/lineStudy/studyLines';
+import { hapticLineTick } from '../components/songDetail/lyricsHaptics';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { useSettingsStore } from '../stores/settingsStore';
 import { useSongDetailStore } from '../stores/songDetailStore';
 import { Colors } from '../theme/theme';
 import { Typography } from '../theme/typography';
 import type { WordInSongItemDto } from '../types/song';
+import { convertReading } from '../utils/readingConverter';
 import { extractYoutubeVideoId } from '../utils/youtube';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SongLineStudy'>;
 
-const LINE_MOTION_MS = 320;
+const FALLBACK_BACKDROP: [string, string] = ['#2A2A31', '#141418'];
 const REVEAL_MOTION_MS = 450;
+/** 곡 상세 가사 다이얼과 같은 스프링 — 살짝 지나쳤다 돌아와 앉는다. */
+const LINE_SPRING = { damping: 22, stiffness: 170, mass: 1 };
+/** 지금 줄의 윗변이 가사 영역 위에서 이만큼 아래에 앉는다. 바로 앞 줄이 그 위로 흐리게 보인다. */
+const FOCUS_TOP = 84;
+/** 줄 사이 거리를 셀 때 한 줄로 치는 높이. 번역이 붙은 줄은 1.x 줄로 센다. */
+const LINE_PITCH = 64;
+/** 아직 안 온 줄 쪽으로 끌면 이 높이에 다가갈수록 덜 따라온다. 놓으면 지금 줄로 돌아온다. */
+const RUBBER_LIMIT = 120;
+/** 단어가 많은 줄에서도 가사가 남게 단어 칸은 4줄 반까지만 펼친다. 반쯤 잘린 줄이 스크롤된다는 걸 보여준다. */
+const WORDS_MAX_HEIGHT = 154;
+/** 지금 줄에서 멀어질수록 흐려진다. 마지막 값이 그 너머 전부. */
+const DISTANCE_OPACITY = [1, 0.4, 0.22, 0.12];
+const DISTANCE_STEPS = DISTANCE_OPACITY.map((_, i) => i);
+const RIPPLE_MS = 1800;
+/** 파장이 버튼 밖으로 번지는 최대 폭. */
+const RIPPLE_SPREAD = 22;
+/** 첫 파장이 터질 때 버튼이 이만큼 부풀었다 돌아온다. */
+const CTA_PULSE_SCALE = 1.04;
 
 /**
  * 가사를 한 줄씩 듣고 그 줄의 단어를 풀면 번역이 열린다. 단어 → 가사가 아니라 가사 → 단어 순서로 공부하게 한다.
- * 한 화면의 가사는 지금 줄과 바로 앞 줄뿐이다. MV 는 막지 않고, 단어를 다 아는 줄은 멈추지 않고 흘려보낸다.
+ * 지금 줄 둘레만 또렷하고 멀어질수록 흐려진다. MV 는 막지 않고, 단어를 다 아는 줄은 멈추지 않고 흘려보낸다.
  */
 export default function SongLineStudyScreen({ navigation, route }: Props) {
   const { songId } = route.params;
@@ -47,9 +87,12 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
   studyLinesRef.current = studyLines;
   const positionRef = useRef(position);
   positionRef.current = position;
+  // 지나온 줄로 돌아가 들어도 가장 멀리 간 줄은 남는다. 거기까지는 번역이 보이고 자유롭게 오갈 수 있다.
+  const furthestRef = useRef<number | null>(null);
+  if (position != null && (furthestRef.current == null || position > furthestRef.current)) furthestRef.current = position;
+  const furthest = furthestRef.current;
 
   const current = position != null ? studyLines?.[position] ?? null : null;
-  const previous = position != null && position > 0 ? studyLines?.[position - 1] ?? null : null;
   const openedCount = studyLines?.filter(line => line.unseenCount === 0).length ?? 0;
   const isLast = studyLines != null && position === studyLines.length - 1;
 
@@ -91,7 +134,11 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
   }, [position, studyLines]);
 
   // 첫 상태 메시지 전엔 player 객체가 없어 주입한 명령이 버려진다.
-  const handleStateChange = useCallback(() => {
+  // 모르는 단어가 있는 줄 끝에서 MV 가 멈춰 유저를 기다리는 중. 유저가 MV 를 직접 이어 틀면 풀린다.
+  const [waiting, setWaiting] = useState(false);
+
+  const handleStateChange = useCallback((state: string) => {
+    if (state === 'playing') setWaiting(false);
     if (playerReadyRef.current) return;
     playerReadyRef.current = true;
     const pending = pendingClipRef.current;
@@ -123,6 +170,7 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
       if (line.clipEndMs != null && ms >= line.clipEndMs) {
         followingRef.current = false;
         playerRef.current?.pause();
+        setWaiting(true);
       }
       return;
     }
@@ -156,6 +204,7 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
     if (current == null || data == null) return;
     playerRef.current?.pause();
     followingRef.current = false;
+    setWaiting(false);
     solvingLineRef.current = current.line.index;
     navigation.navigate('SongReview', {
       origin: 'SongDetail',
@@ -192,20 +241,142 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
 
   const opened = current != null && current.unseenCount === 0;
   const canReplay = current?.clipStartMs != null && videoId != null;
+  const backdrop = useArtBackdrop(data?.song.artworkUrl);
+
+  // 가사는 한 줄기로 늘어놓고 줄기 전체를 스프링으로 끌어 올려 지금 줄을 같은 자리에 앉힌다.
+  const translateY = useSharedValue(0);
+  // 지금 줄이 앉는 translateY. 끌기는 여기보다 위(안 온 줄)로는 고무줄처럼만 늘어난다.
+  const restY = useSharedValue(0);
+  const dragStartY = useSharedValue(0);
+  const focusTop = useSharedValue(FOCUS_TOP);
+  // 제스처 worklet 이 줄 자리로 앉히려면 JS 쪽 값을 UI 스레드에도 둬야 한다.
+  const lineTops = useSharedValue<number[]>([]);
+  const positionSV = useSharedValue(0);
+  const viewIndex = useSharedValue(0);
+  const dragStartIndex = useSharedValue(0);
+  const tickIndex = useSharedValue(0);
+  const lineTopsRef = useRef<number[]>([]);
+  const focusTopRef = useRef(FOCUS_TOP);
+  const placedRef = useRef(false);
+
+  const settle = useCallback(() => {
+    const pos = positionRef.current;
+    const far = furthestRef.current;
+    const top = pos != null ? lineTopsRef.current[pos] : undefined;
+    const farTop = far != null ? lineTopsRef.current[far] : undefined;
+    if (pos == null || far == null || top == null || farTop == null) return;
+    const target = focusTopRef.current - top;
+    restY.value = focusTopRef.current - farTop;
+    positionSV.value = far;
+    viewIndex.value = pos;
+    // 처음 앉을 땐 맨 위에서 굴러 내려오지 않게 제자리에 둔다.
+    if (!placedRef.current) {
+      placedRef.current = true;
+      translateY.value = target;
+      return;
+    }
+    translateY.value = withSpring(target, LINE_SPRING);
+  }, [positionSV, restY, translateY, viewIndex]);
+
+  useEffect(() => {
+    settle();
+  }, [position, settle]);
+
+  // 번역이 열리면 그 줄 아래가 밀린다. 지금 줄 위쪽 높이가 바뀌면 다시 앉힌다.
+  const handleLineLayout = useCallback((linePosition: number, y: number) => {
+    lineTopsRef.current[linePosition] = y;
+    lineTops.value = [...lineTopsRef.current];
+    const far = furthestRef.current;
+    if (far != null && linePosition <= far) settle();
+  }, [lineTops, settle]);
+
+  // 손으로 넘겨 앉힌 줄로 MV 와 단어 목록도 옮긴다. 열린 줄이면 MV 가 거기서부터 다시 흘러간다.
+  const selectLine = useCallback((linePosition: number) => {
+    const line = studyLinesRef.current?.[linePosition];
+    if (line == null || linePosition === positionRef.current) return;
+    positionRef.current = linePosition;
+    setPosition(linePosition);
+    setWaiting(false);
+    playClip(line);
+  }, [playClip]);
+
+  const handleLyricsLayout = useCallback((event: LayoutChangeEvent) => {
+    focusTopRef.current = Math.min(FOCUS_TOP, event.nativeEvent.layout.height * 0.3);
+    focusTop.value = focusTopRef.current;
+    settle();
+  }, [focusTop, settle]);
+
+  // 곡 상세 가사 다이얼처럼 줄 단위로 넘긴다. 손을 따라오다 놓으면 가까운 줄에 앉고, 관성으로 굴러가지 않는다.
+  // 지나온 줄은 첫 줄까지 넘겨 볼 수 있고, 아직 안 온 줄 쪽으로는 고무줄처럼만 늘어났다 지금 줄로 돌아온다.
+  const lyricsPan = useMemo(() => Gesture.Pan()
+    .activeOffsetY([-8, 8])
+    .onStart(() => {
+      cancelAnimation(translateY);
+      dragStartY.value = translateY.value;
+      dragStartIndex.value = viewIndex.value;
+      tickIndex.value = viewIndex.value;
+    })
+    .onUpdate(event => {
+      const min = restY.value;
+      const max = Math.max(min, focusTop.value);
+      const raw = dragStartY.value + event.translationY;
+      translateY.value = raw < min ? min - rubberBand(min - raw) : raw > max ? max + rubberBand(raw - max) : raw;
+      const nearest = snapLineIndex(lineTops.value, translateY.value, focusTop.value, dragStartIndex.value, 0, positionSV.value);
+      if (nearest !== tickIndex.value) {
+        tickIndex.value = nearest;
+        runOnJS(hapticLineTick)();
+      }
+    })
+    .onEnd(event => {
+      const target = snapLineIndex(
+        lineTops.value,
+        translateY.value,
+        focusTop.value,
+        dragStartIndex.value,
+        event.velocityY,
+        positionSV.value,
+      );
+      const top = lineTops.value[target];
+      if (top == null) return;
+      viewIndex.value = target;
+      translateY.value = withSpring(focusTop.value - top, LINE_SPRING);
+      if (target !== dragStartIndex.value) runOnJS(selectLine)(target);
+    })
+    .onFinalize((_, success) => {
+      // onEnd 없이 취소되면 끌던 자리에 멈춰 있지 않게 보던 줄로 되돌린다.
+      if (success) return;
+      const top = lineTops.value[viewIndex.value];
+      if (top != null) translateY.value = withSpring(focusTop.value - top, LINE_SPRING);
+    }), [dragStartIndex, dragStartY, focusTop, lineTops, positionSV, restY, selectLine, tickIndex, translateY, viewIndex]);
+
+  const columnStyle = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }] }));
+
+  const progress = useSharedValue(0);
+  const total = studyLines?.length ?? 0;
+  useEffect(() => {
+    progress.value = withTiming(total > 0 ? openedCount / total : 0, { duration: 500, easing: Easing.out(Easing.cubic) });
+  }, [openedCount, progress, total]);
+  const progressStyle = useAnimatedStyle(() => ({ transform: [{ scaleX: progress.value }] }));
+  const countLabel = studyLines != null ? `${openedCount}/${studyLines.length}줄` : null;
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <Pressable onPress={goBack} hitSlop={12} accessibilityRole="button" accessibilityLabel="뒤로">
-          <Feather name="chevron-left" size={26} color="#FFFFFF" />
-        </Pressable>
-        <Text style={styles.headerTitle} numberOfLines={1}>{data?.song.title ?? ''}</Text>
-        <Text style={styles.headerCount}>
-          {studyLines != null ? `${openedCount}/${studyLines.length}줄` : ''}
-        </Text>
-      </View>
+    <View style={styles.screen}>
+      <LinearGradient style={StyleSheet.absoluteFill} colors={FALLBACK_BACKDROP} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
+      {backdrop != null && (
+        <Animated.View key={backdrop.join()} pointerEvents="none" entering={FadeIn.duration(600)} style={StyleSheet.absoluteFill}>
+          <LinearGradient style={StyleSheet.absoluteFill} colors={backdrop} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
+        </Animated.View>
+      )}
+      {/* 밝은 커버에서도 흰 글자가 읽히게 위아래만 어둡게 누른다. */}
+      <LinearGradient
+        pointerEvents="none"
+        style={StyleSheet.absoluteFill}
+        colors={['#00000073', '#00000014', '#00000014', '#0000008C']}
+        locations={[0, 0.35, 0.6, 1]}
+      />
 
-      {videoId != null && (
+      <View style={{ height: insets.top }} />
+      {videoId != null ? (
         <View style={[styles.video, { height: Math.round(width * 9 / 16) }]}>
           {entryClip != null && <YouTubePlayer
             ref={playerRef}
@@ -215,80 +386,291 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
             onStateChange={handleStateChange}
             onTimeChange={handleTimeChange}
           />}
+          {waiting && !opened && (
+            // 유저가 MV 를 눌러 이어 틀 수 있게 터치는 통과시킨다.
+            <Animated.View
+              pointerEvents="none"
+              entering={FadeIn.duration(300)}
+              exiting={FadeOut.duration(200)}
+              style={styles.videoPaused}
+            >
+              {/* 멈춘 이유를 MV 자리에서 바로 말한다. 이유 없이 멈추면 고장이나 버퍼링으로 읽힌다. */}
+              <Text style={styles.videoPausedTitle}>모르는 단어가 있어 멈췄어요</Text>
+              <Text style={styles.videoPausedHint}>{`단어 ${current?.unseenCount ?? 0}개를 풀면 번역과 함께 다시 재생돼요`}</Text>
+            </Animated.View>
+          )}
+          <BackButton onPress={goBack} style={styles.backOverlay} />
+          {countLabel != null && <Text style={[styles.count, styles.countOverlay]}>{countLabel}</Text>}
+        </View>
+      ) : (
+        <View style={styles.bareTop}>
+          <BackButton onPress={goBack} />
+          {countLabel != null && <Text style={styles.count}>{countLabel}</Text>}
         </View>
       )}
+      {/* 제목·줄 수 줄을 따로 두면 가사 자리가 줄어서, 진행은 MV 아래 경계선 하나로만 보인다. */}
+      <View style={styles.progressTrack}>
+        <Animated.View style={[styles.progressFill, progressStyle]} />
+      </View>
 
-      <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
-        {previous != null && (
-          <Animated.View key={previous.line.index} entering={FadeIn.duration(LINE_MOTION_MS)} style={styles.previous}>
-            <Text style={styles.previousText}>{previous.line.originalText}</Text>
-            {previous.unseenCount === 0 && previous.line.koreanLyrics != null && (
-              <Text style={styles.previousTranslation}>{previous.line.koreanLyrics}</Text>
-            )}
-          </Animated.View>
-        )}
-
-        {current != null && (
-          <Animated.View key={current.line.index} entering={FadeInUp.duration(LINE_MOTION_MS)}>
-            <Text style={styles.lineText}>{current.line.originalText}</Text>
-            {current.line.koreanLyrics != null && (opened ? (
-              <Animated.Text entering={FadeIn.duration(REVEAL_MOTION_MS)} style={styles.translation}>
-                {current.line.koreanLyrics}
-              </Animated.Text>
-            ) : (
-              // 비어 있는 막대는 로딩처럼 보여서, 잠긴 칸은 자물쇠와 점선 테두리로 그린다.
-              <View style={styles.translationLocked}>
-                <Ionicons name="lock-closed" size={14} color="#FFFFFF66" />
-                <Text style={styles.translationLockedLabel}>모르는 단어를 풀면 번역이 열려요</Text>
-              </View>
+      <GestureDetector gesture={lyricsPan}>
+        <View style={styles.lyrics} onLayout={handleLyricsLayout}>
+          <Animated.View style={[styles.lyricsColumn, columnStyle]}>
+            {studyLines?.map((line, linePosition) => (
+              <StudyLyricLine
+                key={line.line.index}
+                line={line}
+                linePosition={linePosition}
+                scrollY={translateY}
+                focusTop={focusTop}
+                isFocused={linePosition === position}
+                isWaiting={waiting && linePosition === position}
+                isReached={furthest != null && linePosition <= furthest}
+                onLineLayout={handleLineLayout}
+              />
             ))}
-            {current.words.length > 0 && (
-              <View style={styles.words}>
-                {current.words.map(word => <LineWordRow key={word.japanese} word={word} />)}
-              </View>
-            )}
           </Animated.View>
-        )}
-      </ScrollView>
+        </View>
+      </GestureDetector>
+
+      {current != null && current.words.length > 0 && (
+        <Animated.View
+          entering={FadeIn.duration(260)}
+          exiting={FadeOut.duration(160)}
+          style={styles.words}
+        >
+          {/* 줄이 바뀌면 단어 묶음째 갈아 끼운다. 줄이 다 앉을 즈음 떠오르게 조금 늦춘다. */}
+          <LineWordList key={current.line.index} words={current.words} />
+        </Animated.View>
+      )}
 
       {current != null && (
         <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
           {canReplay && (
             <Pressable
               onPress={replay}
-              style={styles.replay}
+              style={({ pressed }) => [styles.replay, pressed && styles.pressed]}
               accessibilityRole="button"
               accessibilityLabel="이 줄 다시 듣기"
             >
-              <Ionicons name="play-back" size={20} color="#FFFFFF" />
+              <MaterialIcons name="replay" size={24} color="#FFFFFF" />
             </Pressable>
           )}
-          <Button
-            style={styles.primary}
-            size="lg"
-            label={opened ? (isLast ? '곡으로 돌아가기' : '다음 줄') : `단어 ${current.unseenCount}개 풀기`}
-            onPress={opened ? goNext : solveLine}
-          />
+          <CtaPulse style={styles.primary} active={waiting && !opened}>
+            <Button
+              size="lg"
+              label={opened ? (isLast ? '곡으로 돌아가기' : '다음 줄') : `단어 ${current.unseenCount}개 풀기`}
+              onPress={opened ? goNext : solveLine}
+            />
+          </CtaPulse>
         </View>
       )}
     </View>
   );
 }
 
-/** 누를 수 있는 칩처럼 보이지 않게 테두리 없는 행으로 둔다. 안 본 단어는 뜻 자리에 자물쇠만 둔다. */
-const LineWordRow = React.memo(function LineWordRow({ word }: { word: WordInSongItemDto }) {
-  const seen = isWordSeen(word);
+/** 앱바 대신 MV 위에 떠 있는 뒤로 버튼. MV 를 가리지 않게 작고 반투명하다. */
+const BackButton = React.memo(function BackButton({ onPress, style }: { onPress: () => void; style?: object }) {
   return (
-    <View style={styles.wordRow}>
+    <Pressable
+      onPress={onPress}
+      hitSlop={8}
+      style={({ pressed }) => [styles.back, style, pressed && styles.pressed]}
+      accessibilityRole="button"
+      accessibilityLabel="뒤로"
+    >
+      <Feather name="chevron-left" size={22} color="#FFFFFF" />
+    </Pressable>
+  );
+});
+
+/** 버튼 둘레로 두 겹이 엇갈려 번진다. MV 가 멈춘 이유가 이 버튼이라는 걸 가리킨다. */
+export const CtaPulse = React.memo(function CtaPulse({
+  active,
+  style,
+  children,
+}: {
+  active: boolean;
+  style: StyleProp<ViewStyle>;
+  children: React.ReactNode;
+}) {
+  const scale = useSharedValue(1);
+  useEffect(() => {
+    if (!active) {
+      cancelAnimation(scale);
+      scale.value = withTiming(1, { duration: 150 });
+      return;
+    }
+    scale.value = withRepeat(withSequence(
+      withTiming(CTA_PULSE_SCALE, { duration: 220, easing: Easing.out(Easing.quad) }),
+      withTiming(1, { duration: 380, easing: Easing.inOut(Easing.quad) }),
+      withTiming(1, { duration: RIPPLE_MS - 600 }),
+    ), -1);
+  }, [active, scale]);
+  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  return (
+    <View style={style}>
+      {active && (
+        <>
+          <RippleRing delay={0} />
+          <RippleRing delay={RIPPLE_MS / 2} />
+        </>
+      )}
+      <Animated.View style={animatedStyle}>{children}</Animated.View>
+    </View>
+  );
+});
+
+const RippleRing = React.memo(function RippleRing({ delay }: { delay: number }) {
+  const progress = useSharedValue(0);
+  useEffect(() => {
+    progress.value = withDelay(delay, withRepeat(withTiming(1, { duration: RIPPLE_MS, easing: Easing.out(Easing.quad) }), -1));
+    return () => cancelAnimation(progress);
+  }, [delay, progress]);
+  const style = useAnimatedStyle(() => {
+    const spread = progress.value * RIPPLE_SPREAD;
+    return { top: -spread, bottom: -spread, left: -spread, right: -spread, opacity: 0.45 * (1 - progress.value) };
+  });
+  return <Animated.View pointerEvents="none" style={[styles.ripple, style]} />;
+});
+
+interface StudyLyricLineProps {
+  line: StudyLine;
+  linePosition: number;
+  scrollY: SharedValue<number>;
+  focusTop: SharedValue<number>;
+  isFocused: boolean;
+  isWaiting: boolean;
+  isReached: boolean;
+  onLineLayout: (linePosition: number, y: number) => void;
+}
+
+/** 지나온 열린 줄엔 번역이 남는다. 아직 안 온 줄은 가사만 보여 번역을 미리 흘리지 않는다. */
+const StudyLyricLine = React.memo(function StudyLyricLine({
+  line,
+  linePosition,
+  scrollY,
+  focusTop,
+  isFocused,
+  isWaiting,
+  isReached,
+  onLineLayout,
+}: StudyLyricLineProps) {
+  const top = useSharedValue(0);
+  const handleLayout = useCallback((event: LayoutChangeEvent) => {
+    top.value = event.nativeEvent.layout.y;
+    onLineLayout(linePosition, event.nativeEvent.layout.y);
+  }, [linePosition, onLineLayout, top]);
+  // 지금 줄 번호가 아니라 화면 위치로 흐림을 정해, 지나온 줄로 끌어 올리면 그 줄이 또렷해진다.
+  const animatedStyle = useAnimatedStyle(() => {
+    const distance = Math.abs(top.value + scrollY.value - focusTop.value) / LINE_PITCH;
+    return {
+      opacity: interpolate(distance, DISTANCE_STEPS, DISTANCE_OPACITY, Extrapolation.CLAMP),
+      transform: [{ scale: interpolate(distance, [0, 1], [1, 0.94], Extrapolation.CLAMP) }],
+    };
+  });
+  const opened = line.unseenCount === 0;
+  const translation = line.line.koreanLyrics;
+
+  return (
+    <Animated.View onLayout={handleLayout} style={[styles.lyricLine, animatedStyle]}>
+      <Text style={styles.lyricText}>{line.line.originalText}</Text>
+      {isReached && opened && translation != null && (
+        <Animated.Text entering={FadeIn.duration(REVEAL_MOTION_MS)} style={styles.lyricTranslation}>
+          {translation}
+        </Animated.Text>
+      )}
+      {isFocused && !opened && translation != null && (
+        // 비어 있는 막대는 로딩처럼 보여서, 잠긴 칸은 자물쇠와 점선 테두리로 그린다.
+        <Animated.View entering={FadeIn.duration(REVEAL_MOTION_MS).delay(120)}>
+          <LockedTranslation waiting={isWaiting} />
+        </Animated.View>
+      )}
+    </Animated.View>
+  );
+});
+
+/** MV 가 이 줄에서 멈춰 있는 동안엔 칸이 숨 쉬듯 밝아졌다 흐려진다. */
+const LockedTranslation = React.memo(function LockedTranslation({ waiting }: { waiting: boolean }) {
+  const pulse = useSharedValue(0);
+  useEffect(() => {
+    if (!waiting) {
+      cancelAnimation(pulse);
+      pulse.value = withTiming(0, { duration: 200 });
+      return;
+    }
+    pulse.value = withRepeat(withTiming(1, { duration: 900, easing: Easing.inOut(Easing.quad) }), -1, true);
+  }, [pulse, waiting]);
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: 0.65 + 0.35 * pulse.value,
+    borderColor: `rgba(255, 255, 255, ${0.25 + 0.4 * pulse.value})`,
+  }));
+  return (
+    <Animated.View style={[styles.translationLocked, animatedStyle]}>
+      <Ionicons name="lock-closed" size={13} color="#FFFFFFB3" />
+      <Text style={styles.translationLockedLabel}>모르는 단어를 풀면 번역이 열려요</Text>
+    </Animated.View>
+  );
+});
+
+/** 단어가 많아 칸을 넘치면 아직 안 본 첫 단어가 칸 맨 위에 오게 내린다. 아는 단어부터 읽고 내려가지 않게. */
+export const LineWordList = React.memo(function LineWordList({ words }: { words: readonly WordInSongItemDto[] }) {
+  const scrollRef = useRef<ScrollView>(null);
+  const rowTopsRef = useRef<number[]>([]);
+  const firstUnseen = words.findIndex(word => !isWordSeen(word));
+
+  const scrollToFirstUnseen = useCallback((animated: boolean) => {
+    const top = firstUnseen >= 0 ? rowTopsRef.current[firstUnseen] : undefined;
+    if (top != null) scrollRef.current?.scrollTo({ y: top, animated });
+  }, [firstUnseen]);
+
+  // 단어를 풀고 돌아오면 첫 안 본 단어가 바뀐다.
+  useEffect(() => {
+    scrollToFirstUnseen(true);
+  }, [scrollToFirstUnseen]);
+
+  const handleRowLayout = useCallback((index: number, y: number) => {
+    rowTopsRef.current[index] = y;
+    if (index === firstUnseen) scrollToFirstUnseen(false);
+  }, [firstUnseen, scrollToFirstUnseen]);
+
+  return (
+    <ScrollView ref={scrollRef} style={styles.wordsScroll}>
+      <Animated.View entering={FadeIn.duration(260).delay(120)}>
+        {words.map((word, index) => (
+          <LineWordRow key={word.japanese} word={word} index={index} onRowLayout={handleRowLayout} />
+        ))}
+      </Animated.View>
+    </ScrollView>
+  );
+});
+
+/** 누를 수 있는 칩처럼 보이지 않게 테두리 없는 행으로 둔다. 안 본 단어는 뜻 자리에 자물쇠만 둔다. */
+interface LineWordRowProps {
+  word: WordInSongItemDto;
+  index: number;
+  onRowLayout: (index: number, y: number) => void;
+}
+
+const LineWordRow = React.memo(function LineWordRow({ word, index, onRowLayout }: LineWordRowProps) {
+  const seen = isWordSeen(word);
+  const handleLayout = useCallback(
+    (event: LayoutChangeEvent) => onRowLayout(index, event.nativeEvent.layout.y),
+    [index, onRowLayout],
+  );
+  const readingDisplay = useSettingsStore(s => s.readingDisplay);
+  const reading = word.reading != null ? convertReading(word.reading, readingDisplay) : null;
+  return (
+    <View style={styles.wordRow} onLayout={handleLayout}>
       <Ionicons
         name={seen ? 'checkmark-circle' : 'ellipse-outline'}
         size={16}
-        color={seen ? Colors.primary : '#FFFFFF4D'}
+        color={seen ? Colors.primary : '#FFFFFF59'}
       />
       <Text style={[styles.wordText, !seen && styles.wordTextUnseen]} numberOfLines={1}>
         {word.surface}
-        {word.reading != null && word.reading !== word.surface && (
-          <Text style={styles.wordReading}>{`  ${word.reading}`}</Text>
+        {reading != null && reading !== word.surface && (
+          <Text style={styles.wordReading}>{`  ${reading}`}</Text>
         )}
       </Text>
       {seen ? (
@@ -296,7 +678,7 @@ const LineWordRow = React.memo(function LineWordRow({ word }: { word: WordInSong
           {word.koreanText ?? ''}
         </Animated.Text>
       ) : (
-        <Ionicons name="lock-closed" size={13} color="#FFFFFF4D" style={styles.wordMeaningLocked} />
+        <Ionicons name="lock-closed" size={13} color="#FFFFFF59" style={styles.wordMeaningLocked} />
       )}
     </View>
   );
@@ -305,91 +687,137 @@ const LineWordRow = React.memo(function LineWordRow({ word }: { word: WordInSong
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#14181C',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    height: 52,
-  },
-  headerTitle: {
-    ...Typography.bodySemiBold,
-    flex: 1,
-    color: '#FFFFFF',
-    fontSize: 16,
-  },
-  headerCount: {
-    ...Typography.bodyMedium,
-    color: '#FFFFFF99',
-    fontSize: 14,
+    backgroundColor: FALLBACK_BACKDROP[1],
   },
   video: {
     backgroundColor: '#000000',
   },
-  body: {
-    flex: 1,
+  bareTop: {
+    height: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
   },
-  bodyContent: {
+  back: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#00000059',
+  },
+  videoPaused: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
     paddingHorizontal: 24,
-    paddingTop: 28,
-    paddingBottom: 24,
+    backgroundColor: '#000000A6',
   },
-  previous: {
-    gap: 4,
-    marginBottom: 28,
+  videoPausedTitle: {
+    ...Typography.bodyBold,
+    color: '#FFFFFF',
+    fontSize: 16,
+    textAlign: 'center',
   },
-  previousText: {
-    ...Typography.body,
-    color: '#FFFFFF66',
-    fontSize: 15,
-  },
-  previousTranslation: {
-    ...Typography.body,
-    color: '#FFFFFF4D',
+  videoPausedHint: {
+    ...Typography.bodyMedium,
+    color: '#FFFFFFB3',
     fontSize: 13,
+    textAlign: 'center',
   },
-  lineText: {
+  backOverlay: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+  },
+  pressed: {
+    opacity: 0.7,
+  },
+  count: {
+    ...Typography.bodySemiBold,
+    color: '#FFFFFFCC',
+    fontSize: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 9999,
+    overflow: 'hidden',
+    backgroundColor: '#00000059',
+  },
+  countOverlay: {
+    position: 'absolute',
+    top: 16,
+    right: 12,
+  },
+  progressTrack: {
+    height: 2,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF1F',
+  },
+  progressFill: {
+    flex: 1,
+    backgroundColor: '#FFFFFFCC',
+    transformOrigin: 'left',
+  },
+  lyrics: {
+    flex: 1,
+    overflow: 'hidden',
+  },
+  lyricsColumn: {
+    paddingHorizontal: 24,
+  },
+  lyricLine: {
+    paddingVertical: 12,
+    transformOrigin: 'left center',
+  },
+  lyricText: {
     ...Typography.headingBold,
     color: '#FFFFFF',
-    fontSize: 26,
-    lineHeight: 36,
+    fontSize: 24,
+    lineHeight: 34,
   },
-  translation: {
+  lyricTranslation: {
     ...Typography.bodyMedium,
-    color: '#FFFFFFCC',
-    fontSize: 17,
-    lineHeight: 25,
-    marginTop: 10,
+    color: '#FFFFFFB3',
+    fontSize: 16,
+    lineHeight: 23,
+    marginTop: 6,
   },
   translationLocked: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
     gap: 6,
-    marginTop: 12,
+    marginTop: 10,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 7,
     borderRadius: 10,
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: '#FFFFFF33',
+    borderColor: '#FFFFFF40',
   },
   translationLockedLabel: {
     ...Typography.bodyMedium,
-    color: '#FFFFFF66',
-    fontSize: 14,
+    color: '#FFFFFF80',
+    fontSize: 13,
   },
   words: {
-    gap: 4,
-    marginTop: 24,
+    marginHorizontal: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 18,
+    backgroundColor: '#0000002E',
+  },
+  wordsScroll: {
+    flexGrow: 0,
+    maxHeight: WORDS_MAX_HEIGHT,
   },
   wordRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingVertical: 6,
+    paddingVertical: 7,
   },
   wordText: {
     ...Typography.bodySemiBold,
@@ -398,18 +826,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   wordTextUnseen: {
-    color: '#FFFFFF99',
+    color: '#FFFFFFA6',
   },
   wordReading: {
     ...Typography.body,
-    color: '#FFFFFF66',
+    color: '#FFFFFF73',
     fontSize: 12,
   },
   wordMeaning: {
     ...Typography.body,
     flex: 1,
     textAlign: 'right',
-    color: '#FFFFFFB3',
+    color: '#FFFFFFBF',
     fontSize: 14,
   },
   wordMeaningLocked: {
@@ -420,7 +848,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingTop: 14,
   },
   replay: {
     width: 52,
@@ -428,9 +856,20 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF1F',
+    backgroundColor: '#FFFFFF24',
   },
   primary: {
     flex: 1,
   },
+  // 테두리만 두면 어두운 배경에서 잘 안 보여 면으로 번진다.
+  ripple: {
+    position: 'absolute',
+    borderRadius: 9999,
+    backgroundColor: Colors.primary,
+  },
 });
+
+function rubberBand(distance: number): number {
+  'worklet';
+  return RUBBER_LIMIT * (1 - 1 / (distance / RUBBER_LIMIT * 0.55 + 1));
+}

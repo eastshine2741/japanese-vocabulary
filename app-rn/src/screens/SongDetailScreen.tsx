@@ -56,6 +56,7 @@ import {
   useSongDetailWordsTab,
 } from '../components/songDetail';
 import { pickLineWords, pickSampleLyric } from '../components/songDetail/songCardSample';
+import { buildStudyLines } from '../components/lineStudy/studyLines';
 import type { PreviewSong } from '../components/rewardCards/cardPreview';
 import { Colors, Dimens } from '../theme/theme';
 import { Layers } from '../theme/layers';
@@ -280,6 +281,10 @@ export default function SongDetailScreen({ navigation, route }: Props) {
       words: pickLineWords(data.words.words, lyric.map(line => line.index)),
     };
   }, [data]);
+  const studyLines = useMemo(() => (data == null || songTiers == null || data.lyrics.mvSynced !== true
+    ? null
+    : buildStudyLines(data.lyrics.lines, data.words.words, data.words.lineWordIndexes, songTiers)
+  ), [data, songTiers]);
   const currentTier = useMemo(
     () => (songTiers != null ? selectCurrentTier(songTiers) : null),
     [songTiers],
@@ -688,7 +693,8 @@ export default function SongDetailScreen({ navigation, route }: Props) {
                     contributors={songContributors}
                     onCoverageHelpPress={handleOpenCoverageHelp}
                     onStartTier={handleStartTier}
-                    onStartLines={lyrics.mvSynced === true ? handleStartLines : null}
+                    studyLines={studyLines}
+                    onStartLines={handleStartLines}
                     onPressContributor={handlePressContributor}
                   />
                 </View>

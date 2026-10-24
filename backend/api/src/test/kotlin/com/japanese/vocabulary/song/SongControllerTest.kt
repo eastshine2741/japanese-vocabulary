@@ -834,6 +834,39 @@ class SongControllerTest : ApiBaseIntegrationTest() {
         }
 
         @Test
+        fun `word is studied only when its card has been reviewed once`() {
+            val me = newUser()
+            val song = newSong()
+            val wordCandidates = LyricWordCandidates(
+                candidates = listOf(
+                    candidate("復習済み", 99.0, 0, listOf(0), "N3", "NOUN"),
+                    candidate("담기만함", 90.0, 1, listOf(0), "N3", "NOUN"),
+                    candidate("안담음", 80.0, 2, listOf(0), "N3", "NOUN"),
+                ),
+                lineCandidates = mapOf("0" to listOf(0, 1, 2)),
+            )
+            newLyric(
+                song,
+                raw = listOf(LyricLineData(index = 0, startTimeMs = null, text = "復習済み담기만함안담음")),
+                wordCandidates = wordCandidates,
+            )
+            val reviewed = TestWordBuilder(entityManager).forUser(me).withJapaneseText("復習済み").build()
+            TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(reviewed).lastReviewedAt(Instant.now(clock)).build()
+            val savedOnly = TestWordBuilder(entityManager).forUser(me).withJapaneseText("담기만함").build()
+            TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(savedOnly).build()
+            entityManager.flush()
+
+            val dto = readBody<WordsInSongDto>(mockMvc.get("/api/songs/${song.id}/words") {
+                header("Authorization", bearer(me))
+            }.andExpect {
+                status { isOk() }
+            }.andReturn().response.contentAsString)
+
+            assertThat(dto.words.associate { it.japanese to it.isStudied })
+                .containsExactlyInAnyOrderEntriesOf(mapOf("復習済み" to true, "담기만함" to false, "안담음" to false))
+        }
+
+        @Test
         fun `same japanese candidates become separate senses of one song detail word`() {
             val me = newUser()
             val song = newSong()

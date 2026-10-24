@@ -119,6 +119,8 @@ export interface WordInSongItemDto {
   isSavedForSong: boolean;
   savedWordId: number | null;
   addRequest: AddWordRequest;
+  /** 이 단어 카드를 한 번이라도 리뷰했다. 구버전 서버는 안 내려준다. */
+  isStudied?: boolean;
 }
 
 export interface WordsInSongDto {

@@ -13,9 +13,12 @@ export interface StudyLine {
   clipEndMs: number | null;
 }
 
-/** rating 하면 곡 단어장에 담기므로 담긴 단어는 본 단어다. 다른 곡에서 담은 단어도 센다. */
+/**
+ * 한 번이라도 리뷰한 단어가 본 단어다. 줄 학습 세션이 '처음 보는 단어'(REMAINING)만 묻기 때문에 같은 기준이어야
+ * 'N개 풀기' 버튼과 세션 장수가 맞는다. 담기만 하고 안 본 단어는 안 본 단어다. 구버전 서버는 담김 여부로 대신한다.
+ */
 export function isWordSeen(word: WordInSongItemDto): boolean {
-  return word.isSavedForSong || word.isSavedGlobally;
+  return word.isStudied ?? (word.isSavedForSong || word.isSavedGlobally);
 }
 
 /** 단계 카드의 `japanese` 는 저장 키이거나 단어 표기라 둘 다 싣는다. */
@@ -64,4 +67,36 @@ export function buildStudyLines(
 export function firstLockedPosition(studyLines: readonly StudyLine[]): number {
   const position = studyLines.findIndex(line => line.unseenCount > 0);
   return position < 0 ? 0 : position;
+}
+
+/** 이보다 빠르게 튕기면 손 뗀 자리가 같은 줄이어도 한 줄 넘긴다. */
+const FLICK_VELOCITY = 500;
+
+/**
+ * 손을 뗀 자리에서 지금 줄 자리에 가장 가까운 줄로 앉힌다. 관성으로 굴러가지 않고 줄 단위로만 멈춘다.
+ * 아직 안 온 줄([maxIndex] 너머)로는 가지 않는다.
+ */
+export function snapLineIndex(
+  lineTops: readonly number[],
+  offsetY: number,
+  focusTop: number,
+  startIndex: number,
+  velocityY: number,
+  maxIndex: number,
+): number {
+  'worklet';
+  let nearest = startIndex;
+  let nearestDistance = Infinity;
+  for (let i = 0; i <= maxIndex && i < lineTops.length; i += 1) {
+    const distance = Math.abs(lineTops[i] + offsetY - focusTop);
+    if (distance < nearestDistance) {
+      nearest = i;
+      nearestDistance = distance;
+    }
+  }
+  if (nearest === startIndex && Math.abs(velocityY) > FLICK_VELOCITY) {
+    // 아래로 튕기면(양수) 지나온 줄로 간다.
+    nearest = startIndex + (velocityY > 0 ? -1 : 1);
+  }
+  return Math.max(0, Math.min(maxIndex, nearest));
 }

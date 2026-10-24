@@ -21,4 +21,6 @@ data class WordInSongItemDto(
     val isSavedForSong: Boolean,
     val savedWordId: Long?,
     val addRequest: AddWordRequest,
+    /** 이 단어 카드를 한 번이라도 리뷰했다. 단계·줄 학습 카드가 '처음 보는 단어'로 고르는 기준(REMAINING)의 반대다. */
+    val isStudied: Boolean = false,
 )
