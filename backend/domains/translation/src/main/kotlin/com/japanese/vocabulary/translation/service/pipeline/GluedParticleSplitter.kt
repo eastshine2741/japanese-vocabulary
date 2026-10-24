@@ -152,7 +152,7 @@ class GluedParticleSplitter(
 
     /**
      * Every katakana the particle can appear as, spelled or sung, because the model writes either.
-     * Which one is stored is [JapaneseText.particleReading]'s call.
+     * Which one is stored is `SungReading`'s call.
      */
     private fun spokenReadings(particle: Char): Set<Char> =
         setOfNotNull(

@@ -135,7 +135,7 @@ export const SongDetailTierJourney = React.memo(function SongDetailTierJourney({
             onRewardPress={handleOpenReward}
           />
         ))}
-        {tiers.length >= 3 && <MasterRewardBanner song={song} progress={cardProgress} state={masterState} onPress={handleOpenMaster} />}
+        {tiers.length >= 3 && masterState !== 'owned' && <MasterRewardBanner song={song} progress={cardProgress} state={masterState} onPress={handleOpenMaster} />}
       </LayoutAnimationConfig>
     </View>
   );
@@ -370,7 +370,7 @@ export const TierRewardBanner = React.memo(function TierRewardBanner({
   tier: SongWordTierDto;
   song: PreviewSong;
   level: CardLevel;
-  state: RewardState;
+  state: Exclude<RewardState, 'owned'>;
   onPress: (level: CardLevel) => void;
 }) {
   const card = useMemo(() => songCardPreview(song, level, false), [song, level]);
@@ -381,9 +381,7 @@ export const TierRewardBanner = React.memo(function TierRewardBanner({
   const material = LEVEL_MATERIAL[level];
   const [caption, title] = state === 'claim'
     ? ['이 단계를 끝냈어요', `${name} 카드 받기`]
-    : state === 'owned'
-      ? ['이 단계를 끝냈어요', `${name} 카드를 받았어요`]
-      : ['이 단계를 끝내면', `${name} 카드를 받아요`];
+    : ['이 단계를 끝내면', `${name} 카드를 받아요`];
   return (
     <RewardBanner
       card={card}
@@ -410,16 +408,14 @@ export const MasterRewardBanner = React.memo(function MasterRewardBanner({
 }: {
   song: PreviewSong;
   progress: SongCardProgress;
-  state: RewardState;
+  state: Exclude<RewardState, 'owned'>;
   onPress: () => void;
 }) {
   const card = useMemo(() => songCardPreview(song, 3, true), [song]);
   const percent = Math.round(progress.longTermRatio * 100);
   const [caption, title] = state === 'claim'
     ? ['단어의 90%를 장기기억했어요', `${SONG_MASTER_NAME} 카드 받기`]
-    : state === 'owned'
-      ? ['단어의 90%를 장기기억했어요', `${SONG_MASTER_NAME} 카드를 받았어요`]
-      : [progress.level === 3 ? '단어의 90%를 장기기억하면' : '완곡 후 단어의 90%를 장기기억하면', `${SONG_MASTER_NAME} 카드를 받아요`];
+    : [progress.level === 3 ? '단어의 90%를 장기기억하면' : '완곡 후 단어의 90%를 장기기억하면', `${SONG_MASTER_NAME} 카드를 받아요`];
   const showProgress = state === 'progress' && progress.level === 3;
   return (
     <Animated.View layout={relayout}>
@@ -546,7 +542,8 @@ const ExpandedTierCard = React.memo(function ExpandedTierCard({
       </View>
       <MemoryHelpSheet ref={helpSheetRef} />
 
-      {reward != null && (
+      {/* 이미 받은 카드는 카드 컬렉션에 있으니 배너로 다시 알리지 않는다. */}
+      {reward != null && rewardState !== 'owned' && (
         <TierRewardBanner tier={tier} song={song} level={reward} state={rewardState} onPress={onRewardPress} />
       )}
 

@@ -8,6 +8,8 @@ Admin song detail can trigger existing-song reanalysis with `POST /admin/api/son
 
 `/api/songs/analyze` does not synchronously fetch lyrics, YouTube data, or provider data. It immediately returns work status. The user app shows the work in the analysis pill and polls `/api/songs/analysis-work/{workId}`; the song only exists once the work is `COMPLETED`, and the app opens it when the user taps the finished pill, never on its own.
 
+The poll response carries `progress` (0..1), which the pill fills its background with. The server computes it from the stage order weighted by measured stage durations plus time spent in the current stage, so the app never interprets stage names. `ANALYZE_LYRICS` takes about two thirds of a run, so counting stages would leave the bar still for most of the wait. Re-measure the weights in `SongAnalysisProgress` when a stage's cost changes.
+
 ## Flow
 
 1. **Trigger** (`api`/`admin-api` + `song-analysis`): analyze request -> `SongAnalysisWorkService.createOrReuse()` -> returns existing active raw `title|artist` workId or creates `song_analysis_work(PENDING)`.
@@ -49,7 +51,7 @@ The listener runs each stage with `runBlocking(Dispatchers.IO)`: the listener th
 - `USER_APP`: user app `/api/songs/analyze`
 - `ADMIN`: reserved for admin-triggered analysis
 - `RECOMMENDATION`: no longer created; kept because existing rows store it
-- `KARAOKE`: batch `karaoke-collect` for a newly listed karaoke song without an analyzed song (`docs/karaoke-new-songs.md`)
+- `KARAOKE`: batch `karaoke-tj`/`karaoke-ky` for a newly listed karaoke song without an analyzed song (`docs/karaoke-new-songs.md`)
 
 
 ## One Active Work Per Song

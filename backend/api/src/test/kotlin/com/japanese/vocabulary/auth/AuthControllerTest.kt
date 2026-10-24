@@ -16,6 +16,8 @@ import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.test.ApiBaseIntegrationTest
 import com.japanese.vocabulary.test.fixtures.TestUserBuilder
 import com.japanese.vocabulary.user.repository.UserRepository
+import com.japanese.vocabulary.userinventory.entity.InventoryItemType
+import com.japanese.vocabulary.userinventory.service.UserInventoryService
 import io.mockk.every
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Nested
@@ -34,6 +36,7 @@ class AuthControllerTest : ApiBaseIntegrationTest() {
     @Autowired private lateinit var objectMapper: ObjectMapper
     @Autowired private lateinit var userRepository: UserRepository
     @Autowired private lateinit var jwtUtil: JwtUtil
+    @Autowired private lateinit var userInventoryService: UserInventoryService
 
     private fun newUserBuilder() = TestUserBuilder(entityManager)
 
@@ -213,6 +216,20 @@ class AuthControllerTest : ApiBaseIntegrationTest() {
             assertThat(persisted!!.username).isEqualTo("freshuser")
             assertThat(persisted.email).isEqualTo("fresh@example.com")
             assertThat(jwtUtil.getUserId(body.token)).isEqualTo(persisted.id)
+        }
+
+        @Test
+        fun `signup grants 3 streak freezes`() {
+            every { googleOidcService.verify("token") } returns
+                VerifiedGoogleIdentity(sub = "freeze-sub", email = null, name = null)
+
+            postJson(
+                "/api/auth/google/signup",
+                GoogleSignupRequest(idToken = "token", username = "freezeuser", displayName = null),
+            ).andExpect { status { isOk() } }
+
+            val persisted = userRepository.findByProviderAndProviderSub("google", "freeze-sub")!!
+            assertThat(userInventoryService.quantityOf(persisted.id!!, InventoryItemType.STREAK_FREEZE)).isEqualTo(3)
         }
 
         @Test

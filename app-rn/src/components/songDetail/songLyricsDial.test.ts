@@ -8,6 +8,7 @@ import {
   buildSlotLayouts,
   buildTokenCells,
   getTokenBarColor,
+  slotPositionAt,
   stepTargetIndex,
 } from './songLyricsDial';
 import type { CurrentPlayingLyricLine, CurrentPlayingWord } from './CurrentPlayingWordsSheet';
@@ -153,5 +154,21 @@ describe('stepTargetIndex', () => {
   it('가사 양 끝을 넘어가지 않는다', () => {
     expect(stepTargetIndex(1, 1000, 20)).toBe(0);
     expect(stepTargetIndex(18, -1000, 20)).toBe(19);
+  });
+});
+
+describe('slotPositionAt', () => {
+  const layouts = buildSlotLayouts(3, { 1: 200 });
+  const center = (i: number) => layouts[i].top + layouts[i].height / 2;
+
+  it('줄 가운데에선 그 줄, 두 줄 가운데 사이에선 거리 비율만큼', () => {
+    expect(slotPositionAt(layouts, center(1))).toBe(1);
+    expect(slotPositionAt(layouts, (center(1) + center(2)) / 2)).toBeCloseTo(1.5);
+  });
+
+  it('양 끝 밖은 끝 줄에 붙는다', () => {
+    expect(slotPositionAt(layouts, -500)).toBe(0);
+    expect(slotPositionAt(layouts, 5000)).toBe(2);
+    expect(slotPositionAt([], 10)).toBe(0);
   });
 });

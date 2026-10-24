@@ -7,6 +7,7 @@ const ANALYSIS_PILL_DOCK_KEY = 'analysis_pill_dock';
 const CARD_WEAR_INTRO_SEEN_KEY = 'card_wear_intro_seen';
 const STREAK_REMINDER_ASK_SNOOZED_AT_KEY = 'streak_reminder_ask_snoozed_at';
 const HAPTICS_ENABLED_KEY = 'haptics_enabled';
+const SHOW_LYRIC_TRANSLATION_KEY = 'show_lyric_translation';
 
 export type AnalysisPillDock = 'top' | 'bottom';
 
@@ -44,6 +45,12 @@ export const preferenceStorage = Platform.OS === 'web'
       async saveHapticsEnabled(enabled: boolean): Promise<void> {
         localStorage.setItem(HAPTICS_ENABLED_KEY, enabled ? '1' : '0');
       },
+      async getShowLyricTranslation(): Promise<boolean> {
+        return localStorage.getItem(SHOW_LYRIC_TRANSLATION_KEY) !== '0';
+      },
+      async saveShowLyricTranslation(show: boolean): Promise<void> {
+        localStorage.setItem(SHOW_LYRIC_TRANSLATION_KEY, show ? '1' : '0');
+      },
     }
   : {
       async getAnalysisPillDock(): Promise<AnalysisPillDock | null> {
@@ -70,5 +77,11 @@ export const preferenceStorage = Platform.OS === 'web'
       },
       async saveHapticsEnabled(enabled: boolean): Promise<void> {
         await SecureStore.setItemAsync(HAPTICS_ENABLED_KEY, enabled ? '1' : '0');
+      },
+      async getShowLyricTranslation(): Promise<boolean> {
+        return (await SecureStore.getItemAsync(SHOW_LYRIC_TRANSLATION_KEY)) !== '0';
+      },
+      async saveShowLyricTranslation(show: boolean): Promise<void> {
+        await SecureStore.setItemAsync(SHOW_LYRIC_TRANSLATION_KEY, show ? '1' : '0');
       },
     };

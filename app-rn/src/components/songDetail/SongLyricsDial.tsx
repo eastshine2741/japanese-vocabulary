@@ -14,6 +14,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { useLyricTranslationStore } from '../../stores/lyricTranslationStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { convertLineReading } from '../../utils/readingConverter';
 import ReportIcon from '../ReportIcon';
@@ -24,6 +25,7 @@ import {
   TokenCell,
   buildSlotLayouts,
   buildTokenCells,
+  slotPositionAt,
   stepTargetIndex,
 } from './songLyricsDial';
 import type { CurrentPlayingLyricLine, CurrentPlayingWord } from './CurrentPlayingWordsSheet';
@@ -41,7 +43,7 @@ const MODE_TIMING = { duration: 200, easing: Easing.out(Easing.cubic) };
 const DETAIL_FADE_IN_MS = 260;
 const DETAIL_FADE_IN_DELAY_MS = 90;
 const DETAIL_FADE_OUT_MS = 160;
-/** 줄이 넘어갈 때 밝기가 옮겨 가는 시간. */
+/** 손을 뗀 뒤 후보 줄 기준이 옮겨 가는 시간. 물러남이 풀리는 동안만 밝기에 섞인다. */
 const LINE_FADE_MS = 360;
 /** 드래그 중 후보 줄로 띠가 미끄러지는 시간. */
 const HIGHLIGHT_SLIDE_MS = 150;
@@ -135,6 +137,7 @@ const LyricLine = React.memo(function LyricLine({
 }: LyricLineProps) {
   const showFurigana = useSettingsStore(s => s.showFurigana);
   const showKoreanPronunciation = useSettingsStore(s => s.showKoreanPronunciation);
+  const showTranslation = useLyricTranslationStore(s => s.show);
   const cells = useMemo(() => buildTokenCells(line, words), [line, words]);
   // 토큰에서 조립한다 — 단어 사이는 띄고, 받침은 토큰 경계를 넘고, 장음은 넘지 않는다.
   const koreanPronunciation = useMemo(
@@ -145,6 +148,7 @@ const LyricLine = React.memo(function LyricLine({
   );
   const hasFurigana = showFurigana && cells.some(cell => cell.furigana);
   const hasMeaning = cells.some(cell => cell.meaning);
+  const translation = showTranslation ? line.koreanLyrics : null;
 
   // 처음 그려질 때는 제자리 값으로 시작한다 — 창 안으로 들어온 줄이 깜빡이지 않게.
   const detailOpacity = useSharedValue(isFocused ? 1 : 0);
@@ -160,39 +164,38 @@ const LyricLine = React.memo(function LyricLine({
 
   return (
     <View style={styles.lineBand}>
-      {cells.length > 0 ? (
-        <View style={styles.tokenRow}>
-          {cells.map(cell => (
-            <TokenCellView
-              key={cell.key}
-              cell={cell}
-              showFurigana={hasFurigana}
-              showMeaning={hasMeaning}
-              detailStyle={detailStyle}
-              isBusy={cell.word != null && busyWordKey === getSongDetailWordKey(cell.word)}
-              onPress={onWordPress}
-            />
-          ))}
-        </View>
-      ) : (
-        <Text style={styles.plainText}>{line.originalText}</Text>
-      )}
+      {/* 제보 버튼은 가사 줄 끝에 둔다 — 번역 옆에 두면 번역을 끄거나 없을 때 버튼만 남은 빈 줄이 생긴다. */}
+      <View style={styles.lineTextRow}>
+        {cells.length > 0 ? (
+          <View style={styles.tokenRow}>
+            {cells.map(cell => (
+              <TokenCellView
+                key={cell.key}
+                cell={cell}
+                showFurigana={hasFurigana}
+                showMeaning={hasMeaning}
+                detailStyle={detailStyle}
+                isBusy={cell.word != null && busyWordKey === getSongDetailWordKey(cell.word)}
+                onPress={onWordPress}
+              />
+            ))}
+          </View>
+        ) : (
+          <Text style={styles.plainText}>{line.originalText}</Text>
+        )}
+        {onReportLine ? (
+          <Animated.View style={detailStyle}>
+            <LineReportButton line={line} onPress={onReportLine} />
+          </Animated.View>
+        ) : null}
+      </View>
 
-      {koreanPronunciation || line.koreanLyrics || onReportLine ? (
+      {koreanPronunciation || translation ? (
         <View style={styles.lineMeaning}>
           {koreanPronunciation ? (
             <Text style={styles.lineReadingText}>{koreanPronunciation}</Text>
           ) : null}
-          {line.koreanLyrics || onReportLine ? (
-            <View style={styles.lineKoreanRow}>
-              <Text style={styles.lineKoreanText}>{line.koreanLyrics ?? ''}</Text>
-              {onReportLine ? (
-                <Animated.View style={detailStyle}>
-                  <LineReportButton line={line} onPress={onReportLine} />
-                </Animated.View>
-              ) : null}
-            </View>
-          ) : null}
+          {translation ? <Text style={styles.lineKoreanText}>{translation}</Text> : null}
         </View>
       ) : null}
     </View>
@@ -263,7 +266,7 @@ interface SlotProps {
   isFocused: boolean;
   slotTop: number;
   busyWordKey: string | null;
-  candidatePosition: SharedValue<number>;
+  focusPosition: SharedValue<number>;
   dynamicProgress: SharedValue<number>;
   stackY: SharedValue<number>;
   trailY: SharedValue<number>;
@@ -278,7 +281,7 @@ const Slot = React.memo(function Slot({
   isFocused,
   slotTop,
   busyWordKey,
-  candidatePosition,
+  focusPosition,
   dynamicProgress,
   stackY,
   trailY,
@@ -294,7 +297,7 @@ const Slot = React.memo(function Slot({
   const animStyle = useAnimatedStyle(() => ({
     transform: [{
       translateY: (trailY.value - stackY.value) * interpolate(
-        index - candidatePosition.value,
+        index - focusPosition.value,
         [0, TRAIL_SPREAD],
         [0, 1],
         Extrapolation.CLAMP,
@@ -303,7 +306,7 @@ const Slot = React.memo(function Slot({
       scale: interpolate(dynamicProgress.value, [0, 1], [1, DYNAMIC_SCALE], Extrapolation.CLAMP),
     }],
     opacity: interpolate(
-      Math.abs(index - candidatePosition.value),
+      Math.abs(index - focusPosition.value),
       DISTANCE_STEPS,
       DISTANCE_OPACITY,
       Extrapolation.CLAMP,
@@ -569,10 +572,22 @@ function SongLyricsDial({
     transform: [{ translateY: stackY.value + dragOffset.value }],
   }));
 
-  // 가만히 있을 때 띠 높이 — 밝기가 옮겨 가는 만큼 두 줄 높이 사이를 오간다.
+  // 가만히 있을 때 화면 가운데 놓인 줄 — 띠와 같은 더미 위치에서 읽는다. 밝기를 따로 굴리면 빠르게 넘길 때
+  // 띠만 새 줄로 가고 밝기는 옛 줄에 남는다.
+  const restPosition = useDerivedValue(
+    () => slotPositionAt(slotLayoutsSV.value, focusCenterSV.value - stackY.value),
+  );
+  // 줄 밝기·꼬리가 재는 기준. 띠처럼 가만히 있을 땐 더미 위치, 드래그 중엔 후보 줄을 따른다.
+  const focusPosition = useDerivedValue(() => interpolate(
+    dynamicProgress.value,
+    [0, 1],
+    [restPosition.value, candidatePosition.value],
+  ));
+
+  // 가만히 있을 때 띠 높이 — 가운데 줄이 옮겨 가는 만큼 두 줄 높이 사이를 오간다.
   const restHeight = useDerivedValue(() => {
     const layouts = slotLayoutsSV.value;
-    const p = candidatePosition.value;
+    const p = restPosition.value;
     const from = layouts[Math.floor(p)]?.height ?? DEFAULT_LINE_HEIGHT;
     const to = layouts[Math.ceil(p)]?.height ?? from;
     return from + (to - from) * (p - Math.floor(p));
@@ -634,7 +649,7 @@ function SongLyricsDial({
                 isFocused={index === safeIndex}
                 slotTop={slotLayouts[index]?.top ?? index * DEFAULT_LINE_HEIGHT}
                 busyWordKey={busyWordKey}
-                candidatePosition={candidatePosition}
+                focusPosition={focusPosition}
                 dynamicProgress={dynamicProgress}
                 stackY={stackY}
                 trailY={trailY}
@@ -679,13 +694,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 6,
   },
+  lineTextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   plainText: {
+    flex: 1,
     fontSize: 20,
     lineHeight: 28,
     fontWeight: '600',
     color: DarkText.primary,
   },
   tokenRow: {
+    flex: 1,
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'flex-end',
@@ -743,11 +765,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
     color: DarkText.secondary,
   },
-  lineKoreanRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
   lineReportButton: {
     width: 28,
     height: 28,
@@ -755,7 +772,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   lineKoreanText: {
-    flex: 1,
     fontSize: 15,
     lineHeight: 21,
     color: DarkText.secondary,

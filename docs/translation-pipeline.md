@@ -104,8 +104,11 @@ Jisho and sense selection.
 
 Server-side rules:
 
-- `JapaneseText.particleReading` handles particles whose sung reading differs
-  from spelling, such as `は` -> `ワ` and `へ` -> `エ`.
+- `SungReading` turns a token reading into what is sung (`は` -> `ワ`, `へ` -> `エ`,
+  a final topic `は` on any token). The pipeline and `lyric-reading-backfill` share it,
+  so a rule change reaches old lyrics only by rerunning that backfill.
+- app-rn `inflectionStartOf` matches a verb's trailing kana against its reading;
+  it must accept the sung final `ワ`, or `ている` collapses into a long vowel.
 - Uninflected unambiguous surfaces prefer the dictionary reading when the model's
   reading conflicts with Jisho.
 - Rule-table readings are fallback values, not overrides for longer sung
@@ -118,7 +121,7 @@ Client-side assembly:
 
 The old `AnalyzedLine.pronounciation` / `koreanPronounciation` fields are gone.
 Old JSON rows still deserialize because unknown keys are ignored, but rows from
-before token-level sung readings may need reanalysis.
+before token-level sung readings may need reanalysis or `lyric-reading-backfill`.
 
 ## Dictionary
 

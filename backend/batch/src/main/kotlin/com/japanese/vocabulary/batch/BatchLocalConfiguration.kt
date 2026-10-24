@@ -3,12 +3,15 @@ package com.japanese.vocabulary.batch
 import com.japanese.vocabulary.artist.batch.ArtistLinkTask
 import com.japanese.vocabulary.config.ClockConfig
 import com.japanese.vocabulary.config.SentryConfig
-import com.japanese.vocabulary.karaoke.batch.KaraokeCollectTask
+import com.japanese.vocabulary.karaoke.batch.KaraokeKyCollectTask
 import com.japanese.vocabulary.karaoke.batch.KaraokeListingCollector
 import com.japanese.vocabulary.karaoke.batch.KaraokeNewSongNotifier
+import com.japanese.vocabulary.karaoke.batch.KaraokeTjCollectTask
 import com.japanese.vocabulary.notification.StreakReminderTask
 import com.japanese.vocabulary.rewardcard.batch.RewardCardBackfillPushTask
 import com.japanese.vocabulary.rewardcard.batch.RewardCardBackfillTask
+import com.japanese.vocabulary.song.batch.LyricReadingBackfillService
+import com.japanese.vocabulary.song.batch.LyricReadingBackfillTask
 import com.japanese.vocabulary.song.batch.LyricWordCandidateBackfillService
 import com.japanese.vocabulary.song.batch.LyricWordCandidateBackfillTask
 import com.japanese.vocabulary.studystats.batch.FreezeConsumeJobConfig
@@ -29,7 +32,8 @@ import org.springframework.context.annotation.Import
     SentryConfig::class,
     CronTaskRunner::class,
     StreakReminderTask::class,
-    KaraokeCollectTask::class,
+    KaraokeTjCollectTask::class,
+    KaraokeKyCollectTask::class,
     ArtistLinkTask::class,
     RewardCardBackfillTask::class,
     RewardCardBackfillPushTask::class,
@@ -37,6 +41,8 @@ import org.springframework.context.annotation.Import
     KaraokeNewSongNotifier::class,
     LyricWordCandidateBackfillService::class,
     LyricWordCandidateBackfillTask::class,
+    LyricReadingBackfillService::class,
+    LyricReadingBackfillTask::class,
     FreezeConsumeJobConfig::class,
     FreezeConsumeService::class,
     FreezeConsumeTask::class,

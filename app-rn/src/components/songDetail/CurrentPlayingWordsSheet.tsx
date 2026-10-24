@@ -14,7 +14,9 @@ import {
   AppBottomSheetView,
 } from '../bottomSheet';
 import { useArtBackdrop } from '../rewardCards/artColors';
+import { useLyricTranslationStore } from '../../stores/lyricTranslationStore';
 import { usePlayerStore } from '../../stores/playerStore';
+import { useSettingsStore } from '../../stores/settingsStore';
 import { Token } from '../../types/song';
 import SongLyricsDial, { SongLyricsDialEntry } from './SongLyricsDial';
 import { SongDetailWordItem } from './types';
@@ -109,6 +111,51 @@ function SheetBackground({ style, animatedIndex }: AppBottomSheetBackgroundProps
     </View>
   );
 }
+
+interface TogglePillProps {
+  label: string;
+  accessibilityLabel: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  iconOn: keyof typeof Ionicons.glyphMap;
+  isOn: boolean;
+  disabled?: boolean;
+  onPress: () => void;
+}
+
+const TogglePill = React.memo(function TogglePill({
+  label,
+  accessibilityLabel,
+  icon,
+  iconOn,
+  isOn,
+  disabled = false,
+  onPress,
+}: TogglePillProps) {
+  return (
+    <Pressable
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="switch"
+      accessibilityState={{ checked: isOn, disabled }}
+      disabled={disabled}
+      hitSlop={8}
+      onPress={onPress}
+      style={[
+        styles.pill,
+        isOn ? styles.pillOn : styles.pillOff,
+        disabled && styles.pillDisabled,
+      ]}
+    >
+      <Ionicons
+        name={isOn ? iconOn : icon}
+        size={15}
+        color={isOn ? Colors.primary : DarkText.secondary}
+      />
+      <Text style={[styles.pillText, isOn && styles.pillTextOn]}>
+        {`${label} ${isOn ? 'ON' : 'OFF'}`}
+      </Text>
+    </Pressable>
+  );
+});
 
 /**
  * MV 바가 시트의 핸들이다. 본문 pan 은 가사 다이얼이 가져가므로, 시트는 이 핸들로만 끈다.
@@ -232,8 +279,16 @@ const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, Cu
     [header, headerHeight],
   );
 
-  const syncLabel = canAutoSync && autoSyncEnabled ? '싱크 ON' : '싱크 OFF';
   const isSyncOn = canAutoSync && autoSyncEnabled;
+
+  const showTranslation = useLyricTranslationStore(s => s.show);
+  const setShowTranslation = useLyricTranslationStore(s => s.setShow);
+  const showPronunciation = useSettingsStore(s => s.showKoreanPronunciation);
+  const toggleShowPronunciation = useSettingsStore(s => s.toggleShowKoreanPronunciation);
+  const handleToggleTranslation = useCallback(
+    () => setShowTranslation(!showTranslation),
+    [setShowTranslation, showTranslation],
+  );
 
   return (
     <SheetBackdropContext.Provider value={backdrop}>
@@ -275,28 +330,31 @@ const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, Cu
             />
 
             <View pointerEvents="box-none" style={styles.actionPills}>
-              <Pressable
+              <TogglePill
+                label="싱크"
                 accessibilityLabel="가사 자동 넘김"
-                accessibilityRole="switch"
-                accessibilityState={{ checked: isSyncOn, disabled: !canAutoSync }}
+                icon="locate-outline"
+                iconOn="locate"
+                isOn={isSyncOn}
                 disabled={!canAutoSync}
-                hitSlop={8}
                 onPress={handleToggleAutoSync}
-                style={[
-                  styles.syncPill,
-                  isSyncOn ? styles.syncPillOn : styles.syncPillOff,
-                  !canAutoSync && styles.syncPillDisabled,
-                ]}
-              >
-                <Ionicons
-                  name={isSyncOn ? 'locate' : 'locate-outline'}
-                  size={15}
-                  color={isSyncOn ? Colors.primary : DarkText.secondary}
-                />
-                <Text style={[styles.syncPillText, isSyncOn && styles.syncPillTextOn]}>
-                  {syncLabel}
-                </Text>
-              </Pressable>
+              />
+              <TogglePill
+                label="번역"
+                accessibilityLabel="한국어 번역 표시"
+                icon="language-outline"
+                iconOn="language"
+                isOn={showTranslation}
+                onPress={handleToggleTranslation}
+              />
+              <TogglePill
+                label="발음"
+                accessibilityLabel="한국어 발음 표시"
+                icon="chatbubble-ellipses-outline"
+                iconOn="chatbubble-ellipses"
+                isOn={showPronunciation}
+                onPress={toggleShowPronunciation}
+              />
             </View>
           </AppBottomSheetView>
         </AppBottomSheet>
@@ -359,7 +417,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 9,
   },
-  syncPill: {
+  pill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -368,24 +426,24 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
   },
-  syncPillOn: {
+  pillOn: {
     borderColor: Colors.primary,
     backgroundColor: Colors.primaryBg,
   },
-  syncPillOff: {
+  pillOff: {
     borderColor: '#FFFFFF33',
     backgroundColor: '#FFFFFF14',
   },
-  syncPillDisabled: {
+  pillDisabled: {
     opacity: 0.48,
   },
-  syncPillText: {
+  pillText: {
     fontSize: 13,
     lineHeight: 17,
     fontWeight: '500',
     color: DarkText.secondary,
   },
-  syncPillTextOn: {
+  pillTextOn: {
     color: Colors.primary,
   },
 });

@@ -1,21 +1,26 @@
 # 노래방 일본 신곡
 
-한국 노래방(TJ·금영)에 새로 들어온 일본곡을 매일 모아 보여주고 알린다. 유저에게 전할 것은 "이 곡이
+한국 노래방(TJ·금영)에 새로 들어온 일본곡을 모아 보여주고 알린다. 유저에게 전할 것은 "이 곡이
 노래방에 올라왔다"는 사실이라, 분석 성공 여부와 무관하게 목록과 푸시에 나간다. 분석이 끝난 곡만
 `songId` 가 있어 곡 상세로 들어갈 수 있다.
 
 ## 흐름
 
-batch `KaraokeCollectTask` (`--task=karaoke-collect`, CronJob `karaoke-collect`, 매일 15:00 KST):
+노래방마다 batch task 가 따로 돈다. TJ 는 등재 목록 한 번과 후보 몇 곡 검색이라 5분마다, 금영은 노래책 전체를
+1초에 1건씩 훑어 10분 넘게 걸리므로 하루 한 번이다.
 
-1. `backfillLinks()` — `song_id` 가 빈 행 중 분석된 곡이 생긴 것을 잇는다.
+- `KaraokeTjCollectTask` (`--task=karaoke-tj`, CronJob `karaoke-tj`, 09:00~22:55 KST 5분마다): TJ 수집 → 알림. 알림이 밤에 나가지 않게 밤엔 돌지 않는다.
+- `KaraokeKyCollectTask` (`--task=karaoke-ky`, CronJob `karaoke-ky`, 매일 15:00 KST): 링크 백필 → 금영 수집.
+
+1. `backfillLinks()` — `song_id` 가 빈 행 중 분석된 곡이 생긴 것을 잇는다 (금영 task).
 2. 수집 (`KaraokeListingCollector`) — 원장에 없는 일본곡만 `KaraokeSongService.register`.
    - 행을 먼저 넣고, 분석된 곡이 이미 있으면 바로 잇고, 없으면 `createOrReuse(trigger_source=KARAOKE)`.
      이미 분석된 곡을 다시 돌리면 `COMPLETE` 가 활성 가사를 갈아 끼우므로 요청하지 않는다.
-3. 알림 (`KaraokeNewSongNotifier`) — `notified_at` 이 빈 행을 모아 구독자에게 한 건. 보낸 뒤 `notified_at` 을 채운다.
+3. 알림 (`KaraokeNewSongNotifier`, TJ task 만) — `notified_at` 이 빈 행을 모아 구독자에게 한 건. 보낸 뒤 `notified_at` 을 채운다.
+   금영 행도 다음 TJ 실행(5분 안)이 알린다. 두 task 가 따로 보내면 같은 행을 두 번 알릴 수 있어서다.
 
-한쪽 노래방이 실패해도 다른 쪽은 넣고 알린 뒤 Job 을 실패로 남긴다.
-첫 배포는 `--backfill` 로 한 번 돌린다: TJ 는 지난달 1일부터 전부 넣고, 알림은 보내지 않고 `notified_at` 만 채운다.
+TJ 가 실패해도 쌓인 금영 행은 알린 뒤 Job 을 실패로 남긴다.
+첫 배포는 `karaoke-tj` 를 `--backfill` 로 한 번 돌린다: TJ 는 지난달 1일부터 전부 넣고, 알림은 보내지 않고 `notified_at` 만 채운다.
 
 ## 일본곡 판정 (노래방 자체 분류)
 
@@ -52,7 +57,7 @@ Apple Music(`jp` 스토어프런트)에서 제목·가수가 모두 맞는 결�
 ## 원장과 합치기
 
 `karaoke_song` 은 노래방별 한 행이다(`(vendor, number)` 유니크). TJ 에 오른 곡이 다른 날 금영에도 오르면
-행이 둘이고 알림도 두 번 나간다. 같은 날 양쪽에 오른 곡은 알림 문구에서 한 곡으로 센다.
+행이 둘이고 알림도 두 번 나간다. 같은 날 양쪽에 오른 곡도 TJ 가 먼저 알리고 금영이 다시 알린다(한 알림에 함께 들면 한 곡으로 센다).
 
 응답에서만 합친다 (정규화한 제목+가수가 같을 때):
 
@@ -64,7 +69,7 @@ Apple Music(`jp` 스토어프런트)에서 제목·가수가 모두 맞는 결�
 ## song 연결
 
 분석 도메인은 노래방을 모른다. worker 의 `KaraokeSongLinkListener` 가 `SongAnalysisCompletedEvent` 를
-AFTER_COMMIT 에 받아 같은 제목·가수의 빈 행을 잇는다. 놓친 행은 다음 날 1단계가 잇는다.
+AFTER_COMMIT 에 받아 같은 제목·가수의 빈 행을 잇는다. 놓친 행은 다음 금영 task 의 1단계가 잇는다.
 
 ## 구독
 
