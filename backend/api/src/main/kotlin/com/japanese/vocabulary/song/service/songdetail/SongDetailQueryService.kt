@@ -46,11 +46,13 @@ class SongDetailQueryService(
         val song = songRepository.findById(songId).orElseThrow { BusinessException(ErrorCode.SONG_NOT_FOUND) }
         val lyric = lyricRepository.findActiveBySongId(songId) ?: throw BusinessException(ErrorCode.LYRIC_NOT_FOUND)
         val source = lyric.source()
+        val mvTimings = lyricMvSyncService.timingsFor(song, lyric)
         return SongLyricsDto(
             lyricId = lyric.id!!,
             lyricsSourceName = source.name,
             lyricsSourceUrl = source.url,
-            lines = lyricLines(lyric, lyricMvSyncService.timingsFor(song, lyric)),
+            mvSynced = mvTimings != null,
+            lines = lyricLines(lyric, mvTimings),
         )
     }
 

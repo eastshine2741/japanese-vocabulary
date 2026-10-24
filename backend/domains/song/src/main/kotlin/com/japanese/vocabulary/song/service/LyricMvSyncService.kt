@@ -67,23 +67,51 @@ class LyricMvSyncService(
                 row.leaseUntil = null
                 continue
             }
-            row.status = LyricMvSyncStatus.RUNNING
-            row.attempt += 1
-            row.leaseUntil = now.plus(LEASE)
-            val (song, lyric) = target
-            return LyricMvSyncClaim(
-                id = id,
-                attempt = row.attempt,
-                songId = song.id!!,
-                title = song.title,
-                artist = song.artist,
-                durationSeconds = song.durationSeconds,
-                lyricId = lyric.id!!,
-                lyricType = lyric.lyricType,
-                youtubeVideoId = row.youtubeVideoId,
-                lines = lyric.rawContent.sortedBy { it.index },
-            )
+            return start(row, song = target.first, lyric = target.second, now = now)
         }
+    }
+
+    /**
+     * 곡 하나의 지금 조합을 대기 순서·재시도 대기와 상관없이 바로 점유한다. FAILED 도 다시 돌린다.
+     * dev 에서 곡 하나를 골라 확인할 때 쓴다. 이미 COMPLETED 거나 다른 실행기가 점유 중이면 null.
+     */
+    @Transactional
+    fun claimSong(songId: Long): LyricMvSyncClaim? {
+        val now = Instant.now(clock)
+        val song = songRepository.findById(songId).orElseThrow { BusinessException(ErrorCode.SONG_NOT_FOUND) }
+        val lyric = song.activeLyricId?.let { lyricRepository.findById(it).orElse(null) } ?: return null
+        val videoId = YoutubeVideoId.parse(song.youtubeUrl) ?: return null
+        val row = syncRepository.findByLyricIdAndYoutubeVideoIdForUpdate(lyric.id!!, videoId)
+            ?: run {
+                syncRepository.enqueue(lyric.id!!, videoId)
+                syncRepository.findByLyricIdAndYoutubeVideoIdForUpdate(lyric.id!!, videoId)
+            }
+            ?: return null
+        val leased = row.status == LyricMvSyncStatus.RUNNING && row.leaseUntil?.isAfter(now) == true
+        if (row.status == LyricMvSyncStatus.COMPLETED || leased) return null
+        if (row.status == LyricMvSyncStatus.FAILED) {
+            row.attempt = 0
+            row.errorMessage = null
+        }
+        return start(row, song, lyric, now)
+    }
+
+    private fun start(row: LyricMvSyncEntity, song: SongEntity, lyric: LyricEntity, now: Instant): LyricMvSyncClaim {
+        row.status = LyricMvSyncStatus.RUNNING
+        row.attempt += 1
+        row.leaseUntil = now.plus(LEASE)
+        return LyricMvSyncClaim(
+            id = row.id!!,
+            attempt = row.attempt,
+            songId = song.id!!,
+            title = song.title,
+            artist = song.artist,
+            durationSeconds = song.durationSeconds,
+            lyricId = lyric.id!!,
+            lyricType = lyric.lyricType,
+            youtubeVideoId = row.youtubeVideoId,
+            lines = lyric.rawContent.sortedBy { it.index },
+        )
     }
 
     @Transactional

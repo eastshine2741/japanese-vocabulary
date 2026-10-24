@@ -19,6 +19,8 @@ export interface StudySource {
   previewWord?: StudyPreviewWord | null;
   /** 곡 상세의 단계 학습으로 열었다면 그 단계. 곡 덱 due 큐 대신 그 단계의 due 단어를 한 번 받아 복습한다. */
   tierKey?: SongWordTierKey | null;
+  /** 소절 학습으로 열었다면 그 줄의 단어 키. 세 단계의 due 카드 중 이 단어만 한 번 복습한다. */
+  lineWords?: readonly string[] | null;
 }
 
 /**

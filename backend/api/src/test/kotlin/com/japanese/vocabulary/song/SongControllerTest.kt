@@ -656,6 +656,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                 .andExpect { jsonPath("$.lyricType") { value("SYNCED") } }
             mockMvc.get("/api/songs/${song.id}/lyrics") { header("Authorization", bearer(me)) }
                 .andExpect {
+                    jsonPath("$.mvSynced") { value(true) }
                     jsonPath("$.lines[0].startTimeMs") { value(7600) }
                     jsonPath("$.lines[1].startTimeMs") { value(12600) }
                 }
@@ -676,7 +677,10 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             mockMvc.get("/api/songs/${song.id}") { header("Authorization", bearer(me)) }
                 .andExpect { jsonPath("$.lyricType") { value("PLAIN") } }
             mockMvc.get("/api/songs/${song.id}/lyrics") { header("Authorization", bearer(me)) }
-                .andExpect { jsonPath("$.lines[0].startTimeMs") { value(null) } }
+                .andExpect {
+                    jsonPath("$.mvSynced") { value(false) }
+                    jsonPath("$.lines[0].startTimeMs") { value(null) }
+                }
         }
 
         @Test
@@ -689,7 +693,10 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             mockMvc.get("/api/songs/${song.id}") { header("Authorization", bearer(me)) }
                 .andExpect { jsonPath("$.lyricType") { value("PLAIN") } }
             mockMvc.get("/api/songs/${song.id}/lyrics") { header("Authorization", bearer(me)) }
-                .andExpect { jsonPath("$.lines[0].startTimeMs") { value(null) } }
+                .andExpect {
+                    jsonPath("$.mvSynced") { value(false) }
+                    jsonPath("$.lines[0].startTimeMs") { value(null) }
+                }
         }
 
         private fun completedSync(lyric: LyricEntity, videoId: String, timings: List<LyricLineTiming>, verdict: String = "OK") {
@@ -824,6 +831,39 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             assertThat(dto.words[1].isSavedGlobally).isTrue
             assertThat(dto.words[1].isSavedForSong).isFalse
             assertThat(dto.words[1].savedWordId).isNull()
+        }
+
+        @Test
+        fun `word is studied only when its card has been reviewed once`() {
+            val me = newUser()
+            val song = newSong()
+            val wordCandidates = LyricWordCandidates(
+                candidates = listOf(
+                    candidate("復習済み", 99.0, 0, listOf(0), "N3", "NOUN"),
+                    candidate("담기만함", 90.0, 1, listOf(0), "N3", "NOUN"),
+                    candidate("안담음", 80.0, 2, listOf(0), "N3", "NOUN"),
+                ),
+                lineCandidates = mapOf("0" to listOf(0, 1, 2)),
+            )
+            newLyric(
+                song,
+                raw = listOf(LyricLineData(index = 0, startTimeMs = null, text = "復習済み담기만함안담음")),
+                wordCandidates = wordCandidates,
+            )
+            val reviewed = TestWordBuilder(entityManager).forUser(me).withJapaneseText("復習済み").build()
+            TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(reviewed).lastReviewedAt(Instant.now(clock)).build()
+            val savedOnly = TestWordBuilder(entityManager).forUser(me).withJapaneseText("담기만함").build()
+            TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(savedOnly).build()
+            entityManager.flush()
+
+            val dto = readBody<WordsInSongDto>(mockMvc.get("/api/songs/${song.id}/words") {
+                header("Authorization", bearer(me))
+            }.andExpect {
+                status { isOk() }
+            }.andReturn().response.contentAsString)
+
+            assertThat(dto.words.associate { it.japanese to it.isStudied })
+                .containsExactlyInAnyOrderEntriesOf(mapOf("復習済み" to true, "담기만함" to false, "안담음" to false))
         }
 
         @Test

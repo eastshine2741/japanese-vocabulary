@@ -32,6 +32,8 @@ export interface StudyStackProps {
   onRequestImmerse?: () => void;
   /** 완주 카드의 카드 받기가 받을 곡. 없으면 모든 곡의 받을 카드. */
   claimSongId?: number;
+  /** 다 풀면 곧장 나가는 화면은 완주 카드를 그리지 않는다. 나가는 사이 잠깐 비쳤다 사라지면 어수선하다. */
+  hideCompletion?: boolean;
 }
 
 /** 크롬에 독립적인 카드 스택. 크롬은 그리지 않는다. */
@@ -47,6 +49,7 @@ export const StudyStack = React.memo(function StudyStack({
   requireImmersedInteraction = false,
   onRequestImmerse,
   claimSongId,
+  hideCompletion = false,
 }: StudyStackProps) {
   const {
     status,
@@ -147,7 +150,7 @@ export const StudyStack = React.memo(function StudyStack({
         />
       )}
 
-      {isComplete && (
+      {isComplete && !hideCompletion && (
         <CompletionStage
           completedSource={completedSource}
           nextDueSource={nextDueSource}

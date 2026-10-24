@@ -17,8 +17,9 @@ class AdminApi:
         self.session = requests.Session()
         self.session.headers["Authorization"] = f"Bearer {token}"
 
-    def claim(self) -> dict | None:
-        r = self.session.post(f"{self.base}/claim", timeout=TIMEOUT_SECONDS)
+    def claim(self, song_id: int | None = None) -> dict | None:
+        params = {"songId": song_id} if song_id is not None else None
+        r = self.session.post(f"{self.base}/claim", params=params, timeout=TIMEOUT_SECONDS)
         if r.status_code == 204:
             return None
         r.raise_for_status()

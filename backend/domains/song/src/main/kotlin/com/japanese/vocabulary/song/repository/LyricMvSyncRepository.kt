@@ -51,4 +51,11 @@ interface LyricMvSyncRepository : JpaRepository<LyricMvSyncEntity, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT s FROM LyricMvSyncEntity s WHERE s.id = :id")
     fun findByIdForUpdate(@Param("id") id: Long): LyricMvSyncEntity?
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT s FROM LyricMvSyncEntity s WHERE s.lyricId = :lyricId AND s.youtubeVideoId = :videoId")
+    fun findByLyricIdAndYoutubeVideoIdForUpdate(
+        @Param("lyricId") lyricId: Long,
+        @Param("videoId") videoId: String,
+    ): LyricMvSyncEntity?
 }

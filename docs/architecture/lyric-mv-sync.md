@@ -17,11 +17,13 @@ PC 가 꺼져 있으면 행이 PENDING 으로 남고, 켜지면 `lyric-sync-agen
 
 - 행은 곡 분석 완료(새 active 가사)와 제보 승인(MV 변경) 때 같은 트랜잭션에서 생긴다. 기존 곡은 V52 가, 그 사이 빠진 조합(배포 중 옛 pod 가 끝낸 분석 등)은 batch `lyric-mv-sync-enqueue`(매일 04:30 KST)가 넣는다.
 - 앱은 곡의 지금 `youtube_url` 과 video id 가 같은 COMPLETED 행만 쓴다. MV 가 바뀌면 옛 행은 그냥 안 쓰인다. 결과가 있으면 PLAIN 가사도 `lyricType=SYNCED` 로 내려야 앱이 자동 싱크를 켠다.
+  lrclib 원래 시각도 SYNCED 라서, 줄 단위로 멈추는 화면처럼 MV 시각이 꼭 필요한 곳은 `lyricType` 이 아니라 가사 응답의 `mvSynced` 를 본다.
 - 점유는 30분 기한(`lease_until`)이고 점유마다 `attempt` 가 오른다. 결과는 점유한 attempt 로만 쓸 수 있어, 기한이 지나 다시 점유된 뒤 늦게 온 결과는 409 로 거절된다.
 - 점유할 때 곡의 active 가사나 MV 가 이미 바뀐 행은 처리하지 않고 FAILED(`superseded`)로 넘긴다.
 - 실행기 쪽 사정(다운로드 차단, GPU 오류)으로 실패하면 1시간 뒤 다시 점유되고, 5번째 점유에서도 실패하면 FAILED 다. 바로 다시 점유하면 같은 오류로 대기열 전체가 FAILED 가 된다.
 - 곡 자체 문제(MV 에서 가사를 못 찾음, 연령 제한·비공개·삭제로 MV 를 못 받음)는 바로 FAILED 다. 같은 조합이 다시 들어오면(MV 가 A→B→A) FAILED 행이 PENDING 으로 돌아간다.
 - 시각은 줄 순서대로 늘어나야 받는다. 앱은 지금 시각보다 늦은 첫 줄에서 멈춰 현재 줄을 정해서, 거꾸로 가면 하이라이트가 엉뚱한 줄에 선다.
+- 곡 id 로 점유하면 대기 순서·재시도 대기를 건너뛰고 FAILED 도 attempt 를 0 으로 되돌려 다시 돌린다(dev 확인용). COMPLETED 와 기한 안의 RUNNING 은 건드리지 않는다.
 - 실행기 판정(`confidence.verdict`)이 LOW 인 결과는 앱에 내리지 않는다(제품 결정). SYNCED 판정은 0.5초 안 비율보다 찾은 줄 비율을 본다. lrclib 시각 자체가 줄마다 흔들려 맞게 민 곡도 0.5초 안 비율이 60%대에 머문다. MV 에서 줄을 충분히 못 찾았거나 찾은 줄끼리 안 맞은 결과라, 틀린 줄을 짚는 하이라이트보다 원래 시각(PLAIN 이면 자동 싱크 없음)이 낫다. 행은 남아 어드민 Lyric MV Sync 에서 들어 볼 수 있다.
 - 실행기 토큰(`ADMIN_LYRIC_SYNC_AGENT_TOKEN`)은 `/admin/api/lyric-sync-agent/**` 만 열고, admin 로그인 토큰은 그 경로를 못 쓴다.
 
