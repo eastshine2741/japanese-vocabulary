@@ -105,6 +105,17 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves shiteiru glued after a suru-noun as auxiliary teiru`() {
+        // 亡命している している している — segmentation emits している as surface and headword
+        // after 亡命, and jisho has no entry for the する + ている chain.
+        val resolved = provider.resolve(PipelineToken(1, "している", "している", 2, 6))!!
+
+        assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.AUXILIARY_VERB)
+        assertThat(resolved.baseFormReading).isEqualTo("シテイル")
+        assertThat(resolved.koreanText).isEqualTo("~하고 있다")
+    }
+
+    @Test
     fun `resolves colloquial concessive ttatte behind a mistaken toittatte headword`() {
         // 宙に舞ったったってその因果も — segmentation emits ったって with the headword といったって,
         // which jisho has no entry for, so the concessive suffix must be settled by rule.

@@ -232,6 +232,8 @@ class RuleMeaningProvider {
 
         val auxiliaries = mapOf(
             "ている" to auxiliary("ている", "~하고 있다"),
+            // Segmentation glues する onto ている after a する-noun (亡命している), same as していく below.
+            "している" to auxiliary("している", "~하고 있다"),
             "てる" to auxiliary("てる", "~하고 있다"),
             // Keyed on the headword: segmentation normalises っちゃった/じゃった/ちゃう to てしまう.
             "てしまう" to auxiliary("てしまう", "~해 버리다"),
