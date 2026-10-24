@@ -131,6 +131,39 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves kanji numeral and counter compounds jisho has no headword for`() {
+        // 五年前私が震えながら君に言ったこと
+        val fiveYears = provider.resolve(PipelineToken(57, "五年", "五年", 0, 2, "ゴネン", "ゴネン"))!!
+        assertThat(fiveYears.koreanText).isEqualTo("5년")
+        assertThat(fiveYears.partOfSpeech).isEqualTo(PartOfSpeech.NOUN)
+        assertThat(fiveYears.reading).isEqualTo("ゴネン")
+
+        // 繰り返す これ何回目？
+        assertThat(provider.resolve(PipelineToken(2, "何回目", "何回目", 7, 10, "ナンカイメ", "ナンカイメ"))!!.koreanText)
+            .isEqualTo("몇 번째")
+
+        // 九十九回一人で泣いたって　次の一つはないでしょう
+        assertThat(provider.resolve(PipelineToken(35, "九十九", "九十九", 0, 3, "キュウジュウキュウ"))!!.koreanText)
+            .isEqualTo("99")
+
+        // 愛？ のない？ 痛い容態 唄も色も まだ六十八夜の
+        assertThat(provider.resolve(PipelineToken(8, "六十八夜", "六十八夜", 20, 24, "ロクジュウハチヤ"))!!.koreanText)
+            .isEqualTo("68번째 밤")
+
+        // 二進や三進ポイで頂上へ
+        assertThat(provider.resolve(PipelineToken(27, "三進", "三進", 3, 5, "サンシン"))!!.koreanText)
+            .isEqualTo("3진")
+    }
+
+    @Test
+    fun `leaves single numerals and unknown counters to jisho`() {
+        assertThat(provider.resolve(token("一"))).isNull()
+        assertThat(provider.resolve(token("何"))).isNull()
+        assertThat(provider.resolve(token("一緒"))).isNull()
+        assertThat(provider.resolve(token("三日月"))).isNull()
+    }
+
+    @Test
     fun `does not rule-resolve ambiguous grammar-like words`() {
         assertThat(provider.resolve(token("ない"))).isNull()
         assertThat(provider.resolve(token("から"))).isNull()

@@ -33,6 +33,25 @@ class RuleMeaningProvider {
             ?: particles[key]
             ?: auxiliaries[token.surface]
             ?: auxiliaries[key]
+            ?: numeralCompound(token, key)
+    }
+
+    // Jisho has no headword for most numeral + counter compounds (五年, 六十八夜), so they are composed here.
+    private fun numeralCompound(token: PipelineToken, headword: String): RuleResolvedToken? {
+        val counter = counters.keys.filter { headword.endsWith(it) }.maxByOrNull { it.length }
+        val numeral = headword.removeSuffix(counter.orEmpty())
+        // A bare single numeral (一, 何) has real jisho senses beyond the number.
+        if (counter == null && numeral.length < 2) return null
+        val amount = if (numeral == "何") "몇 " else kanjiNumber(numeral)?.toString() ?: return null
+        val reading = token.usedReading.ifBlank { null }
+        return RuleResolvedToken(
+            token.surface,
+            headword,
+            reading,
+            token.baseFormReading.ifBlank { null } ?: reading,
+            PartOfSpeech.NOUN,
+            amount + counter?.let { counters.getValue(it) }.orEmpty(),
+        )
     }
 
     /**
@@ -254,6 +273,38 @@ class RuleMeaningProvider {
             "たって" to auxiliary("たって", "~해도, ~한들"),
             "ったって" to auxiliary("ったって", "~해도, ~한들"),
         )
+
+        val counters = mapOf(
+            "年" to "년",
+            "回" to "번",
+            "回目" to "번째",
+            "夜" to "번째 밤",
+            "進" to "진",
+        )
+
+        val kanjiDigits = mapOf(
+            '〇' to 0, '一' to 1, '二' to 2, '三' to 3, '四' to 4,
+            '五' to 5, '六' to 6, '七' to 7, '八' to 8, '九' to 9,
+        )
+
+        val kanjiMultipliers = mapOf('十' to 10, '百' to 100, '千' to 1000)
+
+        fun kanjiNumber(text: String): Int? {
+            if (text.isEmpty()) return null
+            var total = 0
+            var digit: Int? = null
+            for (c in text) {
+                val value = kanjiDigits[c]
+                if (value != null) {
+                    if (digit != null) return null
+                    digit = value
+                    continue
+                }
+                total += (digit ?: 1) * (kanjiMultipliers[c] ?: return null)
+                digit = null
+            }
+            return total + (digit ?: 0)
+        }
 
         // Every surface in the particle/auxiliary tables is kana, so its reading is the surface in katakana.
         fun particle(surface: String, koreanText: String) =
