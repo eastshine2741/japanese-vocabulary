@@ -81,6 +81,7 @@ MV 오연결·가사 오연결이 FAILED 나 LOW 로 드러난다. 곡을 고치
 | 10-25 | 283 | 284 | 取扱注意 / syudou | `bvRan4JL0dE` | |
 | 10-25 | 292 | 293 | 恋愛裁判 / 40mP feat. 初音ミク (업로더가 삭제) | `Yt3p3kxWlwo` | |
 | 10-25 | 322 | 323 | The King / ATEEZ (재생 불가, 지역 제한 또는 비공개 추정) | `sexGWoKpav0` | |
+| 10-25 | 405 | 406 | Lost / yama | `bbmOEiorMrg` | |
 
 ## 원인 미확인
 
