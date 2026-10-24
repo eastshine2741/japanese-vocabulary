@@ -239,6 +239,35 @@ class YoutubeMvSearchServiceTest {
     }
 
     @Test
+    fun `search splits a catalog title whose separator directly follows an exclamation mark`() {
+        val artist = "米津玄師"
+        val channel = "Kenshi Yonezu  米津玄師"
+        every { artistChannelCache.get(artist) } returns null
+        val items = listOf(
+            searchItem("-wb2PAx6aEs", "米津玄師 - さよーならまたいつか！ Kenshi Yonezu - Sayonara, Mata Itsuka !", channel),
+            searchItem("I8Lqr6NeG5o", "米津玄師 - さよーならまたいつか！「第75回NHK紅白歌合戦」 Kenshi Yonezu - Sayonara, Mata Itsuka ! 75th NHKKouhaku Performance", channel),
+            searchItem("5DNqESedFMk", "米津玄師 - さよーならまたいつか！「虎に翼」OPタイトルバック・フル　Kenshi Yonezu - Sayonara, Mata Itsuka !", channel),
+            searchItem("70tC0VINZAY", "Kenshi Yonezu - Sayonara, Mata Itsuka ! / 米津玄師 - さよーならまたいつか！Lyrics Video (Kan/Rom/Eng)", "TATATAN"),
+            searchItem("mIhe7xFItA8", "[Kor sub]米津玄師  さよーならまたいつか Kenshi Yonezu  (한글가사, 한글발음)Sayonara Mata Itsuka", "Double-baked_Pizza (두 번 구운 피자)"),
+            searchItem("j81-t5rNlj8", "【カラオケ】さよーならまたいつか！/米津玄師 - 朝ドラ『虎に翼』主題歌", "カラオケ歌っちゃ王"),
+            searchItem("ThSxM-piojY", "【歌ってみた】さよーならまたいつか！/星導ショウ", "星導ショウ / Hoshirube Sho【にじさんじ】"),
+            searchItem("T39wT7BdHKA", "【ボイストレーナーが歌う】さよーならまたいつか！ / 米津玄師【シアーミュージック本厚木校 Ryoga】#shorts", "シアーミュージック"),
+            searchItem("Zq72ILc1IzQ", "さよーならまたいつか！　cover （3DLIVE ver.）by葛葉", "Kuzuha Channel"),
+            searchItem("sJPwrCkBr70", "【シティポップ】さよーならまたいつか！ / 米津玄師 – City Pop Night Drive ver.", "J-POP  World Tours"),
+            searchItem("xBzJfBk79kM", "米津玄師 - さよーならまたいつか！「第75回NHK紅白歌合戦」#虎に翼　#さよーならまたいつか", channel),
+            searchItem("7tFOcImiQOs", "隨心所欲做自己吧：さよーならまたいつか！- 米津玄師｜日劇《虎に翼》主題曲｜中日歌詞", "c1dworld"),
+            searchItem("i5uYhP516Jk", "【楽譜あり】さよーならまたいつか！/米津玄師（ピアノソロ中級～上級） NHK連続テレビ小説『虎に翼』主題歌【ピアノアレンジ楽譜】", "Dさん【ピアノ楽譜】"),
+            searchItem("ZmqDAwuzBAI", "さよーならまたいつか！/ 米津玄師（1989年） | Sayonara, Mata Itsuka - Kenshi Yonezu (80s Retro Style)", "裏・名曲選"),
+            searchItem("xoEjl6E_Wmw", "米津玄師 - さよーならまたいつか！ 「第75回NHK紅白歌合戦」　#虎に翼　#さよーならまたいつか", channel),
+        )
+        stubSearch(*items.toTypedArray())
+        stubDurations(*items.map { it.id.videoId!! to "PT3M21S" }.toTypedArray())
+
+        assertThat(service.searchMvUrl("さよーならまたいつか!- Sayonara", artist, 201))
+            .isEqualTo("https://www.youtube.com/watch?v=-wb2PAx6aEs")
+    }
+
+    @Test
     fun `search falls back to the fixed floor when the track length is unknown`() {
         every { artistChannelCache.get(ARTIST) } returns null
         stubSearch(

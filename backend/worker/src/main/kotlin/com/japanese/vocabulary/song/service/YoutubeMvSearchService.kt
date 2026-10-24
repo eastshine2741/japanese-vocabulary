@@ -451,7 +451,8 @@ class YoutubeMvSearchService(
         )
         private val SHORTS_TITLE_RE = Regex("""[#＃](?:shorts?|ショート)""", RegexOption.IGNORE_CASE)
         private val TRAILING_DESCRIPTOR_RE = Regex("""\s*[\[(（【].*?[】）)\]]\s*$""")
-        private val TITLE_SEPARATOR_RE = Regex("""\s+[-–—/／|｜]\s+""")
+        // A dash glued to a trailing "!"/"?" ("いつか!- Sayonara") still separates; "Spider-Man" does not.
+        private val TITLE_SEPARATOR_RE = Regex("""\s+[-–—/／|｜]\s+|(?<=[!！?？])[-–—]\s+""")
         // No "×": unit names use it ("ワンダーランズ×ショウタイム").
         private val ARTIST_SEPARATOR_RE = Regex("""\s*(?:&|＆|,|、)\s*""")
         private val HTML_ENTITY_RE = Regex("""&(?:amp|quot|#39|apos);""", RegexOption.IGNORE_CASE)
