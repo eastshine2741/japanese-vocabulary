@@ -12,6 +12,8 @@ export interface AnalysisJob {
   settledAt: number | null;
   /** 실패했을 때 서버가 준 사유 코드. */
   errorCode: string | null;
+  /** 0..1. 폴링할 때마다 서버 값으로 바뀐다. */
+  progress: number;
 }
 
 export type PillTone = 'analyzing' | 'done' | 'failed';
@@ -32,6 +34,8 @@ export interface PillState {
   dismissWorkId: number | null;
   /** true 면 탭이 학습으로 이어진다는 걸 부제와 chevron 으로 드러낸다. */
   studyHint: boolean;
+  /** 배경을 채우는 비율(0..1). 분석 중일 때만 보인다. */
+  progress: number;
 }
 
 /** 실패 pill 을 유지하는 시간. 지나면 그 곡이 목록에서 빠진다. 완료 pill 은 탭할 때까지 남는다. */
@@ -76,6 +80,7 @@ const failedState = (job: AnalysisJob): PillState => {
     tapSongId: null,
     dismissWorkId: job.workId,
     studyHint: false,
+    progress: 0,
   };
 };
 
@@ -101,6 +106,8 @@ export function derivePillState(jobs: AnalysisJob[]): PillState | null {
       tapSongId: expandable ? null : analyzing[0].songId,
       dismissWorkId: null,
       studyHint: false,
+      // 부제에 이름이 나온 곡의 진행도다.
+      progress: analyzing[0].progress,
     };
   }
 
@@ -116,6 +123,7 @@ export function derivePillState(jobs: AnalysisJob[]): PillState | null {
       tapSongId: expandable ? null : latest.songId,
       dismissWorkId: null,
       studyHint: !expandable,
+      progress: 1,
     };
   }
 
@@ -129,6 +137,7 @@ export function derivePillState(jobs: AnalysisJob[]): PillState | null {
     tapSongId: null,
     dismissWorkId: null,
     studyHint: false,
+    progress: 1,
   };
 }
 
@@ -146,5 +155,6 @@ export function deriveJobPillState(job: AnalysisJob): PillState {
     tapSongId: job.songId,
     dismissWorkId: null,
     studyHint: done,
+    progress: done ? 1 : job.progress,
   };
 }

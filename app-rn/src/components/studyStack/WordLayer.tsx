@@ -89,6 +89,7 @@ export interface WordLayerProps {
   panHandlers: GestureResponderHandlers;
   onReveal: () => void;
   onRating: (rating: number) => void;
+  onCommitRating: () => void;
   onSourcePress: () => void;
   onOpenExampleSource?: (songId: number, lineIndex: number | null) => void;
   onEditWord?: (card: StudyCard) => void;
@@ -118,6 +119,7 @@ export const WordLayer = React.memo(function WordLayer({
   panHandlers,
   onReveal,
   onRating,
+  onCommitRating,
   onSourcePress,
   onOpenExampleSource,
   onEditWord,
@@ -236,6 +238,7 @@ export const WordLayer = React.memo(function WordLayer({
           selectedRating={selectedRating}
           saving={saving}
           onRating={onRating}
+          onCommitRating={onCommitRating}
           revealProgress={revealProgress}
           splitProgress={splitProgress}
           hideHeadword={sharedHeadwordReady}

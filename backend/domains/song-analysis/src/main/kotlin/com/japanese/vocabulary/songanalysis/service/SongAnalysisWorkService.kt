@@ -79,8 +79,12 @@ class SongAnalysisWorkService(
 
     @Transactional(readOnly = true)
     fun getById(id: Long): SongAnalysisWorkDto {
-        return songAnalysisWorkRepository.findById(id).orElse(null)?.toDto()
+        val work = songAnalysisWorkRepository.findById(id).orElse(null)
             ?: throw BusinessException(ErrorCode.SONG_ANALYSIS_WORK_NOT_FOUND)
+        val stageStartedAt = work.currentStage
+            ?.takeIf { work.status == SongAnalysisWorkStatus.RUNNING }
+            ?.let { stageRepository.findByWorkIdAndStage(id, it)?.startedAt }
+        return work.toDto(stageStartedAt)
     }
 
     /** Caller keeps the work lock until its subscription change has finished. */

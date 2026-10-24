@@ -25,9 +25,10 @@ spec:
             - name: mysql-data
               mountPath: /var/lib/mysql
           resources:
+            # 노드 메모리가 바닥나면 request 보다 많이 쓰는 파드부터 죽는다. 평소 800Mi 를 써서 limit 까지 잡는다.
             requests:
               cpu: 250m
-              memory: 768Mi
+              memory: 1Gi
             limits:
               memory: 1Gi
   volumeClaimTemplates:

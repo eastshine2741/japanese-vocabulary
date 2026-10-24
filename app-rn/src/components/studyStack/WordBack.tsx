@@ -70,6 +70,8 @@ export interface WordBackProps {
   selectedRating: number | null;
   saving: boolean;
   onRating: (rating: number) => void;
+  /** 홀드 중 "N일 뒤에 다시 만나요" pill 탭 — 기다리지 않고 바로 넘긴다. */
+  onCommitRating: () => void;
   revealProgress?: Animated.Value;
   /** 앞면 pill 이 rating 버튼 넷으로 갈라지는 진행도 — WordLayer 가 reveal 과 함께 돌린다. */
   splitProgress?: Animated.Value;
@@ -87,6 +89,7 @@ export const WordBack = React.memo(function WordBack({
   selectedRating,
   saving,
   onRating,
+  onCommitRating,
   revealProgress,
   splitProgress,
   hideHeadword = false,
@@ -283,9 +286,6 @@ export const WordBack = React.memo(function WordBack({
     },
   }), [holdProgress]);
   const held = heldRating == null ? null : RATINGS.find(r => r.rating === heldRating) ?? null;
-  const handleHoldPress = useCallback(() => {
-    if (heldRating != null) onRating(heldRating);
-  }, [heldRating, onRating]);
 
   return (
     <View style={styles.wordBack}>
@@ -401,7 +401,7 @@ export const WordBack = React.memo(function WordBack({
             >
               <Pressable
                 style={[styles.holdPill, { backgroundColor: held.color, shadowColor: held.color + '73' }]}
-                onPress={handleHoldPress}
+                onPress={onCommitRating}
                 disabled={saving}
               >
                 <Text style={styles.holdLabel}>{holdLabel(held.label, card.intervals?.[held.rating])}</Text>

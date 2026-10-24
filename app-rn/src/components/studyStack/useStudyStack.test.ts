@@ -311,16 +311,68 @@ it('holds the selected rating briefly, then advances on its own', async () => {
   expect(stack.selectedRating).toBeNull();
 });
 
-it('cancels the hold when the same rating is tapped again', async () => {
+it('tapping the hold pill commits right away instead of cancelling', async () => {
+  vi.mocked(flashcardApi.getDueCards)
+    .mockResolvedValueOnce({ cards: [card(9), card(1)], totalCount: 2, nextDueAt: null });
+  await mount();
+  await act(async () => { stack.reveal(); stack.selectRating(3); });
+  await act(async () => { stack.commitRating(); });
+  expect(flashcardApi.review).toHaveBeenCalledWith(9, { rating: 3 });
+  expect(stack.currentCard?.id).toBe(1);
+  await act(async () => { await vi.advanceTimersByTimeAsync(RATING_HOLD_MS * 2); });
+  expect(flashcardApi.review).toHaveBeenCalledTimes(1);
+});
+
+it('keeps the hold when the same rating is tapped again', async () => {
   vi.mocked(flashcardApi.getDueCards)
     .mockResolvedValueOnce({ cards: [card(9), card(1)], totalCount: 2, nextDueAt: null });
   await mount();
   await act(async () => { stack.reveal(); stack.selectRating(3); });
   await act(async () => { stack.selectRating(3); });
-  expect(stack.selectedRating).toBeNull();
-  await act(async () => { await vi.advanceTimersByTimeAsync(RATING_HOLD_MS * 2); });
-  expect(flashcardApi.review).not.toHaveBeenCalled();
-  expect(stack.currentCard?.id).toBe(9);
+  expect(stack.selectedRating).toBe(3);
+  await act(async () => { await vi.advanceTimersByTimeAsync(RATING_HOLD_MS); });
+  expect(flashcardApi.review).toHaveBeenCalledWith(9, { rating: 3 });
+});
+
+it('offers the finished song\'s unlearned words when no other song is due', async () => {
+  vi.mocked(flashcardApi.getDueCards)
+    .mockResolvedValueOnce({ cards: [card(9)], totalCount: 1, nextDueAt: null })
+    .mockResolvedValue({ cards: [], totalCount: 0, nextDueAt: null });
+  vi.mocked(songApi.getStudyCards).mockResolvedValue(studyCards([unsaved('雨'), unsaved('空')], 7));
+  await mount();
+  await rate(3);
+  expect(stack.isComplete).toBe(true);
+  expect(songApi.getStudyCards).toHaveBeenCalledWith(3);
+  expect(stack.songNewSource).toMatchObject({ songId: 3, deckId: 7, totalCount: 2 });
+  expect(stack.songNewPending).toBe(false);
+
+  await act(async () => { stack.startSongNew(); });
+  expect(stack.isComplete).toBe(false);
+  expect(stack.currentCard?.japanese).toBe('雨');
+  expect(stack.songNewSource).toBeNull();
+});
+
+it('does not look for unlearned words while another song is still due', async () => {
+  vi.mocked(deckApi.getDecks).mockResolvedValue({ songDecks: [deck(2, 20, 'B', 1)], nextCursor: null });
+  vi.mocked(flashcardApi.getDueCards)
+    .mockResolvedValueOnce({ cards: [card(9)], totalCount: 1, nextDueAt: null })
+    .mockResolvedValue({ cards: [], totalCount: 0, nextDueAt: null });
+  await mount();
+  await rate(3);
+  expect(stack.nextDueSource?.songId).toBe(20);
+  expect(songApi.getStudyCards).not.toHaveBeenCalled();
+  expect(stack.songNewSource).toBeNull();
+});
+
+it('leaves the song-new nudge empty when every word of the song is already learned', async () => {
+  vi.mocked(flashcardApi.getDueCards)
+    .mockResolvedValueOnce({ cards: [card(9)], totalCount: 1, nextDueAt: null })
+    .mockResolvedValue({ cards: [], totalCount: 0, nextDueAt: null });
+  vi.mocked(songApi.getStudyCards).mockResolvedValue(studyCards([sessionCard(card(5), true)], 7));
+  await mount();
+  await rate(3);
+  expect(stack.isComplete).toBe(true);
+  expect(stack.songNewSource).toBeNull();
 });
 
 it('switches to another rating during the hold and restarts the timer', async () => {
