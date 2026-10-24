@@ -65,6 +65,7 @@ class LexicalResolver(
                 ?: resolveContinuativeNoun(token, probeLookups)
                 ?: resolveSuruPassive(token, probeLookups)
                 ?: resolvePassive(token, probeLookups)
+                ?: resolveCausative(token, probeLookups)
                 ?: resolveAppearanceSou(token, probeLookups)
                 ?: resolveCompletionSuffix(token, probeLookups)
                 ?: resolveTeAuxMotion(token, probeLookups)
@@ -150,6 +151,7 @@ class LexicalResolver(
                     resolveContinuativeNoun(it, probeLookups, logRescue = false) == null &&
                     resolveSuruPassive(it, probeLookups, logRescue = false) == null &&
                     resolvePassive(it, probeLookups, logRescue = false) == null &&
+                    resolveCausative(it, probeLookups, logRescue = false) == null &&
                     resolveAppearanceSou(it, probeLookups, logRescue = false) == null &&
                     resolveCompletionSuffix(it, probeLookups, logRescue = false) == null &&
                     resolveTeAuxMotion(it, probeLookups, logRescue = false) == null &&
@@ -186,6 +188,7 @@ class LexicalResolver(
             continuativeNounProbe(token),
             suruPassiveProbe(token),
             passiveProbe(token),
+            causativeProbe(token),
             negativeVerbProbe(token.headword),
             potentialFormProbe(token),
             godanRenyokeiProbe(token),
@@ -667,6 +670,30 @@ class LexicalResolver(
     /** `呑み込まれる` → `呑み込む`, `見られる` → `見る`. Null unless something precedes the ending. */
     private fun passiveProbe(token: PipelineToken): String? = undoPassive(token.headword, PASSIVE_ENDINGS)
 
+    /**
+     * Safety net for when the segmentation LLM hands back a godan causative — 振り向かせる, 咲かす —
+     * as the headword instead of 振り向く / 咲く. Same shape as [resolvePassive]; only verb senses are accepted.
+     */
+    private fun resolveCausative(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = causativeProbe(token) ?: return null
+        val reading = undoPassive(token.baseFormReading, CAUSATIVE_READING_ENDINGS)
+        val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: return null
+        val verbEntries = accepted.entries.mapNotNull { entry ->
+            val verbSenses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
+            if (verbSenses.isEmpty()) null else entry.copy(senses = verbSenses)
+        }
+        if (verbEntries.isEmpty()) return null
+        if (logRescue) logger.info("Normalized causative '{}' to '{}'", token.headword, base)
+        return AcceptedLexicalEntry(base, verbEntries, accepted.provenance)
+    }
+
+    /** `振り向かせる` → `振り向く`, `咲かす` → `咲く`. Null unless something precedes the ending. */
+    private fun causativeProbe(token: PipelineToken): String? = undoPassive(token.headword, CAUSATIVE_ENDINGS)
+
     private fun undoPassive(text: String, endings: List<Pair<String, String>>): String? {
         val (ending, base) = endings.firstOrNull { text.endsWith(it.first) } ?: return null
         val stem = text.dropLast(ending.length)
@@ -992,6 +1019,15 @@ class LexicalResolver(
             "なれる" to "ぬ", "ばれる" to "ぶ", "まれる" to "む", "られる" to "る",
         )
         val PASSIVE_READING_ENDINGS = PASSIVE_ENDINGS.map { (ending, base) ->
+            JapaneseText.toKatakana(ending) to JapaneseText.toKatakana(base)
+        }
+
+        /** Godan causative ending (`〜あせる` and its short `〜あす`) → dictionary-form ending. */
+        val CAUSATIVE_ENDINGS = listOf(
+            "わ" to "う", "か" to "く", "が" to "ぐ", "さ" to "す", "た" to "つ",
+            "な" to "ぬ", "ば" to "ぶ", "ま" to "む", "ら" to "る",
+        ).flatMap { (a, u) -> listOf(a + "せる" to u, a + "す" to u) }
+        val CAUSATIVE_READING_ENDINGS = CAUSATIVE_ENDINGS.map { (ending, base) ->
             JapaneseText.toKatakana(ending) to JapaneseText.toKatakana(base)
         }
 

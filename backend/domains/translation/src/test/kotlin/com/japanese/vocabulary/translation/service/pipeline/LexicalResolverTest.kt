@@ -329,6 +329,37 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a causative handed back as the headword is rescued as its dictionary form`(): Unit = runBlocking {
+        // 「抉り抜いた鼓動咲かせ咲かせ」, 「愛で愛を振り向かせたい 果敢な heart collector」: jisho has no 咲かす / 振り向かせる.
+        stub(
+            "咲く" to found(verbEntry("咲く", "サク", "to bloom")),
+            "振り向く" to found(verbEntry("振り向く", "フリムク", "to turn one's face")),
+        )
+        val tokens = listOf(
+            token("咲かせ", "咲かす", "サカス", lineIndex = 27),
+            token("振り向かせ", "振り向かせる", "フリムカセル"),
+        )
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.toList()
+
+        assertThat(resolved.map { it.baseForm }).containsExactly("咲く", "振り向く")
+        assertThat(resolved.map { it.options.single().english }).containsExactly("to bloom", "to turn one's face")
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    private fun verbEntry(headword: String, reading: String, english: String) = JishoDictionaryEntryDto(
+        headword = headword,
+        reading = reading,
+        senses = listOf(
+            JishoOptionDto(
+                pos = listOf("Godan verb with 'ku' ending", "Intransitive verb"),
+                english = english,
+                englishDefinitions = listOf(english),
+            ),
+        ),
+    )
+
+    @Test
     fun `a suru verb rescued through the probe is graded exact`(): Unit = runBlocking {
         // jisho indexes 交差 as a noun that takes する, never 交差する itself.
         stub(
