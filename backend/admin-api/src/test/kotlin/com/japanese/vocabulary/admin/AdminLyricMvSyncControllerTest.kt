@@ -19,8 +19,8 @@ class AdminLyricMvSyncControllerTest : AdminBaseIntegrationTest() {
     @Test
     fun `list filters by verdict and marks whether the app uses the row`() {
         val (_, lyric) = songWithLyric(VIDEO_ID)
-        val low = completed(lyric, VIDEO_ID, verdict = "LOW")
-        completed(lyric, "zzzzzzzzzzz", verdict = "OK")
+        val low = completed(lyric, "zzzzzzzzzzz", verdict = "LOW")
+        completed(lyric, VIDEO_ID, verdict = "OK")
 
         mockMvc.get("/admin/api/lyric-mv-syncs?verdict=LOW") {
             header("Authorization", "Bearer ${adminToken()}")
@@ -31,13 +31,25 @@ class AdminLyricMvSyncControllerTest : AdminBaseIntegrationTest() {
             jsonPath("$.content[0].title") { value("Lemon") }
             jsonPath("$.content[0].verdict") { value("LOW") }
             jsonPath("$.content[0].anchoredCount") { value(1) }
-            jsonPath("$.content[0].inUse") { value(true) }
+            jsonPath("$.content[0].inUse") { value(false) }
         }
 
         mockMvc.get("/admin/api/lyric-mv-syncs?verdict=OK") {
             header("Authorization", "Bearer ${adminToken()}")
         }.andExpect {
-            jsonPath("$.content[0].inUse") { value(false) }
+            jsonPath("$.content[0].inUse") { value(true) }
+        }
+
+        // 지금 MV 의 결과여도 LOW 면 앱에 안 내려간다.
+        val current = entityManager.createQuery(
+            "SELECT m FROM LyricMvSyncEntity m WHERE m.youtubeVideoId = :v", LyricMvSyncEntity::class.java,
+        ).setParameter("v", VIDEO_ID).singleResult
+        current.confidence = mapOf("verdict" to "LOW")
+        entityManager.flush()
+        mockMvc.get("/admin/api/lyric-mv-syncs/${current.id}") {
+            header("Authorization", "Bearer ${adminToken()}")
+        }.andExpect {
+            jsonPath("$.summary.inUse") { value(false) }
         }
     }
 

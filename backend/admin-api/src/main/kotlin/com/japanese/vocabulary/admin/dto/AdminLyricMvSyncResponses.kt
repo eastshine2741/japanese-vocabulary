@@ -18,7 +18,7 @@ data class AdminLyricMvSyncSummaryResponse(
     val anchoredCount: Int?,
     val errorMessage: String?,
     val completedAt: Instant?,
-    /** 곡의 지금 active 가사·MV 와 같은 조합이라 앱이 이 결과를 쓰는지. */
+    /** 앱이 이 결과를 쓰는지. 곡의 지금 active 가사·MV 조합의 COMPLETED 이고 LOW 가 아니어야 한다. */
     val inUse: Boolean,
 )
 

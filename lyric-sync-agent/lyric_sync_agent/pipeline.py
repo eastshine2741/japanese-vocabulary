@@ -11,7 +11,7 @@ from .transcribe import SAMPLE_RATE, Transcriber
 MIN_WINDOW_SECONDS = 1.0
 # Whisper's prompt is capped near 224 tokens; keep the lines closest to the stretch.
 PROMPT_CHARS = 200
-# Below these the result is still applied; verdict only marks songs worth a listen.
+# Below these the verdict is LOW and the server keeps the result off the app.
 OK_MIN_ANCHORS, OK_WITHIN_HALF_SECOND = 8, 0.7
 OK_PLAIN_ANCHOR_RATIO = 0.7
 
