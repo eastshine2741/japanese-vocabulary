@@ -95,7 +95,7 @@ WHERE screen = 'SongDetail'
 
 | 이벤트 | 시점 | 파라미터 |
 |---|---|---|
-| `screen_view` (SongReview) | 곡 진입 복습 화면이 열림 | `song_id`(전체 단어장이면 없음), `trigger`(곡 상세의 `cta` 상단 학습 버튼 / `tier` 단계 카드 / `word` 단어 탭, 전체 단어장의 `streak` 연속 학습 / `schedule` 복습 스케줄, 곡 카드 상세의 `reward_card`, `unknown` 그 밖) |
+| `screen_view` (SongReview) | 곡 진입 복습 화면이 열림 | `song_id`(전체 단어장이면 없음), `trigger`(곡 상세의 `cta` 상단 학습 버튼 / `tier` 단계 카드 / `word` 단어 탭, 전체 단어장의 `streak` 연속 학습 / `schedule` 복습 스케줄, 곡 카드 상세의 `reward_card`, 줄 공부에서 줄 단어 풀기 `line`, `unknown` 그 밖) |
 | `card_reveal` | 카드 뒷면을 처음 펼침 | `mode`(`home`/`source`), `position`(이 카드 앞에 평가한 장 수), `is_preview` |
 | `card_rate` | 평가가 저장됨 | 위와 같음 + `rating` |
 | `review_complete` | 한 장 이상 평가한 세션이 완주 카드에 닿음 (홈·곡 진입 모두) | `mode`, `song_id`·`deck_id`(완주한 곡 단어장, 전체 단어장이면 없음), `tier_key`(단계 학습일 때), `reviewed` |
@@ -104,6 +104,17 @@ WHERE screen = 'SongDetail'
 
 - `review_exit` 의 `song_id`·`deck_id` 는 화면을 연 곡이다. 완주 카드에서 다른 곡으로 이어가도 바뀌지 않으니 실제로 복습한 곡은 `review_continue`·`review_complete` 로 본다.
 - `review_exit` 는 앱을 끄면 언마운트가 오지 않아 백그라운드 전환 때도 남긴다. 한 번 열린 화면에 여러 건이 생길 수 있으니 열림마다 마지막 건을 본다.
+
+## 줄 공부 이벤트
+
+줄 공부(`SongLineStudy`)에서 몇 줄까지 가다 멈추는지 보려고 남긴다. 줄을 풀러 가면 SongReview(`trigger=line`)가 위에 쌓이므로, 체류는 `screen_view` 간격이 아니라 `line_study_exit` 의 `dwell_sec` 로 본다.
+
+| 이벤트 | 시점 | 파라미터 |
+|---|---|---|
+| `screen_view` (SongLineStudy) | 줄 공부 화면이 열림 | `song_id` |
+| `line_study_exit` | 줄 공부 화면을 떠나거나 앱이 백그라운드로 감 | `song_id`, `how`(`leave`/`background`), `lines_total`, `lines_reached`(가장 멀리 간 줄까지의 줄 수), `lines_opened`(이번 열림에서 풀어 연 줄 수), `replays`, `completed`(마지막 줄에서 다음을 누름), `dwell_sec` |
+
+- 줄을 풀러 SongReview 에 있는 동안 백그라운드로 가도 아래 깔린 줄 공부가 한 건 남긴다. `review_exit` 처럼 열림마다 마지막 건을 본다.
 
 ## 해석 주의
 

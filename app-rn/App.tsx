@@ -77,6 +77,10 @@ function getScreenViewParams(route: ActiveRoute): ScreenViewParams | undefined {
       origin: params?.origin ?? 'unknown',
     };
   }
+  if (route.name === 'SongLineStudy') {
+    const params = route.params as RootStackParamList['SongLineStudy'] | undefined;
+    return params?.songId != null ? { song_id: params.songId } : undefined;
+  }
   if (route.name === 'SongReview') {
     const params = route.params as RootStackParamList['SongReview'] | undefined;
     return {
