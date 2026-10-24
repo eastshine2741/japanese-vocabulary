@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 /** 로컬 PC 가사 싱크 실행기가 부르는 API. 실행기 토큰으로만 열린다(`SecurityConfig`). */
@@ -17,10 +18,11 @@ import org.springframework.web.bind.annotation.RestController
 class AdminLyricSyncAgentController(
     private val lyricMvSyncService: LyricMvSyncService,
 ) {
-    /** 처리할 작업 하나를 점유한다. 없으면 204. */
+    /** 처리할 작업 하나를 점유한다. 없으면 204. [songId] 를 주면 그 곡만 대기 순서와 상관없이 점유한다. */
     @PostMapping("/claim")
-    fun claim(): ResponseEntity<AdminLyricSyncClaimResponse> {
-        val claim = lyricMvSyncService.claim() ?: return ResponseEntity.noContent().build()
+    fun claim(@RequestParam(required = false) songId: Long?): ResponseEntity<AdminLyricSyncClaimResponse> {
+        val claim = (if (songId != null) lyricMvSyncService.claimSong(songId) else lyricMvSyncService.claim())
+            ?: return ResponseEntity.noContent().build()
         return ResponseEntity.ok(
             AdminLyricSyncClaimResponse(
                 id = claim.id,

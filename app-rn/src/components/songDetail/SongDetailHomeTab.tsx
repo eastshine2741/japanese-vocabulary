@@ -18,7 +18,8 @@ interface SongDetailHomeTabProps {
   contributors: SongContributorsDto | null;
   onCoverageHelpPress: () => void;
   onStartTier: (tier: SongWordTierDto) => void;
-  onStartLines: () => void;
+  /** null 이면 버튼을 숨긴다. 줄 단위로 멈추는 학습은 MV 에 맞춘 시각이 아니면 엉뚱한 구간을 튼다. */
+  onStartLines: (() => void) | null;
   onPressContributor: (contributor: SongContributor) => void;
   style?: StyleProp<ViewStyle>;
 }
@@ -36,7 +37,9 @@ export const SongDetailHomeTab = React.memo(function SongDetailHomeTab({
 }: SongDetailHomeTabProps) {
   return (
     <View style={[styles.container, style]}>
-      <Button label="한 줄씩 풀기" icon="musical-notes" size="lg" onPress={onStartLines} />
+      {onStartLines != null && (
+        <Button label="한 줄씩 풀기" icon="musical-notes" size="lg" onPress={onStartLines} />
+      )}
       {coverage != null && (
         <SongDetailCoverageSection coverage={coverage} onHelpPress={onCoverageHelpPress} />
       )}

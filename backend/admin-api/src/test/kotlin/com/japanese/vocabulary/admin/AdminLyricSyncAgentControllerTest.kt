@@ -158,6 +158,36 @@ class AdminLyricSyncAgentControllerTest : AdminBaseIntegrationTest() {
     }
 
     @Test
+    fun `claiming a song takes its FAILED pair right away and skips other waiting syncs`() {
+        val (_, other) = songWithLyric("aaaaaaaaaaa")
+        pending(other, "aaaaaaaaaaa")
+        val (song, lyric) = songWithLyric(VIDEO_ID)
+        val failed = pending(lyric, VIDEO_ID).also {
+            it.status = LyricMvSyncStatus.FAILED
+            it.attempt = LyricMvSyncService.MAX_ATTEMPTS
+            entityManager.flush()
+        }
+
+        claim(songId = song.id).andExpect {
+            status { isOk() }
+            jsonPath("$.id") { value(failed.id!!.toInt()) }
+            jsonPath("$.attempt") { value(1) }
+        }
+        claim(songId = song.id).andExpect { status { isNoContent() } }
+    }
+
+    @Test
+    fun `claiming a song with no sync row yet queues and claims it`() {
+        val (song, _) = songWithLyric(VIDEO_ID)
+
+        claim(songId = song.id).andExpect {
+            status { isOk() }
+            jsonPath("$.songId") { value(song.id!!.toInt()) }
+            jsonPath("$.youtubeVideoId") { value(VIDEO_ID) }
+        }
+    }
+
+    @Test
     fun `agent token opens only the agent API and the admin token does not open it`() {
         mockMvc.get("/admin/api/songs") {
             header("Authorization", "Bearer $AGENT_TOKEN")
@@ -172,9 +202,10 @@ class AdminLyricSyncAgentControllerTest : AdminBaseIntegrationTest() {
         }.andExpect { status { isForbidden() } }
     }
 
-    private fun claim(): ResultActionsDsl =
+    private fun claim(songId: Long? = null): ResultActionsDsl =
         mockMvc.post("/admin/api/lyric-sync-agent/claim") {
             header("Authorization", "Bearer $AGENT_TOKEN")
+            if (songId != null) param("songId", songId.toString())
         }
 
     private fun complete(sync: LyricMvSyncEntity, attempt: Int, lines: List<Pair<Int, Long>>): ResultActionsDsl =

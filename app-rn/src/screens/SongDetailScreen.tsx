@@ -688,7 +688,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
                     contributors={songContributors}
                     onCoverageHelpPress={handleOpenCoverageHelp}
                     onStartTier={handleStartTier}
-                    onStartLines={handleStartLines}
+                    onStartLines={lyrics.mvSynced === true ? handleStartLines : null}
                     onPressContributor={handlePressContributor}
                   />
                 </View>

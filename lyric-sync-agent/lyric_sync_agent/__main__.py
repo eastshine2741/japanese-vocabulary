@@ -2,6 +2,7 @@
 
   python -m lyric_sync_agent              claim and process syncs until stopped
   python -m lyric_sync_agent try JOB.json  run one claim-shaped job and print the result, nothing is sent
+  python -m lyric_sync_agent song SONG_ID  claim that song right away (FAILED included), process it and exit
 
 The server cannot fetch MV audio (YouTube flags the Hetzner egress IP as a bot), so this PC does the
 work whenever it is on. A job left half-done when the PC shuts down is re-claimed after its lease.
@@ -84,21 +85,27 @@ def report(send, rejected_raises: bool = False) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="lyric_sync_agent")
-    parser.add_argument("command", nargs="?", default="serve", choices=["serve", "try"])
-    parser.add_argument("job", nargs="?", help="claim-shaped JSON file for `try`")
+    parser.add_argument("command", nargs="?", default="serve", choices=["serve", "try", "song"])
+    parser.add_argument("target", nargs="?", help="claim-shaped JSON file for `try`, song id for `song`")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     model = os.environ.get("WHISPER_MODEL", "large-v3")
     device = os.environ.get("DEVICE", "cuda")
 
     if args.command == "try":
-        with open(args.job) as f:
+        with open(args.target) as f:
             result = pipeline.run(json.load(f), model, device)
         json.dump({"method": result.method, "confidence": result.confidence, "lines": result.lines},
                   sys.stdout, ensure_ascii=False, indent=1)
         return
 
     api = AdminApi(os.environ["KOTONOHA_ADMIN_API"], os.environ["LYRIC_SYNC_AGENT_TOKEN"])
+    if args.command == "song":
+        job = api.claim(int(args.target))
+        if job is None:
+            sys.exit(f"song {args.target}: nothing to claim (already COMPLETED, leased by another run, or no MV)")
+        process(api, job, model, device)
+        return
     serve(api, model, device, int(os.environ.get("POLL_SECONDS", "300")))
 
 

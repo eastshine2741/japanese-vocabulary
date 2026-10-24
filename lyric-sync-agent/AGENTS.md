@@ -8,6 +8,8 @@
 systemctl --user enable --now lyric-sync-agent  # 로그인할 때마다 자동 시작
 journalctl --user -u lyric-sync-agent -f
 ./run.sh try job.json                           # claim 응답 모양의 JSON 하나를 돌려 결과만 출력 (서버에 안 보냄)
+KOTONOHA_ADMIN_API=http://localhost/main/admin/api LYRIC_SYNC_AGENT_TOKEN=<dev 토큰> ./run.sh song 42
+                                                # 그 곡만 바로 점유해 돌리고 결과를 보낸다 (dev 에서 곡 하나 확인용)
 .venv/bin/python -m pytest                      # 오디오 없이 도는 정렬·시각 테스트
 ```
 

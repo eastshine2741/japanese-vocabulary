@@ -34,3 +34,16 @@ def test_a_failing_report_never_escapes(monkeypatch):
     api.fail.side_effect = Rejected("404")
     monkeypatch.setattr(pipeline, "run", MagicMock(side_effect=RuntimeError("boom")))
     assert agent.process(api, JOB, "m", "cpu") is False
+
+
+def test_song_command_claims_only_that_song(monkeypatch):
+    api = MagicMock()
+    api.claim.return_value = JOB
+    monkeypatch.setattr(agent, "AdminApi", MagicMock(return_value=api))
+    monkeypatch.setattr(agent, "process", MagicMock(return_value=True))
+    monkeypatch.setattr("sys.argv", ["lyric_sync_agent", "song", "42"])
+    monkeypatch.setenv("KOTONOHA_ADMIN_API", "http://x")
+    monkeypatch.setenv("LYRIC_SYNC_AGENT_TOKEN", "t")
+    agent.main()
+    api.claim.assert_called_once_with(42)
+    agent.process.assert_called_once()

@@ -74,6 +74,8 @@ export interface SongLyricsDto {
   lyricId: number;
   lyricsSourceName: string | null;
   lyricsSourceUrl: string | null;
+  /** false 면 줄 시각이 앨범 음원 기준이라 MV 와 몇 초씩 어긋날 수 있다. 구버전 서버는 안 내려준다. */
+  mvSynced?: boolean;
   lines: SongLyricLineDto[];
 }
 

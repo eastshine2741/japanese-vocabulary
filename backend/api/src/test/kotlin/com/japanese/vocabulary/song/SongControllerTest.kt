@@ -656,6 +656,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                 .andExpect { jsonPath("$.lyricType") { value("SYNCED") } }
             mockMvc.get("/api/songs/${song.id}/lyrics") { header("Authorization", bearer(me)) }
                 .andExpect {
+                    jsonPath("$.mvSynced") { value(true) }
                     jsonPath("$.lines[0].startTimeMs") { value(7600) }
                     jsonPath("$.lines[1].startTimeMs") { value(12600) }
                 }
@@ -676,7 +677,10 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             mockMvc.get("/api/songs/${song.id}") { header("Authorization", bearer(me)) }
                 .andExpect { jsonPath("$.lyricType") { value("PLAIN") } }
             mockMvc.get("/api/songs/${song.id}/lyrics") { header("Authorization", bearer(me)) }
-                .andExpect { jsonPath("$.lines[0].startTimeMs") { value(null) } }
+                .andExpect {
+                    jsonPath("$.mvSynced") { value(false) }
+                    jsonPath("$.lines[0].startTimeMs") { value(null) }
+                }
         }
 
         private fun completedSync(lyric: LyricEntity, videoId: String, timings: List<LyricLineTiming>) {
