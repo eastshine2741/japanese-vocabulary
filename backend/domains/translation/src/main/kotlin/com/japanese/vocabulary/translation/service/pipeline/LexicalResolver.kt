@@ -63,6 +63,7 @@ class LexicalResolver(
                 ?: resolveReadingQuery(token, probeLookups)
                 ?: resolveHonorificPrefix(token, probeLookups)
                 ?: resolveContinuativeNoun(token, probeLookups)
+                ?: resolveNaAdjectiveAttributive(token, probeLookups)
                 ?: resolveSuruPassive(token, probeLookups)
                 ?: resolvePassive(token, probeLookups)
                 ?: resolveAppearanceSou(token, probeLookups)
@@ -148,6 +149,7 @@ class LexicalResolver(
                     resolveReadingQuery(it, probeLookups, logRescue = false) == null &&
                     resolveHonorificPrefix(it, probeLookups, logRescue = false) == null &&
                     resolveContinuativeNoun(it, probeLookups, logRescue = false) == null &&
+                    resolveNaAdjectiveAttributive(it, probeLookups, logRescue = false) == null &&
                     resolveSuruPassive(it, probeLookups, logRescue = false) == null &&
                     resolvePassive(it, probeLookups, logRescue = false) == null &&
                     resolveAppearanceSou(it, probeLookups, logRescue = false) == null &&
@@ -184,6 +186,7 @@ class LexicalResolver(
             readingProbe(token),
             honorificPrefixProbe(token),
             continuativeNounProbe(token),
+            naAdjectiveAttributiveProbe(token),
             suruPassiveProbe(token),
             passiveProbe(token),
             negativeVerbProbe(token.headword),
@@ -608,6 +611,33 @@ class LexicalResolver(
     /** `光り` → `光`. Null unless the headword is something followed by り. */
     private fun continuativeNounProbe(token: PipelineToken): String? =
         token.headword.takeIf { it.length >= 2 && it.endsWith("り") }?.dropLast(1)
+
+    /**
+     * Safety net for a na-adjective handed back in its attributive form — 嫌な, 新たな — instead of 嫌.
+     * jisho indexes only the stem. Only noun and na-adjective senses are kept, so 行くな never becomes 行く.
+     */
+    private fun resolveNaAdjectiveAttributive(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = naAdjectiveAttributiveProbe(token) ?: return null
+        val reading = token.baseFormReading.takeIf { it.endsWith("ナ") }?.dropLast(1)
+        val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: return null
+        val adjectiveEntries = accepted.entries.mapNotNull { entry ->
+            val adjectiveSenses = entry.senses.filter {
+                JishoPartOfSpeechMapper.map(it.pos) in setOf(PartOfSpeech.NOUN, PartOfSpeech.NA_ADJECTIVE)
+            }
+            if (adjectiveSenses.isEmpty()) null else entry.copy(senses = adjectiveSenses)
+        }
+        if (adjectiveEntries.isEmpty()) return null
+        if (logRescue) logger.info("Normalized na-adjective attributive '{}' to '{}'", token.headword, base)
+        return AcceptedLexicalEntry(base, adjectiveEntries, accepted.provenance)
+    }
+
+    /** `嫌な` → `嫌`. Null unless the headword is something followed by な. */
+    private fun naAdjectiveAttributiveProbe(token: PipelineToken): String? =
+        token.headword.takeIf { it.length >= 2 && it.endsWith("な") }?.dropLast(1)
 
     /**
      * Safety net for when the segmentation LLM hands back a suru-verb's passive — 毒される,

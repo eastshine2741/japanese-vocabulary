@@ -415,6 +415,26 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a na-adjective handed back in its attributive form is looked up as the stem`(): Unit = runBlocking {
+        // やなことあって落ち込む日も / 新たなステージを待っている: jisho indexes only 嫌 and 新た.
+        stub(
+            "嫌" to found(naAdjective("嫌", "イヤ", "disagreeable, unpleasant")),
+            "新た" to found(naAdjective("新た", "アラタ", "new, fresh")),
+        )
+        val tokens = listOf(
+            token("やな", "嫌な", "イヤナ", lineIndex = 32),
+            token("新たな", "新たな", "アラタナ", lineIndex = 31),
+        )
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.toList()
+
+        assertThat(resolved.map { it.baseForm }).containsExactly("嫌", "新た")
+        assertThat(resolved).allSatisfy { assertThat(it.options).isNotEmpty() }
+        assertThat(resolved.map { it.options.single().provenance }).containsOnly(JishoLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `a katakana headword the dictionary indexes in hiragana is queried again in hiragana`(): Unit = runBlocking {
         // jisho's search is script-sensitive: アンタ answers with アンタレス and アンタナナリボ, never 貴方.
         stub(
@@ -1087,6 +1107,18 @@ class LexicalResolverTest {
         senses = listOf(
             JishoOptionDto(
                 pos = listOf("Godan verb with '${reading.last()}' ending", "Intransitive verb"),
+                english = english,
+                englishDefinitions = listOf(english),
+            ),
+        ),
+    )
+
+    private fun naAdjective(headword: String, reading: String, english: String) = JishoDictionaryEntryDto(
+        headword = headword,
+        reading = reading,
+        senses = listOf(
+            JishoOptionDto(
+                pos = listOf("Na-adjective (keiyodoshi)", "Noun"),
                 english = english,
                 englishDefinitions = listOf(english),
             ),
