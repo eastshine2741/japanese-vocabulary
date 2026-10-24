@@ -206,6 +206,8 @@ class RuleMeaningProvider {
             // Colloquial contraction of いやだ. Segmentation writes the headword as 嫌だ, which jisho
             // has no entry for. Keyed on the surface only: いやだ shares that headword but not the reading.
             "やだ" to RuleResolvedToken("やだ", "嫌だ", "ヤダ", "イヤダ", PartOfSpeech.NA_ADJECTIVE, "싫다, 싫어"),
+            // Colloquial やんなる/やんなっちゃう; segmentation writes the headword as やになる, which jisho lacks.
+            "やになる" to RuleResolvedToken("やになる", "嫌になる", "ヤニナル", "イヤニナル", PartOfSpeech.VERB, "싫어지다, 질리다"),
         )
 
         val particles = mapOf(

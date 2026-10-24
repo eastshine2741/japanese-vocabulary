@@ -131,6 +131,18 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves colloquial yannacchau contraction of iya ni naru`() {
+        // あァ やんなっちゃうから 勿体ぶりたいメンタル — segmentation writes the headword as やになる,
+        // which jisho has no entry for.
+        val resolved = provider.resolve(PipelineToken(18, "やんなっちゃう", "やになる", 3, 10))!!
+
+        assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.VERB)
+        assertThat(resolved.baseForm).isEqualTo("嫌になる")
+        assertThat(resolved.baseFormReading).isEqualTo("イヤニナル")
+        assertThat(resolved.koreanText).isNotBlank()
+    }
+
+    @Test
     fun `does not rule-resolve ambiguous grammar-like words`() {
         assertThat(provider.resolve(token("ない"))).isNull()
         assertThat(provider.resolve(token("から"))).isNull()
