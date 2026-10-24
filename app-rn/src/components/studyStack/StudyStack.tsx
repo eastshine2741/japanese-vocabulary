@@ -65,13 +65,17 @@ export const StudyStack = React.memo(function StudyStack({
     reviewError,
     completedSource,
     nextDueSource,
+    songNewSource,
+    songNewPending,
     recommendedSource,
     session,
     memoryDiff,
     reveal,
     selectRating,
+    commitRating,
     reload,
     continueDue,
+    startSongNew,
     startRecommended,
   } = stack;
 
@@ -132,6 +136,7 @@ export const StudyStack = React.memo(function StudyStack({
           panHandlers={panHandlers}
           onReveal={reveal}
           onRating={selectRating}
+          onCommitRating={commitRating}
           onSourcePress={onOpenSource}
           onOpenExampleSource={onOpenExampleSource}
           onEditWord={onEditWord}
@@ -146,6 +151,8 @@ export const StudyStack = React.memo(function StudyStack({
         <CompletionStage
           completedSource={completedSource}
           nextDueSource={nextDueSource}
+          songNewSource={songNewSource}
+          songNewPending={songNewPending}
           recommendedSource={recommendedSource}
           previousArtworkUrl={lastCardArtworkUrlRef.current}
           entranceProgress={completionEntranceProgress}
@@ -153,6 +160,7 @@ export const StudyStack = React.memo(function StudyStack({
           sessionReviewedCount={session.reviewedCount}
           claimSongId={claimSongId}
           onContinueDue={continueDue}
+          onSongNew={startSongNew}
           onRecommended={startRecommended}
           onSearch={onSearch}
           contentInsetTop={contentInsetTop}

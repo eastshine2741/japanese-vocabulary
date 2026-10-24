@@ -26,6 +26,7 @@ const work = (over: Partial<SongAnalysisWorkResponse> = {}): SongAnalysisWorkRes
   workId: 1,
   status: 'RUNNING',
   currentStage: null,
+  progress: 0,
   songId: null,
   canOpenPlayer: false,
   isAnalysisComplete: false,
@@ -61,6 +62,16 @@ describe('analysisStore polling', () => {
 
     await vi.advanceTimersByTimeAsync(3000 * 2);
     expect(getAnalysisWork).toHaveBeenCalledTimes(2);
+  });
+
+  it('takes the progress the server reports on each poll', async () => {
+    useAnalysisStore.getState().track(work({ progress: 0.1 }), song);
+    expect(useAnalysisStore.getState().jobs[0].progress).toBe(0.1);
+
+    getAnalysisWork.mockResolvedValue(work({ currentStage: 'ANALYZE_LYRICS', progress: 0.4 }));
+    await vi.advanceTimersByTimeAsync(3000);
+
+    expect(useAnalysisStore.getState().jobs[0].progress).toBe(0.4);
   });
 
   it('keeps the song closed until analysis completes, then offers it from the pill', async () => {

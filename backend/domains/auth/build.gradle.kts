@@ -1,5 +1,6 @@
 dependencies {
     implementation(project(":domains:user"))
+    implementation(project(":domains:userinventory"))
 
     // JWT
     implementation("io.jsonwebtoken:jjwt-api:0.12.3")

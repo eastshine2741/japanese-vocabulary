@@ -191,6 +191,8 @@ export interface SongAnalysisWorkResponse {
   workId: number;
   status: SongAnalysisWorkStatus;
   currentStage: string | null;
+  /** 0..1. 서버가 단계와 경과 시간으로 계산한 값. */
+  progress: number;
   songId: number | null;
   canOpenPlayer: boolean;
   isAnalysisComplete: boolean;

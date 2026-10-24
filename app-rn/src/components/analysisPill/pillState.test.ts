@@ -10,6 +10,7 @@ const job = (over: Partial<AnalysisJob>): AnalysisJob => ({
   phase: 'analyzing',
   settledAt: null,
   errorCode: null,
+  progress: 0,
   ...over,
 });
 
@@ -40,6 +41,11 @@ describe('derivePillState', () => {
       expandable: true,
       tapSongId: null,
     });
+  });
+
+  it('fills with the progress of the song the subtitle names', () => {
+    const state = derivePillState([job({ progress: 0.3 }), job({ workId: 2, title: '怪物', progress: 0.8 })]);
+    expect(state?.progress).toBe(0.3);
   });
 
   it('all done with several songs names the latest and counts the rest', () => {
@@ -169,6 +175,10 @@ describe('deriveJobPillState', () => {
       tapSongId: null,
       studyHint: false,
     });
+  });
+
+  it('fills an analyzing job pill with its own progress', () => {
+    expect(deriveJobPillState(job({ progress: 0.6 })).progress).toBe(0.6);
   });
 
   it('maps a failed job to a dismissable failure pill', () => {

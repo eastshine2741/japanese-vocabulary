@@ -114,7 +114,7 @@ class StudyStatsService(
 
 
     companion object {
-        const val FREEZE_CAP = 2
+        const val FREEZE_CAP = 3
         const val HEATMAP_RANGE = 112 // 16 weeks, matches Pencil heatmap grid (16 cols × 7 rows)
         const val CALENDAR_DEFAULT_MONTHS = 3
         const val CALENDAR_MAX_MONTHS = 12

@@ -10,7 +10,7 @@ action — rating a card saves its song as a deck.
 
 제품 원칙 (코드에서 안 보이는 것):
 - 홈은 기능 진입점 모음이 아니라 학습 카드 스택이다. 앱을 열면 첫 화면엔 늘 카드 한 장이 있다.
-- 한 곡의 복습을 끝내면 완료 카드가 다음 곡을, 복습할 게 없으면 추천곡·새 곡 검색을 제안한다.
+- 한 곡의 복습을 끝내면 완료 카드가 다음 곡을, 복습할 게 없으면 그 곡의 안 배운 단어를, 그것도 없으면 추천곡·새 곡 검색을 제안한다.
 - 오늘 학습이 기록되는 단위는 카드 1장이다. 세션 길이·완료 여부와 무관하다.
 - 보상 카드는 학습의 결과라 학습 데이터보다 앞세우지 않는다.
 - 제품 결정의 이유는 그 결정을 구현한 코드 옆 주석에 둔다. 별도 기획·기능 문서는 두지 않는다.
@@ -40,6 +40,7 @@ cd app-rn && npx expo start --web             # App - Web (dev)
 - 단어 뜻 파이프라인 guardrails: `docs/translation-pipeline.md`
 - 주요 단어 점수(`importanceScore`): `docs/architecture/major-word-scoring.md`
 - 곡 상세 단어 tier·이해도, 학습 세션 카드: `docs/architecture/song-word-tiers.md`
+- 가사 줄 시각을 MV 에 맞추기(로컬 PC 실행기 `lyric-sync-agent/`): `docs/architecture/lyric-mv-sync.md`
 - 아티스트 상세·Apple Music 아티스트 연결: `docs/architecture/artist-detail.md`
 - Feature flag(시각 구간): `docs/architecture/feature-flag.md`
 - 푸시 알림(연속 학습 알림 포함): `docs/architecture/push-notification.md`

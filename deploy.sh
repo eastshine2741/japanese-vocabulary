@@ -120,6 +120,14 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
     echo "  generate: openssl rand -hex 32" >&2
     exit 1
   fi
+  # 비면 가사 싱크 실행기 API 가 닫혀 곡 시각이 MV 에 맞춰지지 않는다. 막지는 않고 알린다.
+  if [[ -z "${ADMIN_LYRIC_SYNC_AGENT_TOKEN:-}" ]]; then
+    echo "Warning: ADMIN_LYRIC_SYNC_AGENT_TOKEN 이 비어 가사 싱크 실행기가 admin-api 에 붙지 못한다 ($ENV_FILE)" >&2
+  elif [[ ${#ADMIN_LYRIC_SYNC_AGENT_TOKEN} -lt 32 ]]; then
+    echo "Error: ADMIN_LYRIC_SYNC_AGENT_TOKEN must be at least 32 characters in $ENV_FILE" >&2
+    echo "  generate: openssl rand -hex 32" >&2
+    exit 1
+  fi
   # 비면 앱 링크 검증 파일이 404 라 공유 링크가 앱 대신 브라우저로 열린다. 막지는 않고 알린다.
   if [[ -z "${SHARE_APPLE_APP_ID:-}" || -z "${SHARE_ANDROID_SHA256_FINGERPRINTS:-}" ]]; then
     echo "Warning: SHARE_APPLE_APP_ID / SHARE_ANDROID_SHA256_FINGERPRINTS 가 비어 공유 링크가 앱으로 열리지 않는다 ($ENV_FILE)" >&2
@@ -216,7 +224,8 @@ build_boot_image() {
     -f "$module_dir/Dockerfile" "$ctx/"
 }
 export API_IMAGE BATCH_IMAGE WORKER_IMAGE MIGRATION_IMAGE ADMIN_API_IMAGE ADMIN_WEB_IMAGE SHARE_WEB_IMAGE LANDING_WEB_IMAGE NS SENTRY_ENVIRONMENT SENTRY_RELEASE
-export ADMIN_PASSWORD ADMIN_PASSWORD_SHA256 ADMIN_TOKEN_SECRET SHARE_TOKEN_KEYS
+ADMIN_LYRIC_SYNC_AGENT_TOKEN="${ADMIN_LYRIC_SYNC_AGENT_TOKEN:-}"
+export ADMIN_PASSWORD ADMIN_PASSWORD_SHA256 ADMIN_TOKEN_SECRET ADMIN_LYRIC_SYNC_AGENT_TOKEN SHARE_TOKEN_KEYS
 export SENTRY_DSN_WORKER
 
 echo "=== env: $DEPLOY_ENV | namespace: $NS | sha: $GIT_SHA ==="

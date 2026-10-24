@@ -9,6 +9,7 @@ import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.repository.SongRepository
+import com.japanese.vocabulary.song.service.LyricMvSyncService
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -16,11 +17,18 @@ import org.springframework.transaction.annotation.Transactional
 class SongDetailQueryService(
     private val songRepository: SongRepository,
     private val lyricRepository: LyricRepository,
+    private val lyricMvSyncService: LyricMvSyncService,
 ) {
     @Transactional(readOnly = true)
     fun metadata(songId: Long): SongDto {
         val song = songRepository.findById(songId).orElseThrow { BusinessException(ErrorCode.SONG_NOT_FOUND) }
         val lyric = lyricRepository.findActiveBySongId(songId)
+        // MV 에 맞춘 시각이 있으면 PLAIN 가사도 앱에서 자동 싱크가 켜진다.
+        val lyricType = when {
+            lyric == null -> LyricType.PLAIN
+            lyricMvSyncService.timingsFor(song, lyric) != null -> LyricType.SYNCED
+            else -> lyric.lyricType
+        }
         return SongDto(
             id = song.id!!,
             title = song.title,
@@ -28,32 +36,33 @@ class SongDetailQueryService(
             durationSeconds = song.durationSeconds,
             artworkUrl = song.artworkUrl,
             youtubeUrl = song.youtubeUrl,
-            lyricType = lyric?.lyricType ?: LyricType.PLAIN,
+            lyricType = lyricType,
             artistId = song.artistId,
         )
     }
 
     @Transactional(readOnly = true)
     fun lyrics(songId: Long): SongLyricsDto {
-        songRepository.findById(songId).orElseThrow { BusinessException(ErrorCode.SONG_NOT_FOUND) }
+        val song = songRepository.findById(songId).orElseThrow { BusinessException(ErrorCode.SONG_NOT_FOUND) }
         val lyric = lyricRepository.findActiveBySongId(songId) ?: throw BusinessException(ErrorCode.LYRIC_NOT_FOUND)
         val source = lyric.source()
         return SongLyricsDto(
             lyricId = lyric.id!!,
             lyricsSourceName = source.name,
             lyricsSourceUrl = source.url,
-            lines = lyricLines(lyric),
+            lines = lyricLines(lyric, lyricMvSyncService.timingsFor(song, lyric)),
         )
     }
 
-    fun lyricLines(lyric: LyricEntity): List<SongLyricLineDto> {
+    /** [mvTimings] 는 곡의 지금 MV 에 맞춘 줄 시각이다. 없으면 가사 원래 시각을 쓴다. */
+    fun lyricLines(lyric: LyricEntity, mvTimings: Map<Int, Long?>? = null): List<SongLyricLineDto> {
         val analyzedByIndex = lyric.analyzedContent.orEmpty().associateBy { it.index }
         return lyric.rawContent.sortedBy { it.index }.map { raw ->
             val analyzed = analyzedByIndex[raw.index]
             SongLyricLineDto(
                 index = raw.index,
                 originalText = raw.text,
-                startTimeMs = raw.startTimeMs,
+                startTimeMs = if (mvTimings != null) mvTimings[raw.index] else raw.startTimeMs,
                 koreanLyrics = analyzed?.koreanLyrics,
                 tokens = analyzed?.tokens ?: emptyList(),
             )

@@ -113,6 +113,7 @@ Auth:
 
 - Login accepts only `{ "password": "..." }`.
 - Token is admin-only and signed with `ADMIN_TOKEN_SECRET`, not public `JWT_SECRET`.
+- The lyric sync agent uses a separate fixed token (`ADMIN_LYRIC_SYNC_AGENT_TOKEN`) that opens only `/admin/api/lyric-sync-agent/**`; the admin login token cannot open that path (`docs/architecture/lyric-mv-sync.md`).
 - Admin API is stateless.
 
 Environment:

@@ -247,6 +247,7 @@ class SongController(
         workId = workId,
         status = status.name,
         currentStage = currentStage,
+        progress = progress,
         songId = songId,
         lyricId = lyricId,
         youtubeUrl = youtubeUrl,
