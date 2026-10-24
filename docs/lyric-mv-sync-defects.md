@@ -29,6 +29,7 @@ MV 오연결·가사 오연결이 FAILED 나 LOW 로 드러난다. 곡을 고치
 | 발견 | sync | song | 곡 | 영상 | 내용 | 처리 |
 |---|---|---|---|---|---|---|
 | 10-24 | 17 | 17 | LOVE DIVE / IVE | `Y8JFxS1HlDo` | 가사 0줄. 한국어 MV 에 일본어 가사로 추정 | |
+| 10-25 | 315 | 316 | 야간비행 (Turbulence) [Japanese Ver.] / ATEEZ | `80WvAnsHOdM` | 일본어판 곡에 한국어 원곡 MV. 7/43줄 | |
 | 10-24 | 131 | 132 | 弱虫モンブラン (feat. GUMI) / DECO*27 | `euRzG6zmEb8` | MV 가 `(Reloaded) feat. 初音ミク`. 104초부터 −18s, 160초부터 −28s | |
 | 10-24 | 142 | 143 | やっぱり雨は降るんだね / ツユ | `i7CZNAIX28k` | 영상 431초(곡 244초). 보정이 −39s, 183초부터 +194s | |
 | 10-24 | 146 | 147 | UNDEAD / YOASOBI | `tEelcVZ4Q7Y` | MV 가 English Version. 19/112줄 | |
