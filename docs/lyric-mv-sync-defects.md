@@ -23,6 +23,7 @@ MV 오연결·가사 오연결이 FAILED 나 LOW 로 드러난다. 곡을 고치
 | 10-25 | 214 | 215 | さよならモルテン / ヨルシカ | `B66_-EMRvSI` | 중국어 자막 팬 업로드. 가사가 비어 있어 실패한 것(아래 빈 가사 표) | |
 | 10-25 | 237 | 238 | メーベル / なとり | `Qvbd4g-LIOM` | `Offvocal` 반주 영상 | |
 | 10-25 | 338 | 339 | 独りうた ~September調子はどうだい~ / うじたまい | `gJFvEN0KQiU` | 다른 가수 커버(`さんひ Cover`, 141초, 곡 197초). 4/46줄 | |
+| 10-25 | 555 | 557 | Beyond the way / Vivid BAD SQUAD | `_tF2x-Ax4QY` | 태국어 번안 커버(`Thai ver.【Takeru】`). 1/60줄 | |
 | 10-25 | 347 | 348 | Flame (feat. milet) / PLAVE | `2WnL2ARuj5I` | 해외 유튜버 리액션 영상(324초, 곡 187초). 보정 +38s | |
 | 10-25 | 427 | 428 | Songbird (Japanese Ver.) / NCT WISH | `Gsafas5vpV8` | 한국어판 안무 연습 영상(`Dance Practice`). 1/49줄 | |
 | 10-25 | 435 | 436 | poppop (Japanese Ver.) / NCT WISH | `L0QIuPZL20M` | 한국어판 안무 연습 영상. 1/74줄 | |
