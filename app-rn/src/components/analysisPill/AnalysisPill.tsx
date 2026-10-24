@@ -23,6 +23,7 @@ import { PillState } from './pillState';
 // component/AnalyzingPill (Pencil XjTJZ). 접힌 pill 과 펼친 곡별 pill 이 같은 컴포넌트를 쓴다.
 // 폭은 고정이고 부제가 넘치면 곡명만 말줄임한다(뒤 문구는 항상 보인다). 실패 pill 만 사유를 담느라 더 넓다.
 // 접힌 단일 완료 pill 은 탭이 곧 학습이라, 체크 대신 chevron 으로 이동을 드러낸다(state/done).
+// 분석 중엔 배경이 진행도만큼 왼쪽부터 짙어진다. 흰 글자 대비가 떨어지지 않게 밝히는 대신 어둡게 채운다.
 
 export const PILL_HEIGHT = 56;
 const PILL_WIDTH = 248;
@@ -33,6 +34,9 @@ const PRESSED_SCALE = 0.96;
 const TONE_DURATION = 360;
 const RELAYOUT_DURATION = 260;
 const TEXT_FADE_DURATION = 220;
+// 서버 진행도는 폴링 간격(3초)마다 바뀐다. 그 간격 동안 고르게 따라가야 막대가 계단처럼 튀지 않는다.
+const FILL_DURATION = 3000;
+const FILL_COLOR = '#00000026';
 
 const relayout = LinearTransition.duration(RELAYOUT_DURATION).easing(Easing.out(Easing.cubic));
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -64,6 +68,15 @@ function AnalysisPill({ state, onPress }: Props) {
   useEffect(() => {
     failure.value = withTiming(failed ? 1 : 0, { duration: TONE_DURATION, easing: Easing.out(Easing.cubic) });
   }, [failed, failure]);
+
+  const fill = useSharedValue(state.progress);
+  useEffect(() => {
+    fill.value = withTiming(state.progress, { duration: FILL_DURATION, easing: Easing.linear });
+  }, [state.progress, fill]);
+  const fillStyle = useAnimatedStyle(() => ({
+    width: `${fill.value * 100}%`,
+    opacity: 1 - tone.value,
+  }));
 
   // 눌림은 알파 대신 크기로 표현한다.
   const pressScale = useSharedValue(1);
@@ -107,6 +120,10 @@ function AnalysisPill({ state, onPress }: Props) {
       layout={relayout}
       style={[styles.pill, { width: failed ? FAILED_PILL_WIDTH : PILL_WIDTH }, pillStyle]}
     >
+      {/* 그림자가 잘리지 않게 pill 이 아니라 이 트랙만 overflow 를 자른다. */}
+      <View pointerEvents="none" style={styles.fillTrack}>
+        <Animated.View style={[styles.fill, fillStyle]} />
+      </View>
       <Animated.View layout={relayout} style={[styles.arts, { width: artsWidth }]}>
         {state.arts.map((url, index) => (
           <Animated.View
@@ -173,6 +190,15 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     shadowRadius: 10,
     elevation: 8,
+  },
+  fillTrack: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: PILL_HEIGHT / 2,
+    overflow: 'hidden',
+  },
+  fill: {
+    height: '100%',
+    backgroundColor: FILL_COLOR,
   },
   arts: {
     height: ART_SIZE,

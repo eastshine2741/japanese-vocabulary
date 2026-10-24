@@ -139,6 +139,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
 
             val dto = readBody<SongAnalysisWorkResponse>(body)
             assertThat(dto.status).isEqualTo("PENDING")
+            assertThat(dto.progress).isEqualTo(0.0)
             assertThat(dto.songId).isNull()
             assertThat(dto.canOpenPlayer).isFalse
         }

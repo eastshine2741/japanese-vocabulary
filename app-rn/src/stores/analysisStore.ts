@@ -100,6 +100,7 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => {
           phase: 'analyzing',
           settledAt: null,
           errorCode: null,
+          progress: accepted.progress,
         }],
       }));
 
@@ -117,6 +118,7 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => {
           await sleep(POLL_INTERVAL_MS);
           try {
             current = await songApi.getAnalysisWork(workId);
+            patchJob(workId, { progress: current.progress });
           } catch {
             // 일시적 네트워크 오류는 다음 폴링에서 다시 시도한다.
           }
