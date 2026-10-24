@@ -13,6 +13,7 @@ import com.japanese.vocabulary.translation.model.PipelineTokenKey
 import com.japanese.vocabulary.translation.service.JishoService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import java.text.Normalizer
 
 /**
  * Narrows a jisho lookup to the dictionary entry the token actually means.
@@ -430,9 +431,11 @@ class LexicalResolver(
         return accepted
     }
 
-    /** `閧` → `鬨`. Null when the headword has no variant kanji listed in [KANJI_VARIANTS]. */
+    /** `閧` → `鬨`, `⼿放す` → `手放す`. Null when the headword has nothing to fold or swap. */
     private fun kanjiVariantProbe(token: PipelineToken): String? {
-        val variant = token.headword.map { KANJI_VARIANTS[it] ?: it }.joinToString("")
+        // NFKC folds Kangxi radical characters (U+2F00 block) some lyrics use in place of the ordinary kanji.
+        val folded = Normalizer.normalize(token.headword, Normalizer.Form.NFKC)
+        val variant = folded.map { KANJI_VARIANTS[it] ?: it }.joinToString("")
         return variant.takeIf { it != token.headword }
     }
 

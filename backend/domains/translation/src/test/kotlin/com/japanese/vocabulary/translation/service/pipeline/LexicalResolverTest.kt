@@ -544,6 +544,25 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a headword written with Kangxi radical characters is looked up in its ordinary kanji`(): Unit = runBlocking {
+        // それなのに⼿放したくない / ただ起きて⾷って働いて: ⼿ (U+2F3F) and ⾷ (U+2FB7) are radicals, not 手 and 食.
+        stub(
+            "手放す" to found(godanVerb(headword = "手放す", reading = "テバナス", english = "to let go of")),
+            "食う" to found(godanVerb(headword = "食う", reading = "クウ", english = "to eat")),
+        )
+        val tokens = listOf(
+            token("⼿放したくない", "⼿放す", "テバナス", lineIndex = 6),
+            token("⾷って", "⾷う", "クウ", lineIndex = 4),
+        )
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.toList()
+
+        assertThat(resolved.map { it.baseForm }).containsExactly("手放す", "食う")
+        assertThat(resolved.map { it.options.single().english }).containsExactly("to let go of", "to eat")
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `a lookup jisho never answered is reported as a provider error, not a miss`(): Unit = runBlocking {
         // A jisho outage must be distinguishable from a missing entry: one is retried against jisho,
         // the other against the model.
