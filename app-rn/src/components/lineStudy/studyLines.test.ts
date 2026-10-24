@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { SongLyricLineDto, SongWordTierDto, WordInSongItemDto } from '../../types/song';
-import { buildStudyLines, firstLockedPosition, isWordSeen, lineWordKeys, snapLineIndex } from './studyLines';
+import { buildStudyLines, firstLockedPosition, isWordSeen, lastReachablePosition, lineWordKeys, snapLineIndex } from './studyLines';
 
 function line(index: number, startTimeMs: number | null): SongLyricLineDto {
   return { index, originalText: `line${index}`, startTimeMs, koreanLyrics: null, tokens: [] };
@@ -84,6 +84,27 @@ describe('buildStudyLines', () => {
     );
     expect(result.map(l => l.unseenCount)).toEqual([0, 1]);
     expect(firstLockedPosition(result)).toBe(1);
+  });
+});
+
+describe('lastReachablePosition', () => {
+  const lines = (unseen: number[]) => buildStudyLines(
+    unseen.map((_, i) => line(i, i * 1000)),
+    [word('胸', true), word('声')],
+    Object.fromEntries(unseen.map((count, i) => [i, count > 0 ? [0, 1] : [0]])),
+    [tier(['胸', '声'])],
+  );
+
+  it('가장 멀리 간 줄이 열려 있으면 다음 줄까지 간다. 다음 줄이 잠겨 있어도 간다', () => {
+    expect(lastReachablePosition(lines([0, 1, 0]), 0)).toBe(1);
+  });
+
+  it('가장 멀리 간 줄이 잠겨 있으면 그 줄에서 멈춘다', () => {
+    expect(lastReachablePosition(lines([0, 1, 0]), 1)).toBe(1);
+  });
+
+  it('마지막 줄 너머로는 가지 않는다', () => {
+    expect(lastReachablePosition(lines([0, 0]), 1)).toBe(1);
   });
 });
 

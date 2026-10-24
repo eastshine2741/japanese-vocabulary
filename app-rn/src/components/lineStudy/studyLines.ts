@@ -69,6 +69,12 @@ export function firstLockedPosition(studyLines: readonly StudyLine[]): number {
   return position < 0 ? 0 : position;
 }
 
+/** 손으로 끌어 갈 수 있는 마지막 줄. 가장 멀리 간 줄의 번역이 아직 잠겨 있을 때만 그 너머를 막는다. */
+export function lastReachablePosition(studyLines: readonly StudyLine[], furthest: number): number {
+  const opened = studyLines[furthest]?.unseenCount === 0;
+  return opened && furthest + 1 < studyLines.length ? furthest + 1 : furthest;
+}
+
 /** 이보다 빠르게 튕기면 손 뗀 자리가 같은 줄이어도 한 줄 넘긴다. */
 const FLICK_VELOCITY = 500;
 

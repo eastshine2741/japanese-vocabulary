@@ -26,7 +26,7 @@ import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import YouTubePlayer, { YouTubePlayerRef } from '../components/YouTubePlayer';
 import { Button } from '../components/ui';
 import { useArtBackdrop } from '../components/rewardCards/artColors';
-import { buildStudyLines, firstLockedPosition, isWordSeen, lineWordKeys, snapLineIndex, StudyLine } from '../components/lineStudy/studyLines';
+import { buildStudyLines, firstLockedPosition, isWordSeen, lastReachablePosition, lineWordKeys, snapLineIndex, StudyLine } from '../components/lineStudy/studyLines';
 import { hapticLineTick, hapticTranslationOpened, hapticTranslationWord, hapticUnlock } from '../components/songDetail/lyricsHaptics';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useSettingsStore } from '../stores/settingsStore';
@@ -268,7 +268,8 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
 
   const settle = useCallback(() => {
     const pos = positionRef.current;
-    const far = furthestRef.current;
+    const lines = studyLinesRef.current;
+    const far = furthestRef.current != null && lines != null ? lastReachablePosition(lines, furthestRef.current) : null;
     const top = pos != null ? lineTopsRef.current[pos] : undefined;
     const farTop = far != null ? lineTopsRef.current[far] : undefined;
     if (pos == null || far == null || top == null || farTop == null) return;
@@ -285,15 +286,17 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
     translateY.value = withSpring(target, LINE_SPRING);
   }, [positionSV, restY, translateY, viewIndex]);
 
+  // 단어를 풀고 돌아와 줄이 열리면 끌어 갈 수 있는 줄이 늘어난다.
   useEffect(() => {
     settle();
-  }, [position, settle]);
+  }, [position, settle, studyLines]);
 
   // 번역이 열리면 그 줄 아래가 밀린다. 지금 줄 위쪽 높이가 바뀌면 다시 앉힌다.
   const handleLineLayout = useCallback((linePosition: number, y: number) => {
     lineTopsRef.current[linePosition] = y;
     lineTops.value = [...lineTopsRef.current];
-    const far = furthestRef.current;
+    const lines = studyLinesRef.current;
+    const far = furthestRef.current != null && lines != null ? lastReachablePosition(lines, furthestRef.current) : null;
     if (far != null && linePosition <= far) settle();
   }, [lineTops, settle]);
 
