@@ -69,6 +69,7 @@ class LexicalResolver(
                 ?: resolveCompletionSuffix(token, probeLookups)
                 ?: resolveTeAuxMotion(token, probeLookups)
                 ?: resolveNegativeVerb(token, probeLookups)
+                ?: resolveIchidanVolitional(token, probeLookups)
                 ?: resolvePotentialForm(token, probeLookups)
                 ?: resolveGodanRenyokei(token, probeLookups)
                 ?: resolvePotentialNegative(token, probeLookups)
@@ -154,6 +155,7 @@ class LexicalResolver(
                     resolveCompletionSuffix(it, probeLookups, logRescue = false) == null &&
                     resolveTeAuxMotion(it, probeLookups, logRescue = false) == null &&
                     resolveNegativeVerb(it, probeLookups, logRescue = false) == null &&
+                    resolveIchidanVolitional(it, probeLookups, logRescue = false) == null &&
                     resolvePotentialForm(it, probeLookups, logRescue = false) == null &&
                     resolveGodanRenyokei(it, probeLookups, logRescue = false) == null &&
                     resolvePotentialNegative(it, probeLookups, logRescue = false) == null
@@ -187,6 +189,7 @@ class LexicalResolver(
             suruPassiveProbe(token),
             passiveProbe(token),
             negativeVerbProbe(token.headword),
+            ichidanVolitionalProbe(token.headword),
             potentialFormProbe(token),
             godanRenyokeiProbe(token),
             potentialNegativeProbe(token),
@@ -768,7 +771,8 @@ class LexicalResolver(
     }
 
     /**
-     * Safety net for a verb the lyric follows with the motion auxiliary ていく / てくる (飛んでいく).
+     * Safety net for a verb the lyric follows with a te-auxiliary — ていく / てくる / ている / てしまう
+     * (飛んでいく, わかってる).
      *
      * The auxiliary is dropped and the te-form conjugated back. んで / って are ambiguous (飛ぶ, 読む,
      * 死ぬ), so every candidate is asked and the first with a verb sense wins.
@@ -843,6 +847,32 @@ class LexicalResolver(
         val godanEnding = NEGATIVE_GODAN_ENDINGS[stem.last()] ?: return stem + "る"
         return stem.dropLast(1) + godanEnding
     }
+
+    /**
+     * Safety net for an ichidan verb's volitional handed back as the headword — 化けよう for 化ける.
+     * Only verb senses are kept: the probe is a guess.
+     */
+    private fun resolveIchidanVolitional(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = ichidanVolitionalProbe(token.headword) ?: return null
+        val reading = ichidanVolitionalProbe(JapaneseText.toHiragana(token.baseFormReading))
+            ?.let(JapaneseText::toKatakana)
+        val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: return null
+        val verbEntries = accepted.entries.mapNotNull { entry ->
+            val verbSenses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
+            if (verbSenses.isEmpty()) null else entry.copy(senses = verbSenses)
+        }
+        if (verbEntries.isEmpty()) return null
+        if (logRescue) logger.info("Normalized ichidan volitional '{}' to '{}'", token.headword, base)
+        return AcceptedLexicalEntry(base, verbEntries, accepted.provenance)
+    }
+
+    /** `化けよう` → `化ける`. Null when nothing precedes よう. */
+    private fun ichidanVolitionalProbe(form: String): String? =
+        form.takeIf { it.endsWith("よう") }?.dropLast(2)?.takeIf { it.isNotEmpty() }?.plus("る")
 
     /**
      * Safety net for a godan verb's potential form handed back as the headword — 掴める for 掴む.
@@ -1004,7 +1034,8 @@ class LexicalResolver(
         /** Longest first among overlapping spellings, so きれない is never cut as a shorter suffix. */
         val COMPLETION_SUFFIXES = listOf("きれない", "きれる", "きれず", "きれぬ", "きる")
 
-        val TE_AUX_MOTION_SUFFIXES = listOf("いく", "行く", "くる", "来る")
+        /** ている / てる / てしまう are glued on the same way as the motion verbs. Bare る last: it ends いる / くる too. */
+        val TE_AUX_MOTION_SUFFIXES = listOf("いく", "行く", "くる", "来る", "いる", "しまう", "る")
 
         /** Te-form ending → the dictionary-form endings it can come from. */
         val TE_FORM_ENDINGS = listOf(

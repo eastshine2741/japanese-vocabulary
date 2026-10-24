@@ -839,6 +839,43 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a te-form verb glued to teru, teiru or teshimau is looked up as the bare verb`(): Unit = runBlocking {
+        stub(
+            "みる" to found(ichidanVerb("見る", "ミル", "to see")),
+            "わかる" to found(godanVerb("分かる", "ワカル", "to understand")),
+            "ズレる" to found(ichidanVerb("ずれる", "ズレル", "to slip out of place")),
+        )
+        val tokens = listOf(
+            // 断片的なアベレージばっかみちゃって 馬鹿みたいだ
+            token("みちゃって", "みてしまう", "ミテシマウ", lineIndex = 47),
+            // あのね、私実はわかってるの
+            token("わかってる", "わかってる", "ワカッテル", lineIndex = 25),
+            // ズレている　故に恥をかく
+            token("ズレている", "ズレている", "ズレテイル", lineIndex = 28),
+        )
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values
+
+        assertThat(resolved.map { it.baseForm }).containsExactly("みる", "わかる", "ズレる")
+        assertThat(resolved.map { it.options.single().english })
+            .containsExactly("to see", "to understand", "to slip out of place")
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
+    fun `an ichidan volitional handed back as the headword is looked up as the ru verb`(): Unit = runBlocking {
+        stub("化ける" to found(ichidanVerb("化ける", "バケル", "to take the form of")))
+        // 汚れた体裁に　止まれない化けように　さぁ
+        val tokens = listOf(token("化けよう", "化けよう", "バケヨウ", lineIndex = 35))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("化ける")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `a negative verb handed back as the headword is rescued as its dictionary form`(): Unit = runBlocking {
         // The negative いらない was given as the headword for いらん; jisho indexes only 要る.
         stub(
@@ -1087,6 +1124,18 @@ class LexicalResolverTest {
         senses = listOf(
             JishoOptionDto(
                 pos = listOf("Godan verb with '${reading.last()}' ending", "Intransitive verb"),
+                english = english,
+                englishDefinitions = listOf(english),
+            ),
+        ),
+    )
+
+    private fun ichidanVerb(headword: String, reading: String, english: String) = JishoDictionaryEntryDto(
+        headword = headword,
+        reading = reading,
+        senses = listOf(
+            JishoOptionDto(
+                pos = listOf("Ichidan verb", "Intransitive verb"),
                 english = english,
                 englishDefinitions = listOf(english),
             ),
