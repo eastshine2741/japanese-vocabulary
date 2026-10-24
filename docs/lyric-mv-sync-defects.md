@@ -26,6 +26,7 @@ MV 오연결·가사 오연결이 FAILED 나 LOW 로 드러난다. 곡을 고치
 | 10-25 | 347 | 348 | Flame (feat. milet) / PLAVE | `2WnL2ARuj5I` | 해외 유튜버 리액션 영상(324초, 곡 187초). 보정 +38s | |
 | 10-25 | 427 | 428 | Songbird (Japanese Ver.) / NCT WISH | `Gsafas5vpV8` | 한국어판 안무 연습 영상(`Dance Practice`). 1/49줄 | |
 | 10-25 | 435 | 436 | poppop (Japanese Ver.) / NCT WISH | `L0QIuPZL20M` | 한국어판 안무 연습 영상. 1/74줄 | |
+| 10-25 | 436 | 437 | WISH (Japanese Ver.) / NCT WISH | `_t9bc8WNA1c` | 다른 곡 트레일러(`'I SPY' Trailer Part 2`, 92초). 0/48줄 | |
 | 10-25 | 276 | 277 | ディープカバー / MILGRAM コトコ | `002zE78Zjg8` | `(Instrumental)`. MILGRAM 네 번째 | |
 | 10-25 | 359 | 360 | Cat / MILGRAM カズイ | `dk5l6ZG_NiY` | `(Instrumental)` | |
 
