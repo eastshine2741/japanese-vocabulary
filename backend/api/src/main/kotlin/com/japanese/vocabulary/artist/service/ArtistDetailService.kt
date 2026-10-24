@@ -32,14 +32,15 @@ class ArtistDetailService(
         val deckSongIds = deckRepository.findByUserIdAndSongIdIn(userId, songs.map { it.id!! }).mapNotNull { it.songId }.toSet()
         val studying = songs.filter { it.id in deckSongIds }
 
+        val coverages = songWordTierService.coverages(studying.map { it.id!! }, userId)
         val studyingSongs = studying.map { song ->
-            val coverage = songWordTierService.coverage(song.id!!, userId)
+            val coverage = coverages[song.id]
             ArtistStudyingSongDto(
                 songId = song.id!!,
                 title = song.title,
                 artworkUrl = song.artworkUrl,
-                totalLines = coverage.totalLines,
-                knownLines = coverage.knownLines,
+                totalLines = coverage?.totalLines ?: 0,
+                knownLines = coverage?.knownLines ?: 0,
             )
         }.sortedByDescending { if (it.totalLines == 0) 0.0 else it.knownLines.toDouble() / it.totalLines }
 

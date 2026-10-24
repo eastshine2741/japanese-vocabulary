@@ -20,6 +20,7 @@ import com.japanese.vocabulary.word.dto.AddWordRequest
 import com.japanese.vocabulary.word.dto.BatchAddWordDto
 import com.japanese.vocabulary.word.dto.songword.WordInSongItemDto
 import com.japanese.vocabulary.word.dto.songword.WordsInSongDto
+import com.japanese.vocabulary.word.entity.WordEntity
 import com.japanese.vocabulary.word.model.SongWordTierKey
 import com.japanese.vocabulary.word.repository.WordRepository
 import com.japanese.vocabulary.word.service.WordService
@@ -81,11 +82,37 @@ class SongWordTierService(
     @Transactional(readOnly = true)
     fun coverage(songId: Long, userId: Long): SongCoverageDto {
         val song = load(songId, userId)
-        val lines = song.words.lineWordIndexes.values
-            .map { indexes -> with(songWordQueryService) { indexes.map { song.words.words[it] }.filter { it.isTierWord() } } }
-            .filter { it.isNotEmpty() }
+        return coverageOf(songId, song.words, longTermThreshold.days(), song::cardOf)
+    }
+
+    /** 여러 곡의 [coverage]. 곡 수와 상관없이 가사·유저 단어·flashcard 를 한 번씩만 조회한다. 활성 가사가 없는 곡은 빠진다. */
+    @Transactional(readOnly = true)
+    fun coverages(songIds: Collection<Long>, userId: Long): Map<Long, SongCoverageDto> = with(songWordQueryService) {
+        if (songIds.isEmpty()) return emptyMap()
+        val lyrics = lyricRepository.findActiveBySongIdIn(songIds)
+        val keys = lyrics.flatMap { wordKeys(it) }.distinct()
+        val savedWords = if (keys.isEmpty()) emptyMap() else {
+            wordRepository.findByUserIdAndJapaneseTextIn(userId, keys).associateBy { it.japaneseText }
+        }
+        val cardByJapanese = cardByJapanese(userId, savedWords.values)
         val longTermDays = longTermThreshold.days()
-        val knownLines = lines.count { line -> line.all { FlashcardMemory.of(song.cardOf(it), longTermDays) == FlashcardMemory.LONG_TERM } }
+        lyrics.associate { lyric ->
+            lyric.songId to coverageOf(lyric.songId, assembleWords(lyric, savedWords), longTermDays) {
+                cardByJapanese[it.addRequest.japanese] ?: cardByJapanese[it.japanese]
+            }
+        }
+    }
+
+    private fun coverageOf(
+        songId: Long,
+        words: WordsInSongDto,
+        longTermDays: Double,
+        cardOf: (WordInSongItemDto) -> FlashcardEntity?,
+    ): SongCoverageDto {
+        val lines = words.lineWordIndexes.values
+            .map { indexes -> with(songWordQueryService) { indexes.map { words.words[it] }.filter { it.isTierWord() } } }
+            .filter { it.isNotEmpty() }
+        val knownLines = lines.count { line -> line.all { FlashcardMemory.of(cardOf(it), longTermDays) == FlashcardMemory.LONG_TERM } }
         return SongCoverageDto(songId = songId, totalLines = lines.size, knownLines = knownLines)
     }
 
@@ -152,10 +179,14 @@ class SongWordTierService(
 
         val keys = tierWords.flatMap { listOf(it.japanese, it.addRequest.japanese) }.distinct()
         val savedWords = wordRepository.findByUserIdAndJapaneseTextIn(userId, keys)
+        return SongTierContext(words, tiers, cardByJapanese(userId, savedWords))
+    }
+
+    private fun cardByJapanese(userId: Long, savedWords: Collection<WordEntity>): Map<String, FlashcardEntity> {
+        if (savedWords.isEmpty()) return emptyMap()
         val cardByWordId = flashcardRepository.findByUserIdAndWordIdIn(userId, savedWords.map { it.id!! })
             .associateBy { it.wordId }
-        val cardByJapanese = savedWords.mapNotNull { word -> cardByWordId[word.id]?.let { word.japaneseText to it } }.toMap()
-        return SongTierContext(words, tiers, cardByJapanese)
+        return savedWords.mapNotNull { word -> cardByWordId[word.id]?.let { word.japaneseText to it } }.toMap()
     }
 
     /** 구버전 4단계. 기본 필터 통과분을 나누며 뜻 없는 단어도 들어 있다(학습 진입에서 뺀다). */
