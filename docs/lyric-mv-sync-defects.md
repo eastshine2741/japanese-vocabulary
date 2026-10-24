@@ -33,6 +33,7 @@ MV 오연결·가사 오연결이 FAILED 나 LOW 로 드러난다. 곡을 고치
 |---|---|---|---|---|---|---|
 | 10-24 | 17 | 17 | LOVE DIVE / IVE | `Y8JFxS1HlDo` | 가사 0줄. 한국어 MV 에 일본어 가사로 추정 | |
 | 10-25 | 333 | 334 | Cyberpunk (Japanese Version) / ATEEZ | `SsdhiLLwDM8` | 서울 콘서트 영상(앞에 다른 곡 Vortex, 283초). 보정 +59s | |
+| 10-25 | 364 | 365 | INCEPTION (Japanese Ver.) / ATEEZ | `BqGn0U0m6WA` | 팬미팅 무대 영상(`ATINY'S VOYAGE`), 일본어판인지 불명. 15/57줄 | |
 | 10-25 | 315 | 316 | 야간비행 (Turbulence) [Japanese Ver.] / ATEEZ | `80WvAnsHOdM` | 일본어판 곡에 한국어 원곡 MV. 7/43줄 | |
 | 10-24 | 131 | 132 | 弱虫モンブラン (feat. GUMI) / DECO*27 | `euRzG6zmEb8` | MV 가 `(Reloaded) feat. 初音ミク`. 104초부터 −18s, 160초부터 −28s | |
 | 10-24 | 142 | 143 | やっぱり雨は降るんだね / ツユ | `i7CZNAIX28k` | 영상 431초(곡 244초). 보정이 −39s, 183초부터 +194s | |
