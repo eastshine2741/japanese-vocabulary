@@ -131,6 +131,18 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves colloquial monda contraction of monoda`() {
+        // へー、大したもんだ — segmentation writes the headword as ものだ, and jisho has no entry for it.
+        val resolved = provider.resolve(PipelineToken(12, "もんだ", "ものだ", 6, 9))
+
+        assertThat(resolved).isNotNull
+        assertThat(resolved!!.baseForm).isEqualTo("ものだ")
+        assertThat(resolved.reading).isEqualTo("モンダ")
+        assertThat(resolved.baseFormReading).isEqualTo("モノダ")
+        assertThat(resolved.koreanText).isNotBlank()
+    }
+
+    @Test
     fun `does not rule-resolve ambiguous grammar-like words`() {
         assertThat(provider.resolve(token("ない"))).isNull()
         assertThat(provider.resolve(token("から"))).isNull()
