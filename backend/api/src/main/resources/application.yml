@@ -1,5 +1,8 @@
 server:
   port: 8080
+  # 한국에서 서버(헬싱키)까지 왕복이 ~300ms 라, 압축 없는 100KB 가사·단어 응답은 TCP slow start 로 왕복이 2~3번 더 든다.
+  compression:
+    enabled: true
 
 management:
   endpoints:
@@ -29,6 +32,12 @@ spring:
     username: ${MYSQL_USER}
     password: ${MYSQL_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # 명시하지 않으면 읽기 타임아웃이 없어, 외부 API(아티스트 인기곡 등)가 멈추면 그 요청도 끝없이 기다린다.
+  http:
+    client:
+      connect-timeout: 3s
+      read-timeout: 10s
 
   jpa:
     hibernate:

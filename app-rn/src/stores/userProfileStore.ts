@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 import { userProfileApi } from '../api/userProfileApi';
-import { CardSet, toCardSet, useRewardCardStore } from './rewardCardStore';
+import { CardSet, extractCardSetColors, paintCardSet, toCardSet, useRewardCardStore } from './rewardCardStore';
 
 type CardsStatus = 'loading' | 'ready' | 'error';
 
@@ -24,6 +24,9 @@ export const useUserProfileStore = create<UserProfileState>((set) => ({
         cards: { ...state.cards, [userId]: cards },
         cardsStatus: { ...state.cardsStatus, [userId]: 'ready' },
       }));
+      extractCardSetColors(cards).then((painted) => {
+        if (painted) set((state) => ({ cards: { ...state.cards, [userId]: paintCardSet(state.cards[userId]) } }));
+      });
     } catch {
       set((state) => ({ cardsStatus: { ...state.cardsStatus, [userId]: 'error' } }));
     }
