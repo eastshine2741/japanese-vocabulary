@@ -410,6 +410,12 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
             onStateChange={handleStateChange}
             onTimeChange={handleTimeChange}
           />}
+          {/* iframe 이 띄우는 채널 아바타·제목 위에 뒤로 버튼이 묻히지 않게, YouTube 앱처럼 판 대신 영상 윗단만 누른다. */}
+          <LinearGradient
+            pointerEvents="none"
+            style={styles.videoTopScrim}
+            colors={['#000000A6', '#00000000']}
+          />
           {waiting && !opened && (
             // 유저가 MV 를 눌러 이어 틀 수 있게 터치는 통과시킨다.
             <Animated.View
@@ -496,7 +502,7 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
   );
 }
 
-/** 앱바 대신 MV 위에 떠 있는 뒤로 버튼. MV 를 가리지 않게 작고 반투명하다. */
+/** 앱바 대신 MV 위에 떠 있는 뒤로 버튼. MV 위에서는 원 배경 대신 윗단 scrim 이 대비를 맡는다. */
 const BackButton = React.memo(function BackButton({ onPress, style }: { onPress: () => void; style?: object }) {
   return (
     <Pressable
@@ -829,10 +835,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
   },
+  videoTopScrim: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 72,
+  },
   backOverlay: {
     position: 'absolute',
     top: 10,
     left: 10,
+    backgroundColor: 'transparent',
   },
   pressed: {
     opacity: 0.7,
@@ -851,6 +865,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 16,
     right: 12,
+    backgroundColor: 'transparent',
   },
   progressTrack: {
     height: 2,
