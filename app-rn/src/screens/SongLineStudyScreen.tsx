@@ -26,6 +26,8 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import YouTubePlayer, { YouTubePlayerRef } from '../components/YouTubePlayer';
 import { Button } from '../components/ui';
+import ReportIcon from '../components/ReportIcon';
+import { SongReportModal, type SongReportModalRef } from '../components/songDetail';
 import { useArtBackdrop } from '../components/rewardCards/artColors';
 import { buildStudyLines, firstLockedPosition, isWordSeen, lastReachablePosition, lineWordKeys, snapLineIndex, StudyLine } from '../components/lineStudy/studyLines';
 import { hapticLineTick, hapticTranslationOpened, hapticTranslationWord, hapticUnlock } from '../components/songDetail/lyricsHaptics';
@@ -34,7 +36,7 @@ import { useSettingsStore } from '../stores/settingsStore';
 import { useSongDetailStore } from '../stores/songDetailStore';
 import { Colors } from '../theme/theme';
 import { Typography } from '../theme/typography';
-import type { WordInSongItemDto } from '../types/song';
+import type { SongLyricLineDto, WordInSongItemDto } from '../types/song';
 import { convertReading } from '../utils/readingConverter';
 import { extractYoutubeVideoId } from '../utils/youtube';
 
@@ -246,6 +248,11 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
   }, [current, playClip]);
 
   const goBack = useCallback(() => navigation.goBack(), [navigation]);
+
+  const reportModalRef = useRef<SongReportModalRef>(null);
+  const handleReportLine = useCallback((line: SongLyricLineDto) => {
+    reportModalRef.current?.open({ group: 'LYRIC_LINE', line });
+  }, []);
 
   const opened = current != null && current.unseenCount === 0;
   const canReplay = current?.clipStartMs != null && videoId != null;
@@ -459,6 +466,7 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
                 isWaiting={waiting && linePosition === position}
                 isReached={furthest != null && linePosition <= furthest}
                 onLineLayout={handleLineLayout}
+                onReportLine={handleReportLine}
               />
             ))}
             </LayoutAnimationConfig>}
@@ -497,6 +505,16 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
             />
           </CtaPulse>
         </View>
+      )}
+
+      {data != null && (
+        <SongReportModal
+          ref={reportModalRef}
+          songId={songId}
+          title={data.song.title}
+          artist={data.song.artist}
+          youtubeUrl={data.song.youtubeUrl}
+        />
       )}
     </View>
   );
@@ -576,6 +594,7 @@ interface StudyLyricLineProps {
   isWaiting: boolean;
   isReached: boolean;
   onLineLayout: (linePosition: number, y: number) => void;
+  onReportLine: (line: SongLyricLineDto) => void;
 }
 
 /** 지나온 열린 줄엔 번역이 남는다. 아직 안 온 줄은 가사만 보여 번역을 미리 흘리지 않는다. */
@@ -588,12 +607,14 @@ const StudyLyricLine = React.memo(function StudyLyricLine({
   isWaiting,
   isReached,
   onLineLayout,
+  onReportLine,
 }: StudyLyricLineProps) {
   const top = useSharedValue(0);
   const handleLayout = useCallback((event: LayoutChangeEvent) => {
     top.value = event.nativeEvent.layout.y;
     onLineLayout(linePosition, event.nativeEvent.layout.y);
   }, [linePosition, onLineLayout, top]);
+  const handleReport = useCallback(() => onReportLine(line.line), [line.line, onReportLine]);
   // 지금 줄 번호가 아니라 화면 위치로 흐림을 정해, 지나온 줄로 끌어 올리면 그 줄이 또렷해진다.
   const animatedStyle = useAnimatedStyle(() => {
     const distance = Math.abs(top.value + scrollY.value - focusTop.value) / LINE_PITCH;
@@ -610,7 +631,21 @@ const StudyLyricLine = React.memo(function StudyLyricLine({
 
   return (
     <Animated.View onLayout={handleLayout} style={[styles.lyricLine, animatedStyle]}>
-      <Text style={styles.lyricText}>{line.line.originalText}</Text>
+      {/* 제보 버튼 자리는 모든 줄에 잡아 둔다. 지금 줄에만 보이게 하면 포커스가 옮겨 올 때 줄바꿈이 바뀌어 높이가 출렁인다. */}
+      <View style={styles.lyricTextRow}>
+        <Text style={styles.lyricText}>{line.line.originalText}</Text>
+        <Pressable
+          style={[styles.lineReport, !isFocused && styles.lineReportHidden]}
+          onPress={handleReport}
+          disabled={!isFocused}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="이 가사 제보"
+          accessibilityElementsHidden={!isFocused}
+        >
+          <ReportIcon size={16} color="#FFFFFF80" />
+        </Pressable>
+      </View>
       {isReached && opened && translation != null && shownLockedRef.current && (
         <UnlockedTranslation translation={translation} />
       )}
@@ -888,8 +923,24 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     transformOrigin: 'left center',
   },
+  lyricTextRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  lineReport: {
+    width: 28,
+    height: 28,
+    marginTop: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lineReportHidden: {
+    opacity: 0,
+  },
   lyricText: {
     ...Typography.headingBold,
+    flex: 1,
     color: '#FFFFFF',
     fontSize: 24,
     lineHeight: 34,
