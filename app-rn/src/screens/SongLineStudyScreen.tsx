@@ -10,6 +10,7 @@ import Animated, {
   FadeIn,
   FadeOut,
   interpolate,
+  LayoutAnimationConfig,
   runOnJS,
   SharedValue,
   useAnimatedStyle,
@@ -292,13 +293,26 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
   }, [position, settle, studyLines]);
 
   // 번역이 열리면 그 줄 아래가 밀린다. 지금 줄 위쪽 높이가 바뀌면 다시 앉힌다.
+  // 처음 뜰 땐 줄 수만큼 layout 이 몰려 와서, 줄마다 배열을 UI 스레드로 보내지 않고 한 프레임에 한 번만 보낸다.
+  const layoutFrameRef = useRef<number | null>(null);
+  const layoutNeedsSettleRef = useRef(false);
   const handleLineLayout = useCallback((linePosition: number, y: number) => {
     lineTopsRef.current[linePosition] = y;
-    lineTops.value = [...lineTopsRef.current];
     const lines = studyLinesRef.current;
     const far = furthestRef.current != null && lines != null ? lastReachablePosition(lines, furthestRef.current) : null;
-    if (far != null && linePosition <= far) settle();
+    if (far != null && linePosition <= far) layoutNeedsSettleRef.current = true;
+    if (layoutFrameRef.current != null) return;
+    layoutFrameRef.current = requestAnimationFrame(() => {
+      layoutFrameRef.current = null;
+      lineTops.value = [...lineTopsRef.current];
+      if (!layoutNeedsSettleRef.current) return;
+      layoutNeedsSettleRef.current = false;
+      settle();
+    });
   }, [lineTops, settle]);
+  useEffect(() => () => {
+    if (layoutFrameRef.current != null) cancelAnimationFrame(layoutFrameRef.current);
+  }, []);
 
   // 손으로 넘겨 앉힌 줄로 MV 와 단어 목록도 옮긴다. 열린 줄이면 MV 가 거기서부터 다시 흘러간다.
   const selectLine = useCallback((linePosition: number) => {
@@ -426,7 +440,9 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
       <GestureDetector gesture={lyricsPan}>
         <View style={styles.lyrics} onLayout={handleLyricsLayout}>
           <Animated.View style={[styles.lyricsColumn, columnStyle]}>
-            {studyLines?.map((line, linePosition) => (
+            {/* 들어올 때 이미 열린 줄 번역까지 한꺼번에 FadeIn 하면 랜딩이 버벅인다. 들어온 뒤 열리는 번역만 연출한다. */}
+            {studyLines != null && <LayoutAnimationConfig skipEntering>
+            {studyLines.map((line, linePosition) => (
               <StudyLyricLine
                 key={line.line.index}
                 line={line}
@@ -439,6 +455,7 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
                 onLineLayout={handleLineLayout}
               />
             ))}
+            </LayoutAnimationConfig>}
           </Animated.View>
         </View>
       </GestureDetector>
@@ -719,9 +736,12 @@ export const LineWordList = React.memo(function LineWordList({ words }: { words:
   return (
     <ScrollView ref={scrollRef} style={styles.wordsScroll}>
       <Animated.View entering={FadeIn.duration(260).delay(120)}>
-        {words.map((word, index) => (
-          <LineWordRow key={word.japanese} word={word} index={index} onRowLayout={handleRowLayout} />
-        ))}
+        {/* 묶음째 떠오르니 행마다 뜻을 또 페이드하지 않는다. 풀고 돌아와 새로 본 단어만 뜻이 떠오른다. */}
+        <LayoutAnimationConfig skipEntering>
+          {words.map((word, index) => (
+            <LineWordRow key={word.japanese} word={word} index={index} onRowLayout={handleRowLayout} />
+          ))}
+        </LayoutAnimationConfig>
       </Animated.View>
     </ScrollView>
   );

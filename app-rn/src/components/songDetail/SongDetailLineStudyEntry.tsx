@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import { useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/theme';
 import { Typography } from '../../theme/typography';
@@ -23,12 +24,16 @@ function barRhythm(index: number) {
   };
 }
 
-const EqualizerBar = React.memo(function EqualizerBar({ index }: { index: number }) {
+const EqualizerBar = React.memo(function EqualizerBar({ index, playing }: { index: number; playing: boolean }) {
   const rhythm = useMemo(() => barRhythm(index), [index]);
   const level = useSharedValue(rhythm.low);
   useEffect(() => {
+    if (!playing) {
+      cancelAnimation(level);
+      return;
+    }
     level.value = withRepeat(withTiming(rhythm.high, { duration: rhythm.durationMs, easing: Easing.inOut(Easing.quad) }), -1, true);
-  }, [level, rhythm]);
+  }, [level, playing, rhythm]);
   const bounce = useAnimatedStyle(() => ({ transform: [{ scaleY: level.value }] }));
   return <Animated.View style={[styles.bar, bounce]} />;
 });
@@ -38,10 +43,12 @@ const Equalizer = React.memo(function Equalizer() {
   const [width, setWidth] = useState(0);
   const handleLayout = useCallback((e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width), []);
   const count = Math.floor((width + BAR_GAP) / (BAR_WIDTH + BAR_GAP));
+  // 막대마다 매 프레임 shadow tree commit 이 생긴다. 위에 줄 공부 화면이 덮여도 곡 상세는 마운트돼 있어 그대로 두면 그 화면까지 버벅인다.
+  const focused = useIsFocused();
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none" onLayout={handleLayout}>
       <View style={styles.equalizer}>
-        {Array.from({ length: count }, (_, i) => <EqualizerBar key={i} index={i} />)}
+        {Array.from({ length: count }, (_, i) => <EqualizerBar key={i} index={i} playing={focused} />)}
       </View>
     </View>
   );
