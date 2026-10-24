@@ -80,6 +80,30 @@ class GluedParticleSplitterTest {
     }
 
     @Test
+    fun `a particle glued into the headword as well is split off`(): Unit = runBlocking {
+        // 誰も彼もが頭を抱え生きている: 彼も came back with headword 彼も too, so the headword offers no anchor.
+        stubMissing("彼も")
+
+        val tokens = split(token(surface = "彼も", headword = "彼も", used = "カレモ", base = "カレモ", start = 2))
+
+        assertThat(tokens.map { it.surface }).containsExactly("彼", "も")
+        assertThat(tokens.map { it.headword }).containsExactly("彼", "も")
+        assertThat(tokens.map { it.usedReading }).containsExactly("カレ", "モ")
+        assertThat(tokens.first().baseFormReading).isEqualTo("カレ")
+        assertThat(tokens.map { it.charStart to it.charEnd }).containsExactly(2 to 3, 3 to 4)
+    }
+
+    @Test
+    fun `a word that is its own headword and ends in a particle is kept when the dictionary knows it`(): Unit =
+        runBlocking {
+            stubEntry("いつも")
+
+            val tokens = split(token(surface = "いつも", headword = "いつも", used = "イツモ", base = "イツモ", start = 0))
+
+            assertThat(tokens.map { it.surface }).containsExactly("いつも")
+        }
+
+    @Test
     fun `a glued form the dictionary knows is left whole`(): Unit = runBlocking {
         // いつも is a word. Splitting it into いつ + も would break a real entry into two fragments.
         stubEntry("いつも")

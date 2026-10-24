@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component
  *
  * A split only fires when surface and headword contradict each other: the surface is the headword
  * plus one particle character (`何を` / `何`), or opens with a particle the headword does not
- * (`がある` / `ある`).
+ * (`がある` / `ある`), or the particle went into both (`彼も` / `彼も`).
  *
  * Wrongly splitting destroys a real dictionary entry, while leaving a glued token only mis-renders
  * it, so the token passes through untouched when the dictionary knows the glued form, the reading
@@ -71,6 +71,10 @@ class GluedParticleSplitter(
         if (surface.last() in TRAILING_PARTICLES && surface.dropLast(1) == headword) {
             return GluedParticle(surface.last(), trailing = true)
         }
+        // 彼も / 彼も: the particle went into the headword too, so only the dictionary miss argues for a split.
+        if (surface.last() in TRAILING_PARTICLES && surface == headword) {
+            return GluedParticle(surface.last(), trailing = true, inHeadword = true)
+        }
         if (surface.first() in LEADING_PARTICLES && headword.first() != surface.first()) {
             return GluedParticle(surface.first(), trailing = false)
         }
@@ -100,12 +104,12 @@ class GluedParticleSplitter(
         val word = PipelineToken(
             lineIndex = token.lineIndex,
             surface = wordSurface,
-            headword = token.headword,
+            headword = if (glued.inHeadword) wordSurface else token.headword,
             charStart = if (glued.trailing) token.charStart else token.charStart + 1,
             charEnd = if (glued.trailing) token.charEnd - 1 else token.charEnd,
             usedReading = wordReading,
-            // The headword did not change, so its reading did not either.
-            baseFormReading = token.baseFormReading.ifBlank { wordReading },
+            // Otherwise the headword did not change, so its reading did not either.
+            baseFormReading = if (glued.inHeadword) wordReading else token.baseFormReading.ifBlank { wordReading },
             contextGloss = token.contextGloss,
         )
         val particleToken = PipelineToken(
@@ -139,7 +143,8 @@ class GluedParticleSplitter(
         val reading = token.usedReading
         if (reading.isBlank()) return null
         val headwordReading = token.baseFormReading
-        if (glued.trailing && headwordReading.isNotBlank()) {
+        // A glued headword's reading carries the particle too, so it cannot anchor the split.
+        if (glued.trailing && !glued.inHeadword && headwordReading.isNotBlank()) {
             if (reading == headwordReading) return reading
             if (reading.length == headwordReading.length + 1 && reading.startsWith(headwordReading)) {
                 return headwordReading
@@ -161,7 +166,7 @@ class GluedParticleSplitter(
             JapaneseText.sungParticleKana(particle),
         )
 
-    private data class GluedParticle(val particle: Char, val trailing: Boolean)
+    private data class GluedParticle(val particle: Char, val trailing: Boolean, val inHeadword: Boolean = false)
 
     private companion object {
         /**
