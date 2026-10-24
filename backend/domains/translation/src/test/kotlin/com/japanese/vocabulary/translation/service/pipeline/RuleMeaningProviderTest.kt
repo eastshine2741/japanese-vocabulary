@@ -131,6 +131,17 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves literary aa spelled with the iteration mark`() {
+        // あゝ 七転八倒の every night — jisho cannot look up the ゝ spelling of ああ.
+        val resolved = provider.resolve(PipelineToken(15, "あゝ", "あゝ", 0, 2))
+
+        assertThat(resolved).isNotNull
+        assertThat(resolved!!.partOfSpeech).isEqualTo(PartOfSpeech.INTERJECTION)
+        assertThat(resolved.reading).isEqualTo("アア")
+        assertThat(resolved.koreanText).isNotBlank()
+    }
+
+    @Test
     fun `does not rule-resolve ambiguous grammar-like words`() {
         assertThat(provider.resolve(token("ない"))).isNull()
         assertThat(provider.resolve(token("から"))).isNull()
