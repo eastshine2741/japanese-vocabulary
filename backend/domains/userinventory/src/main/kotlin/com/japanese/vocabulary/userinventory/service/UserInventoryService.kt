@@ -11,14 +11,14 @@ class UserInventoryService(
     private val userInventoryRepository: UserInventoryRepository,
 ) {
     @Transactional
-    fun grant(userId: Long, itemType: InventoryItemType, cap: Int): Boolean {
+    fun grant(userId: Long, itemType: InventoryItemType, cap: Int, amount: Int = 1): Boolean {
         val existing = userInventoryRepository.findForUpdate(userId, itemType)
         if (existing == null) {
-            userInventoryRepository.save(UserInventoryEntity(userId, itemType, quantity = 1))
+            userInventoryRepository.save(UserInventoryEntity(userId, itemType, quantity = minOf(amount, cap)))
             return true
         }
         if (existing.quantity >= cap) return false
-        existing.quantity += 1
+        existing.quantity = minOf(existing.quantity + amount, cap)
         return true
     }
 

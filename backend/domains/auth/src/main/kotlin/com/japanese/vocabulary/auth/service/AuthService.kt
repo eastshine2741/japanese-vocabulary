@@ -9,6 +9,8 @@ import com.japanese.vocabulary.user.dto.UserDto
 import com.japanese.vocabulary.user.dto.toDto
 import com.japanese.vocabulary.user.repository.UserRepository
 import com.japanese.vocabulary.user.service.UsernamePolicy
+import com.japanese.vocabulary.userinventory.entity.InventoryItemType
+import com.japanese.vocabulary.userinventory.service.UserInventoryService
 import org.springframework.transaction.annotation.Transactional
 
 data class VerifiedAuthIdentity(
@@ -25,6 +27,7 @@ sealed class LoginResult {
 @Service
 class AuthService(
     private val userRepository: UserRepository,
+    private val userInventoryService: UserInventoryService,
     private val googleOidcService: GoogleOidcService,
     private val appleOidcService: AppleOidcService,
 ) {
@@ -70,7 +73,7 @@ class AuthService(
         }
 
         val cleanedDisplayName = displayName?.trim()?.takeIf { it.isNotEmpty() } ?: UserEntity.DEFAULT_NAME
-        return userRepository.save(
+        val saved = userRepository.save(
             UserEntity(
                 provider = provider,
                 providerSub = identity.sub,
@@ -78,7 +81,15 @@ class AuthService(
                 email = identity.email,
                 name = cleanedDisplayName,
             ),
-        ).toDto()
+        )
+        // 가입 다음날까진 오고 그다음 날 끊기는 유저가 많아, 7일 보상 전에도 첫 며칠 연속을 지켜 준다.
+        userInventoryService.grant(
+            userId = saved.id!!,
+            itemType = InventoryItemType.STREAK_FREEZE,
+            cap = SIGNUP_FREEZES,
+            amount = SIGNUP_FREEZES,
+        )
+        return saved.toDto()
     }
 
     fun checkUsername(username: String, currentUserId: Long? = null): UsernameAvailabilityDto {
@@ -93,6 +104,7 @@ class AuthService(
     private companion object {
         const val GOOGLE = "google"
         const val APPLE = "apple"
+        const val SIGNUP_FREEZES = 3
     }
 }
 
