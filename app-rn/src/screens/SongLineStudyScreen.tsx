@@ -27,7 +27,7 @@ import YouTubePlayer, { YouTubePlayerRef } from '../components/YouTubePlayer';
 import { Button } from '../components/ui';
 import { useArtBackdrop } from '../components/rewardCards/artColors';
 import { buildStudyLines, firstLockedPosition, isWordSeen, lineWordKeys, snapLineIndex, StudyLine } from '../components/lineStudy/studyLines';
-import { hapticLineTick } from '../components/songDetail/lyricsHaptics';
+import { hapticLineTick, hapticTranslationOpened, hapticTranslationWord, hapticUnlock } from '../components/songDetail/lyricsHaptics';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useSongDetailStore } from '../stores/songDetailStore';
@@ -59,6 +59,13 @@ const RIPPLE_MS = 1800;
 const RIPPLE_SPREAD = 22;
 /** 첫 파장이 터질 때 버튼이 이만큼 부풀었다 돌아온다. */
 const CTA_PULSE_SCALE = 1.04;
+/** 복습에서 돌아와 화면이 다 앉은 뒤에 풀리게, 잠긴 칸을 잠깐 보여 주고 시작한다. */
+const UNLOCK_START_MS = 250;
+const UNLOCK_POP_MS = 150;
+const UNLOCK_FILL_MS = 250;
+/** 어절이 차례로 떠오르는 간격. 긴 번역도 이 안에 다 차게 간격을 좁힌다. */
+const UNLOCK_WORD_STAGGER_MS = 55;
+const UNLOCK_WORDS_MAX_MS = 440;
 
 /**
  * 가사를 한 줄씩 듣고 그 줄의 단어를 풀면 번역이 열린다. 단어 → 가사가 아니라 가사 → 단어 순서로 공부하게 한다.
@@ -571,11 +578,17 @@ const StudyLyricLine = React.memo(function StudyLyricLine({
   });
   const opened = line.unseenCount === 0;
   const translation = line.line.koreanLyrics;
+  // 잠긴 칸을 본 줄이 열릴 때만 푸는 연출을 준다. 처음부터 열린 줄은 조용히 번역만 뜬다.
+  const shownLockedRef = useRef(false);
+  if (isFocused && !opened && translation != null) shownLockedRef.current = true;
 
   return (
     <Animated.View onLayout={handleLayout} style={[styles.lyricLine, animatedStyle]}>
       <Text style={styles.lyricText}>{line.line.originalText}</Text>
-      {isReached && opened && translation != null && (
+      {isReached && opened && translation != null && shownLockedRef.current && (
+        <UnlockedTranslation translation={translation} />
+      )}
+      {isReached && opened && translation != null && !shownLockedRef.current && (
         <Animated.Text entering={FadeIn.duration(REVEAL_MOTION_MS)} style={styles.lyricTranslation}>
           {translation}
         </Animated.Text>
@@ -611,6 +624,72 @@ const LockedTranslation = React.memo(function LockedTranslation({ waiting }: { w
       <Text style={styles.translationLockedLabel}>모르는 단어를 풀면 번역이 열려요</Text>
     </Animated.View>
   );
+});
+
+/**
+ * 잠긴 칸이 번역으로 바뀐다. 자물쇠가 열리며 톡, 칸이 녹고 어절이 차례로 차오르며 틱틱틱, 다 차면 성공 진동으로 맺는다.
+ * 번역 자리를 처음부터 잡아 두고 그 위에 잠긴 칸을 겹쳐서 칸이 사라질 때 아래 줄이 덜컥이지 않는다.
+ */
+const UnlockedTranslation = React.memo(function UnlockedTranslation({ translation }: { translation: string }) {
+  const words = useMemo(() => translation.split(/\s+/).filter(Boolean), [translation]);
+  const stagger = words.length > 1 ? Math.min(UNLOCK_WORD_STAGGER_MS, UNLOCK_WORDS_MAX_MS / (words.length - 1)) : 0;
+  const popAt = UNLOCK_START_MS + UNLOCK_POP_MS;
+  const fillAt = popAt + UNLOCK_FILL_MS;
+  const [unlocked, setUnlocked] = useState(false);
+  const lockScale = useSharedValue(1);
+  const lockOpacity = useSharedValue(1);
+
+  useEffect(() => {
+    lockScale.value = withDelay(popAt, withSequence(
+      withTiming(1.25, { duration: 110, easing: Easing.out(Easing.quad) }),
+      withSpring(1, { damping: 9, stiffness: 260 }),
+    ));
+    lockOpacity.value = withDelay(popAt + 120, withTiming(0, { duration: 220, easing: Easing.in(Easing.quad) }));
+    const timers = [
+      setTimeout(() => {
+        setUnlocked(true);
+        hapticUnlock();
+      }, popAt),
+      ...words.map((_, index) => setTimeout(
+        index === words.length - 1 ? hapticTranslationOpened : hapticTranslationWord,
+        fillAt + index * stagger,
+      )),
+    ];
+    return () => timers.forEach(clearTimeout);
+    // 열리는 순간 한 번만 푼다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const lockStyle = useAnimatedStyle(() => ({ opacity: lockOpacity.value }));
+  const iconStyle = useAnimatedStyle(() => ({ transform: [{ scale: lockScale.value }] }));
+
+  return (
+    <View>
+      <View style={styles.translationWords}>
+        {words.map((word, index) => (
+          <TranslationWord key={index} word={word} delay={fillAt + index * stagger} />
+        ))}
+      </View>
+      <Animated.View pointerEvents="none" style={[styles.translationLocked, styles.translationLockedOverlay, lockStyle]}>
+        <Animated.View style={iconStyle}>
+          <Ionicons name={unlocked ? 'lock-open' : 'lock-closed'} size={13} color={unlocked ? '#FFFFFF' : '#FFFFFFB3'} />
+        </Animated.View>
+        <Text style={styles.translationLockedLabel}>모르는 단어를 풀면 번역이 열려요</Text>
+      </Animated.View>
+    </View>
+  );
+});
+
+const TranslationWord = React.memo(function TranslationWord({ word, delay }: { word: string; delay: number }) {
+  const progress = useSharedValue(0);
+  useEffect(() => {
+    progress.value = withDelay(delay, withTiming(1, { duration: 320, easing: Easing.out(Easing.cubic) }));
+  }, [delay, progress]);
+  const style = useAnimatedStyle(() => ({
+    opacity: progress.value,
+    transform: [{ translateY: (1 - progress.value) * 6 }],
+  }));
+  return <Animated.Text style={[styles.lyricTranslation, styles.translationWord, style]}>{word}</Animated.Text>;
 });
 
 /** 단어가 많아 칸을 넘치면 아직 안 본 첫 단어가 칸 맨 위에 오게 내린다. 아는 단어부터 읽고 내려가지 않게. */
@@ -796,6 +875,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderStyle: 'dashed',
     borderColor: '#FFFFFF40',
+  },
+  translationLockedOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    marginTop: 0,
+  },
+  translationWords: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    columnGap: 4,
+    marginTop: 6,
+  },
+  translationWord: {
+    marginTop: 0,
   },
   translationLockedLabel: {
     ...Typography.bodyMedium,
