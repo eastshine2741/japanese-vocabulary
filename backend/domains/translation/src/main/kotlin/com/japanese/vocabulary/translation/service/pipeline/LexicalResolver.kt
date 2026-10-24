@@ -65,6 +65,7 @@ class LexicalResolver(
                 ?: resolveContinuativeNoun(token, probeLookups)
                 ?: resolveSuruPassive(token, probeLookups)
                 ?: resolvePassive(token, probeLookups)
+                ?: resolveCausative(token, probeLookups)
                 ?: resolveAppearanceSou(token, probeLookups)
                 ?: resolveCompletionSuffix(token, probeLookups)
                 ?: resolveTeAuxMotion(token, probeLookups)
@@ -150,6 +151,7 @@ class LexicalResolver(
                     resolveContinuativeNoun(it, probeLookups, logRescue = false) == null &&
                     resolveSuruPassive(it, probeLookups, logRescue = false) == null &&
                     resolvePassive(it, probeLookups, logRescue = false) == null &&
+                    resolveCausative(it, probeLookups, logRescue = false) == null &&
                     resolveAppearanceSou(it, probeLookups, logRescue = false) == null &&
                     resolveCompletionSuffix(it, probeLookups, logRescue = false) == null &&
                     resolveTeAuxMotion(it, probeLookups, logRescue = false) == null &&
@@ -191,6 +193,7 @@ class LexicalResolver(
             godanRenyokeiProbe(token),
             potentialNegativeProbe(token),
         ) + suruDesiderativeProbes(token) +
+            causativeProbes(token).map { it.first } +
             appearanceSouProbes(token).map { it.baseForm } +
             completionSuffixProbes(token).map { it.first } +
             teAuxMotionProbe(token).map { it.first }
@@ -674,6 +677,40 @@ class LexicalResolver(
     }
 
     /**
+     * Safety net for a causative handed back as the headword — うずかせる for うずく. Same guess as
+     * [resolvePassive]; させる is godan す or ichidan る, so both are asked. Only verb senses are accepted.
+     */
+    private fun resolveCausative(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        for ((base, reading) in causativeProbes(token)) {
+            val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: continue
+            val verbEntries = accepted.entries.mapNotNull { entry ->
+                val verbSenses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
+                if (verbSenses.isEmpty()) null else entry.copy(senses = verbSenses)
+            }
+            if (verbEntries.isEmpty()) continue
+            if (logRescue) logger.info("Normalized causative '{}' to '{}'", token.headword, base)
+            return AcceptedLexicalEntry(base, verbEntries, accepted.provenance)
+        }
+        return null
+    }
+
+    /** `うずかせる` / `ウズカセル` → (`うずく`, `ウズク`); `話させる` → `話す`, `話る`. */
+    private fun causativeProbes(token: PipelineToken): List<Pair<String, String?>> {
+        val readings = undoCausative(JapaneseText.toHiragana(token.baseFormReading)).map(JapaneseText::toKatakana)
+        return undoCausative(token.headword).mapIndexed { i, base -> base to readings.getOrNull(i) }
+    }
+
+    private fun undoCausative(text: String): List<String> {
+        val (ending, bases) = CAUSATIVE_ENDINGS.firstOrNull { text.endsWith(it.first) } ?: return emptyList()
+        val stem = text.dropLast(ending.length).takeIf { it.isNotEmpty() } ?: return emptyList()
+        return bases.map { stem + it }
+    }
+
+    /**
      * Safety net for when the segmentation LLM hands back a stem with appearance そう — 泣きそう,
      * 忙しそう — as the headword instead of 泣く / 忙しい. Tried only after the pair match has already failed.
      *
@@ -994,6 +1031,13 @@ class LexicalResolver(
         val PASSIVE_READING_ENDINGS = PASSIVE_ENDINGS.map { (ending, base) ->
             JapaneseText.toKatakana(ending) to JapaneseText.toKatakana(base)
         }
+
+        /** Causative ending → dictionary-form endings, in the order [causativeProbes] asks them. */
+        val CAUSATIVE_ENDINGS = listOf(
+            "わせる" to listOf("う"), "かせる" to listOf("く"), "がせる" to listOf("ぐ"),
+            "させる" to listOf("す", "る"), "たせる" to listOf("つ"), "なせる" to listOf("ぬ"),
+            "ばせる" to listOf("ぶ"), "ませる" to listOf("む"), "らせる" to listOf("る"),
+        )
 
         /** A godan verb's masu-stem / renyokei kana (泣き) to its dictionary-form kana (泣く). */
         val GODAN_I_TO_U = mapOf(

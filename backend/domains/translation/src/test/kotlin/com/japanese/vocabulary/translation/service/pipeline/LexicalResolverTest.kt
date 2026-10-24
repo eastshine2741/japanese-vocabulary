@@ -329,6 +329,33 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a causative handed back as the headword is rescued as its dictionary form`(): Unit = runBlocking {
+        // 止まらぬ衝動うずかせて: the model kept the causative うずかせる; jisho indexes only 疼く.
+        stub(
+            "うずく" to found(
+                JishoDictionaryEntryDto(
+                    headword = "疼く",
+                    reading = "ウズク",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Godan verb with 'ku' ending", "Intransitive verb"),
+                            english = "to throb, to ache",
+                            englishDefinitions = listOf("to throb", "to ache"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val tokens = listOf(token("うずかせ", "うずかせる", "ウズカセル", lineIndex = 8))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("うずく")
+        assertThat(resolved.options.map { it.english }).containsExactly("to throb, to ache")
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `a suru verb rescued through the probe is graded exact`(): Unit = runBlocking {
         // jisho indexes 交差 as a noun that takes する, never 交差する itself.
         stub(
