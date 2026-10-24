@@ -683,7 +683,23 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                 }
         }
 
-        private fun completedSync(lyric: LyricEntity, videoId: String, timings: List<LyricLineTiming>) {
+        @Test
+        fun `timings the agent judged LOW are not served`() {
+            val me = newUser()
+            val song = TestSongBuilder(entityManager).withYoutubeUrl("https://www.youtube.com/watch?v=SX_ViT4Ra7k").build()
+            val lyric = newLyric(song, raw = listOf(LyricLineData(index = 0, startTimeMs = null, text = "夢ならば")))
+            completedSync(lyric, "SX_ViT4Ra7k", listOf(LyricLineTiming(0, 7600)), verdict = "LOW")
+
+            mockMvc.get("/api/songs/${song.id}") { header("Authorization", bearer(me)) }
+                .andExpect { jsonPath("$.lyricType") { value("PLAIN") } }
+            mockMvc.get("/api/songs/${song.id}/lyrics") { header("Authorization", bearer(me)) }
+                .andExpect {
+                    jsonPath("$.mvSynced") { value(false) }
+                    jsonPath("$.lines[0].startTimeMs") { value(null) }
+                }
+        }
+
+        private fun completedSync(lyric: LyricEntity, videoId: String, timings: List<LyricLineTiming>, verdict: String = "OK") {
             entityManager.persist(
                 LyricMvSyncEntity(
                     lyricId = lyric.id!!,
@@ -691,6 +707,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                     status = LyricMvSyncStatus.COMPLETED,
                     method = LyricMvSyncMethod.ALIGNED,
                     lineTimings = timings,
+                    confidence = mapOf("verdict" to verdict),
                 ),
             )
             entityManager.flush()

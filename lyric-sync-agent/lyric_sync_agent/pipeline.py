@@ -11,13 +11,15 @@ from .transcribe import SAMPLE_RATE, Transcriber
 MIN_WINDOW_SECONDS = 1.0
 # Whisper's prompt is capped near 224 tokens; keep the lines closest to the stretch.
 PROMPT_CHARS = 200
-# Below these the result is still applied; verdict only marks songs worth a listen.
-OK_MIN_ANCHORS, OK_WITHIN_HALF_SECOND = 8, 0.7
+# Below these the verdict is LOW and the server keeps the result off the app.
+# SYNCED is judged mostly by how many lines were found: lrclib's own per-line error keeps within500ms near 0.6-0.7
+# even on a clean fit, so a strict cut there hid MV shifts that were right (マリーゴールド +2.95s).
+OK_MIN_ANCHORS, OK_SYNCED_ANCHOR_RATIO, OK_WITHIN_HALF_SECOND = 8, 0.6, 0.5
 OK_PLAIN_ANCHOR_RATIO = 0.7
 
 
 class SyncError(Exception):
-    """The song itself cannot be synced (its lines are not found in the MV). Retrying gives the same answer."""
+    """The song itself cannot be synced (its lines are not in the MV, or the MV cannot be fetched). Retrying gives the same answer."""
 
 
 @dataclass
@@ -30,7 +32,10 @@ class SyncResult:
 def run(job: dict, model_name: str, device: str) -> SyncResult:
     with tempfile.TemporaryDirectory(prefix="lyric-sync-") as tmp:
         workdir = Path(tmp)
-        wav = audio.download(job["youtubeVideoId"], workdir)
+        try:
+            wav = audio.download(job["youtubeVideoId"], workdir)
+        except audio.VideoUnavailable as e:
+            raise SyncError(f"MV not downloadable: {e}") from e
         vocals = audio.separate_vocals(wav, workdir, device)
         # Loaded per job, not kept: the GPU is shared with the desktop and the agent mostly idles.
         transcriber = Transcriber(model_name, device)
@@ -97,9 +102,13 @@ def offset_result(job: dict, anchors: list[Anchor | None]) -> SyncResult:
         **counts(anchors),
         "within500ms": round(float(within), 3),
         "segments": [{"fromLrcSec": round(float(s.from_lrc), 2), "offsetSec": round(float(s.offset), 2)} for s in segments],
-        "verdict": "OK" if len(pts) >= OK_MIN_ANCHORS and within >= OK_WITHIN_HALF_SECOND else "LOW",
+        "verdict": "OK" if synced_ok(len(pts), len(lines), within) else "LOW",
     }
     return SyncResult("OFFSET", out, confidence)
+
+
+def synced_ok(anchored: int, lines: int, within: float) -> bool:
+    return anchored >= OK_MIN_ANCHORS and anchored / lines >= OK_SYNCED_ANCHOR_RATIO and within >= OK_WITHIN_HALF_SECOND
 
 
 def aligned_result(job: dict, anchors: list[Anchor | None]) -> SyncResult:

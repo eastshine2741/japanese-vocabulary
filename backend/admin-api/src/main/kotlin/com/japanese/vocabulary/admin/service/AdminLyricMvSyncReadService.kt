@@ -13,6 +13,7 @@ import com.japanese.vocabulary.song.entity.LyricMvSyncEntity
 import com.japanese.vocabulary.song.entity.LyricMvSyncStatus
 import com.japanese.vocabulary.song.entity.SongEntity
 import com.japanese.vocabulary.song.model.YoutubeVideoId
+import com.japanese.vocabulary.song.service.LyricMvSyncService
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
@@ -73,5 +74,6 @@ private fun LyricMvSyncEntity.toSummary(lyric: LyricEntity?, song: SongEntity?) 
     anchoredCount = (confidence?.get("anchored") as? Number)?.toInt(),
     errorMessage = errorMessage,
     completedAt = completedAt,
-    inUse = song != null && song.activeLyricId == lyricId && YoutubeVideoId.parse(song.youtubeUrl) == youtubeVideoId,
+    inUse = status == LyricMvSyncStatus.COMPLETED && !LyricMvSyncService.isLow(this) &&
+        song != null && song.activeLyricId == lyricId && YoutubeVideoId.parse(song.youtubeUrl) == youtubeVideoId,
 )

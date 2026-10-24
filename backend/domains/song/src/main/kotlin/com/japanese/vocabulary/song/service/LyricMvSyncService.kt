@@ -151,12 +151,13 @@ class LyricMvSyncService(
         }
     }
 
-    /** 곡의 지금 MV 에 맞춘 줄 시각. 없으면 null 이고 호출자는 가사 원래 시각을 쓴다. */
+    /** 곡의 지금 MV 에 맞춘 줄 시각. 없거나 LOW 면 null 이고 호출자는 가사 원래 시각을 쓴다. */
     @Transactional(readOnly = true)
     fun timingsFor(song: SongEntity, lyric: LyricEntity): Map<Int, Long?>? {
         val videoId = YoutubeVideoId.parse(song.youtubeUrl) ?: return null
         val row = syncRepository.findByLyricIdAndYoutubeVideoIdAndStatus(lyric.id!!, videoId, LyricMvSyncStatus.COMPLETED)
             ?: return null
+        if (isLow(row)) return null
         val timings = row.lineTimings ?: return null
         if (!coversEveryLine(timings, lyric)) return null
         return timings.associate { it.index to it.startTimeMs }
@@ -196,5 +197,11 @@ class LyricMvSyncService(
         const val MAX_ATTEMPTS = 5
         private const val MAX_ERROR_LENGTH = 1000
         const val SUPERSEDED = "superseded: song MV or active lyric changed"
+
+        /**
+         * 실행기가 MV 에서 줄을 충분히 못 찾았거나 찾은 줄끼리 시각이 안 맞은 결과다. 틀린 줄을 짚는 하이라이트보다
+         * 원래 시각(PLAIN 이면 자동 싱크 없음)이 낫다. 행은 남겨 어드민에서 들어 보고 고친다.
+         */
+        fun isLow(row: LyricMvSyncEntity): Boolean = row.confidence?.get("verdict") == "LOW"
     }
 }
