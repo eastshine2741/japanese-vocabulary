@@ -80,6 +80,29 @@ class GluedParticleSplitterTest {
     }
 
     @Test
+    fun `a leading particle glued into the headword too is split off before a kanji word`(): Unit = runBlocking {
+        // あぁ、いつか人生最後の日、: the model returned の日 as both surface and headword, so jisho had no entry.
+        stubMissing("の日")
+
+        val tokens = split(token(surface = "の日", headword = "の日", used = "ノヒ", base = "ノヒ", start = 10))
+
+        assertThat(tokens.map { it.surface }).containsExactly("の", "日")
+        assertThat(tokens.map { it.headword }).containsExactly("の", "日")
+        assertThat(tokens.map { it.usedReading }).containsExactly("ノ", "ヒ")
+        assertThat(tokens.map { it.charStart to it.charEnd }).containsExactly(10 to 11, 11 to 12)
+        assertThat(tokens.last().baseFormReading).isEqualTo("ヒ")
+    }
+
+    @Test
+    fun `a kana word the model gave as its own headword is not split`(): Unit = runBlocking {
+        // のんびり opens with の but is not glued; only a kanji after the particle marks a word boundary.
+        val tokens = split(token(surface = "のんびり", headword = "のんびり", used = "ノンビリ", base = "ノンビリ", start = 0))
+
+        assertThat(tokens.map { it.surface }).containsExactly("のんびり")
+        coVerify(exactly = 0) { jishoService.lookupAll(any()) }
+    }
+
+    @Test
     fun `a glued form the dictionary knows is left whole`(): Unit = runBlocking {
         // いつも is a word. Splitting it into いつ + も would break a real entry into two fragments.
         stubEntry("いつも")

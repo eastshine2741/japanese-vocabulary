@@ -74,8 +74,14 @@ class GluedParticleSplitter(
         if (surface.first() in LEADING_PARTICLES && headword.first() != surface.first()) {
             return GluedParticle(surface.first(), trailing = false)
         }
+        // The headword can carry the particle too (の日 / の日); a kanji right after it is the anchor kana words lack.
+        if (surface.first() in LEADING_PARTICLES && headword == surface && surface[1].isKanji()) {
+            return GluedParticle(surface.first(), trailing = false, inHeadword = true)
+        }
         return null
     }
+
+    private fun Char.isKanji(): Boolean = Character.UnicodeScript.of(code) == Character.UnicodeScript.HAN
 
     /**
      * True only when jisho answered and had no entry for this exact form. A fetch error is not an
@@ -100,12 +106,12 @@ class GluedParticleSplitter(
         val word = PipelineToken(
             lineIndex = token.lineIndex,
             surface = wordSurface,
-            headword = token.headword,
+            headword = if (glued.inHeadword) wordSurface else token.headword,
             charStart = if (glued.trailing) token.charStart else token.charStart + 1,
             charEnd = if (glued.trailing) token.charEnd - 1 else token.charEnd,
             usedReading = wordReading,
-            // The headword did not change, so its reading did not either.
-            baseFormReading = token.baseFormReading.ifBlank { wordReading },
+            // Unless the particle was in the headword, it did not change, so its reading did not either.
+            baseFormReading = if (glued.inHeadword) wordReading else token.baseFormReading.ifBlank { wordReading },
             contextGloss = token.contextGloss,
         )
         val particleToken = PipelineToken(
@@ -161,7 +167,7 @@ class GluedParticleSplitter(
             JapaneseText.sungParticleKana(particle),
         )
 
-    private data class GluedParticle(val particle: Char, val trailing: Boolean)
+    private data class GluedParticle(val particle: Char, val trailing: Boolean, val inHeadword: Boolean = false)
 
     private companion object {
         /**
