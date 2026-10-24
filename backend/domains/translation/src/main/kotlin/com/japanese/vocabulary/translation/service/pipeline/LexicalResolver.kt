@@ -974,7 +974,7 @@ class LexicalResolver(
         )
 
         /** Variant kanji jisho does not index → the standard spelling it does. Add pairs as misses appear. */
-        val KANJI_VARIANTS = mapOf('閧' to '鬨', '赦' to '許')
+        val KANJI_VARIANTS = mapOf('閧' to '鬨', '赦' to '許', '堕' to '落')
 
         /** Longest first, so したくない is not read as したい with a stem ending in く. */
         val SURU_DESIDERATIVE_SUFFIXES = listOf("したくない", "したい")

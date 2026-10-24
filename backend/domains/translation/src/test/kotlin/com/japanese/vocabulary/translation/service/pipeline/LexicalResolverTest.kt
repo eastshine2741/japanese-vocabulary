@@ -544,6 +544,19 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a verb written with 堕 is looked up in its 落 spelling`(): Unit = runBlocking {
+        // 代償なんて産み堕として: 産み堕とす is 産み落とす; jisho indexes only 落.
+        stub("産み落とす" to found(godanVerb("産み落とす", "ウミオトス", "to give birth to")))
+        val tokens = listOf(token("産み堕として", "産み堕とす", "ウミオトス", lineIndex = 34))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("産み落とす")
+        assertThat(resolved.options.map { it.english }).containsExactly("to give birth to")
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `a lookup jisho never answered is reported as a provider error, not a miss`(): Unit = runBlocking {
         // A jisho outage must be distinguishable from a missing entry: one is retried against jisho,
         // the other against the model.
