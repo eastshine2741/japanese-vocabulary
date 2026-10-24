@@ -519,6 +519,52 @@ class YoutubeMvSearchServiceTest {
         assertThat(result.candidates.single { it.videoId == "cover-id" }.score).isNegative()
     }
 
+    @Test
+    fun `search matches a one-character title when the video title also names the artist`() {
+        val artist = "米津玄師"
+        val officialChannel = "Kenshi Yonezu  米津玄師"
+        every { artistChannelCache.get(artist) } returns null
+        stubSearch(
+            searchItem("zOytsTU8v7U", "米津玄師 烏 歌詞 | Kenshi Yonezu Karasu 『Raven』 Lyrics (Rom/Kan/Eng)", "World of Japan "),
+            searchItem("gG8-tlIi3p4", "米津玄師(요네즈 켄시) -  烏(까마귀 / Karasu - Raven) // 가사, 한글 발음, 번역", "새앤드"),
+            searchItem("iz1YsGfbJbc", "[자막/해석] ⚽️ 米津玄師(요네즈켄시) - 烏(까마귀/ Raven) 2026 NHK 축구 테마송  Full ver. [애니 블루록]", "쌀미"),
+            searchItem("T1RgUouto1Y", "米津玄師「烏」Kenshi Yonezu - Karasu (Raven)  Short Anime", officialChannel),
+            searchItem("JHWg7yjg4nQ", "NHK FIFA World Cup 2026 Theme Song- Karasu(Raven) / 烏 by Kenshi Yonezu (FULL) Lyrics ENG/ROM/JPN", "ROKA's POP Digs"),
+            searchItem("isZFxm7pPbI", "ピアニストが弾く 米津玄師 - 烏 【piano cover】Karasu/Raven", "電灯さん Pianist"),
+            searchItem("5ARguGHJfao", "Kenshi Yonezu - Karasu (Raven)", "UtaLoid"),
+            searchItem("YjPMupS1Lg4", "米津玄師 - 烏　Kenshi Yonezu -  Karasu", officialChannel),
+            searchItem("6uVe1G5Zfu4", "|中字翻譯| 米津玄師 - 烏 Kenshi Yonezu - Karasu （Lyrics)", "Cenlinei"),
+            searchItem("QbmOAY4-NXA", "烏 (米津玄師) ／ダズビー COVER", "DAZBEE official"),
+            searchItem("gDFQshW1NHc", "日本代表 2026北中米ワールドカップ ハイライト「烏/米津玄師」【MV】", "WFB"),
+            searchItem("GDoZ8Q1CGfk", "米津玄師『烏』フル【歌詞付き】", "まー ミセスと地理好き"),
+            searchItem("7lcKYgxEa8E", "米津玄師「烏」Kenshi Yonezu - Karasu  #サッカー #W杯", officialChannel),
+            searchItem("4I9SHg-bW4g", "米津玄師「 烏 」【2026サッカーワールドカップテーマソング】歌詞付き！", "あて"),
+            searchItem("E4xISPijVJk", "【作業用・耐久】烏 - 米津玄師 -　2026 NHKサッカーテーマ　Extended 1 Hour", "ろっどまん"),
+        )
+        stubDurations(
+            "zOytsTU8v7U" to "PT4M7S", "gG8-tlIi3p4" to "PT4M8S", "iz1YsGfbJbc" to "PT4M9S",
+            "T1RgUouto1Y" to "PT40S", "JHWg7yjg4nQ" to "PT4M9S", "isZFxm7pPbI" to "PT4M11S",
+            "5ARguGHJfao" to "PT48S", "YjPMupS1Lg4" to "PT4M8S", "6uVe1G5Zfu4" to "PT4M8S",
+            "QbmOAY4-NXA" to "PT4M10S", "gDFQshW1NHc" to "PT4M8S", "GDoZ8Q1CGfk" to "PT4M8S",
+            "7lcKYgxEa8E" to "PT4M8S", "4I9SHg-bW4g" to "PT4M8S", "E4xISPijVJk" to "PT1H",
+        )
+
+        assertThat(service.searchMvUrl("烏 - Raven", artist, 248))
+            .isEqualTo("https://www.youtube.com/watch?v=YjPMupS1Lg4")
+    }
+
+    @Test
+    fun `search does not match a one-character title inside another song title without the artist`() {
+        every { artistChannelCache.get(ARTIST) } returns null
+        stubSearch(searchItem("other-song-id", "烏賊 Official MV"))
+        stubDurations("other-song-id" to "PT4M8S")
+
+        val result = service.search("烏 - Raven", ARTIST, 248)
+
+        assertThat(result.url).isNull()
+        assertThat(result.candidates.single().rejection).isEqualTo("title-mismatch")
+    }
+
     private fun stubSearch(vararg items: YoutubeSearchItemDto) {
         every {
             youtubeClient.searchVideos(query = any(), pageToken = any(), maxResults = any(), videoCategoryId = any(), order = any())

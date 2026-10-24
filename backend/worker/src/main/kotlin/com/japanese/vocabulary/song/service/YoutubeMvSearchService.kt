@@ -67,7 +67,7 @@ class YoutubeMvSearchService(
             // Uploads mix Shorts and live clips with MVs; duration is filtered once after all pages.
             // Uploads of other songs are not traced: a channel holds hundreds of them.
             response.items
-                .filter { titleMatches(it.snippet.title, title) }
+                .filter { titleMatches(it.snippet.title, title, artist) }
                 .forEach { item ->
                     val videoId = item.snippet.resourceId.videoId ?: return@forEach
                     if (isShortsTitle(item.snippet.title)) {
@@ -101,7 +101,7 @@ class YoutubeMvSearchService(
         val candidates = items.mapNotNull { item ->
             val videoId = item.id.videoId ?: return@mapNotNull null
             val rejection = when {
-                !titleMatches(item.snippet.title, title) -> REJECT_TITLE_MISMATCH
+                !titleMatches(item.snippet.title, title, artist) ->REJECT_TITLE_MISMATCH
                 isShortsTitle(item.snippet.title) -> REJECT_SHORTS_TAG
                 else -> null
             }
@@ -324,10 +324,18 @@ class YoutubeMvSearchService(
             (normalizedName.contains(normalizedChannel) || normalizedChannel.contains(normalizedName))
     }
 
-    private fun titleMatches(videoTitle: String, targetTitle: String): Boolean {
+    private fun titleMatches(videoTitle: String, targetTitle: String, artist: String): Boolean {
         val normalizedVideoTitle = normalizeForMatch(videoTitle)
-        return targetTitleVariants(targetTitle).any { normalizedVideoTitle.contains(it) }
+        if (targetTitleVariants(targetTitle).any { normalizedVideoTitle.contains(it) }) return true
+        // A one-kanji title ("烏") also hides inside other words, so the video must name the artist too.
+        return titleNamesArtist(videoTitle, artist) &&
+            singleKanjiTitleParts(targetTitle).any { normalizedVideoTitle.contains(it) }
     }
+
+    private fun singleKanjiTitleParts(title: String): List<String> =
+        title.replace(TRAILING_DESCRIPTOR_RE, "").split(TITLE_SEPARATOR_RE)
+            .map { normalizeForMatch(it) }
+            .filter { SINGLE_KANJI_RE.matches(it) }
 
     /**
      * Catalog titles are often bilingual ("ピースサイン - Peace Sign") while an upload carries one half,
@@ -445,6 +453,7 @@ class YoutubeMvSearchService(
         )
         private val LYRIC_VIDEO_RE = Regex("lyric video", RegexOption.IGNORE_CASE)
         private val HANGUL_RE = Regex("""[\uAC00-\uD7AF]""")
+        private val SINGLE_KANJI_RE = Regex("""\p{IsHan}""")
         private val KNOWN_PUBLISHER_CHANNEL_RE = Regex(
             "プロジェクトセカイ|HATSUNE MIKU: COLORFUL STAGE",
             RegexOption.IGNORE_CASE
