@@ -459,3 +459,48 @@ spec:
             - name: firebase-credentials
               secret:
                 secretName: firebase-credentials
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: lyric-mv-sync-enqueue
+spec:
+  # 분석 완료·제보 승인이 가사 싱크 대기열에 넣지 못한 (가사, MV) 조합을 넣는다 (배포 중 옛 pod 가 끝낸 분석 등)
+  schedule: "30 4 * * *"
+  timeZone: "Asia/Seoul"
+  suspend: false
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      # INSERT IGNORE 한 번이라 실패해도 다음 날 실행이 같은 일을 한다.
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          enableServiceLinks: false
+          containers:
+            - name: batch
+              image: ${BATCH_IMAGE}
+              imagePullPolicy: Never
+              args:
+                - "--task=lyric-mv-sync-enqueue"
+              env:
+                - name: GOOGLE_APPLICATION_CREDENTIALS
+                  value: /var/secrets/firebase/service-account.json
+              envFrom:
+                - configMapRef:
+                    name: batch-config
+                - secretRef:
+                    name: batch-secret
+              volumeMounts:
+                - name: firebase-credentials
+                  mountPath: /var/secrets/firebase
+                  readOnly: true
+          volumes:
+            - name: firebase-credentials
+              secret:
+                secretName: firebase-credentials

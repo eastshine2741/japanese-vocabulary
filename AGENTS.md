@@ -40,6 +40,7 @@ cd app-rn && npx expo start --web             # App - Web (dev)
 - 단어 뜻 파이프라인 guardrails: `docs/translation-pipeline.md`
 - 주요 단어 점수(`importanceScore`): `docs/architecture/major-word-scoring.md`
 - 곡 상세 단어 tier·이해도, 학습 세션 카드: `docs/architecture/song-word-tiers.md`
+- 가사 줄 시각을 MV 에 맞추기(로컬 PC 실행기 `lyric-sync-agent/`): `docs/architecture/lyric-mv-sync.md`
 - 아티스트 상세·Apple Music 아티스트 연결: `docs/architecture/artist-detail.md`
 - Feature flag(시각 구간): `docs/architecture/feature-flag.md`
 - 푸시 알림(연속 학습 알림 포함): `docs/architecture/push-notification.md`

@@ -8,6 +8,7 @@ import com.japanese.vocabulary.featureflag.FeatureFlagKeys
 import com.japanese.vocabulary.song.dto.AnalyzeSongRequest
 import com.japanese.vocabulary.song.model.AnalyzedLine
 import com.japanese.vocabulary.song.model.LyricLineData
+import com.japanese.vocabulary.song.model.LyricLineTiming
 import com.japanese.vocabulary.song.model.PartOfSpeech
 import com.japanese.vocabulary.song.dto.RecentSongItemDto
 import com.japanese.vocabulary.song.dto.SongAnalysisWorkResponse
@@ -32,6 +33,9 @@ import com.japanese.vocabulary.songsearch.dto.SongSearchItemDto
 import com.japanese.vocabulary.songsearch.dto.SongSearchResponse
 import com.japanese.vocabulary.song.model.Token
 import com.japanese.vocabulary.song.entity.LyricEntity
+import com.japanese.vocabulary.song.entity.LyricMvSyncEntity
+import com.japanese.vocabulary.song.entity.LyricMvSyncMethod
+import com.japanese.vocabulary.song.entity.LyricMvSyncStatus
 import com.japanese.vocabulary.song.entity.LyricType
 import com.japanese.vocabulary.song.entity.SongEntity
 import com.japanese.vocabulary.song.repository.LyricRepository
@@ -628,6 +632,63 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             assertThat(body).contains("\"originalText\":\"待機中\"")
             assertThat(readBody<SongLyricsDto>(body).lines.single().tokens).isEmpty()
             assertThat(redis.opsForZSet().size(recentKey(me.id!!)) ?: 0).isZero
+        }
+    }
+
+    @Nested
+    inner class MvSyncedTimings {
+
+        @Test
+        fun `timings synced to the current MV replace raw times and turn a PLAIN lyric SYNCED`() {
+            val me = newUser()
+            val song = TestSongBuilder(entityManager).withYoutubeUrl("https://www.youtube.com/watch?v=SX_ViT4Ra7k").build()
+            val lyric = newLyric(
+                song,
+                raw = listOf(
+                    LyricLineData(index = 0, startTimeMs = null, text = "夢ならば"),
+                    LyricLineData(index = 1, startTimeMs = null, text = "未だに"),
+                ),
+            )
+            completedSync(lyric, "SX_ViT4Ra7k", listOf(LyricLineTiming(0, 7600), LyricLineTiming(1, 12600)))
+
+            mockMvc.get("/api/songs/${song.id}") { header("Authorization", bearer(me)) }
+                .andExpect { jsonPath("$.lyricType") { value("SYNCED") } }
+            mockMvc.get("/api/songs/${song.id}/lyrics") { header("Authorization", bearer(me)) }
+                .andExpect {
+                    jsonPath("$.lines[0].startTimeMs") { value(7600) }
+                    jsonPath("$.lines[1].startTimeMs") { value(12600) }
+                }
+            mockMvc.get("/api/songs?title=${song.title}&artistName=${song.artist}") { header("Authorization", bearer(me)) }
+                .andExpect {
+                    jsonPath("$.song.lyricType") { value("SYNCED") }
+                    jsonPath("$.studyUnits[1].startTimeMs") { value(12600) }
+                }
+        }
+
+        @Test
+        fun `timings synced to another MV are ignored`() {
+            val me = newUser()
+            val song = TestSongBuilder(entityManager).withYoutubeUrl("https://www.youtube.com/watch?v=SX_ViT4Ra7k").build()
+            val lyric = newLyric(song, raw = listOf(LyricLineData(index = 0, startTimeMs = null, text = "夢ならば")))
+            completedSync(lyric, "zzzzzzzzzzz", listOf(LyricLineTiming(0, 7600)))
+
+            mockMvc.get("/api/songs/${song.id}") { header("Authorization", bearer(me)) }
+                .andExpect { jsonPath("$.lyricType") { value("PLAIN") } }
+            mockMvc.get("/api/songs/${song.id}/lyrics") { header("Authorization", bearer(me)) }
+                .andExpect { jsonPath("$.lines[0].startTimeMs") { value(null) } }
+        }
+
+        private fun completedSync(lyric: LyricEntity, videoId: String, timings: List<LyricLineTiming>) {
+            entityManager.persist(
+                LyricMvSyncEntity(
+                    lyricId = lyric.id!!,
+                    youtubeVideoId = videoId,
+                    status = LyricMvSyncStatus.COMPLETED,
+                    method = LyricMvSyncMethod.ALIGNED,
+                    lineTimings = timings,
+                ),
+            )
+            entityManager.flush()
         }
     }
 

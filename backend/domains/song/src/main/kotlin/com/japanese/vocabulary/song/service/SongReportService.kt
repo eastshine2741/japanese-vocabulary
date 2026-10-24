@@ -26,6 +26,7 @@ class SongReportService(
     private val songReportRepository: SongReportRepository,
     private val songEditApplier: SongEditApplier,
     private val wordCandidateGenerator: WordCandidateGenerator,
+    private val lyricMvSyncService: LyricMvSyncService,
     private val eventPublisher: ApplicationEventPublisher,
     private val clock: Clock,
 ) {
@@ -62,6 +63,7 @@ class SongReportService(
         report.approve(result.changes, note, Instant.now(clock))
 
         song.youtubeUrl = result.youtubeUrl
+        lyricMvSyncService.enqueue(song)
         if (lyric != null && result.lyricChanged) {
             lyric.rawContent = result.rawContent ?: lyric.rawContent
             lyric.analyzedContent = result.analyzedContent

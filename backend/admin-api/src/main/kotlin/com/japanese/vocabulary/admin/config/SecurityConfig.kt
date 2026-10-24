@@ -1,6 +1,8 @@
 package com.japanese.vocabulary.admin.config
 
+import com.japanese.vocabulary.admin.auth.AdminAuthentication
 import com.japanese.vocabulary.admin.auth.AdminTokenAuthFilter
+import com.japanese.vocabulary.admin.auth.LyricSyncAgentAuthentication
 import jakarta.servlet.DispatcherType
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
@@ -39,7 +41,9 @@ class SecurityConfig(
                     // Prometheus 스크레이프용
                     .requestMatchers("/actuator/prometheus").permitAll()
                     .requestMatchers("/error").permitAll()
-                    .requestMatchers("/admin/api/**").authenticated()
+                    // 실행기 토큰은 이 경로에만, admin 로그인 토큰은 이 경로를 뺀 나머지에만 쓴다.
+                    .requestMatchers("/admin/api/lyric-sync-agent/**").hasAuthority(LyricSyncAgentAuthentication.AUTHORITY)
+                    .requestMatchers("/admin/api/**").hasAuthority(AdminAuthentication.AUTHORITY)
                     .anyRequest().denyAll()
             }
             .addFilterBefore(adminTokenAuthFilter, UsernamePasswordAuthenticationFilter::class.java)

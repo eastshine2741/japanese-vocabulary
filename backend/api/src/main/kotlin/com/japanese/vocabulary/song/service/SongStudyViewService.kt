@@ -4,14 +4,17 @@ import com.japanese.vocabulary.song.dto.AnalyzedSongDto
 import com.japanese.vocabulary.song.dto.SongInfoDto
 import com.japanese.vocabulary.song.dto.StudyUnitDto
 import com.japanese.vocabulary.song.entity.LyricEntity
+import com.japanese.vocabulary.song.entity.LyricType
 import com.japanese.vocabulary.song.entity.SongEntity
 import com.japanese.vocabulary.song.model.LyricLineData
 import com.japanese.vocabulary.song.repository.LyricRepository
+import com.japanese.vocabulary.song.service.LyricMvSyncService
 import org.springframework.stereotype.Service
 
 @Service
 class SongStudyViewService(
     private val lyricRepository: LyricRepository,
+    private val lyricMvSyncService: LyricMvSyncService,
 ) {
     private data class LyricsSource(val name: String?, val url: String?)
 
@@ -29,7 +32,13 @@ class SongStudyViewService(
             )
         }
 
-        val lyricLines = lyricEntity.rawContent
+        val mvTimings = lyricMvSyncService.timingsFor(entity, lyricEntity)
+        val lyricLines = if (mvTimings == null) {
+            lyricEntity.rawContent
+        } else {
+            lyricEntity.rawContent.map { it.copy(startTimeMs = mvTimings[it.index]) }
+        }
+        val lyricType = if (mvTimings != null) LyricType.SYNCED else lyricEntity.lyricType
         val studyUnits = if (lyricEntity.analyzedContent != null) {
             val analyzedMap = lyricEntity.analyzedContent!!.associateBy { it.index }
             lyricLines.map { line ->
@@ -48,7 +57,7 @@ class SongStudyViewService(
 
         val source = resolveLyricsSource(lyricEntity)
         return AnalyzedSongDto(
-            song = SongInfoDto(id = songId, title = entity.title, artist = entity.artist, lyricType = lyricEntity.lyricType.name, artworkUrl = entity.artworkUrl),
+            song = SongInfoDto(id = songId, title = entity.title, artist = entity.artist, lyricType = lyricType.name, artworkUrl = entity.artworkUrl),
             studyUnits = studyUnits,
             youtubeUrl = entity.youtubeUrl,
             lyricsSourceName = source.name,

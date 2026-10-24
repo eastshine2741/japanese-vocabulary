@@ -1,0 +1,15 @@
+# torch 는 PyPI 기본 빌드(CUDA 13)를 쓴다. faster-whisper(CTranslate2)는 CUDA 12 cuBLAS/cuDNN 을 따로 찾으므로 아래 nvidia 휠을 같이 깔고 run.sh 가 경로를 잡는다.
+torch==2.14.1
+torchaudio==2.11.0
+demucs==4.1.0
+faster-whisper==1.2.1
+# faster-whisper 1.2.1 이 PyAV 16 에서 없어진 open(metadata_errors=) 를 부른다.
+av<16
+nvidia-cublas-cu12
+nvidia-cudnn-cu12==9.*
+pykakasi
+numpy
+soundfile
+yt-dlp
+requests
+pytest

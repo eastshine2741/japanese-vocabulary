@@ -1,6 +1,7 @@
 package com.japanese.vocabulary.admin
 
 import com.japanese.vocabulary.song.entity.LyricEntity
+import com.japanese.vocabulary.song.entity.LyricMvSyncEntity
 import com.japanese.vocabulary.song.entity.LyricType
 import com.japanese.vocabulary.song.entity.SongEntity
 import com.japanese.vocabulary.song.entity.SongReportEntity
@@ -110,6 +111,9 @@ class AdminSongReportControllerTest : AdminBaseIntegrationTest() {
         assertThat(tokens[1].koreanText).isEqualTo("사랑")
         assertThat(saved.wordCandidates!!.candidates.map { it.koreanText }).contains("사랑").doesNotContain("좋아함")
         assertThat(entityManager.find(SongEntity::class.java, song.id).youtubeUrl).isEqualTo("https://www.youtube.com/watch?v=abcdefghijk")
+        // 새 MV 에 맞춘 줄 시각을 다시 계산하도록 대기열에 들어간다.
+        val syncs = entityManager.createQuery("SELECT s FROM LyricMvSyncEntity s", LyricMvSyncEntity::class.java).resultList
+        assertThat(syncs.map { it.lyricId to it.youtubeVideoId }).containsExactly(lyric.id!! to "abcdefghijk")
         val reviewed = entityManager.find(SongReportEntity::class.java, report.id)
         assertThat(reviewed.status).isEqualTo(SongReportStatus.APPROVED)
         assertThat(reviewed.reviewedAt).isNotNull()

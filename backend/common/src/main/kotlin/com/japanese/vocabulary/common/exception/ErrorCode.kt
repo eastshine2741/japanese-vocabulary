@@ -34,6 +34,9 @@ enum class ErrorCode(val status: HttpStatus, val message: String) {
     SONG_REPORT_SUGGESTION_REQUIRED(HttpStatus.BAD_REQUEST, "Suggestion required for this report type"),
     SONG_REPORT_SUGGESTION_TOO_LONG(HttpStatus.BAD_REQUEST, "Suggestion must be at most 1000 characters"),
     SONG_REPORT_NOT_PENDING(HttpStatus.CONFLICT, "Song report was already reviewed"),
+    LYRIC_MV_SYNC_NOT_FOUND(HttpStatus.NOT_FOUND, "Lyric MV sync not found"),
+    LYRIC_MV_SYNC_SUPERSEDED(HttpStatus.CONFLICT, "Lyric MV sync claim is no longer current"),
+    LYRIC_MV_SYNC_INVALID_RESULT(HttpStatus.BAD_REQUEST, "Line timings must cover every lyric line exactly once"),
 
     // Word
     WORD_NOT_FOUND(HttpStatus.NOT_FOUND, "Word not found"),

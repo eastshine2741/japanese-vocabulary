@@ -16,6 +16,7 @@ import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType
 import com.japanese.vocabulary.song.entity.SongEntity
 import com.japanese.vocabulary.song.model.LyricLineData
+import com.japanese.vocabulary.song.repository.LyricMvSyncRepository
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisTriggerSource
@@ -57,6 +58,7 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
     @Autowired private lateinit var workRepository: SongAnalysisWorkRepository
     @Autowired private lateinit var songRepository: SongRepository
     @Autowired private lateinit var lyricRepository: LyricRepository
+    @Autowired private lateinit var syncRepository: LyricMvSyncRepository
 
     @Test
     fun `full song analysis work pipeline creates player-ready song with youtube url and analyzed lyrics`(): Unit = runBlocking {
@@ -93,6 +95,8 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         assertThat(lyric.analyzedContent).hasSize(1)
         assertThat(lyric.analyzedContent!![0].koreanLyrics).isEqualTo("복숭아빛 열쇠")
         assertThat(lyric.analyzedContent!![0].tokens).isNotEmpty
+        // 줄 시각을 MV 에 맞추는 작업이 곡과 함께 생긴다. video id 는 URL 에서 11자만 읽는다.
+        assertThat(syncRepository.findAll().map { it.lyricId to it.youtubeVideoId }).containsExactly(lyric.id!! to "official-vi")
 
         coVerify(exactly = 1) { lrclibClient.search(any()) }
         coVerify(exactly = 0) { vocadbClient.search(any()) }
@@ -274,6 +278,7 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         assertThat(refreshedSong.activeLyricId).isEqualTo(refreshedWork.lyricId)
         assertThat(refreshedSong.youtubeUrl).isEqualTo("https://www.youtube.com/watch?v=official-video-id")
         assertThat(lyrics.map { it.id }).contains(oldLyric.id, refreshedWork.lyricId)
+        assertThat(syncRepository.findAll().map { it.lyricId to it.youtubeVideoId }).containsExactly(refreshedWork.lyricId!! to "official-vi")
         assertThat(lyricRepository.findById(oldLyric.id!!).orElseThrow().rawContent.single().text).isEqualTo("古い歌詞")
     }
 
