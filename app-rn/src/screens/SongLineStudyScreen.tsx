@@ -60,7 +60,10 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
   const followingRef = useRef(false);
   // seek 직후에도 직전 위치의 시각이 한두 번 더 온다. 그 값으로 줄을 넘기지 않게 목표 근처 시각이 올 때까지 무시한다.
   const seekTargetMsRef = useRef<number | null>(null);
+  const staleTicksRef = useRef(0);
   const videoId = useMemo(() => extractYoutubeVideoId(data?.song.youtubeUrl), [data?.song.youtubeUrl]);
+  // 플레이어 마운트 때 고정되는 첫 줄. 재생 전 seek 는 모바일 iframe 이 가끔 버려서, 첫 줄은 시작 위치를 실어 바로 load 한다.
+  const [entryClip, setEntryClip] = useState<StudyLine | null>(null);
 
   const playClip = useCallback((line: StudyLine) => {
     if (line.clipStartMs == null) return;
@@ -70,18 +73,24 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
     }
     followingRef.current = true;
     seekTargetMsRef.current = line.clipStartMs;
+    staleTicksRef.current = 0;
     playerRef.current?.seekTo(line.clipStartMs / 1000);
     playerRef.current?.play();
   }, []);
 
   useEffect(() => {
     if (position != null || studyLines == null || studyLines.length === 0) return;
-    const first = firstLockedPosition(studyLines);
-    setPosition(first);
-    playClip(studyLines[first]);
-  }, [playClip, position, studyLines]);
+    const firstPosition = firstLockedPosition(studyLines);
+    const first = studyLines[firstPosition];
+    setPosition(firstPosition);
+    setEntryClip(first);
+    if (first.clipStartMs == null) return;
+    followingRef.current = true;
+    seekTargetMsRef.current = first.clipStartMs;
+    staleTicksRef.current = 0;
+  }, [position, studyLines]);
 
-  // cueVideo 가 끝나야 seekTo 가 먹는다. 첫 상태 메시지가 그 신호다.
+  // 첫 상태 메시지 전엔 player 객체가 없어 주입한 명령이 버려진다.
   const handleStateChange = useCallback(() => {
     if (playerReadyRef.current) return;
     playerReadyRef.current = true;
@@ -98,7 +107,15 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
     const ms = seconds * 1000;
     const target = seekTargetMsRef.current;
     if (target != null) {
-      if (Math.abs(ms - target) > 1500) return;
+      if (Math.abs(ms - target) > 1500) {
+        // 1초가 지나도 목표 근처가 아니면 seek 가 버려진 것이다. 그대로 두면 모든 시각을 무시해 줄 끝에서 멈추지 못한다.
+        staleTicksRef.current += 1;
+        if (staleTicksRef.current >= 10) {
+          staleTicksRef.current = 0;
+          playerRef.current?.seekTo(target / 1000);
+        }
+        return;
+      }
       seekTargetMsRef.current = null;
     }
     const line = lines[pos];
@@ -190,13 +207,14 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
 
       {videoId != null && (
         <View style={[styles.video, { height: Math.round(width * 9 / 16) }]}>
-          <YouTubePlayer
+          {entryClip != null && <YouTubePlayer
             ref={playerRef}
             videoId={videoId}
-            autoplay={false}
+            autoplay={entryClip.clipStartMs != null}
+            startSeconds={(entryClip.clipStartMs ?? 0) / 1000}
             onStateChange={handleStateChange}
             onTimeChange={handleTimeChange}
-          />
+          />}
         </View>
       )}
 
