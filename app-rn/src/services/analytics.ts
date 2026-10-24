@@ -22,6 +22,7 @@ type AnalyticsEvent =
   | { name: 'card_rate'; params: StudyCardParams & { rating: number } }
   | { name: 'review_exit'; params: ReviewExitParams }
   | { name: 'review_complete'; params: ReviewCompleteParams }
+  | { name: 'review_continue'; params: ReviewContinueParams }
   | { name: 'card_share'; params: { kind: ShareCardKind; method: 'x' | 'instagram_story' | 'instagram_dm' | 'link' } }
   | { name: 'share_link_open'; params: { kind: ShareCardKind } };
 
@@ -62,6 +63,19 @@ export interface ReviewCompleteParams {
   song_id?: number;
   deck_id?: number;
   tier_key?: string;
+  reviewed: number;
+}
+
+/**
+ * 완주 카드에서 다음 학습으로 넘어가는 버튼. next_due: 복습이 남은 다른 곡, song_new: 방금 끝낸 곡의 안 배운 단어,
+ * recommended: 추천곡, search: 새 곡 검색.
+ */
+export type ReviewContinueKind = 'next_due' | 'song_new' | 'recommended' | 'search';
+
+/** 완주 카드 버튼 탭. song_id 는 이어갈 곡, 검색이면 없다. reviewed 는 이번 세션에서 평가한 장 수. */
+export interface ReviewContinueParams {
+  kind: ReviewContinueKind;
+  song_id?: number;
   reviewed: number;
 }
 
@@ -109,6 +123,10 @@ export function trackReviewExit(params: ReviewExitParams): void {
 
 export function trackReviewComplete(params: ReviewCompleteParams): void {
   track({ name: 'review_complete', params });
+}
+
+export function trackReviewContinue(params: ReviewContinueParams): void {
+  track({ name: 'review_continue', params });
 }
 
 export function trackCardShare(kind: ShareCardKind, method: 'x' | 'instagram_story' | 'instagram_dm' | 'link'): void {

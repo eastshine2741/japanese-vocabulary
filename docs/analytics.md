@@ -99,8 +99,10 @@ WHERE screen = 'SongDetail'
 | `card_reveal` | 카드 뒷면을 처음 펼침 | `mode`(`home`/`source`), `position`(이 카드 앞에 평가한 장 수), `is_preview` |
 | `card_rate` | 평가가 저장됨 | 위와 같음 + `rating` |
 | `review_complete` | 한 장 이상 평가한 세션이 완주 카드에 닿음 (홈·곡 진입 모두) | `mode`, `song_id`·`deck_id`(완주한 곡 단어장, 전체 단어장이면 없음), `tier_key`(단계 학습일 때), `reviewed` |
+| `review_continue` | 완주 카드에서 다음 학습 버튼을 누름 | `kind`(`next_due` 복습 남은 다른 곡 / `song_new` 방금 끝낸 곡의 안 배운 단어 / `recommended` 추천곡 / `search` 새 곡 검색), `song_id`(이어갈 곡, 검색이면 없음), `reviewed`(이번 세션에서 평가한 장 수) |
 | `review_exit` | 곡 진입 복습 화면을 떠나거나 앱이 백그라운드로 감 | `song_id`(전체 단어장이면 없음), `deck_id`, `how`(`leave`/`background`), `reviewed`, `revealed`, `completed`, `status`, `dwell_sec` |
 
+- `review_exit` 의 `song_id`·`deck_id` 는 화면을 연 곡이다. 완주 카드에서 다른 곡으로 이어가도 바뀌지 않으니 실제로 복습한 곡은 `review_continue`·`review_complete` 로 본다.
 - `review_exit` 는 앱을 끄면 언마운트가 오지 않아 백그라운드 전환 때도 남긴다. 한 번 열린 화면에 여러 건이 생길 수 있으니 열림마다 마지막 건을 본다.
 
 ## 해석 주의

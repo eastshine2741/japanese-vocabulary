@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { ReviewContinueKind, trackReviewContinue } from '../../services/analytics';
 import { songClaimFilter, useRewardCardStore } from '../../stores/rewardCardStore';
 import { Colors } from '../../theme/theme';
 import { Typography } from '../../theme/typography';
@@ -10,6 +11,10 @@ import { EMPTY_MEMORY_DIFF, StudyMemoryDiff, StudySource } from './types';
 export interface CompletionStageProps {
   completedSource: StudySource | null;
   nextDueSource: StudySource | null;
+  /** 방금 끝낸 곡의 아직 안 배운 단어. 다음 due 곡이 없을 때만 채워진다. */
+  songNewSource: StudySource | null;
+  /** songNewSource 를 찾는 중이면 CTA 를 가린다 — 추천곡으로 먼저 떴다가 바뀌면 그 사이 탭이 엉뚱한 곳으로 간다. */
+  songNewPending?: boolean;
   recommendedSource: StudySource | null;
   previousArtworkUrl?: string | null;
   entranceProgress?: Animated.Value;
@@ -20,6 +25,7 @@ export interface CompletionStageProps {
   /** 카드 받기 버튼이 받을 곡. 없으면 모든 곡의 받을 카드를 받는다. */
   claimSongId?: number;
   onContinueDue: () => void;
+  onSongNew: () => void;
   onRecommended: () => void;
   onSearch: () => void;
   /** 무대 위에 얹힌 크롬 높이 — 무대 안쪽 내용만 그만큼 내려간다. */
@@ -32,6 +38,8 @@ export interface CompletionStageProps {
 export const CompletionStage = React.memo(function CompletionStage({
   completedSource,
   nextDueSource,
+  songNewSource,
+  songNewPending = false,
   recommendedSource,
   previousArtworkUrl,
   entranceProgress,
@@ -39,21 +47,41 @@ export const CompletionStage = React.memo(function CompletionStage({
   sessionReviewedCount = 0,
   claimSongId,
   onContinueDue,
+  onSongNew,
   onRecommended,
   onSearch,
   contentInsetTop,
   contentInsetBottom,
 }: CompletionStageProps) {
-  const stageSource = nextDueSource ?? recommendedSource ?? completedSource;
+  const stageSource = nextDueSource ?? songNewSource ?? recommendedSource ?? completedSource;
   const hasNextDue = nextDueSource != null;
-  const hasRecommended = recommendedSource != null;
-  const primaryLabel = hasNextDue ? '이어서 복습' : hasRecommended ? '이어서 학습' : '새 곡 검색';
-  const handlePrimary = hasNextDue ? onContinueDue : hasRecommended ? onRecommended : onSearch;
+  // 다음 due 곡이 없으면 다른 곡보다 방금 끝낸 곡의 남은 단어가 먼저다 — 그 곡을 배우던 흐름이 이어진다.
+  const nextKind: ReviewContinueKind = hasNextDue
+    ? 'next_due'
+    : songNewSource != null ? 'song_new' : recommendedSource != null ? 'recommended' : 'search';
+  const hasNudge = nextKind !== 'search';
+  const primaryLabel = hasNextDue ? '이어서 복습' : hasNudge ? '이어서 학습' : '새 곡 검색';
+  const handlePrimary = useCallback(() => {
+    trackReviewContinue({
+      kind: nextKind,
+      reviewed: sessionReviewedCount,
+      ...(hasNudge && stageSource?.songId != null && { song_id: stageSource.songId }),
+    });
+    if (nextKind === 'next_due') onContinueDue();
+    else if (nextKind === 'song_new') onSongNew();
+    else if (nextKind === 'recommended') onRecommended();
+    else onSearch();
+  }, [hasNudge, nextKind, onContinueDue, onRecommended, onSearch, onSongNew, sessionReviewedCount, stageSource?.songId]);
+  const handleSecondarySearch = useCallback(() => {
+    trackReviewContinue({ kind: 'search', reviewed: sessionReviewedCount });
+    onSearch();
+  }, [onSearch, sessionReviewedCount]);
   // 한 장도 복습하지 않은 사용자에게도 이 화면이 뜨므로 '오늘 다 했다'고 단정하지 않는다.
-  const completeTitle = hasNextDue && completedSource
+  // due 없는 곡으로 들어와 바로 뜬 화면도 같다 — 한 장도 안 했는데 '완주!'라고 하지 않는다.
+  const completeTitle = hasNextDue && completedSource && sessionReviewedCount > 0
     ? `${completedSource.title} 완주!`
     : '복습할 단어가 없어요';
-  const completeSub = hasNextDue && completedSource
+  const completeSub = hasNextDue && completedSource && sessionReviewedCount > 0
     ? `이 곡의 ${completedSource.totalCount}개 단어를 복습했어요`
     : '다음 복습 시간이 되면 카드가 다시 나타나요';
   const showMemoryStats = sessionReviewedCount > 0;
@@ -179,7 +207,7 @@ export const CompletionStage = React.memo(function CompletionStage({
           </View>
         </Animated.View>
         <Animated.View style={[styles.completeBottom, bottomEntranceStyle]}>
-          <Pressable style={styles.primaryAction} onPress={onSearch}>
+          <Pressable style={styles.primaryAction} onPress={handlePrimary}>
             <Text style={styles.primaryActionText}>새 곡 검색</Text>
           </Pressable>
         </Animated.View>
@@ -240,47 +268,54 @@ export const CompletionStage = React.memo(function CompletionStage({
       </View>
 
       <Animated.View style={[styles.completeBottom, bottomEntranceStyle]}>
-        {(hasNextDue || hasRecommended) && (
-          <>
-            <View style={styles.nudgeDivider} />
-            <View style={styles.nudgeBlock}>
-              <Text style={styles.nudgeReason}>
-                {hasNextDue ? '복습할 단어가 남은 곡이 하나 더 있어요' : '새 단어를 배울 곡을 골라봤어요'}
-              </Text>
-              <View style={styles.nextSourceRow}>
-                <ArtworkThumb artworkUrl={stageSource.artworkUrl} size={40} radius={8} />
-                <View style={styles.nextSourceText}>
-                  <Text numberOfLines={1} style={styles.nextTitle}>{stageSource.title}</Text>
-                  <Text numberOfLines={1} style={styles.nextSub}>
-                    {stageSource.artist} · {hasNextDue ? `오늘 ${stageSource.dueCount}개 남음` : `배울 단어 ${stageSource.totalCount}개`}
-                  </Text>
+        <View
+          style={[styles.completeBottomContent, songNewPending && styles.hidden]}
+          pointerEvents={songNewPending ? 'none' : 'auto'}
+        >
+          {hasNudge && (
+            <>
+              <View style={styles.nudgeDivider} />
+              <View style={styles.nudgeBlock}>
+                <Text style={styles.nudgeReason}>
+                  {hasNextDue
+                    ? '복습할 단어가 남은 곡이 하나 더 있어요'
+                    : nextKind === 'song_new' ? '이 곡에 아직 안 배운 단어가 있어요' : '새 단어를 배울 곡을 골라봤어요'}
+                </Text>
+                <View style={styles.nextSourceRow}>
+                  <ArtworkThumb artworkUrl={stageSource.artworkUrl} size={40} radius={8} />
+                  <View style={styles.nextSourceText}>
+                    <Text numberOfLines={1} style={styles.nextTitle}>{stageSource.title}</Text>
+                    <Text numberOfLines={1} style={styles.nextSub}>
+                      {stageSource.artist} · {hasNextDue ? `오늘 ${stageSource.dueCount}개 남음` : `배울 단어 ${stageSource.totalCount}개`}
+                    </Text>
+                  </View>
                 </View>
               </View>
+            </>
+          )}
+
+          <Pressable style={styles.primaryAction} onPress={handlePrimary}>
+            <Text style={styles.primaryActionText}>{primaryLabel}</Text>
+          </Pressable>
+
+          {/* 카드는 학습의 결과라 다음 학습 CTA 아래 보조 줄에 둔다. */}
+          {(hasNudge || hasClaim) && (
+            <View style={styles.secondaryActions}>
+              {hasClaim && (
+                <Pressable style={styles.secondaryAction} onPress={handleClaim}>
+                  <Feather name="gift" size={15} color="rgba(255,255,255,0.6)" />
+                  <Text style={styles.secondaryActionText}>카드 받기</Text>
+                </Pressable>
+              )}
+              {hasNudge && (
+                <Pressable style={styles.secondaryAction} onPress={handleSecondarySearch}>
+                  <Feather name="search" size={15} color="rgba(255,255,255,0.6)" />
+                  <Text style={styles.secondaryActionText}>새 곡 검색</Text>
+                </Pressable>
+              )}
             </View>
-          </>
-        )}
-
-        <Pressable style={styles.primaryAction} onPress={handlePrimary}>
-          <Text style={styles.primaryActionText}>{primaryLabel}</Text>
-        </Pressable>
-
-        {/* 카드는 학습의 결과라 다음 학습 CTA 아래 보조 줄에 둔다. */}
-        {(hasNextDue || hasRecommended || hasClaim) && (
-          <View style={styles.secondaryActions}>
-            {hasClaim && (
-              <Pressable style={styles.secondaryAction} onPress={handleClaim}>
-                <Feather name="gift" size={15} color="rgba(255,255,255,0.6)" />
-                <Text style={styles.secondaryActionText}>카드 받기</Text>
-              </Pressable>
-            )}
-            {(hasNextDue || hasRecommended) && (
-              <Pressable style={styles.secondaryAction} onPress={onSearch}>
-                <Feather name="search" size={15} color="rgba(255,255,255,0.6)" />
-                <Text style={styles.secondaryActionText}>새 곡 검색</Text>
-              </Pressable>
-            )}
+          )}
           </View>
-        )}
       </Animated.View>
     </CardStage>
   );
@@ -524,6 +559,12 @@ const styles = StyleSheet.create({
   completeBottom: {
     gap: 16,
     zIndex: 2,
+  },
+  completeBottomContent: {
+    gap: 16,
+  },
+  hidden: {
+    opacity: 0,
   },
   nudgeDivider: {
     height: StyleSheet.hairlineWidth,
