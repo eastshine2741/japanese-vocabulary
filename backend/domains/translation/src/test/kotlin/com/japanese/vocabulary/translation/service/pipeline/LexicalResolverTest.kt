@@ -544,6 +544,24 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `verbs written with the variant kanji 堕 and 搔 are looked up as 落 and 掻`(): Unit = runBlocking {
+        // 世界に堕とされた / つまらない気持ちを振り避けて 搔き消していた — jisho indexes only 落とす and 掻く.
+        stub(
+            "落とす" to found(godanVerb("落とす", "オトス", "to drop")),
+            "掻く" to found(godanVerb("掻く", "カク", "to scratch")),
+        )
+        val tokens = listOf(
+            token("堕と", "堕とす", "オトス", lineIndex = 16),
+            token("搔き", "搔く", "カク", lineIndex = 1),
+        )
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values
+
+        assertThat(resolved.map { it.baseForm }).containsExactlyInAnyOrder("落とす", "掻く")
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `a lookup jisho never answered is reported as a provider error, not a miss`(): Unit = runBlocking {
         // A jisho outage must be distinguishable from a missing entry: one is retried against jisho,
         // the other against the model.
