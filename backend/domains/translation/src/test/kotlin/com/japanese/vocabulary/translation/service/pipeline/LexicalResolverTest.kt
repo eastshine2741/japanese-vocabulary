@@ -301,6 +301,19 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a verb's desiderative headword is restored to the dictionary form`(): Unit = runBlocking {
+        // 吹き出させてやりたいよな: segmentation kept やりたい as the headword; jisho indexes only やる.
+        stub("やる" to found(godanVerb(headword = "やる", reading = "ヤル", english = "to do")))
+        val tokens = listOf(token("やりたい", "やりたい", "ヤリタイ", lineIndex = 29))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("やる")
+        assertThat(resolved.options.map { it.english }).containsExactly("to do")
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `a passive handed back as the headword is rescued as its dictionary form`(): Unit = runBlocking {
         // The model kept the passive 呑み込まれる as the headword; jisho has no such entry.
         stub(

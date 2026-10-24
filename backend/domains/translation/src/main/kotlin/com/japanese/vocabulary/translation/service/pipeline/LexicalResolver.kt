@@ -54,6 +54,7 @@ class LexicalResolver(
             }
                 ?: resolveIAdjective(token, probeLookups)
                 ?: resolveSuruDesiderative(token, probeLookups)
+                ?: resolveDesiderative(token, probeLookups)
                 ?: resolveHiraganaQuery(token, probeLookups)
                 ?: resolveSmallVowelElongation(token, probeLookups)
                 ?: resolveIntensifierPrefix(token, probeLookups)
@@ -139,6 +140,7 @@ class LexicalResolver(
             .filter {
                 resolveIAdjective(it, probeLookups, logRescue = false) == null &&
                     resolveSuruDesiderative(it, probeLookups, logRescue = false) == null &&
+                    resolveDesiderative(it, probeLookups, logRescue = false) == null &&
                     resolveHiraganaQuery(it, probeLookups, logRescue = false) == null &&
                     resolveSmallVowelElongation(it, probeLookups, logRescue = false) == null &&
                     resolveIntensifierPrefix(it, probeLookups, logRescue = false) == null &&
@@ -191,6 +193,7 @@ class LexicalResolver(
             godanRenyokeiProbe(token),
             potentialNegativeProbe(token),
         ) + suruDesiderativeProbes(token) +
+            desiderativeBases(token.headword) +
             appearanceSouProbes(token).map { it.baseForm } +
             completionSuffixProbes(token).map { it.first } +
             teAuxMotionProbe(token).map { it.first }
@@ -309,6 +312,39 @@ class LexicalResolver(
         val suffix = SURU_DESIDERATIVE_SUFFIXES.firstOrNull { token.headword.endsWith(it) } ?: return emptyList()
         val stem = token.headword.dropLast(suffix.length)
         return if (stem.isEmpty()) emptyList() else listOf(stem + "する", stem + "す")
+    }
+
+    /**
+     * Safety net for a verb's desiderative handed back as the headword — やりたい for やる, 食べたい for 食べる.
+     *
+     * The stem does not say its conjugation class, so godan (u-row) is asked before ichidan (+る);
+     * only verb senses are accepted.
+     */
+    private fun resolveDesiderative(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val readings = desiderativeBases(JapaneseText.toHiragana(token.baseFormReading)).map(JapaneseText::toKatakana)
+        for ((index, base) in desiderativeBases(token.headword).withIndex()) {
+            val accepted = narrow(token, lookups[base], base, readings.getOrNull(index), logRescue) ?: continue
+            val verbEntries = accepted.entries.mapNotNull { entry ->
+                val verbSenses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
+                if (verbSenses.isEmpty()) null else entry.copy(senses = verbSenses)
+            }
+            if (verbEntries.isEmpty()) continue
+            if (logRescue) logger.info("Normalized desiderative '{}' to '{}'", token.headword, base)
+            return AcceptedLexicalEntry(base, verbEntries, accepted.provenance)
+        }
+        return null
+    }
+
+    /** `やりたい` → `やる`, `やりる`; `食べたくない` → `食べる`. Empty when nothing precedes the suffix. */
+    private fun desiderativeBases(text: String): List<String> {
+        val suffix = DESIDERATIVE_SUFFIXES.firstOrNull { text.endsWith(it) } ?: return emptyList()
+        val stem = text.dropLast(suffix.length).takeIf { it.isNotEmpty() } ?: return emptyList()
+        val godan = GODAN_I_TO_U[stem.last()]?.let { stem.dropLast(1) + it }
+        return listOfNotNull(godan, stem + "る")
     }
 
     /**
@@ -979,6 +1015,7 @@ class LexicalResolver(
         /** Longest first, so したくない is not read as したい with a stem ending in く. */
         val SURU_DESIDERATIVE_SUFFIXES = listOf("したくない", "したい")
         val SURU_DESIDERATIVE_READING_SUFFIXES = listOf("シタクナイ", "シタイ")
+        val DESIDERATIVE_SUFFIXES = listOf("たくない", "たい")
 
         val HONORIFIC_PREFIXES = listOf("お", "ご", "御")
         val HONORIFIC_PREFIX_READINGS = listOf("オ", "ゴ")
