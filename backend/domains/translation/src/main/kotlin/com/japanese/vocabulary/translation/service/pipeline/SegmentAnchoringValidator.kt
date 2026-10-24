@@ -68,6 +68,7 @@ class SegmentAnchoringValidator {
      *
      * A reading in parentheses right after a word (`解答(こたえ)`, `暗闇(クロ)`) is **covered by that
      * word**; it must match the token's reading, so the ad-lib `晴れ舞台（イェイ）` stays reported.
+     * The same holds for furigana pasted without parentheses (`藻掻もがいて`).
      */
     private fun anchorLine(index: Int, rawText: String, line: SegLineDto): AnchoredLine {
         val covered = BooleanArray(rawText.length)
@@ -88,6 +89,7 @@ class SegmentAnchoringValidator {
             val end = start + surface.length
             for (i in start until end) covered[i] = true
             val annotationEnd = readingAnnotationEnd(rawText, end, usedReading)
+                .takeIf { it > end } ?: bareRubyEnd(rawText, surface, end, usedReading)
             for (i in end until annotationEnd) covered[i] = true
             cursor = end
             previousSurface = word.surface
@@ -211,6 +213,19 @@ class SegmentAnchoringValidator {
         val spellsRest = rest.isNotEmpty() && JapaneseText.isKanaOnly(okurigana) &&
             JapaneseText.toKatakana(okurigana) == rest
         return if (spellsRest) afterSpan + rest.length else afterSpan
+    }
+
+    /**
+     * End (exclusive) of furigana pasted without parentheses right after a kanji [surface]
+     * (`藻掻もがいて`, `如何どうしよう`), or [from] when the kana there does not spell [usedReading].
+     */
+    private fun bareRubyEnd(rawText: String, surface: String, from: Int, usedReading: String): Int {
+        if (JapaneseText.isKanaOnly(surface) || usedReading.isEmpty()) return from
+        val end = from + usedReading.length
+        if (end > rawText.length) return from
+        val kana = rawText.substring(from, end)
+        val spellsReading = JapaneseText.isKanaOnly(kana) && JapaneseText.toKatakana(kana) == usedReading
+        return if (spellsReading) end else from
     }
 
     /**
