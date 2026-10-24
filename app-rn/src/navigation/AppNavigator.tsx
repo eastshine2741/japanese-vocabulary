@@ -27,6 +27,7 @@ import OssLicenseScreen from '../screens/OssLicenseScreen';
 import VocScreen from '../screens/VocScreen';
 import SongProgressListScreen from '../screens/SongProgressListScreen';
 import SongReviewScreen from '../screens/SongReviewScreen';
+import SongLineStudyScreen from '../screens/SongLineStudyScreen';
 import StreakScreen from '../screens/StreakScreen';
 import RewardCardDetailScreen from '../screens/RewardCardDetailScreen';
 import RewardCardPreviewScreen from '../screens/RewardCardPreviewScreen';
@@ -80,6 +81,8 @@ export type RootStackParamList = {
   ArtistDetail: { artistId: number };
   /** 곡·덱 진입 복습. 큐 순서는 서버 due 응답을 그대로 따른다. trigger 는 복습을 연 버튼(screen_view 파라미터). */
   SongReview: { source: StudySource; origin?: 'SongDetail'; trigger?: StudyEntryTrigger };
+  /** 곡 상세에서 들어오는 소절 학습. 곡 데이터는 곡 상세 스토어를 같이 쓴다. */
+  SongLineStudy: { songId: number };
   DeckList: undefined;
   SongProgressList: undefined;
   /** 홈 헤더의 연속 학습 칩에서 들어오는 상세. */
@@ -207,6 +210,7 @@ export default function AppNavigator({ initialRoute }: Props) {
       <Stack.Screen name="SongDetail" component={SongDetailScreen} />
       <Stack.Screen name="ArtistDetail" component={ArtistDetailScreen} />
       <Stack.Screen name="SongReview" component={SongReviewScreen} />
+      <Stack.Screen name="SongLineStudy" component={SongLineStudyScreen} />
       <Stack.Screen name="DeckList" component={DeckListScreen} />
       <Stack.Screen name="SongProgressList" component={SongProgressListScreen} />
       <Stack.Screen name="Streak" component={StreakScreen} />

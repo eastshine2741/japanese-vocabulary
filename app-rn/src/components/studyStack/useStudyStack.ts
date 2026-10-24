@@ -12,7 +12,7 @@ import { useStudyStatsStore } from '../../stores/studyStatsStore';
 import { SongDeckSummary } from '../../types/deck';
 import { FlashcardMemory } from '../../types/flashcard';
 import { RewardCardRevealDto } from '../../types/rewardCard';
-import { SongStudyCardDto } from '../../types/song';
+import { SongStudyCardDto, SongWordTierKey } from '../../types/song';
 import { estimateSecondsPerCard, MAX_CARD_GAP_SECONDS } from './sessionEta';
 import { hapticCardDone, hapticRatingSelect, hapticReveal, hapticSessionComplete } from './studyHaptics';
 import { sourceFromDeck, sourceFromRecent, sourceFromRecommendation } from './studySource';
@@ -34,6 +34,7 @@ const SWIPE_COMMIT_DISTANCE = -72;
 export const RATING_HOLD_MS = 900;
 
 const DUE_PAGE_SIZE = 20;
+const LINE_TIER_KEYS: readonly SongWordTierKey[] = ['CHORUS', 'SINGALONG', 'FULL'];
 /** 로컬 버퍼에 이 개수 이하로 남으면 다음 페이지를 미리 불러온다. */
 const PREFETCH_REMAINING_THRESHOLD = 5;
 
@@ -160,7 +161,9 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
 
   const sourceRef = useRef<StudySource | null>(source ?? null);
   sourceRef.current = source ?? null;
-  const sourceKey = source ? `${source.deckId}:${source.songId}:${source.tierKey ?? ''}` : null;
+  const sourceKey = source
+    ? `${source.deckId}:${source.songId}:${source.tierKey ?? ''}:${source.lineWords?.join(',') ?? ''}`
+    : null;
 
   const currentCard = cards[currentIndex] ?? null;
   const currentCardRef = useRef(currentCard);
@@ -300,6 +303,29 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     fixedQueueRef.current = false;
     wholeListRef.current = false;
     try {
+      if (target.lineWords != null && target.songId != null) {
+        // 줄 단어는 여러 단계에 걸친다. 세 단계의 due 카드를 모아 이 줄 단어만 줄 안 등장순으로 남긴다.
+        // 처음 보는 단어만 묻는다 — 앞 줄에서 본 단어의 복습은 홈 스택이 맡는다.
+        const songId = target.songId;
+        const results = await Promise.all(LINE_TIER_KEYS.map(key => songApi.getWordTierCards(songId, key)));
+        if (version !== requestVersion.current) return;
+        const order = new Map(target.lineWords.map((key, i) => [key, i]));
+        const lineCards = results
+          .flatMap(result => result.cards)
+          .filter(card => order.has(card.japanese) && card.memory === 'REMAINING')
+          .filter((card, i, all) => all.findIndex(other => other.japanese === card.japanese) === i)
+          .sort((a, b) => order.get(a.japanese)! - order.get(b.japanese)!);
+        const deckId = results.find(result => result.deckId != null)?.deckId ?? target.deckId;
+        const lineSource: StudySource = { ...target, deckId, totalCount: lineCards.length };
+        activeSourceRef.current = lineSource;
+        fixedQueueRef.current = true;
+        setDueCount(lineCards.length);
+        setSessionDueTotal(lineCards.length);
+        setCards(toStudyCards(lineCards, lineSource));
+        setCompletedSource(lineCards.length === 0 ? lineSource : null);
+        setStatus('ready');
+        return;
+      }
       if (target.tierKey != null && target.songId != null) {
         // 단계 학습: 서버가 그 단계의 due 단어를 한 번에 준다. 이 목록이 세션의 전부이고, 단어는 rating 때 한 장씩 담긴다.
         const result = await songApi.getWordTierCards(target.songId, target.tierKey);

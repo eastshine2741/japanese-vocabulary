@@ -56,6 +56,11 @@ export default function SongReviewScreen({ navigation, route }: Props) {
   const editWord = useEditWordFromStack(stack.refreshCurrentCard);
 
   const goBack = useCallback(() => navigation.goBack(), [navigation]);
+  // 소절 학습의 끝은 완주 카드가 아니라 번역이 열린 그 줄이다.
+  const isLineSession = source.lineWords != null;
+  useEffect(() => {
+    if (isLineSession && isComplete) navigation.goBack();
+  }, [isComplete, isLineSession, navigation]);
   // 탭 안(Main)까지 내려가면 바텀탭·다른 탭 화면이 같이 뜬다 — 검색탭 UI만 새 스택으로 띄운다.
   const goSearch = useCallback(() => navigation.navigate('SearchStack'), [navigation]);
   // 예문은 지금 복습 중인 곡과 다른 곡에서 왔을 수 있다 — 뒤로 가기 대신 그 곡 상세로 이동한다.

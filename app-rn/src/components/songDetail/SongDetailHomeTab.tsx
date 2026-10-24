@@ -6,6 +6,7 @@ import { SongDetailContributors } from './SongDetailContributors';
 import { SongDetailCoverageSection } from './SongDetailCoverageSection';
 import type { PreviewSong } from '../rewardCards/cardPreview';
 import { SongDetailTierJourney } from './SongDetailTierJourney';
+import { Button } from '../ui';
 
 interface SongDetailHomeTabProps {
   song: PreviewSong;
@@ -17,6 +18,7 @@ interface SongDetailHomeTabProps {
   contributors: SongContributorsDto | null;
   onCoverageHelpPress: () => void;
   onStartTier: (tier: SongWordTierDto) => void;
+  onStartLines: () => void;
   onPressContributor: (contributor: SongContributor) => void;
   style?: StyleProp<ViewStyle>;
 }
@@ -28,11 +30,13 @@ export const SongDetailHomeTab = React.memo(function SongDetailHomeTab({
   contributors,
   onCoverageHelpPress,
   onStartTier,
+  onStartLines,
   onPressContributor,
   style,
 }: SongDetailHomeTabProps) {
   return (
     <View style={[styles.container, style]}>
+      <Button label="한 줄씩 풀기" icon="musical-notes" size="lg" onPress={onStartLines} />
       {coverage != null && (
         <SongDetailCoverageSection coverage={coverage} onHelpPress={onCoverageHelpPress} />
       )}
