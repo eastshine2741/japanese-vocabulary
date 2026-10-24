@@ -267,7 +267,58 @@ class YoutubeMvSearchService(
 
     private fun titleNamesArtist(title: String, artist: String): Boolean {
         val normalizedArtist = normalizeForMatch(ArtistCredit.withoutFeaturing(artist))
-        return normalizedArtist.isNotBlank() && normalizeForMatch(title).contains(normalizedArtist)
+        val normalizedTitle = normalizeForMatch(title)
+        return normalizedArtist.isNotBlank() && normalizedTitle.contains(normalizedArtist) ||
+            romanizedArtist(artist)?.let { normalizedTitle.contains(it) } == true
+    }
+
+    /** A kana-only name ("ゆこぴ") goes by its romanization ("Yukopi") on its own channel and in titles. */
+    private fun romanizedArtist(artist: String): String? =
+        romanizeKana(normalizeForMatch(ArtistCredit.withoutFeaturing(artist)))
+            ?.takeIf { it.length >= MIN_TITLE_PART_LENGTH }
+
+    /** Hepburn; null when the name holds anything but kana, since kanji readings are not derivable. */
+    private fun romanizeKana(name: String): String? {
+        if (!KANA_ONLY_RE.matches(name)) return null
+        val syllables = mutableListOf<String>()
+        var geminate = false
+        for (ch in name) {
+            val kana = if (ch in 'ァ'..'ヶ') ch - KATAKANA_OFFSET else ch
+            val last = syllables.lastOrNull()
+            when (kana) {
+                'っ' -> geminate = true
+                'ー' -> Unit
+                'ゃ', 'ゅ', 'ょ' -> {
+                    val vowel = SMALL_Y_KANA.getValue(kana)
+                    if (last != null && last.length > 1 && last.endsWith("i")) {
+                        val base = last.dropLast(1)
+                        syllables[syllables.lastIndex] =
+                            if (base.endsWith("sh") || base.endsWith("ch") || base.endsWith("j")) base + vowel else base + "y" + vowel
+                    } else {
+                        syllables += "y$vowel"
+                    }
+                }
+                'ぁ', 'ぃ', 'ぅ', 'ぇ', 'ぉ' -> {
+                    val vowel = SMALL_VOWEL_KANA.getValue(kana)
+                    if (last != null && last.length > 1 && last.last() in "aiueo") {
+                        syllables[syllables.lastIndex] = last.dropLast(1) + vowel
+                    } else {
+                        syllables += vowel
+                    }
+                }
+                else -> {
+                    val romaji = HEPBURN[kana] ?: return null
+                    val doubled = if (geminate && romaji.first() !in "aiueon") {
+                        (if (romaji.startsWith("ch")) "t" else romaji.first().toString()) + romaji
+                    } else {
+                        romaji
+                    }
+                    syllables += doubled
+                    geminate = false
+                }
+            }
+        }
+        return syllables.joinToString("")
     }
 
     private fun maybeCacheArtistChannel(artist: String, candidate: MvCandidate) {
@@ -311,6 +362,7 @@ class YoutubeMvSearchService(
      */
     private fun channelMatchesArtistOrMember(artist: String, channelTitle: String): Boolean {
         if (channelMatchesArtist(artist, channelTitle)) return true
+        if (romanizedArtist(artist)?.let { nameMatchesChannel(it, channelTitle) } == true) return true
         return ArtistCredit.withoutFeaturing(artist)
             .split(ARTIST_SEPARATOR_RE)
             .map { normalizeForMatch(it) }
@@ -457,5 +509,20 @@ class YoutubeMvSearchService(
         private val HTML_ENTITY_RE = Regex("""&(?:amp|quot|#39|apos);""", RegexOption.IGNORE_CASE)
         private val PUNCTUATION_RE = Regex("""[\p{P}\p{S}]""")
         private val WHITESPACE_RE = Regex("""\s+""")
+
+        private val KANA_ONLY_RE = Regex("""[ぁ-ゖァ-ヶー]+""")
+        private const val KATAKANA_OFFSET = 0x60
+        private val SMALL_Y_KANA = mapOf('ゃ' to "a", 'ゅ' to "u", 'ょ' to "o")
+        private val SMALL_VOWEL_KANA = mapOf('ぁ' to "a", 'ぃ' to "i", 'ぅ' to "u", 'ぇ' to "e", 'ぉ' to "o")
+        private val HEPBURN: Map<Char, String> = run {
+            val rows = listOf(
+                "あいうえお" to "a i u e o", "かきくけこ" to "ka ki ku ke ko", "がぎぐげご" to "ga gi gu ge go",
+                "さしすせそ" to "sa shi su se so", "ざじずぜぞ" to "za ji zu ze zo", "たちつてと" to "ta chi tsu te to",
+                "だぢづでど" to "da ji zu de do", "なにぬねの" to "na ni nu ne no", "はひふへほ" to "ha hi fu he ho",
+                "ばびぶべぼ" to "ba bi bu be bo", "ぱぴぷぺぽ" to "pa pi pu pe po", "まみむめも" to "ma mi mu me mo",
+                "やゆよ" to "ya yu yo", "らりるれろ" to "ra ri ru re ro", "わゐゑをんゔゎ" to "wa i e o n vu wa",
+            )
+            rows.flatMap { (kana, romaji) -> kana.toList().zip(romaji.split(" ")) }.toMap()
+        }
     }
 }

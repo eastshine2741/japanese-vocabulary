@@ -499,6 +499,67 @@ class YoutubeMvSearchServiceTest {
     }
 
     @Test
+    fun `a kana artist's romanized channel is the artist's own channel`() {
+        every { artistChannelCache.get("ゆこぴ") } returns null
+        stubSearch(
+            searchItem("DkTLQhB8wfc", "【ライブ音響🔈】Yokopi-私の歯医者さん　#yukopi #ライブ音響 #私の歯医者さん #ボカロ曲 #shorts", "rumaのライブ音響"),
+            searchItem("FDPeqBUySik", "Yukopi - 私の歯医者さん (feat. 歌愛ユキ)", "Yukopi"),
+            searchItem("5R3Ny4l2EJg", "Yukopi - 私の歯医者さん  (feat.黒井しば)", "Yukopi"),
+            searchItem("YqKfOkat870", "私の歯医者さん", "Yukopi"),
+            searchItem("_VWZ_8Jrr0E", "〈UTAUカバー〉私の歯医者さん / こちぇ", "星."),
+            searchItem("fCT831UD1II", "【手描きRKRN】私の歯医者さん【保健委員会】", "生肉人"),
+            searchItem("tqo03d5mlCs", "【ドレミ楽譜】ゆこぴ「私の歯医者さん」の間奏だけ【易★☆☆☆☆難】", "だけドレミ"),
+            searchItem("EbHy29Z0Llk", "【中1 耳コピ】Yukopi / 歌愛ユキ『私の歯医者さん / My Dentist』/ ゆこぴ / Kaai yuki【ピアノカバー / piano cover】", "mori ☆高校生ピアニスト☆"),
+            searchItem("bpYeHAe4Ano", "(9.0) 私の歯医者さん [MASTER 13] (譜面確認) [CHUNITHM チュウニズム]", "チュウニズム譜面保管所 Mate"),
+            searchItem("hOWrKK45EyY", "【男性声】私の歯医者さん / ゆこぴ // 歌ってみた（伴奏原曲キー）カラオケ【歌愛ユキ】", "歌好きのmikeチャンネル"),
+            searchItem("OZCJ1kMvu4Q", "私の歯医者さん[ゆこぴ]カンマニChannelカラオケ歌ってみた🎵", "カンマニChannel🐬(公式)(Kanmani Channel🐬)"),
+            searchItem("jBm_Cqkh7Ek", "【譜面確認用】私の歯医者さん MASTER【チュウニズムNEW外部出力】", "めーがす（meigus）"),
+            searchItem("YjYPMc1LtqY", "私の歯医者さん / Yukopi【歌ってみた】Covered by mizuna", "mizuna"),
+            searchItem("_RmV8Rld1oc", "【Yukopi】Kaai Yuki - My Dentist「Eng Sub + On Vocal」", "Kiriya Evi"),
+            searchItem("VsdGF0K1298", "【ゆこぴ】ボカロP別人気曲メドレー", "ぼかろめどれー"),
+        )
+        stubDurations(
+            "FDPeqBUySik" to "PT2M7S", "5R3Ny4l2EJg" to "PT2M7S", "YqKfOkat870" to "PT29S",
+            "_VWZ_8Jrr0E" to "PT2M5S", "fCT831UD1II" to "PT1M14S", "tqo03d5mlCs" to "PT15S",
+            "EbHy29Z0Llk" to "PT2M7S", "bpYeHAe4Ano" to "PT2M13S", "hOWrKK45EyY" to "PT2M17S",
+            "OZCJ1kMvu4Q" to "PT2M7S", "jBm_Cqkh7Ek" to "PT2M16S", "YjYPMc1LtqY" to "PT2M8S",
+        )
+
+        assertThat(service.searchMvUrl("私の歯医者さん", "ゆこぴ", 128))
+            .isEqualTo("https://www.youtube.com/watch?v=FDPeqBUySik")
+    }
+
+    @Test
+    fun `a kana artist's romanized channel upload wins over covers of a katakana title`() {
+        every { artistChannelCache.get("ゆこぴ") } returns null
+        stubSearch(
+            searchItem("pm-a4AHppl4", "【144cmの先輩】チビマッチョのブタサンダーの替え歌が悲しいw【ぶたさんだー/ゆこぴ】#替え歌　#shorts", "ビコーン!BIKOON!"),
+            searchItem("ZHnEewL_aPg", "ブタサンダーを歌わせて頂きました。 #歌い手 #歌ってみた #ボカロ #shorts #推し不在 #拡散希望  #Yukopi  #ブタサンダー  #ゆこぴ  #新人歌い手", "ユーリちゃんねる"),
+            searchItem("AIDelHN20pg", "ブタサンダー-Yukopi#shorts", "maru"),
+            searchItem("xruueaAMeaY", "yukopi - 🐖 ブタサンダー🐖 l Haachama Ver. #yukopi #vtuber #shorts", "HAACHAMA Ch 赤井はあと"),
+            searchItem("scSvNQkeFJs", "これにしか聞こえない #shorts #強風オールバック #ゆこぴ #ブタサンダー", "ふる / 1000人目標"),
+            searchItem("kCOCJC9gczA", "Yukopi - ブタサンダー (Arranged by ゆよゆっぺ )", "Yukopi"),
+            searchItem("OOW4TjS71Mw", "ブタサンダー / てるとくん（3さい）【ゲーム実況者が歌ってみた】", "てるとくん"),
+            searchItem("I8AuUZMl1n0", "【歌ってみた】ブタサンダー  feat.おおはらMEN", "さかいさんだー"),
+            searchItem("pdPtAufvWFA", "ブタサンダー / 赤見かるび 【cover】", "赤見かるび / Karubi Akami"),
+            searchItem("F2Ou5vlOIjM", "【ピアノ採譜】ブタサンダー - Yukopi", "ともち / tomochi - piano cover"),
+            searchItem("wOvY1lhQgIU", "【リズム天国】ブタサンダー(feat.歌愛ユキ) / Yukopi", "よちこ"),
+            searchItem("-_6nXG9i0tk", "ブタサンダー - Yukopi / Covered by けちゃ【歌ってみた】", "けちゃ【AMPTAK】"),
+            searchItem("WOm1K3-R-IU", "(offvocal)ブタサンダー / Yukopi  feat.歌愛ユキ　リアルカラオケ(Instrumental)", "ミライカラオケ⛤"),
+            searchItem("Kn8N-dgfWGc", "私いま、ぶたさんだ…【ブタサンダー】【マイクラアニメ】【マインクラフト】", "ラメリィ・フランソワ"),
+            searchItem("Yl7C3eDLMx4", "Yukopi - たすけて！おふとんマン (feat.歌愛ユキ)", "Yukopi"),
+        )
+        stubDurations(
+            "kCOCJC9gczA" to "PT2M37S", "OOW4TjS71Mw" to "PT2M17S", "I8AuUZMl1n0" to "PT2M19S",
+            "pdPtAufvWFA" to "PT2M17S", "F2Ou5vlOIjM" to "PT2M20S", "wOvY1lhQgIU" to "PT2M24S",
+            "-_6nXG9i0tk" to "PT2M17S", "WOm1K3-R-IU" to "PT2M17S", "Kn8N-dgfWGc" to "PT14S",
+        )
+
+        assertThat(service.searchMvUrl("ブタサンダー", "ゆこぴ", 136))
+            .isEqualTo("https://www.youtube.com/watch?v=kCOCJC9gczA")
+    }
+
+    @Test
     fun `a miss reports every candidate and why it was dropped`() {
         every { artistChannelCache.get(ARTIST) } returns null
         stubSearch(
