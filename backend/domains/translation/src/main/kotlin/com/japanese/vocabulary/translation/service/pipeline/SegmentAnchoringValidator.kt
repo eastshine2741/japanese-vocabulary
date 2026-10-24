@@ -108,26 +108,43 @@ class SegmentAnchoringValidator {
         var from = 0
         while (true) {
             val (offset, text) = uncoveredJapaneseRun(rawText, covered, from) ?: break
-            val filled = echoOf(tokens, offset, text) ?: knownParticleToken(index, offset, text)
+            val filled = echoOf(tokens, offset, text) ?: knownParticleToken(index, offset, text)?.let(::listOf)
             if (filled == null) {
                 uncovered = UncoveredRun(lineIndex = index, offset = offset, text = text)
                 break
             }
             tokens += filled
-            for (i in offset until filled.charEnd) covered[i] = true
-            from = filled.charEnd
+            val filledEnd = filled.last().charEnd
+            for (i in offset until filledEnd) covered[i] = true
+            from = filledEnd
         }
         return AnchoredLine(tokens = tokens.sortedBy { it.charStart }, uncovered = uncovered)
     }
 
     /**
-     * A copy of the token whose surface is exactly [text], placed at [offset], or null when no token
-     * on the line spells it. Lyrics echo a word (`君を探し見失う (見失う, Ah-ah-ah-ah)`) and the model
-     * emits it once; the echo is the same word sung the same way, so it reuses that token.
+     * Copies of the adjacent tokens whose surfaces spell exactly [text], shifted to [offset], or null
+     * when no run of tokens on the line spells it. Lyrics echo a word or phrase
+     * (`君を探し見失う (見失う, Ah-ah-ah-ah)`, `構わないから (構わないから)`) and the model emits it once;
+     * the echo is the same words sung the same way, so it reuses those tokens.
      */
-    private fun echoOf(tokens: List<PipelineToken>, offset: Int, text: String): PipelineToken? =
-        tokens.firstOrNull { it.surface == text }
-            ?.copy(charStart = offset, charEnd = offset + text.length)
+    private fun echoOf(tokens: List<PipelineToken>, offset: Int, text: String): List<PipelineToken>? {
+        val ordered = tokens.sortedBy { it.charStart }
+        for (first in ordered.indices) {
+            var spelled = ""
+            var last = first
+            while (last < ordered.size && text.startsWith(spelled + ordered[last].surface)) {
+                if (last > first && ordered[last].charStart != ordered[last - 1].charEnd) break
+                spelled += ordered[last].surface
+                if (spelled == text) {
+                    val shift = offset - ordered[first].charStart
+                    return ordered.subList(first, last + 1)
+                        .map { it.copy(charStart = it.charStart + shift, charEnd = it.charEnd + shift) }
+                }
+                last++
+            }
+        }
+        return null
+    }
 
     /** One anchored line: its tokens, and why it is incomplete if Japanese text carries no token. */
     private data class AnchoredLine(val tokens: List<PipelineToken>, val uncovered: UncoveredRun?)

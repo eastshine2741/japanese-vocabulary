@@ -451,6 +451,53 @@ class SegmentAnchoringValidatorTest {
     }
 
     @Test
+    fun `an echo of a phrase spanning several anchored words is copied from those words`() {
+        val result = validator.anchor(
+            mapOf(
+                0 to "震える体が 動かなくても 構わないから (構わないから)",
+                1 to "同じ道のりが 奏でた それは泣き声の歌 (泣き声の歌)",
+            ),
+            listOf(
+                SegLineDto(
+                    0,
+                    listOf(
+                        word("震える", "震える", "フルエル", "フルエル"),
+                        word("体", "体", "カラダ", "カラダ"),
+                        word("が", "が", "ガ", "ガ"),
+                        word("動か", "動く", "ウゴカ", "ウゴク"),
+                        word("なくても", "ない", "ナクテモ", "ナイ"),
+                        word("構わ", "構う", "カマワ", "カマウ"),
+                        word("ない", "ない", "ナイ", "ナイ"),
+                        word("から", "から", "カラ", "カラ"),
+                    ),
+                ),
+                SegLineDto(
+                    1,
+                    listOf(
+                        word("同じ", "同じ", "オナジ", "オナジ"),
+                        word("道のり", "道のり", "ミチノリ", "ミチノリ"),
+                        word("が", "が", "ガ", "ガ"),
+                        word("奏でた", "奏でる", "カナデタ", "カナデル"),
+                        word("それ", "それ", "ソレ", "ソレ"),
+                        word("は", "は", "ハ", "ハ"),
+                        word("泣き声", "泣き声", "ナキゴエ", "ナキゴエ"),
+                        word("の", "の", "ノ", "ノ"),
+                        word("歌", "歌", "ウタ", "ウタ"),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.incompleteByIndex).isEmpty()
+        assertThat(result.anchoredByIndex.getValue(0).takeLast(3).map { Triple(it.surface, it.charStart, it.charEnd) })
+            .containsExactly(Triple("構わ", 21, 23), Triple("ない", 23, 25), Triple("から", 25, 27))
+        assertThat(result.anchoredByIndex.getValue(1).takeLast(3).map { Triple(it.surface, it.charStart, it.charEnd) })
+            .containsExactly(Triple("泣き声", 21, 24), Triple("の", 24, 25), Triple("歌", 25, 26))
+        assertThat(result.anchoredByIndex.getValue(0).last().headword).isEqualTo("から")
+    }
+
+    @Test
     fun `left-out text that is not an anchored surface stays uncovered after an echo`() {
         val result = validator.anchor(
             mapOf(0 to "猫 (猫) 犬"),
