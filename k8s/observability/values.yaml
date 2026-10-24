@@ -89,13 +89,20 @@ grafana:
         MaxBytesBilled: 1073741824
       secureJsonData:
         privateKey: ${BIGQUERY_PRIVATE_KEY}
+  # 대시보드를 안 열어도 280~370Mi 를 쓴다. GOMEMLIMIT 이 limit 을 따라가 한도에 닿으면 OOMKill 대신 GC 만 돌며 응답이 멎는다.
   resources:
     requests:
       cpu: 100m
-      memory: 256Mi
+      memory: 512Mi
     limits:
       cpu: 1000m
-      memory: 512Mi
+      memory: 1Gi
+  sidecar:
+    resources:
+      requests:
+        memory: 128Mi
+      limits:
+        memory: 192Mi
   persistence:
     enabled: true
     type: pvc
