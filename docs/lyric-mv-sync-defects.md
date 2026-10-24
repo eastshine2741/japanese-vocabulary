@@ -24,6 +24,7 @@ MV 오연결·가사 오연결이 FAILED 나 LOW 로 드러난다. 곡을 고치
 | 10-25 | 237 | 238 | メーベル / なとり | `Qvbd4g-LIOM` | `Offvocal` 반주 영상 | |
 | 10-25 | 338 | 339 | 独りうた ~September調子はどうだい~ / うじたまい | `gJFvEN0KQiU` | 다른 가수 커버(`さんひ Cover`, 141초, 곡 197초). 4/46줄 | |
 | 10-25 | 347 | 348 | Flame (feat. milet) / PLAVE | `2WnL2ARuj5I` | 해외 유튜버 리액션 영상(324초, 곡 187초). 보정 +38s | |
+| 10-25 | 427 | 428 | Songbird (Japanese Ver.) / NCT WISH | `Gsafas5vpV8` | 한국어판 안무 연습 영상(`Dance Practice`). 1/49줄 | |
 | 10-25 | 276 | 277 | ディープカバー / MILGRAM コトコ | `002zE78Zjg8` | `(Instrumental)`. MILGRAM 네 번째 | |
 | 10-25 | 359 | 360 | Cat / MILGRAM カズイ | `dk5l6ZG_NiY` | `(Instrumental)` | |
 
@@ -83,6 +84,8 @@ MV 오연결·가사 오연결이 FAILED 나 LOW 로 드러난다. 곡을 고치
 | 10-25 | 292 | 293 | 恋愛裁判 / 40mP feat. 初音ミク (업로더가 삭제) | `Yt3p3kxWlwo` | |
 | 10-25 | 322 | 323 | The King / ATEEZ (재생 불가, 지역 제한 또는 비공개 추정) | `sexGWoKpav0` | |
 | 10-25 | 405 | 406 | Lost / yama | `bbmOEiorMrg` | |
+| 10-25 | 428 | 429 | CHOO CHOO / NCT WISH (재생 불가) | `hLnqOCjQL40` | |
+| 10-25 | 429 | 430 | P.O.V / NCT WISH (재생 불가) | `19WKEzyy260` | |
 
 ## 원인 미확인
 
