@@ -26,15 +26,10 @@ import { useHomeChromeStore } from '../stores/homeChromeStore';
 import { useDeleteSongDeck } from '../hooks/useDeleteSongDeck';
 import { deckApi } from '../api/deckApi';
 import { songApi } from '../api/songApi';
-import { songReportApi } from '../api/songReportApi';
-import { apiErrorMessage } from '../api/errors';
 import SkeletonBox from '../components/SkeletonLoading';
 import SongInfoSheet from '../components/SongInfoSheet';
-import ErrorDialog from '../components/ErrorDialog';
 import {
   AppBottomSheet,
-  AppBottomSheetModal,
-  AppBottomSheetModalRef,
   AppBottomSheetRef,
   AppBottomSheetView,
 } from '../components/bottomSheet';
@@ -48,10 +43,9 @@ import {
   SongDetailMvBar,
   SongDetailWordsActionBar,
   SongDetailWordsTab,
-  SongReportSheet,
-  SongReportThanksSheet,
+  SongReportModal,
   type SongDetailMvBarRef,
-  type SongReportSheetTarget,
+  type SongReportModalRef,
   type SongDetailWordItem,
   useSongDetailWordsTab,
 } from '../components/songDetail';
@@ -65,7 +59,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import type { StudyEntryTrigger } from '../services/analytics';
 import type { DeckDetailResponse } from '../types/deck';
 import type { SongWordTierDto } from '../types/song';
-import type { SongContributor, SubmitSongReportRequest } from '../types/songReport';
+import type { SongContributor } from '../types/songReport';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SongDetail'>;
 type DetailTab = 'home' | 'words' | 'cards';
@@ -963,11 +957,7 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
   const wordsSheetRef = useRef<AppBottomSheetRef>(null);
   const wordsSheetIndexRef = useRef(initialSheetIndex);
   const wordsSheetAnimatedIndex = useSharedValue(initialSheetIndex);
-  const reportSheetRef = useRef<AppBottomSheetModalRef>(null);
-  const [reportTarget, setReportTarget] = useState<SongReportSheetTarget | null>(null);
-  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
-  const [reportSent, setReportSent] = useState(false);
-  const [reportError, setReportError] = useState<string | null>(null);
+  const reportModalRef = useRef<SongReportModalRef>(null);
   const setCurrentMs = usePlayerStore(s => s.setCurrentMs);
   const setDurationMs = usePlayerStore(s => s.setDurationMs);
   useEffect(() => {
@@ -1007,34 +997,11 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
   }, [pauseMvRef]);
 
   const handleOpenLineReport = useCallback((line: React.ComponentProps<typeof CurrentPlayingWordsSheet>['lines'][number]) => {
-    setReportTarget({ group: 'LYRIC_LINE', line });
-    reportSheetRef.current?.present();
+    reportModalRef.current?.open({ group: 'LYRIC_LINE', line });
   }, []);
   const handleOpenMvReport = useCallback(() => {
-    setReportTarget({ group: 'MV' });
-    reportSheetRef.current?.present();
+    reportModalRef.current?.open({ group: 'MV' });
   }, []);
-  const handleCloseReport = useCallback(() => {
-    reportSheetRef.current?.dismiss();
-  }, []);
-  const handleReportDismissed = useCallback(() => {
-    setReportTarget(null);
-    setReportSent(false);
-  }, []);
-  const handleDismissReportError = useCallback(() => {
-    setReportError(null);
-  }, []);
-  const handleSubmitReport = useCallback(async (request: SubmitSongReportRequest) => {
-    setIsSubmittingReport(true);
-    try {
-      await songReportApi.submit(songId, request);
-      setReportSent(true);
-    } catch (e) {
-      setReportError(apiErrorMessage(e, '제보를 보내지 못했어요. 잠시 후 다시 보내주세요'));
-    } finally {
-      setIsSubmittingReport(false);
-    }
-  }, [songId]);
   const mvBarHeader = useMemo(() => (
     <SongDetailMvBar
       ref={mvBarRef}
@@ -1083,32 +1050,13 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
         onSyncedPageChange={handleSyncedPageChange}
       />
 
-      <AppBottomSheetModal
-        ref={reportSheetRef}
-        enableDynamicSizing
-        enablePanDownToClose
-        keyboardBehavior="interactive"
-        keyboardBlurBehavior="restore"
-        onDismiss={handleReportDismissed}
-      >
-        <AppBottomSheetView fitAboveKeyboard>
-          {reportSent ? (
-            <SongReportThanksSheet onClose={handleCloseReport} />
-          ) : reportTarget ? (
-            <SongReportSheet
-              target={reportTarget}
-              songTitle={title}
-              songArtist={artist}
-              youtubeUrl={youtubeUrl}
-              submitting={isSubmittingReport}
-              onSubmit={handleSubmitReport}
-              onClose={handleCloseReport}
-            />
-          ) : null}
-        </AppBottomSheetView>
-      </AppBottomSheetModal>
-
-      <ErrorDialog message={reportError} onDismiss={handleDismissReportError} />
+      <SongReportModal
+        ref={reportModalRef}
+        songId={songId}
+        title={title}
+        artist={artist}
+        youtubeUrl={youtubeUrl}
+      />
     </>
   );
 });
