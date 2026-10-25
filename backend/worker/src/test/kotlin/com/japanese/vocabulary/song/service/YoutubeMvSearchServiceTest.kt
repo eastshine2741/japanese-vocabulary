@@ -433,6 +433,37 @@ class YoutubeMvSearchServiceTest {
     }
 
     @Test
+    fun `a catalog title with a trailing feat credit still matches the MV`() {
+        every { artistChannelCache.get("Neru") } returns null
+        stubSearch(
+            searchItem("eSI7RsjZy1E", "Neru - 東京テディベア(Tokyo Teddy Bear) feat. Kagamine Rin", "Neru OFFICIAL"),
+            searchItem("6CvZxF_IP9E", "Hatsune Miku: Project DIVA Future Tone - [PV] &quot;Tokyo Teddy Bear&quot; (Romaji/English/Español S", "Karin's Channel"),
+            searchItem("UqulFtYBdGw", "東京テディベア / Leo/need × 鏡音リン", PUBLISHER_CHANNEL),
+            searchItem("xzr7zdnKPgc", "[FULL VER] 東京テディベア (Tokyo Teddy Bear) / Leo/need × 鏡音リン / プロセカ 歌詞 CC LYRICS", "Yan☆"),
+            searchItem("gdzlV-1_ghM", "Neru - 도쿄 테디베어(東京テディベア) feat. 카가미네 린 [한글자막/가사]", "Lighthappy-r2w"),
+            searchItem("E8BqQAzLl7o", "Kagamine Rin 【鏡音リン】- Tokyo Teddy Bear 【東京テディベア】Magical Mirai 2013 LIVE", "aws鑑賞"),
+            searchItem("lLDpISmaDvA", "東京テディベア - 2026 Arrange ver. - ／まふまふ【歌ってみた】", "まふまふちゃんねる"),
+            searchItem("tXa2rc2ytJ0", "東京テディベア / Neru -Cover- ウォルピスカーター", "ウォルピス社"),
+            searchItem("8xGFOCdsTV8", "60fps Tokyo Teddy Bear 東京テディベア   Kagamine Rin 鏡音リン DIVA English lyrics Romaji subtitles PDA FT", "Василий Зубко"),
+            searchItem("wXDKF1zFAE4", "【Neru feat. Kagamine Rin】Tokyo Teddy Bear【Sub. Español + Romaji】", "LoreHappy"),
+            searchItem("bchHRTY18Xg", "#東京テディベア (Tokyo Teddy Bear) feat. Kagamine Rin #Neru #VOCALOID", "Neru OFFICIAL"),
+            searchItem("7PC6wVbbbmM", "東京テディベア/Neru 重音テトcover #synthesizerv #重音テト #vocaloid", "イトナンジ / itonanji"),
+            searchItem("HihnMaEuofM", "【METAL COVER】 &quot;TOKYO TEDDY BEAR&quot; (but its rly emo) // 東京テディベア by @NeruOFFICIAL [ENG]", "yukigloom"),
+            searchItem("wLv_lSvQD6M", "Karaoke♬ Tokyo Teddy Bear feat. Kagamine Rin - Neru 【No Guide Melody】 Instrumental, Lyric Romanized", "EdKara"),
+            searchItem("znMI4CXP7ms", "東京テディベア / Neru feat.鏡音リン 全良【太鼓の達人】", "team RNH【太鼓の達人】"),
+        )
+        stubDurations(
+            "eSI7RsjZy1E" to "PT3M14S", "UqulFtYBdGw" to "PT3M14S", "xzr7zdnKPgc" to "PT3M14S",
+            "gdzlV-1_ghM" to "PT3M14S", "E8BqQAzLl7o" to "PT3M14S", "lLDpISmaDvA" to "PT3M14S",
+            "tXa2rc2ytJ0" to "PT3M14S", "8xGFOCdsTV8" to "PT3M14S", "bchHRTY18Xg" to "PT3M14S",
+            "7PC6wVbbbmM" to "PT3M14S", "HihnMaEuofM" to "PT3M14S", "znMI4CXP7ms" to "PT3M14S",
+        )
+
+        assertThat(service.searchMvUrl("東京テディベア feat.鏡音リン", "Neru", 194))
+            .isEqualTo("https://www.youtube.com/watch?v=eSI7RsjZy1E")
+    }
+
+    @Test
     fun `search takes the artist's official lyric video when the song has no MV`() {
         every { artistChannelCache.get("Mrs. GREEN APPLE") } returns null
         stubSearch(

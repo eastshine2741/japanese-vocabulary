@@ -338,7 +338,9 @@ class YoutubeMvSearchService(
         val parts = withoutTrailingDescriptor.split(TITLE_SEPARATOR_RE)
             .map { normalizeForMatch(it) }
             .filter { it.length >= MIN_TITLE_PART_LENGTH }
-        return (listOf(normalizeForMatch(title), normalizeForMatch(withoutTrailingDescriptor)) + parts)
+        // Uploads romanize a trailing credit ("feat.鏡音リン" → "feat. Kagamine Rin"), so the bare title must match alone.
+        val withoutTrailingFeat = withoutTrailingDescriptor.replace(TRAILING_FEAT_RE, "")
+        return (listOf(title, withoutTrailingDescriptor, withoutTrailingFeat).map { normalizeForMatch(it) } + parts)
             .filter { it.isNotBlank() }
             .distinct()
     }
@@ -451,7 +453,8 @@ class YoutubeMvSearchService(
         )
         private val SHORTS_TITLE_RE = Regex("""[#＃](?:shorts?|ショート)""", RegexOption.IGNORE_CASE)
         private val TRAILING_DESCRIPTOR_RE = Regex("""\s*[\[(（【].*?[】）)\]]\s*$""")
-        private val TITLE_SEPARATOR_RE = Regex("""\s+[-–—/／|｜]\s+""")
+        private val TRAILING_FEAT_RE = Regex("""\s+(?:feat|ft)\..*$""", RegexOption.IGNORE_CASE)
+        private val TITLE_SEPARATOR_RE =Regex("""\s+[-–—/／|｜]\s+""")
         // No "×": unit names use it ("ワンダーランズ×ショウタイム").
         private val ARTIST_SEPARATOR_RE = Regex("""\s*(?:&|＆|,|、)\s*""")
         private val HTML_ENTITY_RE = Regex("""&(?:amp|quot|#39|apos);""", RegexOption.IGNORE_CASE)
