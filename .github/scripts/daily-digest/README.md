@@ -49,7 +49,7 @@ lib/digest.jq render  →  Discord webhook (포럼 채널이면 날짜별 글 �
 ## 러너 기록
 
 다른 러너는 끝날 때 `~/.local/state/kotonoha-runners/<name>.json` 에 `{name, finishedAt, exitCode}` 를 쓴다
-(`analysis-feedback/run.sh`, `issue-resolver/resolve.sh` 의 `record_run`). digest 는 이 파일만 보고,
+(`analysis-feedback/run.sh`, `issue-resolver/resolve.sh`, `analysis-audit/run.sh` 의 `record_run`). digest 는 이 파일만 보고,
 `DAILY_DIGEST_EXPECTED_RUNNERS` 의 `이름:최대시간` 보다 오래됐거나 없으면 멈춘 러너로 올린다.
 새 러너를 만들면 같은 기록을 쓰고 이 목록에 더한다.
 

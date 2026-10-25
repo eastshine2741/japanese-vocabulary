@@ -19,6 +19,7 @@ LOG_DIR="$STATE_DIR/logs"
 # Other runners record their last run here (see record_run in analysis-feedback/run.sh).
 RUN_RECORD_DIR="${KOTONOHA_RUN_RECORD_DIR:-$STATE_ROOT/kotonoha-runners}"
 ANALYSIS_FEEDBACK_LEDGER="${ANALYSIS_FEEDBACK_LEDGER:-$STATE_ROOT/kotonoha-analysis-feedback/ledger.json}"
+ANALYSIS_AUDIT_LEDGER="${ANALYSIS_AUDIT_LEDGER:-$STATE_ROOT/kotonoha-analysis-audit/ledger.json}"
 
 KUBE_CONTEXT="${DAILY_DIGEST_KUBE_CONTEXT:-kotonoha-prod}"
 BQ_EVENTS_DATASET="japanese-vocabulary-490916:analytics_539684755"
@@ -27,7 +28,7 @@ MODEL="${DAILY_DIGEST_MODEL:-sonnet}"
 CLAUDE_MAX_BUDGET_USD="${DAILY_DIGEST_MAX_BUDGET_USD:-1}"
 CLAUDE_TIMEOUT="${DAILY_DIGEST_CLAUDE_TIMEOUT:-5m}"
 # name:max-age-hours. A runner whose record is older than that, or missing, is reported as stopped.
-EXPECTED_RUNNERS="${DAILY_DIGEST_EXPECTED_RUNNERS:-analysis-feedback:3 issue-resolver:2}"
+EXPECTED_RUNNERS="${DAILY_DIGEST_EXPECTED_RUNNERS:-analysis-feedback:3 issue-resolver:2 analysis-audit:3}"
 
 # New features: each first-parent commit of MAIN_REF is a unit. The model decides once per unit
 # whether it is a user-facing feature and which GA ratio shows it working; the answer is kept in
@@ -206,7 +207,7 @@ collect_github() {
 }
 
 collect_runners() {
-  local now records="[]" defects='null' f epoch
+  local now records="[]" defects='null' audits='null' f epoch
   now="$(date +%s)"
   for f in "$RUN_RECORD_DIR"/*.json; do
     jq -e '.name and .finishedAt' "$f" >/dev/null 2>&1 || continue
@@ -218,8 +219,14 @@ collect_runners() {
       [.defects[] | select(.firstSeen >= $since) | .status] | group_by(.) | map({(.[0]): length}) | add // {}' \
       "$ANALYSIS_FEEDBACK_LEDGER")"
   fi
+  if [[ -f "$ANALYSIS_AUDIT_LEDGER" ]]; then
+    audits="$(jq --arg since "$(date -u -d '24 hours ago' +%FT%TZ)" '
+      [.works[] | select((.auditedAt // "") >= $since)]
+      | {counts: (group_by(.status) | map({(.[0].status): length}) | add // {}),
+         reported: [.[] | select(.status == "reported") | {title, artist, issueUrl}]}' "$ANALYSIS_AUDIT_LEDGER")"
+  fi
   jq -n --arg expected "$EXPECTED_RUNNERS" --argjson records "$records" --argjson now "$now" \
-    --argjson defects "$defects" '
+    --argjson defects "$defects" --argjson audits "$audits" '
     ($records | map({(.name): .}) | add // {}) as $by_name
     | {
         runners: [$expected | split(" ")[] | select(. != "") | split(":") | {name: .[0], max_age_h: (.[1] | tonumber)}
@@ -229,7 +236,8 @@ collect_runners() {
               | $r + {age_h: $age, exit_code: $rec.exitCode,
                       status: (if $age > $r.max_age_h then "stale" elif $rec.exitCode != 0 then "failed" else "ok" end)}
             end],
-        analysis_defects_24h: $defects
+        analysis_defects_24h: $defects,
+        analysis_audits_24h: $audits
       }'
 }
 

@@ -72,7 +72,17 @@ log() {
 die() { log "ERROR" "$*"; exit 1; }
 
 TMP_DIR="$(mktemp -d)"
-trap 'rm -rf "$TMP_DIR"' EXIT
+RUN_RECORD_DIR="${KOTONOHA_RUN_RECORD_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/kotonoha-runners}"
+# daily-digest reports a runner as stopped when this record goes stale. Dry, single-work and
+# preflight runs say nothing about the timer, so they leave it alone.
+record_run() {
+  local code="$1" f="$RUN_RECORD_DIR/analysis-audit.json"
+  [[ $DRY_RUN == 0 && -z "$ONLY_WORK" && $CHECK_PREFLIGHT == 0 ]] || return 0
+  mkdir -p "$RUN_RECORD_DIR" 2>/dev/null || return 0
+  jq -n --arg at "$(date -Iseconds)" --argjson code "$code" \
+    '{name: "analysis-audit", finishedAt: $at, exitCode: $code}' > "$f.tmp" && mv "$f.tmp" "$f" || true
+}
+trap 'code=$?; rm -rf "$TMP_DIR"; record_run "$code"' EXIT
 
 admin_get() {
   curl -sS --fail-with-body --max-time "$HTTP_TIMEOUT" -H "Authorization: Bearer $ANALYSIS_AUDIT_TOKEN" "$ADMIN_API_BASE$1"
