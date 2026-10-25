@@ -33,6 +33,16 @@ export const EXTERNAL_SERVICES: OssEntry[] = [
   { name: 'Kuromoji', license: 'Apache-2.0', url: 'https://github.com/atilika/kuromoji' },
   { name: 'IPADic', license: '자체 라이선스', url: 'https://wiki.debian.org/IpadicLicense' },
   { name: 'UniDic', license: 'BSD-3-Clause', url: 'https://clrd.ninjal.ac.jp/unidic/en/' },
+  {
+    name: 'JMdict',
+    license: 'CC BY-SA 4.0',
+    url: 'https://www.edrdg.org/edrdg/licence.html',
+    // EDRDG 라이선스가 이 문장을 그대로 싣도록 요구한다
+    notice: `This publication has included material from the JMdict (EDICT, etc.) dictionary files in accordance with the licence provisions of the Electronic Dictionaries Research Group. See http://www.edrdg.org/`,
+  },
+  { name: 'JLPT 단어 목록 (tanos.co.uk)', license: 'CC BY', url: 'https://www.tanos.co.uk/jlpt/' },
+  { name: 'Wikipedia 일본어판', license: 'CC BY-SA', url: 'https://ja.wikipedia.org' },
+  { name: 'FineWeb-2', license: 'ODC-BY', url: 'https://huggingface.co/datasets/HuggingFaceFW/fineweb-2' },
   { name: 'LRCLIB', license: '가사 데이터 출처', url: 'https://lrclib.net' },
   { name: 'VocaDB', license: '가사 데이터 출처', url: 'https://vocadb.net' },
   { name: 'UtaiteDB', license: '가사 데이터 출처', url: 'https://utaitedb.net' },
