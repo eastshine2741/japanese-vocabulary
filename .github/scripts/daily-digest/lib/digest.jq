@@ -69,6 +69,7 @@ def feature_drop($t):
     and ($m.after | ratio) < ($m.before | ratio) * (1 - $t.feature_drop);
 
 def runner_status_ko: {ok: "정상", failed: "실패", stale: "멈춤", missing: "기록 없음"}[.];
+def audit_status_ko: {clean: "문제 없음", reported: "issue 올림", failed: "검사 실패"}[.] // .;
 def defect_status_ko: {new: "새로", ignored: "무시", held: "보류", fixing: "수정 중", provider_error: "사전 장애"}[.] // .;
 
 def signals:
@@ -281,6 +282,11 @@ def render_runners:
          | table([]))
         + ([(.runners.analysis_defects_24h | select(. != null and length > 0)
               | "analysis-feedback 러너가 지난 24시간에 찾은 새 결손: " + ([to_entries[] | "\(.key | defect_status_ko) \(.value)"] | join(", "))),
+            (.runners.analysis_audits_24h | select(. != null and (.counts | length) > 0)
+              | "analysis-audit 러너가 지난 24시간에 곡 \(.counts | add)개를 검사했어요: "
+                + ([.counts | to_entries[] | "\(.key | audit_status_ko) \(.value)"] | join(", ")),
+                (.reported[:8][] | "- \(link("#\(.issueUrl | split("/") | last) \(.title | short(40)) (\(.artist | short(20)))"; .issueUrl))"),
+                (.reported | select(length > 8) | "그 밖에 issue \(length - 8)건이 더 있어요.")),
             (if $root.github.error then empty
              else $root.github
                | (select(.plan_ready | length > 0) | "계획 승인을 기다리는 이슈",
