@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { LayoutChangeEvent, Pressable, ScrollView, StyleProp, StyleSheet, Text, useWindowDimensions, View, ViewStyle } from 'react-native';
+import { AppState, LayoutChangeEvent, Pressable, ScrollView, StyleProp, StyleSheet, Text, useWindowDimensions, View, ViewStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -32,6 +32,7 @@ import { useArtBackdrop } from '../components/rewardCards/artColors';
 import { buildStudyLines, firstLockedPosition, isWordSeen, lastReachablePosition, lineWordKeys, snapLineIndex, StudyLine } from '../components/lineStudy/studyLines';
 import { hapticLineTick, hapticTranslationOpened, hapticTranslationWord, hapticUnlock } from '../components/songDetail/lyricsHaptics';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { trackLineStudyExit } from '../services/analytics';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useSongDetailStore } from '../stores/songDetailStore';
 import { Colors } from '../theme/theme';
@@ -105,6 +106,42 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
   const current = position != null ? studyLines?.[position] ?? null : null;
   const openedCount = studyLines?.filter(line => line.unseenCount === 0).length ?? 0;
   const isLast = studyLines != null && position === studyLines.length - 1;
+
+  // 몇 줄까지 갔고 몇 줄을 열었는지 남긴다 — 언마운트 시점 값이 필요해 ref 로 따라간다. 앱을 끄면 언마운트가
+  // 오지 않으니 백그라운드로 갈 때도 남긴다. 한 열림에 여러 건이 생길 수 있어 분석은 열림마다 마지막 건을 본다.
+  const openedAtEntryRef = useRef<number | null>(null);
+  if (studyLines != null && openedAtEntryRef.current == null) openedAtEntryRef.current = openedCount;
+  const replaysRef = useRef(0);
+  const completedRef = useRef(false);
+  const exitStateRef = useRef({ total: 0, reached: 0, opened: 0 });
+  exitStateRef.current = {
+    total: studyLines?.length ?? 0,
+    reached: furthest != null ? furthest + 1 : 0,
+    opened: openedCount - (openedAtEntryRef.current ?? openedCount),
+  };
+  useEffect(() => {
+    const openedAt = Date.now();
+    const log = (how: 'leave' | 'background') => {
+      const { total, reached, opened } = exitStateRef.current;
+      trackLineStudyExit({
+        song_id: songId,
+        how,
+        lines_total: total,
+        lines_reached: reached,
+        lines_opened: opened,
+        replays: replaysRef.current,
+        completed: completedRef.current,
+        dwell_sec: Math.round((Date.now() - openedAt) / 1000),
+      });
+    };
+    const sub = AppState.addEventListener('change', next => {
+      if (next === 'background') log('background');
+    });
+    return () => {
+      sub.remove();
+      log('leave');
+    };
+  }, [songId]);
 
   const playerRef = useRef<YouTubePlayerRef>(null);
   const playerReadyRef = useRef(false);
@@ -236,6 +273,7 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
     const nextPosition = position != null ? position + 1 : null;
     const next = nextPosition != null ? studyLines?.[nextPosition] : null;
     if (nextPosition == null || next == null) {
+      completedRef.current = true;
       navigation.goBack();
       return;
     }
@@ -244,7 +282,9 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
   }, [navigation, playClip, position, studyLines]);
 
   const replay = useCallback(() => {
-    if (current != null) playClip(current);
+    if (current == null) return;
+    replaysRef.current += 1;
+    playClip(current);
   }, [current, playClip]);
 
   const goBack = useCallback(() => navigation.goBack(), [navigation]);

@@ -56,6 +56,7 @@ cd app-rn && npx expo start --web             # App - Web (dev)
 - Pen(.pen 디자인 파일) 편집: `docs/runbooks/pencil-editing.md`
 - 분석 결함 로그·자동 수정 러너: `.github/scripts/analysis-feedback/README.md`
 - 완료된 곡 분석 감사·issue 러너: `.github/scripts/analysis-audit/README.md`
+- 매일 아침 Discord 데일리 피드 러너(지표·골든패스·신기능·인프라·문의·러너 상태): `.github/scripts/daily-digest/README.md`
 
 `docs/archive/` 는 끝난 계획·조사라 근거로 쓰지 않는다.
 

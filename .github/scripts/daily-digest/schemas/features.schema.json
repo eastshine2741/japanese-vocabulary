@@ -1,0 +1,48 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["units"],
+  "properties": {
+    "units": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["sha", "feature", "title", "metric", "no_metric_hint"],
+        "properties": {
+          "sha": { "type": "string" },
+          "feature": { "type": "boolean" },
+          "title": { "type": "string", "maxLength": 40 },
+          "metric": {
+            "anyOf": [
+              { "type": "null" },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["label", "numerator", "denominator"],
+                "properties": {
+                  "label": { "type": "string", "maxLength": 60 },
+                  "numerator": { "$ref": "#/$defs/event" },
+                  "denominator": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/event" }] }
+                }
+              }
+            ]
+          },
+          "no_metric_hint": { "type": ["string", "null"], "maxLength": 120 }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event", "param", "value"],
+      "properties": {
+        "event": { "type": "string" },
+        "param": { "type": ["string", "null"] },
+        "value": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

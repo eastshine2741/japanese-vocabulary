@@ -89,7 +89,18 @@ die() { log "ERROR" "$*"; exit 1; }
 
 TMP_FILES=()
 tmp() { local f; f="$(mktemp)"; TMP_FILES+=("$f"); printf '%s\n' "$f"; }
-cleanup() { rm -f "${TMP_FILES[@]:-}"; }
+RUN_RECORD_DIR="${KOTONOHA_RUN_RECORD_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/kotonoha-runners}"
+# daily-digest reports a runner as stopped when this record goes stale. Dry and fixture runs say
+# nothing about the timer, so they leave it alone.
+record_run() {
+  local code="$1"
+  [[ $DRY_RUN == 0 && -z "$FIXTURE_FILE" && $CHECK_PREFLIGHT == 0 ]] || return 0
+  local f="$RUN_RECORD_DIR/analysis-feedback.json"
+  mkdir -p "$RUN_RECORD_DIR" 2>/dev/null || return 0
+  jq -n --arg at "$(date -Iseconds)" --argjson code "$code" \
+    '{name: "analysis-feedback", finishedAt: $at, exitCode: $code}' > "$f.tmp" && mv "$f.tmp" "$f" || true
+}
+cleanup() { local code=$?; rm -f "${TMP_FILES[@]:-}"; record_run "$code"; }
 trap cleanup EXIT
 
 urlencode() { jq -rn --arg s "$1" '$s|@uri'; }

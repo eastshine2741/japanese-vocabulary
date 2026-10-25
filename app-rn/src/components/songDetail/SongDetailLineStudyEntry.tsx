@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/theme';
@@ -28,8 +28,9 @@ const EqualizerBar = React.memo(function EqualizerBar({ index, playing }: { inde
   const rhythm = useMemo(() => barRhythm(index), [index]);
   const level = useSharedValue(rhythm.low);
   useEffect(() => {
+    // reverse repeat 은 시작한 값으로 되돌아온다. 멈춘 높이에서 다시 틀면 갈 때마다 폭이 줄어서 low 로 돌려 놓는다.
     if (!playing) {
-      cancelAnimation(level);
+      level.value = rhythm.low;
       return;
     }
     level.value = withRepeat(withTiming(rhythm.high, { duration: rhythm.durationMs, easing: Easing.inOut(Easing.quad) }), -1, true);

@@ -174,8 +174,8 @@ if [[ "$DEPLOY_ENV" == "dev" ]]; then
   export SHARE_DEV_ORIGIN SHARE_APP_SCHEME
 fi
 
-# 곡 분석 파이프라인이 batch 에서 worker 로 옮겨졌다. 전용 DSN 이 없으면 batch 가 쓰던 프로젝트로
-# 계속 보낸다 — .github/scripts/analysis-feedback 러너가 그 프로젝트(kotonoha-batch-prod)를 읽는다.
+# 곡 분석 파이프라인이 batch 에서 worker 로 옮겨졌다. 전용 DSN 이 없으면 batch 가 쓰던 프로젝트로 보낸다.
+# .github/scripts/analysis-feedback 러너의 SENTRY_PROJECT 는 이 DSN 의 프로젝트와 같아야 한다.
 SENTRY_DSN_WORKER="${SENTRY_DSN_WORKER:-${SENTRY_DSN_BATCH:-}}"
 
 # admin-web 은 asset base 와 router basename 을 빌드 시점에 굽는다.
