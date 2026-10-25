@@ -5,6 +5,7 @@ import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.common.retry.ExponentialBackoff
 import com.japanese.vocabulary.common.retry.TransientHttpErrors
 import com.japanese.vocabulary.common.retry.currentRetryDeadline
+import com.japanese.vocabulary.lyricsearch.LanguageVersion
 import com.japanese.vocabulary.lyricsearch.LyricProvider
 import com.japanese.vocabulary.lyricsearch.LyricsResult
 import com.japanese.vocabulary.lyricsearch.SongQueryNormalizer
@@ -13,6 +14,7 @@ import com.japanese.vocabulary.song.entity.SongEntity
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.model.LyricLineData
 import com.japanese.vocabulary.song.parser.LrcParser
+import com.japanese.vocabulary.song.parser.ParsedLyricLine
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.repository.SongRepository
 import kotlinx.coroutines.Dispatchers
@@ -55,8 +57,7 @@ class SongAnalysisPreparationService(
     )
 
     suspend fun prepareLyrics(title: String, artist: String, durationSeconds: Int?): PreparedLyric {
-        val lyricsResult = searchLyrics(title, artist, durationSeconds)
-        val parsedLines = lrcParser.parse(lyricsResult.lyrics, lyricsResult.isSynced)
+        val (lyricsResult, parsedLines) = searchLyrics(title, artist, durationSeconds)
         val lyricType = if (lyricsResult.isSynced) LyricType.SYNCED else LyricType.PLAIN
         val lyricLineData = parsedLines.map { line ->
             LyricLineData(
@@ -178,7 +179,11 @@ class SongAnalysisPreparationService(
         return SongLyricCreationResult(song, lyric)
     }
 
-    private suspend fun searchLyrics(title: String, artist: String, durationSeconds: Int?): LyricsResult {
+    private suspend fun searchLyrics(title: String, artist: String, durationSeconds: Int?): Pair<LyricsResult, List<ParsedLyricLine>> {
+        if (LanguageVersion.isNonJapanese(title)) {
+            logger.warn("Not a Japanese version, skipping lyric search: '{}' by '{}'", title, artist)
+            throw BusinessException(ErrorCode.LYRICS_NOT_FOUND)
+        }
         val query = SongQueryNormalizer.normalize(title, artist, durationSeconds)
         logger.info(
             "Lyric search started: '{}' by '{}' (normalized title: '{}', artist parts: {})",
@@ -199,11 +204,17 @@ class SongAnalysisPreparationService(
                 continue
             }
             if (result != null) {
+                val lines = lrcParser.parse(result.lyrics, result.isSynced)
+                if (lines.isEmpty()) {
+                    // An empty lyric saved as active would leave the song with no lines for good.
+                    logger.warn("Provider {} returned lyrics with no parsable line (lrclibId={})", provider.providerName, result.lrclibId)
+                    continue
+                }
                 logger.info(
                     "Lyrics found via {} (synced={}, lrclibId={}, vocadbId={}, utaitedbId={})",
                     provider.providerName, result.isSynced, result.lrclibId, result.vocadbId, result.utaitedbId
                 )
-                return result
+                return result to lines
             }
             logger.info("Provider {}: no results", provider.providerName)
         }
