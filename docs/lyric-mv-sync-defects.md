@@ -35,6 +35,7 @@ MV 오연결·가사 오연결이 FAILED 나 LOW 로 드러난다. 곡을 고치
 | 10-25 | 602 | 604 | 負け犬にアンコールはいらない / ヨルシカ | `Ckk9IJwDhNI` | 앨범 트레일러(`(Album Trailer)`, 256초) — 여러 곡을 이어 붙인 예고 영상. 13/65줄 | |
 | 10-25 | 276 | 277 | ディープカバー / MILGRAM コトコ | `002zE78Zjg8` | `(Instrumental)`. MILGRAM 네 번째 | |
 | 10-25 | 359 | 360 | Cat / MILGRAM カズイ | `dk5l6ZG_NiY` | `(Instrumental)` | |
+| 10-25 | 738 | 749 | ルカルカ★ナイトフィーバー / SAM(samfree) | `MoSFWVKMkIc` | 키 바꾼 노래방 반주(`-2Key (原曲歌手:…)`). 2/43줄 | |
 
 ## MV 가 가사와 다른 버전
 
