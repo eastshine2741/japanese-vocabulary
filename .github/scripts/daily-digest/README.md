@@ -1,10 +1,10 @@
 # Daily Digest Runner
 
-매일 아침 지표, 골든패스, 인프라, 문의, 다른 러너 상태를 모아 Discord 에 한 번 올리는 로컬 러너.
+매일 아침 지표, 골든패스, 신기능 성과, 인프라, 문의, 다른 러너 상태를 모아 Discord 에 한 번 올리는 로컬 러너.
 Alertmanager 알림은 터질 때 바로 오지만, 이 피드는 "오늘 무엇부터 볼지"를 정하려고 하루 한 번 본다.
 
 ```
-collect_*  (prod MySQL, GA4 BigQuery, Prometheus, Sentry, GitHub, 러너 기록)
+collect_*  (prod MySQL, GA4 BigQuery, Prometheus, Sentry, GitHub, 러너 기록, git 태그·ReplicaSet)
    ↓  섹션별 JSON. 실패한 섹션은 {"error"} 로 남고 피드는 그대로 나간다
 lib/digest.jq signals  →  임계값을 넘은 것만 신호로
    ↓
@@ -23,6 +23,26 @@ lib/digest.jq render  →  Discord webhook (포럼 채널이면 날짜별 글 �
 - **GA4 어제 테이블은 대개 10시쯤 확정된다.** 08:00 실행이면 intraday 로 계산하고 골든패스에 "잠정"이 붙는다.
 - **곡 탐색 완주는 `review_complete` 의 `mode = source` 만 센다.** 홈 세션 완주까지 세면 곡 복습보다 완주가 많아진다.
 
+## 신기능 성과
+
+`main` 의 first-parent 커밋(머지 하나, 또는 직접 커밋 하나)이 단위다. `app-rn/` 이나 `backend/{api,worker,domains,integrations}/`
+를 건드린 단위만 본다.
+
+- **배포 시각은 추정하지 않고 찾는다.** 앱은 그 커밋을 포함한 태그로 성공한 첫 배포 워크플로 실행 시각(prod OTA
+  `js-v*.prod` 의 Deploy EAS Update, 네이티브 `vX.Y.Z` 의 Android CD)이다. 태그가 lightweight 라 태그 날짜는 커밋 날짜라 쓰지 않는다.
+  네이티브는 심사와 관리형 게시 때문에 실제 출시가 더 늦을 수 있다. 서버는 그 커밋을 포함한 첫 api/worker ReplicaSet
+  이미지(deploy.sh 가 짧은 sha 로 태그)다. 둘 다 건드리면 둘 다 나간 시각. 머지만 되고 안 나간 기능은 "아직 배포 안 됨".
+- **배포 시각을 모르면 재지 않는다.** 처음 맞는 기록이 남아 있는 것 중 가장 오래된 것(ReplicaSet revision 기록 끝,
+  워크플로 목록 끝)이면 그보다 먼저 나갔을 수 있어 그 단위는 뺀다.
+- **모델은 단위마다 한 번만, 도구 없이 묻는다.** 커밋 제목, 바뀐 경로, `analytics.ts` 만 보고 유저가 알아챌 기능인지와
+  GA 비율 하나를 `features.json` 원장에 남긴다. 커밋 제목엔 다른 러너가 유저 제보로 쓴 글이 섞여 있어 저장소(.env 포함)를
+  읽게 두지 않는다. `analytics.ts` 에 없는 이벤트나 값 없는 param 을 고르면 버린다. 8개씩 나눠 묻고 묶음마다 저장한다.
+  원장의 `metric` 을 손으로 고치면 다음 실행부터 그 지표로 잰다. 다시 묻게 하려면 그 sha 를 지운다. 원장은 lookback 밖 단위를 지워 3주치만 남긴다.
+- **비율은 그날 분모 유저 중 분자 유저를 날짜별로 합쳐 나눈다.** 배포 전 7일과 배포 다음 날부터 어제까지를 비교하고,
+  배포 당일은 양쪽 모두에서 뺀다.
+  배포 전 분자가 0 이면 이 기능이 새로 남기기 시작한 이벤트로 보고 배포 후 값만 보여준다.
+- 하락 경고는 배포 후 이틀 이상, 양쪽 분모가 `DAILY_DIGEST_FEATURE_MIN_DEN` 이상, `DAILY_DIGEST_FEATURE_DROP` 이상 떨어졌을 때만.
+
 ## 러너 기록
 
 다른 러너는 끝날 때 `~/.local/state/kotonoha-runners/<name>.json` 에 `{name, finishedAt, exitCode}` 를 쓴다
@@ -40,7 +60,8 @@ set -a; . .github/scripts/daily-digest/.env; set +a
 .github/scripts/daily-digest/run.sh                      # 실제 발송
 ```
 
-마지막 수집 결과는 `~/.local/state/kotonoha-daily-digest/last-merged.json`, 로그는 같은 곳의 `logs/`.
+마지막 수집 결과는 `~/.local/state/kotonoha-daily-digest/last-merged.json`, 신기능 원장은 `features.json`, 로그는 같은 곳의 `logs/`.
+`--no-llm` 이면 새 단위를 분류하지 않고 원장에 있는 것만 잰다.
 
 ## systemd (user)
 

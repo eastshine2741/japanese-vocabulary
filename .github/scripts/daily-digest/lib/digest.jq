@@ -1,7 +1,7 @@
 # Signals and Discord rendering for run.sh. Input is the merged collector JSON.
 
 def section_labels: {business: "지표", funnel: "골든패스", infra: "인프라", sentry: "Sentry",
-                     github: "GitHub", runners: "러너"};
+                     github: "GitHub", runners: "러너", features: "신기능"};
 
 def pct: . * 100 | round | tostring + "%";
 def signed: if . > 0 then "+\(.)" elif . < 0 then "-\(-.)" else "0" end;
@@ -50,11 +50,22 @@ def funnel_view:
       small: (($y[.steps[0][0]] // 0) < $t.funnel_min_base)
     });
 
+def ratio: if .den > 0 then .num / .den else 0 end;
+def days_between($a; $b): (($b | strptime("%Y-%m-%d") | mktime) - ($a | strptime("%Y-%m-%d") | mktime)) / 86400 | floor;
+
+# A feature whose own ratio fell after it shipped. Needs a real before (the event existed), enough
+# users on both sides, and two full days after, or one quiet day reads as a regression.
+def feature_drop($t):
+  .measured as $m
+  | $m != null and $m.error == null and $m.after.days >= 2 and $m.before.num > 0
+    and $m.before.den >= $t.feature_min_den and $m.after.den >= $t.feature_min_den
+    and ($m.after | ratio) < ($m.before | ratio) * (1 - $t.feature_drop);
+
 def signals:
   .thresholds as $t
   | .date as $root_date
   | [
-      (["business", "funnel", "infra", "sentry", "github", "runners"][] as $k
+      (["business", "funnel", "infra", "sentry", "github", "runners", "features"][] as $k
         | select(.[$k].error != null)
         | sig("collect.\($k)"; "warn"; $k; "\(section_labels[$k]) 수집 실패: \(.[$k].error | short(80))")),
 
@@ -102,6 +113,13 @@ def signals:
       (select(.github.error == null) | .github
         | (.voc_new[] | sig("voc.\(.number)"; "warn"; "github"; "VOC #\(.number) \(.title | short(60))")),
           (select(.plan_ready | length > 0) | sig("github.plan_ready"; "info"; "github"; "계획 승인 대기 이슈 \(.plan_ready | length)건"))),
+
+      (select(.features.error == null) | .today as $today | .features.features[]
+        | (select(feature_drop($t))
+           | sig("feature.\(.sha)"; "warn"; "features";
+                 "\(.title) 배포 후 \(.label) \(.measured.before | ratio | pct) → \(.measured.after | ratio | pct)")),
+          (select(.shipped == null and (days_between(.merged_at; $today) >= 3))
+           | sig("feature.unshipped.\(.sha)"; "info"; "features"; "\(.title) 머지 \(days_between(.merged_at; $today))일째 배포 안 됨"))),
 
       (select(.runners.error == null) | .runners.runners[] | select(.status != "ok")
         | sig("runner.\(.name)"; "warn"; "runners";
@@ -207,8 +225,36 @@ def render_runners:
        end)
     ] | join("\n"));
 
+def render_features:
+  .thresholds as $t | .features.unclassified as $unclassified
+  | "### 신기능 (최근 \($t.feature_track_days)일 배포)\n"
+  + if .features.error then "수집 실패"
+    elif (.features.features | length) == 0 then "없음"
+      + (if .features.unclassified > 0 then " (분류 안 된 변경 \(.features.unclassified)건)" else "" end)
+    else .today as $today
+    # Unmeasured features would repeat the same hint every day for two weeks; the hint shows on the
+    # two days after shipping, later they fold into one line of titles.
+    | (.features.features | map(select(.shipped != null and .measured == null))) as $unmeasured
+    | ($unmeasured | map(select(days_between(.shipped; $today) > 2))) as $folded
+    | [(.features.features[] | select(. as $f | $folded | index($f) | not))
+      | "**\(.title)**  " + (if .shipped then "\(.shipped | mmdd) \(.via) 배포" else "⚠️ 머지 \(.merged_at | mmdd), 아직 배포 안 됨" end)
+        + "\n  " + (
+          if .shipped == null then (.label // "측정 없음")
+          elif .measured == null then "측정 없음" + (if .no_metric_hint then ": \(.no_metric_hint)" else "" end)
+          elif .measured.error then "\(.label)  조회 실패"
+          elif .measured.after.days == 0 then "\(.label)  배포 다음 날부터 집계"
+          elif .measured.before.num == 0 then "\(.label)  배포 후 \(.measured.after | ratio | pct) (\(.measured.after.days)일, 새 이벤트)"
+          else "\(.label)  배포 전 \(.measured.before | ratio | pct) → 배포 후 \(.measured.after | ratio | pct) (\(.measured.after.days)일)"
+            + (if .measured.after.den < $t.feature_min_den then ", 표본 적음" else "" end)
+          end)]
+      + (if ($folded | length) > 0 then ["측정 없음 \($folded | length)건  " + ($folded | map(.title) | join(", "))] else [] end)
+      | join("\n")
+      + (if $unclassified > 0 then "\n분류 안 된 변경 \($unclassified)건" else "" end)
+    end;
+
 def render($picks):
-  [render_highlights($picks), render_business, render_funnel, render_infra, render_sentry, render_reports, render_runners];
+  [render_highlights($picks), render_business, render_funnel, render_features, render_infra, render_sentry,
+   render_reports, render_runners];
 
 def join_upto($n; $sep):
   reduce .[] as $s ([];

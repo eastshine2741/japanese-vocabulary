@@ -23,10 +23,25 @@ ANALYSIS_FEEDBACK_LEDGER="${ANALYSIS_FEEDBACK_LEDGER:-$STATE_ROOT/kotonoha-analy
 KUBE_CONTEXT="${DAILY_DIGEST_KUBE_CONTEXT:-kotonoha-prod}"
 BQ_EVENTS_DATASET="japanese-vocabulary-490916:analytics_539684755"
 SENTRY_BASE="${SENTRY_API_BASE:-https://sentry.io/api/0}"
-RANK_MODEL="${DAILY_DIGEST_RANK_MODEL:-sonnet}"
+MODEL="${DAILY_DIGEST_MODEL:-sonnet}"
 CLAUDE_MAX_BUDGET_USD="${DAILY_DIGEST_MAX_BUDGET_USD:-1}"
+CLAUDE_TIMEOUT="${DAILY_DIGEST_CLAUDE_TIMEOUT:-5m}"
 # name:max-age-hours. A runner whose record is older than that, or missing, is reported as stopped.
 EXPECTED_RUNNERS="${DAILY_DIGEST_EXPECTED_RUNNERS:-analysis-feedback:3 issue-resolver:2}"
+
+# New features: each first-parent commit of MAIN_REF is a unit. The model decides once per unit
+# whether it is a user-facing feature and which GA ratio shows it working; the answer is kept in
+# FEATURE_LEDGER so a unit is never asked about twice.
+MAIN_REF="${DAILY_DIGEST_MAIN_REF:-main}"
+FEATURE_LEDGER="$STATE_DIR/features.json"
+FEATURE_LOOKBACK_DAYS="${DAILY_DIGEST_FEATURE_LOOKBACK_DAYS:-21}"
+FEATURE_TRACK_DAYS="${DAILY_DIGEST_FEATURE_TRACK_DAYS:-14}"
+FEATURE_MAX_CLASSIFY="${DAILY_DIGEST_FEATURE_MAX_CLASSIFY:-30}"
+FEATURE_CLASSIFY_BATCH=8
+# Only these reach users. Docs, infra, admin and scripts are never asked about.
+APP_PATH_REGEX='^app-rn/'
+SERVER_PATH_REGEX='^backend/(api|worker|domains|integrations)/'
+GA_AUTO_EVENTS="screen_view first_open session_start"
 
 DRY_RUN=0
 USE_LLM=1
@@ -218,34 +233,211 @@ collect_runners() {
       }'
 }
 
-claude_rank() {
-  local merged="$1" prompt out
-  prompt="$WORK_DIR/rank-prompt.md"; out="$WORK_DIR/rank-out.json"
+# Ships of the app, oldest first, as "epoch ref": the successful prod OTA workflow runs and the
+# Android production release runs. The run time, not the tag's commit date: lightweight tags carry
+# the commit date, which can be days before the tag was pushed.
+app_releases() {
+  local eas android
+  eas="$(gh run list -R "$GH_REPO" --workflow eas-update.yml --limit 200 --json headBranch,createdAt,conclusion \
+    --jq '.[] | select(.conclusion == "success" and (.headBranch | test("^js-v.*\\.prod$"))) | "\(.createdAt | fromdate) \(.headBranch)"')" || return 1
+  android="$(gh run list -R "$GH_REPO" --workflow cd-android.yml --limit 100 --json headBranch,createdAt,conclusion \
+    --jq '.[] | select(.conclusion == "success" and (.headBranch | test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))) | "\(.createdAt | fromdate) \(.headBranch)"')" || return 1
+  printf '%s\n%s\n' "$eas" "$android" | grep -v '^$' | sort -n || true
+}
+
+# Server deploys, oldest first, as "epoch sha": api/worker ReplicaSets, whose image deploy.sh tags
+# with the short sha. Only as far back as the Deployment's revision history.
+server_deploys() {
+  local rs
+  rs="$(kubectl --context "$KUBE_CONTEXT" -n kotonoha get rs -o json)" || return 1
+  jq -r '.items[] | select(.metadata.name | test("^(api|worker)-"))
+    | "\(.metadata.creationTimestamp | fromdate) \(.spec.template.spec.containers[0].image | split(":") | last)"' <<<"$rs" \
+    | sort -n
+}
+
+# First line of "epoch ref" whose ref contains $sha. Prints "epoch" or "oldest:epoch" when that is
+# the oldest line kept, since the commit may have shipped earlier than anything still on record.
+first_containing() {
+  local sha="$1" lines="$2" at ref first=1
+  while read -r at ref; do
+    [[ -n "$ref" ]] || continue
+    if git -C "$REPO_DIR" merge-base --is-ancestor "$sha" "$ref" 2>/dev/null; then
+      [[ $first == 1 ]] && printf 'oldest:%s\n' "$at" || printf '%s\n' "$at"
+      return 0
+    fi
+    first=0
+  done <<<"$lines"
+}
+
+# A unit reaches users when every side it touches has shipped. A side whose first match is the oldest
+# record kept has an unknown ship time; the unit is marked and left out of measurement.
+feature_units() {
+  local releases deploys sha merged_at subject paths app server app_at server_at unknown commits
+  releases="$(app_releases)" || { echo "gh run list failed" >&2; return 1; }
+  deploys="$(server_deploys)" || { echo "kubectl get rs failed" >&2; return 1; }
+  while read -r sha merged_at subject; do
+    git -C "$REPO_DIR" rev-parse -q --verify "$sha^1" >/dev/null || continue
+    paths="$(git -C "$REPO_DIR" diff --name-only "$sha^1" "$sha")"
+    app=false; server=false; unknown=false; app_at=null; server_at=null
+    grep -qE "$APP_PATH_REGEX" <<<"$paths" && app=true
+    grep -qE "$SERVER_PATH_REGEX" <<<"$paths" && server=true
+    [[ $app == true || $server == true ]] || continue
+    if [[ $app == true ]]; then
+      app_at="$(first_containing "$sha" "$releases")"
+      [[ $app_at == oldest:* ]] && unknown=true
+      app_at="${app_at#oldest:}"; app_at="${app_at:-null}"
+    fi
+    if [[ $server == true ]]; then
+      server_at="$(first_containing "$sha" "$deploys")"
+      [[ $server_at == oldest:* ]] && unknown=true
+      server_at="${server_at#oldest:}"; server_at="${server_at:-null}"
+    fi
+    commits="[]"
+    if git -C "$REPO_DIR" rev-parse -q --verify "$sha^2" >/dev/null; then
+      commits="$(git -C "$REPO_DIR" log -n 15 --format=%s "$sha^1..$sha^2" | jq -R . | jq -s .)"
+    fi
+    jq -nc --arg sha "$sha" --arg merged_at "$merged_at" --arg subject "$subject" --argjson commits "$commits" \
+      --argjson paths "$(cut -d/ -f1-4 <<<"$paths" | sort -u | jq -R . | jq -s '.[:20]')" \
+      --argjson app "$app" --argjson server "$server" --argjson unknown "$unknown" \
+      --argjson app_at "$app_at" --argjson server_at "$server_at" '
+      {sha: $sha, merged_at: $merged_at, subject: $subject, commits: $commits, paths: $paths, app: $app, server: $server,
+       ship_unknown: $unknown,
+       shipped_at: (if ($app and $app_at == null) or ($server and $server_at == null) then null
+                    else [$app_at, $server_at] | map(select(. != null)) | max end)}'
+  done < <(git -C "$REPO_DIR" log "$MAIN_REF" --first-parent --since="$FEATURE_LOOKBACK_DAYS days ago" --format='%H %cs %s') \
+    | jq -s .
+}
+
+# Classifies one batch. The model gets commit subjects, changed paths and analytics.ts as text and no
+# tools: commit text partly comes from user reports via other runners, and the repo holds .env files.
+classify_features() {
+  local batch_file="$1" prompt="$WORK_DIR/features-prompt.md" result analytics allowed
+  analytics="$(git -C "$REPO_DIR" show "$MAIN_REF:app-rn/src/services/analytics.ts")" || return 1
   {
-    cat "$SCRIPT_DIR/prompts/rank.md"
-    printf '\n## 신호\n```json\n%s\n```\n' "$(jq '.signals' "$merged")"
-    printf '\n## 원자료\n```json\n%s\n```\n' "$(jq 'del(.signals)' "$merged")"
+    cat "$SCRIPT_DIR/prompts/features.md"
+    printf '\n## app-rn/src/services/analytics.ts\n```ts\n%s\n```\n' "$analytics"
+    printf '\n## 변경 단위\n```json\n%s\n```\n' "$(jq '[.[] | {sha, merged_at, subject, commits, paths}]' "$batch_file")"
   } > "$prompt"
-  local passthrough=() var
+  result="$(claude_pass "$prompt" "$SCRIPT_DIR/schemas/features.schema.json")" || return 1
+  allowed="$( { grep -oE "name: '[a-z_]+'" <<<"$analytics" | cut -d"'" -f2; tr ' ' '\n' <<<"$GA_AUTO_EVENTS"; } | jq -R . | jq -s .)"
+  # A metric the app can never satisfy would read a flat 0 for two weeks; drop it and say why.
+  jq --slurpfile units "$batch_file" --argjson allowed "$allowed" --arg at "$(date -Iseconds)" '
+    def bad_side: select(. != null) | select((.event as $e | $allowed | index($e) | not) or (.param != null and .value == null));
+    [.units[] | select(.sha as $s | $units[0] | any(.sha == $s))
+     | ([.metric.numerator?, .metric.denominator?] | map(bad_side) | map(.event)) as $bad
+     | if ($bad | length) > 0
+       then .metric = null | .no_metric_hint = "모델이 고른 지표(\($bad | join(", ")))를 이벤트에서 셀 수 없음"
+       else . end
+     | {(.sha): (. + {classifiedAt: $at})}] | add // {}' <<<"$result"
+}
+
+feature_metric() {
+  local metric="$1" ship_date="$2" rows
+  rows="$(bq query --quiet --use_legacy_sql=false --format=json \
+    --parameter="start::$(date -d "$ship_date - 7 days" +%Y%m%d)" --parameter="end::$(date -d "$TARGET_DATE" +%Y%m%d)" \
+    --parameter="excl_start::$(date -d "$TARGET_DATE - 30 days" +%Y%m%d)" --parameter="today::$(date +%Y%m%d)" \
+    --parameter="num_event::$(jq -r '.numerator.event' <<<"$metric")" \
+    --parameter="num_param::$(jq -r '.numerator.param // ""' <<<"$metric")" \
+    --parameter="num_value::$(jq -r '.numerator.value // ""' <<<"$metric")" \
+    --parameter="den_event::$(jq -r '.denominator.event // ""' <<<"$metric")" \
+    --parameter="den_param::$(jq -r '.denominator.param // ""' <<<"$metric")" \
+    --parameter="den_value::$(jq -r '.denominator.value // ""' <<<"$metric")" \
+    < "$SCRIPT_DIR/queries/feature-metric.sql")" || return 1
+  jq -e 'type == "array"' <<<"$rows" >/dev/null 2>&1 || return 1
+  # Ship day itself is split between before and after, so it counts as neither.
+  jq --arg ship "$(date -d "$ship_date" +%Y%m%d)" --arg end "$(date -d "$TARGET_DATE" +%Y%m%d)" '
+    map(.num |= tonumber | .den |= tonumber)
+    | def window(f): map(select(f)) | {num: (map(.num) | add // 0), den: (map(.den) | add // 0), days: length};
+    {before: window(.date < $ship), after: window(.date > $ship and .date <= $end)}' <<<"$rows"
+}
+
+# Large JSON goes through files, not arguments: one argument is capped at 128 KB.
+collect_features() {
+  local units="$WORK_DIR/feature-units.json" new="$WORK_DIR/feature-new.json" batch="$WORK_DIR/feature-batch.json"
+  local out="$WORK_DIR/feature-out.jsonl" classified i n sha unit entry ship_date measured track_since
+  [[ -f "$FEATURE_LEDGER" ]] || printf '{"version":1,"units":{}}\n' > "$FEATURE_LEDGER"
+  feature_units > "$units" || return 1
+  jq --slurpfile ledger "$FEATURE_LEDGER" --argjson max "$FEATURE_MAX_CLASSIFY" \
+    '[.[] | select(.sha as $s | $ledger[0].units | has($s) | not)] | .[:$max]' "$units" > "$new"
+  n="$(jq length "$new")"
+  if [[ $USE_LLM == 1 ]]; then
+    # Small batches saved one by one: a batch that fails or runs over budget costs only itself.
+    for ((i = 0; i < n; i += FEATURE_CLASSIFY_BATCH)); do
+      jq --argjson i "$i" --argjson b "$FEATURE_CLASSIFY_BATCH" '.[$i:$i + $b]' "$new" > "$batch"
+      if classified="$(classify_features "$batch")"; then
+        jq --argjson c "$classified" '.units += $c' "$FEATURE_LEDGER" > "$FEATURE_LEDGER.tmp" \
+          && mv "$FEATURE_LEDGER.tmp" "$FEATURE_LEDGER"
+      else
+        echo "feature classification failed for one batch; retrying next run" >&2
+      fi
+    done
+  fi
+  # Forget units that fell out of the lookback so the ledger stays the size of three weeks.
+  jq --slurpfile units "$units" '.units |= with_entries(select(.key as $k | $units[0] | any(.sha == $k)))' \
+    "$FEATURE_LEDGER" > "$FEATURE_LEDGER.tmp" && mv "$FEATURE_LEDGER.tmp" "$FEATURE_LEDGER"
+
+  track_since=$(( $(date +%s) - FEATURE_TRACK_DAYS * 86400 ))
+  : > "$out"
+  while read -r sha; do
+    unit="$(jq -c --arg s "$sha" '.[] | select(.sha == $s)' "$units")"
+    entry="$(jq -c --arg s "$sha" '.units[$s]' "$FEATURE_LEDGER")"
+    ship_date="$(jq -r '.shipped_at // empty' <<<"$unit")"
+    [[ -z "$ship_date" ]] || ship_date="$(date -d "@$ship_date" +%F)"
+    measured=null
+    if [[ -n "$ship_date" && "$(jq '.metric != null' <<<"$entry")" == true ]]; then
+      measured="$(feature_metric "$(jq -c '.metric' <<<"$entry")" "$ship_date")" || measured='{"error":"query failed"}'
+    fi
+    jq -nc --argjson unit "$unit" --argjson entry "$entry" --argjson measured "$measured" --arg ship "$ship_date" '
+      {sha: $unit.sha[:8], title: $entry.title, merged_at: $unit.merged_at,
+       shipped: (if $ship == "" then null else $ship end),
+       via: ([if $unit.app then "앱" else empty end, if $unit.server then "서버" else empty end] | join("+")),
+       label: $entry.metric.label, measured: $measured, no_metric_hint: $entry.no_metric_hint}' >> "$out"
+  done < <(jq -r --slurpfile ledger "$FEATURE_LEDGER" --argjson since "$track_since" '
+    .[] | select($ledger[0].units[.sha].feature == true and (.ship_unknown | not)
+                 and (.shipped_at == null or .shipped_at >= $since)) | .sha' "$units")
+  jq -s --slurpfile units "$units" --slurpfile ledger "$FEATURE_LEDGER" '
+    {features: ., unclassified: ($units[0] | map(select(.sha as $s | $ledger[0].units | has($s) | not)) | length)}' "$out"
+}
+
+# Runs one headless pass and prints its structured output.
+#   claude_pass <prompt-file> <schema-file>
+# Scrubbed environment and no tools: the model sees only the prompt, no credentials and no files.
+# HOME stays so the CLI finds its own auth. A hung pass must not hold the morning digest.
+claude_pass() {
+  local prompt="$1" schema="$2" out passthrough=() var
+  out="$(mktemp -p "$WORK_DIR")"
   for var in $(compgen -e | grep -E '^(ANTHROPIC_|CLAUDE_)' || true); do
     passthrough+=("$var=${!var}")
   done
-  # Scrubbed environment: the model sees the collected JSON, no credentials, no tools.
   env -i HOME="$HOME" PATH="$PATH" TERM=dumb LANG="${LANG:-C.UTF-8}" "${passthrough[@]}" \
-    claude -p \
-      --model "$RANK_MODEL" \
+    timeout "$CLAUDE_TIMEOUT" claude -p \
+      --model "$MODEL" \
       --output-format json \
-      --json-schema "$(cat "$SCRIPT_DIR/schemas/rank.schema.json")" \
+      --json-schema "$(cat "$schema")" \
       --tools "" \
       --strict-mcp-config \
       --no-session-persistence \
       --max-budget-usd "$CLAUDE_MAX_BUDGET_USD" \
       < "$prompt" > "$out" 2>>"$LOG_FILE" || return 1
-  jq -e '.is_error == false and (.structured_output.picks | type == "array")' "$out" >/dev/null || return 1
+  jq -e '.is_error == false and (.structured_output | type == "object")' "$out" >/dev/null || {
+    log "WARN" "claude returned no structured output: $(jq -c 'del(.usage,.modelUsage)' "$out" 2>/dev/null | head -c 300)"
+    return 1
+  }
+  jq -c '.structured_output' "$out"
+}
+
+claude_rank() {
+  local merged="$1" prompt="$WORK_DIR/rank-prompt.md" result
+  {
+    cat "$SCRIPT_DIR/prompts/rank.md"
+    printf '\n## 신호\n```json\n%s\n```\n' "$(jq '.signals' "$merged")"
+    printf '\n## 원자료\n```json\n%s\n```\n' "$(jq 'del(.signals)' "$merged")"
+  } > "$prompt"
+  result="$(claude_pass "$prompt" "$SCRIPT_DIR/schemas/rank.schema.json")" || return 1
   # Only ids that exist survive, once each; the model cannot add a signal of its own.
-  jq --slurpfile m "$merged" '[.structured_output.picks[]
+  jq --slurpfile m "$merged" '[.picks[]
     | select(.id as $id | $m[0].signals | any(.id == $id))]
-    | reduce .[] as $p ([]; if any(.[]; .id == $p.id) then . else . + [$p] end) | .[:3]' "$out"
+    | reduce .[] as $p ([]; if any(.[]; .id == $p.id) then . else . + [$p] end) | .[:3]' <<<"$result"
 }
 
 discord_post() {
@@ -294,6 +486,7 @@ main() {
   collect sentry collect_sentry
   collect github collect_github
   collect runners collect_runners
+  collect features collect_features
 
   local merged="$WORK_DIR/merged.json"
   jq -n \
@@ -305,12 +498,16 @@ main() {
       funnel_drop_pp: (env.DAILY_DIGEST_FUNNEL_DROP_PP // "15" | tonumber),
       disk_warn: 0.8, disk_crit: 0.9, mem_warn: 0.9,
       server_error_warn: 10, analysis_fail_warn: 5, pending_age_warn_sec: 1800,
-      report_age_warn_days: 3}')" \
+      report_age_warn_days: 3,
+      feature_min_den: (env.DAILY_DIGEST_FEATURE_MIN_DEN // "20" | tonumber),
+      feature_drop: (env.DAILY_DIGEST_FEATURE_DROP // "0.3" | tonumber),
+      feature_track_days: (env.DAILY_DIGEST_FEATURE_TRACK_DAYS // "14" | tonumber)}')" \
     --slurpfile business "$WORK_DIR/business.json" --slurpfile funnel "$WORK_DIR/funnel.json" \
     --slurpfile infra "$WORK_DIR/infra.json" --slurpfile sentry "$WORK_DIR/sentry.json" \
     --slurpfile github "$WORK_DIR/github.json" --slurpfile runners "$WORK_DIR/runners.json" \
+    --slurpfile features "$WORK_DIR/features.json" \
     '{date: $date, today: $today, thresholds: $thresholds, business: $business[0], funnel: $funnel[0], infra: $infra[0],
-      sentry: $sentry[0], github: $github[0], runners: $runners[0]}' \
+      sentry: $sentry[0], github: $github[0], runners: $runners[0], features: $features[0]}' \
     | jq -L "$LIB_DIR" 'include "digest"; . + {signals: signals}' > "$merged"
   cp "$merged" "$STATE_DIR/last-merged.json"
 
