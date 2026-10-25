@@ -282,7 +282,7 @@ class YoutubeMvSearchService(
             title = title,
             channelId = channelId,
             channelTitle = channelTitle,
-            score = scoreMvCandidate(title, channelTitle, artist),
+            score = scoreMvCandidate(title, channelTitle, artist, ownChannel),
             isLive = isLive,
             // A publisher channel hosts many artists and same-titled swaps, so its upload must name the
             // artist; an artist's own channel rarely repeats its name in the title.
@@ -293,11 +293,15 @@ class YoutubeMvSearchService(
                 KNOWN_PUBLISHER_CHANNEL_RE.containsMatchIn(channelTitle) ||
                 OFFICIAL_CHANNEL_RE.containsMatchIn(channelTitle) ||
                 OFFICIAL_TITLE_RE.containsMatchIn(title),
-            badTitle = BAD_TITLE_RE.containsMatchIn(titleWithoutSong),
+            badTitle = isBadTitle(titleWithoutSong, ownChannel),
             isOfficialLyricVideo = ownChannel && !isLive && LYRIC_VIDEO_RE.containsMatchIn(title) &&
-                !BAD_TITLE_RE.containsMatchIn(titleWithoutSong.replace(LYRIC_VIDEO_RE, "")),
+                !isBadTitle(titleWithoutSong.replace(LYRIC_VIDEO_RE, ""), ownChannel),
         )
     }
+
+    // On the artist's own channel a cover is the artist's own take, which is the song we have (an utaite such as まふまふ).
+    private fun isBadTitle(title: String, ownChannel: Boolean): Boolean =
+        BAD_TITLE_RE.containsMatchIn(title) || (!ownChannel && COVER_TITLE_RE.containsMatchIn(title))
 
     private fun withoutSongTitle(videoTitle: String, songTitle: String): String =
         (listOf(songTitle.replace(TRAILING_DESCRIPTOR_RE, "")) + songTitle.split(TITLE_SEPARATOR_RE))
@@ -426,14 +430,14 @@ class YoutubeMvSearchService(
             .distinct()
     }
 
-    private fun scoreMvCandidate(title: String, channelTitle: String, artist: String): Int {
+    private fun scoreMvCandidate(title: String, channelTitle: String, artist: String, ownChannel: Boolean): Int {
         val normalizedTitle = normalizeForMatch(title)
         val normalizedChannel = normalizeForMatch(channelTitle)
         val normalizedArtist = normalizeForMatch(ArtistCredit.withoutFeaturing(artist))
 
         var score = 0
         if (OFFICIAL_TITLE_RE.containsMatchIn(title)) score += 5
-        if (BAD_TITLE_RE.containsMatchIn(title)) score -= 10
+        if (isBadTitle(title, ownChannel)) score -= 10
         if (LIVE_TITLE_RE.containsMatchIn(title)) score -= LIVE_TITLE_PENALTY
         if (HANGUL_RE.containsMatchIn(channelTitle) && !HANGUL_RE.containsMatchIn(artist)) score -= 10
         if (normalizedArtist.isNotBlank() && normalizedChannel.contains(normalizedArtist)) score += 3
@@ -531,7 +535,7 @@ class YoutubeMvSearchService(
         // Not the song as recorded (other performer, arrangement, no vocals, partial). A cut-down
         // upload can pass the duration bounds, so the title must catch it.
         private val BAD_TITLE_RE = Regex(
-            "弾いてみた|歌ってみた|cover|covered by|ピアノ|ギター|drum|アレンジ|off vocal|ニコカラ|字幕|歌詞|한글자막|中文字幕|ローマ字|lyrics|lyric video|the first take|game size|アナザーボーカル|AMV|MAD|非公式|unofficial|エイプリルフール|april fool" +
+            "弾いてみた|ピアノ|ギター|drum|アレンジ|off vocal|ニコカラ|字幕|歌詞|한글자막|中文字幕|ローマ字|lyrics|lyric video|the first take|game size|アナザーボーカル|AMV|MAD|非公式|unofficial|エイプリルフール|april fool" +
                 "|カラオケ|karaoke|instrumental|short ver|ショートver|ショートバージョン|tv size|tvサイズ" +
                 "|offvocal|off-vocal|[+-]\\d+\\s*key|原曲歌手|ドラム|演奏してみた|叩いてみた|踊ってみた|dance practice|振付" +
                 "|trailer|teaser|予告|react|切り抜き|譜面|sonolus|d4dj|グルミク|mashup|』×『|」×「|sped up" +
@@ -555,6 +559,7 @@ class YoutubeMvSearchService(
                 "|(?<![a-z0-9])@",
             RegexOption.IGNORE_CASE
         )
+        private val COVER_TITLE_RE = Regex("歌ってみた|cover", RegexOption.IGNORE_CASE)
         private val LYRIC_VIDEO_RE = Regex("lyric video", RegexOption.IGNORE_CASE)
         private val HANGUL_RE = Regex("""[\uAC00-\uD7AF]""")
         // Label and IP channels that upload many artists' MVs; an upload must still name the artist.

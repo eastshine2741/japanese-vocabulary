@@ -219,6 +219,18 @@ class YoutubeMvSearchServiceTest {
     }
 
     @Test
+    fun `search keeps an utaite's own cover upload`() {
+        every { artistChannelCache.get("まふまふ") } returns null
+        stubSearch(
+            searchItem("own-id", "$TITLE 歌ってみた【まふまふ】", "まふまふちゃんねる"),
+            searchItem("other-id", "$TITLE 歌ってみた", "歌い手"),
+        )
+        stubDurations("own-id" to "PT4M", "other-id" to "PT4M")
+
+        assertThat(service.searchMvUrl(TITLE, "まふまふ", TRACK_SECONDS)).isEqualTo("https://www.youtube.com/watch?v=own-id")
+    }
+
+    @Test
     fun `search rejects a same-titled song by another artist`() {
         // The official marker alone must not let another artist's same-titled MV win or be cached.
         every { artistChannelCache.get("Vaundy") } returns null
