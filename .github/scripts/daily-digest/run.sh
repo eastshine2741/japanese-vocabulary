@@ -446,15 +446,16 @@ discord_post() {
 }
 
 # A forum channel webhook needs thread_name on the first post and opens one post per digest; the
-# rest of the chunks go into that post. A text channel webhook just gets the chunks in order.
+# rest of the messages go into that post. A text channel webhook just gets them in order.
+# Each message is a list of embeds; links inside embeds never unfurl, so no SUPPRESS_EMBEDS flag
+# (it would hide the embeds themselves).
 send() {
-  local chunks="$1" title="$2" count i body thread_id="" resp
-  count="$(jq length <<<"$chunks")"
+  local messages="$1" title="$2" count i body thread_id="" resp
+  count="$(jq length <<<"$messages")"
   for ((i = 0; i < count; i++)); do
-    # flags 4 = SUPPRESS_EMBEDS, so Sentry/GitHub links do not unfurl into cards.
     body="$(jq -c --argjson i "$i" --arg title "$title" --arg forum "${DISCORD_DIGEST_FORUM:-0}" '
-      {content: .[$i], flags: 4, allowed_mentions: {parse: []}}
-      + (if $i == 0 and $forum == "1" then {thread_name: $title} else {} end)' <<<"$chunks")"
+      {embeds: .[$i], allowed_mentions: {parse: []}}
+      + (if $i == 0 and $forum == "1" then {thread_name: $title} else {} end)' <<<"$messages")"
     if [[ -n "$thread_id" ]]; then
       discord_post "$body" "&thread_id=$thread_id" >/dev/null
     else
@@ -468,8 +469,8 @@ notify_failure() {
   local code=$?
   [[ $code == 0 || $DRY_RUN == 1 || -z "${DISCORD_DIGEST_WEBHOOK_URL:-}" ]] && return
   local body
-  body="$(jq -nc --arg c "데일리 피드 생성 실패 (exit $code). 로그: $LOG_FILE" \
-    --arg t "$(date +%m/%d) 피드 실패" --arg forum "${DISCORD_DIGEST_FORUM:-0}" \
+  body="$(jq -nc --arg c "아침 피드를 만들다가 실패했어요 (exit $code). 로그: \`$LOG_FILE\`" \
+    --arg t "$(date +%-m월\ %-d일) 아침 피드 실패" --arg forum "${DISCORD_DIGEST_FORUM:-0}" \
     '{content: $c} + (if $forum == "1" then {thread_name: $t} else {} end)')"
   discord_post "$body" "" >/dev/null || true
 }
@@ -517,16 +518,16 @@ main() {
     picks="$(claude_rank "$merged")" || { log "WARN" "rank pass failed, falling back to severity order"; picks='null'; }
   fi
 
-  local chunks title
-  chunks="$(jq -L "$LIB_DIR" --argjson picks "$picks" 'include "digest"; render($picks) | pack(1900)' "$merged")"
+  local messages title
+  messages="$(jq -L "$LIB_DIR" --argjson picks "$picks" 'include "digest"; render($picks) | pack' "$merged")"
   title="$(jq -r -L "$LIB_DIR" 'include "digest"; title' "$merged")"
 
   if [[ $DRY_RUN == 1 ]]; then
     printf '# %s\n\n' "$title"
-    jq -r '.[] | ., "\n----- (message break) -----\n"' <<<"$chunks"
+    jq -r '.[] | (.[] | "## \(.title)\n\(.description)\n"), "----- (message break) -----\n"' <<<"$messages"
   else
-    send "$chunks" "$title"
-    log "INFO" "posted $(jq length <<<"$chunks") message(s)"
+    send "$messages" "$title"
+    log "INFO" "posted $(jq length <<<"$messages") message(s)"
   fi
 }
 
