@@ -217,6 +217,21 @@ class StudyStatsControllerTest : ApiBaseIntegrationTest() {
         }
 
         @Test
+        fun `longestStreak counts a run that spans several read chunks`() {
+            val me = newUser()
+            val today = kstClock.todayStudyDate()
+            seedDay(me, today)
+            (2..251).forEach { seedDay(me, today.minusDays(it.toLong())) }
+
+            val body = mockMvc.get("/api/study-stats/profile") {
+                header("Authorization", bearer(me))
+            }.andReturn().response.contentAsString
+
+            val resp = readBody<ProfileStatsResponse>(body)
+            assertThat(resp.longestStreak).isEqualTo(250)
+        }
+
+        @Test
         fun `freeze days keep runs unbroken but are excluded from every count`() {
             val me = newUser()
             val today = kstClock.todayStudyDate()

@@ -41,8 +41,8 @@ class StudyStatsService(
     fun hasStudiedBefore(userId: Long): Boolean =
         repo.existsByUserIdAndDateKstLessThan(userId, kstClock.todayStudyDate())
 
-    @Transactional(readOnly = true)
-    fun longestStreak(userId: Long): Int = streakCalculator.longestStreak(userId)
+    fun longestStreak(userId: Long): Int =
+        streakCalculator.longestStreak(userId, kstClock.todayStudyDate())
 
     @Transactional(readOnly = true)
     fun totalStudyDays(userId: Long): Int = streakCalculator.totalStudyDays(userId)

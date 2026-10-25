@@ -16,6 +16,7 @@ import com.japanese.vocabulary.admin.repository.AdminUserRepository
 import com.japanese.vocabulary.admin.repository.AdminWordRepository
 import com.japanese.vocabulary.deck.entity.DeckEntity
 import com.japanese.vocabulary.deck.repository.DeckRepository
+import com.japanese.vocabulary.deck.service.DeckStatsReader
 import com.japanese.vocabulary.flashcard.entity.FlashcardEntity
 import com.japanese.vocabulary.flashcard.service.LongTermThreshold
 import com.japanese.vocabulary.song.entity.SongEntity
@@ -34,7 +35,7 @@ import java.time.ZoneId
 
 /**
  * 유저가 담은 단어·단어장·복습 상태를 읽기만 한다.
- * 통계는 도메인 [DeckRepository] 의 집계 쿼리를 그대로 써서 앱에 보이는 숫자와 맞춘다.
+ * 통계는 도메인 [DeckRepository] 집계 쿼리와 [DeckStatsReader] 를 그대로 써서 앱에 보이는 숫자와 맞춘다.
  */
 @Service
 @Transactional(readOnly = true)
@@ -45,6 +46,7 @@ class AdminUserReadService(
     private val flashcardRepository: AdminFlashcardRepository,
     private val songRepository: AdminSongRepository,
     private val deckStatsRepository: DeckRepository,
+    private val deckStatsReader: DeckStatsReader,
     private val clock: Clock,
     private val longTermThreshold: LongTermThreshold,
 ) {
@@ -108,7 +110,7 @@ class AdminUserReadService(
     private fun decksOf(userId: Long, now: Instant): List<AdminUserDeckResponse> {
         val decks = deckRepository.findByUserIdOrderByIdDesc(userId)
         if (decks.isEmpty()) return emptyList()
-        val stats = deckStatsRepository.findDeckStats(userId, decks.mapNotNull { it.id }, now, longTermThreshold.days()).associateBy { it.getDeckId() }
+        val stats = deckStatsReader.read(userId, decks.mapNotNull { it.id }, now, longTermThreshold.days())
         val songs = songsById(decks.mapNotNull { it.songId }.toSet())
         return decks.map { deck ->
             val stat = stats[deck.id]
@@ -121,11 +123,11 @@ class AdminUserReadService(
                 songId = deck.songId,
                 songTitle = song?.title,
                 songArtist = song?.artist,
-                wordCount = stat?.getWordCount()?.toLong() ?: 0,
-                dueCount = stat?.getDueCount()?.toLong() ?: 0,
-                newCount = stat?.getNewWordCount()?.toLong() ?: 0,
-                studyingCount = stat?.getStudyingCount()?.toLong() ?: 0,
-                masteredCount = stat?.getMasteredCount()?.toLong() ?: 0,
+                wordCount = stat?.wordCount?.toLong() ?: 0,
+                dueCount = stat?.dueCount?.toLong() ?: 0,
+                newCount = stat?.newWordCount?.toLong() ?: 0,
+                studyingCount = stat?.studyingCount?.toLong() ?: 0,
+                masteredCount = stat?.masteredCount?.toLong() ?: 0,
                 createdAt = deck.createdAt,
             )
         }
@@ -218,7 +220,7 @@ class AdminUserReadService(
         )
     }
 
-    // DeckRepository.findDeckStats 의 CASE 식과 같은 판정.
+    // FlashcardStudyState 와 같은 판정.
     private fun FlashcardEntity.status(): String = when {
         state == 1 -> "MASTERED"
         state == 2 || lastReview != null -> "STUDYING"

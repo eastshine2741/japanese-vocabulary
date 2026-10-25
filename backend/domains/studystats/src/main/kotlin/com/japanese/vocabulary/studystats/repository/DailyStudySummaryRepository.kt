@@ -43,19 +43,16 @@ interface DailyStudySummaryRepository : JpaRepository<DailyStudySummaryEntity, L
         pageable: Pageable,
     ): List<DailyStudySummaryEntity>
 
-    /**
-     * 행 존재로 연속 구간(island)을 잡고, 구간 길이는 freeze 가 아닌 날만 센다.
-     * freeze 행은 구간을 잇기만 하고 길이에 들어가지 않는다.
-     */
+    /** 엔티티가 아니라 DTO 라 OSIV 로 열린 영속성 컨텍스트에 쌓이지 않는다. */
     @Query(
-        value = "SELECT COALESCE(MAX(run_len), 0) FROM (" +
-            "  SELECT CAST(SUM(freeze_used = FALSE) AS SIGNED) AS run_len FROM (" +
-            "    SELECT freeze_used, DATEDIFF(date_kst, '1970-01-01') " +
-            "      - ROW_NUMBER() OVER (ORDER BY date_kst) AS island_id " +
-            "    FROM daily_study_summary WHERE user_id = :userId" +
-            "  ) t GROUP BY island_id" +
-            ") g",
-        nativeQuery = true,
+        "SELECT new com.japanese.vocabulary.studystats.repository.StudyDay(d.dateKst, d.freezeUsed) " +
+            "FROM DailyStudySummaryEntity d WHERE d.userId = :userId AND d.dateKst < :before ORDER BY d.dateKst DESC"
     )
-    fun longestStreak(@Param("userId") userId: Long): Long
+    fun findStudyDaysBefore(
+        @Param("userId") userId: Long,
+        @Param("before") before: LocalDate,
+        pageable: Pageable,
+    ): List<StudyDay>
 }
+
+data class StudyDay(val dateKst: LocalDate, val freezeUsed: Boolean)
