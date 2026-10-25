@@ -124,6 +124,11 @@ export const adminApi = {
   songAnalysisStageOutput(token: string, id: string, stage: string) {
     return request<unknown>(`/song-analysis-works/${id}/stages/${stage}/output`, token)
   },
+  rerunSongAnalysisStage(token: string, id: string, stage: string) {
+    return request<SongAnalysisWorkDetail>(`/song-analysis-works/${id}/stages/${stage}/rerun`, token, {
+      method: "POST",
+    })
+  },
   resumeSongAnalysisWork(token: string, id: string) {
     return request<SongAnalysisWorkDetail>(`/song-analysis-works/${id}/resume`, token, {
       method: "POST",

@@ -73,13 +73,7 @@ class SongAnalysisWorkCompletionService(
             if (lyric.songId != song.id || work.lyricId != lyric.id) {
                 throw BusinessException(ErrorCode.SONG_ANALYSIS_WORK_FAILED)
             }
-            val overlappingActiveWriters = workRepository.findBySongIdAndStatusInOrderByCreatedAtAsc(
-                song.id!!,
-                listOf(SongAnalysisWorkStatus.PENDING, SongAnalysisWorkStatus.RUNNING),
-            ).filter { it.id != work.id }
-            if (overlappingActiveWriters.isNotEmpty()) {
-                throw BusinessException(ErrorCode.SONG_ANALYSIS_WORK_ALREADY_EXISTS)
-            }
+            requireNoOverlappingWriter(work, song.id!!)
             song.activeLyricId = lyric.id
             // 재분석에서 MV 를 못 찾았으면 지금 MV 를 지우지 않는다.
             work.youtubeUrl?.let { song.youtubeUrl = it }
@@ -91,6 +85,41 @@ class SongAnalysisWorkCompletionService(
 
         if (!workService.completeStage(ref, output)) throw SongAnalysisStageSupersededException(ref)
         eventPublisher.publishEvent(SongAnalysisCompletedEvent(workId, lyric.songId))
+    }
+
+    /**
+     * MV 만 다시 찾는 관리자 재분석의 마지막 단계. active 가사와 그 분석은 건드리지 않는다. MV 를 못 찾았으면
+     * 지금 MV 를 그대로 둔다.
+     */
+    @Transactional
+    fun completeMvOnly(ref: SongAnalysisStageRef, youtubeUrl: String?, output: String?) {
+        val work = workRepository.findByIdForUpdate(ref.workId)
+            ?: throw BusinessException(ErrorCode.SONG_ANALYSIS_WORK_NOT_FOUND)
+        if (work.status != SongAnalysisWorkStatus.RUNNING) throw SongAnalysisStageSupersededException(ref)
+        val song = songRepository.findByIdForUpdate(requireNotNull(work.songId) { "MV-only work ${ref.workId} has no song" })
+            ?: throw BusinessException(ErrorCode.SONG_NOT_FOUND)
+        requireNoOverlappingWriter(work, song.id!!)
+
+        work.youtubeUrl = youtubeUrl
+        if (youtubeUrl != null) {
+            song.youtubeUrl = youtubeUrl
+            song.updatedAt = Instant.now()
+            songRepository.save(song)
+        }
+        lyricMvSyncService.enqueue(song)
+
+        if (!workService.completeStage(ref, output)) throw SongAnalysisStageSupersededException(ref)
+        eventPublisher.publishEvent(SongAnalysisCompletedEvent(ref.workId, song.id!!))
+    }
+
+    private fun requireNoOverlappingWriter(work: SongAnalysisWorkEntity, songId: Long) {
+        val overlappingActiveWriters = workRepository.findBySongIdAndStatusInOrderByCreatedAtAsc(
+            songId,
+            listOf(SongAnalysisWorkStatus.PENDING, SongAnalysisWorkStatus.RUNNING),
+        ).filter { it.id != work.id }
+        if (overlappingActiveWriters.isNotEmpty()) {
+            throw BusinessException(ErrorCode.SONG_ANALYSIS_WORK_ALREADY_EXISTS)
+        }
     }
 
     /** 관리자 재분석은 곡의 새 후보 가사만 만든다. 활성 가사와 MV 는 위에서 바꾼다. */

@@ -32,7 +32,11 @@ export interface SongDto {
   artworkUrl: string | null;
   youtubeUrl: string | null;
   lyricType: 'SYNCED' | 'PLAIN';
+  /** 서버가 아는 [youtubeUrl] 재생 불가 이유. 없으면 플레이어 오류가 나야 안다. */
+  mvUnavailableReason?: MvUnavailableReason | null;
 }
+
+export type MvUnavailableReason = 'AGE_RESTRICTED' | 'UNAVAILABLE';
 
 export interface Token {
   surface: string;

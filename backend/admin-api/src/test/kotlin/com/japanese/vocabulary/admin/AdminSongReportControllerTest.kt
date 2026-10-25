@@ -3,6 +3,7 @@ package com.japanese.vocabulary.admin
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricMvSyncEntity
 import com.japanese.vocabulary.song.entity.LyricType
+import com.japanese.vocabulary.song.entity.MvUnavailableReason
 import com.japanese.vocabulary.song.entity.SongEntity
 import com.japanese.vocabulary.song.entity.SongReportEntity
 import com.japanese.vocabulary.song.entity.SongReportStatus
@@ -69,6 +70,8 @@ class AdminSongReportControllerTest : AdminBaseIntegrationTest() {
     @Test
     fun `approve applies edits records changes and regenerates word candidates`() {
         val (song, lyric) = songWithLyric()
+        song.mvUnavailableReason = MvUnavailableReason.AGE_RESTRICTED
+        entityManager.flush()
         val report = report(song, TestUserBuilder(entityManager).build())
         val body = mapOf(
             "note" to "고침",
@@ -110,7 +113,10 @@ class AdminSongReportControllerTest : AdminBaseIntegrationTest() {
         assertThat(tokens[0].reading).isEqualTo("キミガ")
         assertThat(tokens[1].koreanText).isEqualTo("사랑")
         assertThat(saved.wordCandidates!!.candidates.map { it.koreanText }).contains("사랑").doesNotContain("좋아함")
-        assertThat(entityManager.find(SongEntity::class.java, song.id).youtubeUrl).isEqualTo("https://www.youtube.com/watch?v=abcdefghijk")
+        val savedSong = entityManager.find(SongEntity::class.java, song.id)
+        assertThat(savedSong.youtubeUrl).isEqualTo("https://www.youtube.com/watch?v=abcdefghijk")
+        // 재생 불가 이유는 옛 MV 의 것이다.
+        assertThat(savedSong.mvUnavailableReason).isNull()
         // 새 MV 에 맞춘 줄 시각을 다시 계산하도록 대기열에 들어간다.
         val syncs = entityManager.createQuery("SELECT s FROM LyricMvSyncEntity s", LyricMvSyncEntity::class.java).resultList
         assertThat(syncs.map { it.lyricId to it.youtubeVideoId }).containsExactly(lyric.id!! to "abcdefghijk")

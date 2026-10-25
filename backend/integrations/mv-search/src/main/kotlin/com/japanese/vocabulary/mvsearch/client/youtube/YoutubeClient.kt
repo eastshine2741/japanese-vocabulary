@@ -64,7 +64,7 @@ class YoutubeClient(
                 .uri { builder ->
                     builder.path("/youtube/v3/videos")
                         .queryParam("id", chunk.joinToString(","))
-                        .queryParam("part", "contentDetails")
+                        .queryParam("part", "contentDetails,status")
                         .queryParam("maxResults", chunk.size)
                         .queryParam("key", apiKey)
                         .build()

@@ -38,6 +38,7 @@ class SongDetailQueryService(
             youtubeUrl = song.youtubeUrl,
             lyricType = lyricType,
             artistId = song.artistId,
+            mvUnavailableReason = song.mvUnavailableReason,
         )
     }
 

@@ -1,16 +1,16 @@
 import * as React from "react"
-import { Link, useParams } from "react-router-dom"
+import { Link, useNavigate, useParams } from "react-router-dom"
 import { RotateCcw } from "lucide-react"
 import { adminApi } from "@/api/client"
-import type { SongAnalysisStage, SongAnalysisWorkDetail } from "@/api/types"
+import type { SongAnalysisWorkDetail } from "@/api/types"
 import { DetailGrid, DetailItem } from "@/components/DetailGrid"
 import { ErrorState, LoadingState } from "@/components/StateViews"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Table, Td, Th } from "@/components/ui/table"
 import { PageHeader } from "@/components/PageHeader"
 import { useAuth } from "@/features/auth"
 import { formatDateTime, formatDurationMillis } from "@/lib/utils"
+import { StageGraph } from "./StageGraph"
 
 export function SongAnalysisWorkDetailPage() {
   const { token } = useAuth()
@@ -18,6 +18,8 @@ export function SongAnalysisWorkDetailPage() {
   const [work, setWork] = React.useState<SongAnalysisWorkDetail | null>(null)
   const [state, setState] = React.useState<"loading" | "ready" | "error">("loading")
   const [resumeState, setResumeState] = React.useState<"idle" | "submitting" | "error">("idle")
+  const [rerunError, setRerunError] = React.useState<string | null>(null)
+  const navigate = useNavigate()
 
   React.useEffect(() => {
     let alive = true
@@ -43,6 +45,17 @@ export function SongAnalysisWorkDetailPage() {
       setResumeState("idle")
     } catch {
       setResumeState("error")
+    }
+  }
+
+  async function rerun(stage: string) {
+    if (!token || !work) return
+    setRerunError(null)
+    try {
+      const created = await adminApi.rerunSongAnalysisStage(token, String(work.id), stage)
+      navigate(`/song-analysis-works/${created.id}`)
+    } catch {
+      setRerunError(stage)
     }
   }
 
@@ -75,6 +88,17 @@ export function SongAnalysisWorkDetailPage() {
         <DetailItem label="Lyric" value={work.lyricId ? <Link className="text-[#0f766e] hover:underline" to={`/lyrics/${work.lyricId}`}>{work.lyricId}</Link> : "-"} />
         <DetailItem label="Duration" value={work.durationSeconds ? `${work.durationSeconds}s` : "-"} />
         <DetailItem label="Created by user" value={work.createdByUserId ?? "-"} />
+        {work.rerunFrom ? (
+          <DetailItem
+            label="Rerun"
+            value={
+              <>
+                from {work.rerunFrom} of{" "}
+                <Link className="text-[#0f766e] hover:underline" to={`/song-analysis-works/${work.sourceWorkId}`}>#{work.sourceWorkId}</Link>
+              </>
+            }
+          />
+        ) : null}
       </DetailGrid>
 
       <section className="mt-6">
@@ -88,28 +112,11 @@ export function SongAnalysisWorkDetailPage() {
         </DetailGrid>
       </section>
 
-      {work.stages.length > 0 ? (
-        <section className="mt-6">
-          <h2 className="mb-3 text-sm font-semibold text-[#18212f]">Stages</h2>
-          <Table>
-            <thead>
-              <tr>
-                <Th>Stage</Th>
-                <Th>Status</Th>
-                <Th>Attempt</Th>
-                <Th>Took</Th>
-                <Th>Error</Th>
-                <Th>Output</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {work.stages.map((stage) => (
-                <StageRow key={stage.stage} workId={work.id} stage={stage} token={token!} />
-              ))}
-            </tbody>
-          </Table>
-        </section>
-      ) : null}
+      <section className="mt-6">
+        <h2 className="mb-3 text-sm font-semibold text-[#18212f]">Stages</h2>
+        <StageGraph work={work} token={token!} onRerun={rerun} />
+        {rerunError ? <p className="mt-2 text-sm text-[#b91c1c]">Could not rerun {rerunError}.</p> : null}
+      </section>
 
       <section className="mt-6">
         <h2 className="mb-3 text-sm font-semibold text-[#18212f]">Elapsed time</h2>
@@ -133,70 +140,6 @@ export function SongAnalysisWorkDetailPage() {
     </>
   )
 }
-
-const StageRow = React.memo(function StageRow({ workId, stage, token }: { workId: number; stage: SongAnalysisStage; token: string }) {
-  const [output, setOutput] = React.useState<string | null>(null)
-  const [outputState, setOutputState] = React.useState<"closed" | "loading" | "open" | "error">("closed")
-
-  const toggleOutput = React.useCallback(async () => {
-    if (outputState === "open") {
-      setOutputState("closed")
-      return
-    }
-    setOutputState("loading")
-    try {
-      const body = await adminApi.songAnalysisStageOutput(token, String(workId), stage.stage)
-      setOutput(JSON.stringify(body, null, 2))
-      setOutputState("open")
-    } catch {
-      setOutputState("error")
-    }
-  }, [outputState, token, workId, stage.stage])
-
-  return (
-    <>
-      <tr>
-        <Td className="font-medium">{stage.stage}</Td>
-        <Td>
-          <Badge tone={statusTone(stage.status)}>{stage.status}</Badge>
-        </Td>
-        <Td>{stage.attempt}</Td>
-        <Td>{formatDurationBetween(stage.startedAt, stage.finishedAt)}</Td>
-        <Td className="max-w-[28rem] break-words text-[#991b1b]">
-          {stage.errorCode ? (
-            <>
-              <div className="font-semibold">{stage.errorCode}</div>
-              <div className="text-xs text-[#637083]">{stage.errorClass}</div>
-              <div className="text-xs">{stage.errorMessage}</div>
-            </>
-          ) : (
-            "-"
-          )}
-        </Td>
-        <Td>
-          {stage.outputLength ? (
-            <Button variant="secondary" onClick={toggleOutput} disabled={outputState === "loading"}>
-              {outputState === "open" ? "Hide" : `View (${stage.outputLength.toLocaleString()} chars)`}
-            </Button>
-          ) : (
-            "-"
-          )}
-        </Td>
-      </tr>
-      {outputState === "open" || outputState === "error" ? (
-        <tr>
-          <Td colSpan={6} className="h-auto bg-[#f6f7f9] py-3">
-            {outputState === "error" ? (
-              <span className="text-sm text-[#b91c1c]">Could not load output.</span>
-            ) : (
-              <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap break-all text-xs text-[#18212f]">{output}</pre>
-            )}
-          </Td>
-        </tr>
-      ) : null}
-    </>
-  )
-})
 
 function terminalAt(work: SongAnalysisWorkDetail) {
   return work.completedAt ?? work.failedAt

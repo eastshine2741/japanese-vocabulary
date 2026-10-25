@@ -47,6 +47,10 @@ apple-music:
   key-id: ${APPLE_MUSIC_KEY_ID:}
   private-key-base64: ${APPLE_MUSIC_PRIVATE_KEY_BASE64:}
 
+youtube:
+  # Only the mv-playability-backfill task calls it. Blank boots but fails that task's first call.
+  api-key: ${YOUTUBE_API_KEY:}
+
 sentry:
   dsn: ${SENTRY_DSN_BATCH:}
   environment: ${SENTRY_ENVIRONMENT:local}

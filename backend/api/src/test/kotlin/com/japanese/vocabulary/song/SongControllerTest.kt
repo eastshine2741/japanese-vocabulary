@@ -37,6 +37,7 @@ import com.japanese.vocabulary.song.entity.LyricMvSyncEntity
 import com.japanese.vocabulary.song.entity.LyricMvSyncMethod
 import com.japanese.vocabulary.song.entity.LyricMvSyncStatus
 import com.japanese.vocabulary.song.entity.LyricType
+import com.japanese.vocabulary.song.entity.MvUnavailableReason
 import com.japanese.vocabulary.song.entity.SongEntity
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.model.LyricWordCandidates
@@ -697,6 +698,26 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                     jsonPath("$.mvSynced") { value(false) }
                     jsonPath("$.lines[0].startTimeMs") { value(null) }
                 }
+        }
+
+        @Test
+        fun `song metadata says why the current MV cannot be played`() {
+            val me = newUser()
+            val song = TestSongBuilder(entityManager).withYoutubeUrl("https://www.youtube.com/watch?v=SX_ViT4Ra7k").build()
+            song.mvUnavailableReason = MvUnavailableReason.AGE_RESTRICTED
+            entityManager.flush()
+
+            mockMvc.get("/api/songs/${song.id}") { header("Authorization", bearer(me)) }
+                .andExpect { jsonPath("$.mvUnavailableReason") { value("AGE_RESTRICTED") } }
+        }
+
+        @Test
+        fun `a playable MV carries no reason`() {
+            val me = newUser()
+            val song = TestSongBuilder(entityManager).withYoutubeUrl("https://www.youtube.com/watch?v=SX_ViT4Ra7k").build()
+
+            mockMvc.get("/api/songs/${song.id}") { header("Authorization", bearer(me)) }
+                .andExpect { jsonPath("$.mvUnavailableReason") { doesNotExist() } }
         }
 
         private fun completedSync(lyric: LyricEntity, videoId: String, timings: List<LyricLineTiming>, verdict: String = "OK") {

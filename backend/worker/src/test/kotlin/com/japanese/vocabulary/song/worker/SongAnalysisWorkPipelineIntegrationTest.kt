@@ -428,6 +428,85 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         coVerify(exactly = 0) { lrclibClient.search(any()) }
     }
 
+    @Test
+    fun `rerunning the MV search from a finished work changes only the song's MV`(): Unit = runBlocking {
+        stubLyricsFound()
+        stubYoutubeMissing()
+        stubLyricAnalysis()
+        val song = persistSongWithOldMv()
+        persistActiveLyric(song.id!!, "古い歌詞")
+        val first = persistAdminWork(song.id!!, status = SongAnalysisWorkStatus.PENDING)
+        drive(first.id!!)
+        val activeLyricAfterFirst = songRepository.findById(song.id!!).orElseThrow().activeLyricId
+        stubYoutubeFound()
+
+        val rerun = workService.rerun(first.id!!, SongAnalysisWorkStage.FETCH_YOUTUBE)
+        drive(rerun.workId)
+        entityManager.flush()
+        entityManager.clear()
+
+        val refreshedSong = songRepository.findById(song.id!!).orElseThrow()
+        assertThat(workRepository.findById(rerun.workId).orElseThrow().status).isEqualTo(SongAnalysisWorkStatus.COMPLETED)
+        assertThat(refreshedSong.youtubeUrl).isEqualTo("https://www.youtube.com/watch?v=official-video-id")
+        assertThat(refreshedSong.activeLyricId).isEqualTo(activeLyricAfterFirst)
+        assertThat(lyricRepository.findAllBySongIdOrderByCreatedAtDesc(song.id!!)).hasSize(2)
+        // 범위 밖 단계는 원본 작업에서 복사만 됐고 돌지 않았다.
+        assertThat(stageRepository.findByWorkIdOrderByIdAsc(rerun.workId).filter { it.attempt > 0 }.map { it.stage })
+            .containsExactlyInAnyOrder(SongAnalysisWorkStage.FETCH_YOUTUBE, SongAnalysisWorkStage.COMPLETE)
+        coVerify(exactly = 1) { lrclibClient.search(any()) }
+        coVerify(exactly = 1) { geminiClient.translateLyrics(any(), any()) }
+        assertThat(syncRepository.findAll().map { it.lyricId to it.youtubeVideoId }).contains(activeLyricAfterFirst!! to "official-vi")
+    }
+
+    @Test
+    fun `rerunning sense selection reuses the work's earlier outputs, makes a new active lyric and keeps the MV`(): Unit = runBlocking {
+        stubLyricsFound()
+        stubYoutubeFound()
+        stubLyricAnalysis()
+        val song = persistSongWithOldMv()
+        persistActiveLyric(song.id!!, "古い歌詞")
+        val first = persistAdminWork(song.id!!, status = SongAnalysisWorkStatus.PENDING)
+        drive(first.id!!)
+        val firstLyricId = workRepository.findById(first.id!!).orElseThrow().lyricId
+        // 관리자가 손으로 바꾼 MV. 범위 밖이라 그대로 남아야 한다.
+        songRepository.findById(song.id!!).orElseThrow().also { it.youtubeUrl = "https://youtu.be/manual-mv" }.let(songRepository::saveAndFlush)
+
+        val rerun = workService.rerun(first.id!!, SongAnalysisWorkStage.SELECT_SENSES)
+        drive(rerun.workId)
+        entityManager.flush()
+        entityManager.clear()
+
+        val rerunWork = workRepository.findById(rerun.workId).orElseThrow()
+        val refreshedSong = songRepository.findById(song.id!!).orElseThrow()
+        assertThat(rerunWork.status).isEqualTo(SongAnalysisWorkStatus.COMPLETED)
+        assertThat(rerunWork.lyricId).isNotEqualTo(firstLyricId)
+        assertThat(refreshedSong.activeLyricId).isEqualTo(rerunWork.lyricId)
+        assertThat(refreshedSong.youtubeUrl).isEqualTo("https://youtu.be/manual-mv")
+        assertThat(lyricRepository.findById(rerunWork.lyricId!!).orElseThrow().analyzedContent!![0].koreanLyrics).isEqualTo("복숭아빛 열쇠")
+        coVerify(exactly = 1) { lrclibClient.search(any()) }
+        coVerify(exactly = 1) { geminiClient.translateLyrics(any(), any()) }
+        verify(exactly = 1) { youtubeClient.searchVideos(any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `a stage cannot be rerun without the earlier outputs it reads or while the song has an active work`(): Unit = runBlocking {
+        stubLyricsFound()
+        stubYoutubeFound()
+        stubLyricAnalysisFailure()
+        val song = persistSongWithOldMv()
+        persistActiveLyric(song.id!!, "古い歌詞")
+        val failed = persistAdminWork(song.id!!, status = SongAnalysisWorkStatus.PENDING)
+        drive(failed.id!!)
+
+        val blockers = workService.rerunBlockers(failed.id!!)
+        assertThat(blockers[SongAnalysisWorkStage.SELECT_SENSES]).isEqualTo("No ANALYZE_LYRICS output on this work")
+        assertThat(blockers[SongAnalysisWorkStage.ANALYZE_LYRICS]).isNull()
+        assertThat(blockers[SongAnalysisWorkStage.FETCH_YOUTUBE]).isNull()
+
+        persistAdminWork(song.id!!, status = SongAnalysisWorkStatus.PENDING)
+        assertThat(workService.rerunBlockers(failed.id!!).values).containsOnly("Another analysis is running for this song")
+    }
+
     private fun persistActiveLyric(songId: Long, text: String): LyricEntity {
         val lyric = LyricEntity(
             songId = songId,

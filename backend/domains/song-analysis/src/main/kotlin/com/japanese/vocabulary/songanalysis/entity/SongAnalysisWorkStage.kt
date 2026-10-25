@@ -22,7 +22,42 @@ enum class SongAnalysisWorkStage {
     COMPLETE;
 
     val next: SongAnalysisWorkStage?
-        get() = entries.drop(ordinal + 1).firstOrNull { it != CREATE_SONG_AND_LYRIC }
+        get() = nextIn(null)
+
+    /** 이 단계가 산출물을 읽는 앞 단계. 다시 돌릴 범위([rerunScope])가 여기서 나온다. */
+    val dependsOn: Set<SongAnalysisWorkStage>
+        get() = when (this) {
+            FETCH_LYRICS, FETCH_YOUTUBE -> emptySet()
+            CREATE_SONG_AND_LYRIC -> setOf(FETCH_LYRICS, FETCH_YOUTUBE)
+            ANALYZE_LYRICS -> setOf(FETCH_LYRICS)
+            SELECT_SENSES -> setOf(ANALYZE_LYRICS)
+            TRANSLATE_SENSES -> setOf(SELECT_SENSES)
+            COMPLETE -> setOf(FETCH_LYRICS, FETCH_YOUTUBE, ANALYZE_LYRICS, SELECT_SENSES, TRANSLATE_SENSES)
+        }
+
+    /** 이 단계와, 그 산출물에 기대는 단계 전부. 범위 밖 단계는 돌지 않고 곡의 지금 상태가 그대로 남는다. */
+    fun rerunScope(): Set<SongAnalysisWorkStage> {
+        val scope = mutableSetOf(this)
+        do {
+            val added = entries.filter { it != CREATE_SONG_AND_LYRIC && it !in scope && it.dependsOn.any(scope::contains) }
+            scope += added
+        } while (added.isNotEmpty())
+        return scope
+    }
+
+    /** [scope] 가 null 이면 파이프라인 전체다. */
+    fun nextIn(scope: Set<SongAnalysisWorkStage>?): SongAnalysisWorkStage? =
+        entries.drop(ordinal + 1).firstOrNull { it != CREATE_SONG_AND_LYRIC && (scope == null || it in scope) }
+
+    /**
+     * 이 단계부터 다시 돌릴 때 원본 작업에서 산출물을 물려받아야 하는 단계. FETCH_YOUTUBE 는 범위 밖이면 곡의
+     * 지금 MV 를 그대로 두므로 읽지 않고, MV 만 다시 찾을 땐 COMPLETE 가 가사 쪽 산출물을 읽지 않는다.
+     */
+    fun inheritedInputs(): Set<SongAnalysisWorkStage> {
+        if (this == FETCH_YOUTUBE) return emptySet()
+        val scope = rerunScope()
+        return scope.flatMap { it.dependsOn }.toSet() - scope - FETCH_YOUTUBE
+    }
 
     companion object {
         val FIRST = FETCH_LYRICS

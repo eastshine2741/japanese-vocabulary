@@ -107,6 +107,47 @@ class AdminSongAnalysisWorkControllerTest : AdminBaseIntegrationTest() {
         }
     }
 
+    @Test
+    fun `admin reruns a stage of a failed work as a new work that inherits the stages it does not rerun`() {
+        val song = TestSongBuilder(entityManager).build()
+        val work = persistFailedAt(song.id!!, SongAnalysisWorkStage.ANALYZE_LYRICS)
+
+        mockMvc.get("/admin/api/song-analysis-works/${work.id}") {
+            header("Authorization", "Bearer ${adminToken()}")
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.rerunBlockers.ANALYZE_LYRICS") { value(null) }
+            jsonPath("$.rerunBlockers.SELECT_SENSES") { value("No ANALYZE_LYRICS output on this work") }
+        }
+
+        mockMvc.post("/admin/api/song-analysis-works/${work.id}/stages/ANALYZE_LYRICS/rerun") {
+            header("Authorization", "Bearer ${adminToken()}")
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.id") { value(org.hamcrest.Matchers.not(work.id!!.toInt())) }
+            jsonPath("$.status") { value("PENDING") }
+            jsonPath("$.currentStage") { value("ANALYZE_LYRICS") }
+            jsonPath("$.rerunFrom") { value("ANALYZE_LYRICS") }
+            jsonPath("$.sourceWorkId") { value(work.id!!.toInt()) }
+            jsonPath("$.stages.length()") { value(1) }
+            jsonPath("$.stages[0].stage") { value("FETCH_LYRICS") }
+            jsonPath("$.stages[0].status") { value("COMPLETED") }
+        }
+    }
+
+    @Test
+    fun `rerunning a stage whose inputs the work never produced is a conflict`() {
+        val song = TestSongBuilder(entityManager).build()
+        val work = persistFailedAt(song.id!!, SongAnalysisWorkStage.ANALYZE_LYRICS)
+
+        mockMvc.post("/admin/api/song-analysis-works/${work.id}/stages/SELECT_SENSES/rerun") {
+            header("Authorization", "Bearer ${adminToken()}")
+        }.andExpect {
+            status { isConflict() }
+            jsonPath("$.error") { value("SONG_ANALYSIS_WORK_NOT_RERUNNABLE") }
+        }
+    }
+
     private fun persistFailedAt(songId: Long, failedStage: SongAnalysisWorkStage): SongAnalysisWorkEntity {
         val work = SongAnalysisWorkEntity(
             rawTitle = "失敗曲",
