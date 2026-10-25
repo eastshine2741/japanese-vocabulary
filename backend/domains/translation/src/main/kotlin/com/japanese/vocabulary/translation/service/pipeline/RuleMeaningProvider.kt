@@ -195,17 +195,17 @@ class RuleMeaningProvider {
 
         // Surfaces stay as written; readings are katakana, the pipeline's storage script.
         val fixedExpressions = mapOf(
-            "どうして" to RuleResolvedToken("どうして", "どうして", "ドウシテ", "ドウシテ", PartOfSpeech.ADVERB, "왜, 어째서"),
-            "如何して" to RuleResolvedToken("如何して", "どうして", "ドウシテ", "ドウシテ", PartOfSpeech.ADVERB, "왜, 어째서"),
+            "どうして" to RuleResolvedToken("どうして", "どうして", "ドウシテ", "ドウシテ", PartOfSpeech.ADVERB, "왜"),
+            "如何して" to RuleResolvedToken("如何して", "どうして", "ドウシテ", "ドウシテ", PartOfSpeech.ADVERB, "왜"),
             "どう" to RuleResolvedToken("どう", "どう", "ドウ", "ドウ", PartOfSpeech.ADVERB, "어떻게"),
             "こう" to RuleResolvedToken("こう", "こう", "コウ", "コウ", PartOfSpeech.ADVERB, "이렇게"),
             // Archaic 〜の随(まにま)に: segmentation splits off に, so the token reads マニマ, not マニマニ.
-            "随" to RuleResolvedToken("随", "随", "マニマ", "マニマ", PartOfSpeech.NOUN, "~대로, ~에 맡겨"),
+            "随" to RuleResolvedToken("随", "随", "マニマ", "マニマ", PartOfSpeech.NOUN, "~대로"),
             // Second half of やたらめったら, a colloquial stretch of 滅多. The dictionary has no headword for it.
-            "めったら" to RuleResolvedToken("めったら", "めったら", "メッタラ", "メッタラ", PartOfSpeech.ADVERB, "마구, 함부로"),
+            "めったら" to RuleResolvedToken("めったら", "めったら", "メッタラ", "メッタラ", PartOfSpeech.ADVERB, "마구"),
             // Colloquial contraction of いやだ. Segmentation writes the headword as 嫌だ, which the dictionary
             // has no entry for. Keyed on the surface only: いやだ shares that headword but not the reading.
-            "やだ" to RuleResolvedToken("やだ", "嫌だ", "ヤダ", "イヤダ", PartOfSpeech.NA_ADJECTIVE, "싫다, 싫어"),
+            "やだ" to RuleResolvedToken("やだ", "嫌だ", "ヤダ", "イヤダ", PartOfSpeech.NA_ADJECTIVE, "싫다"),
         )
 
         val particles = mapOf(
@@ -213,21 +213,21 @@ class RuleMeaningProvider {
             "が" to particle("が", "~이/가"),
             "を" to particle("を", "~을/를"),
             "の" to particle("の", "~의"),
-            "に" to particle("に", "~에, ~에게"),
+            "に" to particle("に", "~에"),
             "へ" to particle("へ", "~으로"),
-            "と" to particle("と", "~와/과, ~라고"),
+            "と" to particle("と", "~와/과"),
             "も" to particle("も", "~도"),
             "まで" to particle("まで", "~까지"),
-            "で" to particle("で", "~에서, ~로"),
+            "で" to particle("で", "~에서"),
             "や" to particle("や", "~이나"),
             "か" to particle("か", "~인가"),
             "ね" to particle("ね", "~네"),
             "よ" to particle("よ", "~야"),
             // だけ + で. The model emits だけで as both surface and headword, so GluedParticleSplitter
             // sees no mismatch and the dictionary has no entry for the combined form.
-            "だけで" to particle("だけで", "~만으로, ~하기만 해도"),
+            "だけで" to particle("だけで", "~만으로"),
             // Connective て; SegmentAnchoringValidator fills it in when the model leaves it off the verb.
-            "て" to particle("て", "~하고, ~해서"),
+            "て" to particle("て", "~하고"),
         )
 
         val auxiliaries = mapOf(
@@ -247,12 +247,12 @@ class RuleMeaningProvider {
             "れば" to auxiliary("れば", "~하면"),
             // た/だ + conditional ら. Segmentation splits 掴んだら into 掴ん + だら; the dictionary has no entry for
             // the suffix. だら is the voiced form after ん/ぶ/ぐ stems.
-            "たら" to auxiliary("たら", "~하면, ~했더니"),
-            "だら" to auxiliary("だら", "~하면, ~했더니"),
+            "たら" to auxiliary("たら", "~하면"),
+            "だら" to auxiliary("だら", "~하면"),
             // Colloquial concessive (even if). Segmentation splits 舞ったったって into 舞った + ったって and
             // guesses the headword といったって, which the dictionary lacks; resolve() tries the surface first.
-            "たって" to auxiliary("たって", "~해도, ~한들"),
-            "ったって" to auxiliary("ったって", "~해도, ~한들"),
+            "たって" to auxiliary("たって", "~해도"),
+            "ったって" to auxiliary("ったって", "~해도"),
         )
 
         // Every surface in the particle/auxiliary tables is kana, so its reading is the surface in katakana.
