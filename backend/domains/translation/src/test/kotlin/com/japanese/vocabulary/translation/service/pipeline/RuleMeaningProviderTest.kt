@@ -131,6 +131,29 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `splits colloquial yanamono into yana and mono`() {
+        // ジャマモノ やなもの なんて消して — segmentation glues やな onto もの as the headword 嫌な物,
+        // which jisho has no entry for.
+        val rewritten = provider.rewrite(
+            listOf(
+                PipelineToken(2, "ジャマモノ", "邪魔者", 0, 5),
+                PipelineToken(2, "やなもの", "嫌な物", 6, 10),
+                PipelineToken(2, "なんて", "なんて", 11, 14),
+            ),
+        )
+
+        assertThat(rewritten.map { it.surface }).containsExactly("ジャマモノ", "やな", "もの", "なんて")
+        assertThat(rewritten.map { it.charStart to it.charEnd })
+            .containsExactly(0 to 5, 6 to 8, 8 to 10, 11 to 14)
+
+        val yana = provider.resolve(rewritten[1])!!
+        assertThat(yana.partOfSpeech).isEqualTo(PartOfSpeech.NA_ADJECTIVE)
+        assertThat(yana.baseForm).isEqualTo("嫌だ")
+        assertThat(yana.reading).isEqualTo("ヤナ")
+        assertThat(yana.koreanText).isNotBlank()
+    }
+
+    @Test
     fun `does not rule-resolve ambiguous grammar-like words`() {
         assertThat(provider.resolve(token("ない"))).isNull()
         assertThat(provider.resolve(token("から"))).isNull()

@@ -191,6 +191,28 @@ class RuleMeaningProvider {
                     ),
                 ),
             ),
+            // やな (いやな) + もの: segmentation glues them into the headword 嫌な物, which jisho has no entry for.
+            TokenRewriteRule(
+                surfaces = listOf("やなもの"),
+                replacements = listOf(
+                    TokenReplacement(
+                        "やな",
+                        "やな",
+                        sourceIndex = 0,
+                        startOffset = 0,
+                        endOffset = 2,
+                        contextGloss = "unpleasant, disliked",
+                    ),
+                    TokenReplacement(
+                        "もの",
+                        "もの",
+                        sourceIndex = 0,
+                        startOffset = 2,
+                        endOffset = 4,
+                        contextGloss = "thing",
+                    ),
+                ),
+            ),
         )
 
         // Surfaces stay as written; readings are katakana, the pipeline's storage script.
@@ -206,6 +228,8 @@ class RuleMeaningProvider {
             // Colloquial contraction of いやだ. Segmentation writes the headword as 嫌だ, which jisho
             // has no entry for. Keyed on the surface only: いやだ shares that headword but not the reading.
             "やだ" to RuleResolvedToken("やだ", "嫌だ", "ヤダ", "イヤダ", PartOfSpeech.NA_ADJECTIVE, "싫다, 싫어"),
+            // Attributive form of the same contraction (いやな).
+            "やな" to RuleResolvedToken("やな", "嫌だ", "ヤナ", "イヤダ", PartOfSpeech.NA_ADJECTIVE, "싫은, 싫어하는"),
         )
 
         val particles = mapOf(
