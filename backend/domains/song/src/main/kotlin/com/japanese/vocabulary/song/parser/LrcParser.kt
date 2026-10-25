@@ -5,7 +5,8 @@ import org.springframework.stereotype.Component
 @Component
 class LrcParser {
 
-    private val timestampPattern = Regex("""\[(\d{2}):(\d{2})[.:](\d{2})](.*)""")
+    // lrclib uploads mix centiseconds ("[00:22.67]") and milliseconds ("[00:21.984]").
+    private val timestampPattern = Regex("""\[(\d{2,3}):(\d{2})[.:](\d{2,3})](.*)""")
 
     fun parse(lrcContent: String, isSynced: Boolean): List<ParsedLyricLine> {
         val lines = lrcContent.lines()
@@ -20,14 +21,14 @@ class LrcParser {
 
         lines.forEach { line ->
             val match = timestampPattern.matchEntire(line) ?: return@forEach
-            val (minutes, seconds, centiseconds, text) = match.destructured
+            val (minutes, seconds, fraction, text) = match.destructured
             val trimmedText = text.trim()
             if (trimmedText.isBlank()) return@forEach
 
             parsedLines.add(
                 ParsedLyricLine(
                     index = parsedLines.size,
-                    startTimeMs = convertToMilliseconds(minutes.toInt(), seconds.toInt(), centiseconds.toInt()),
+                    startTimeMs = convertToMilliseconds(minutes.toInt(), seconds.toInt(), fraction),
                     text = trimmedText
                 )
             )
@@ -42,7 +43,8 @@ class LrcParser {
         }
     }
 
-    private fun convertToMilliseconds(minutes: Int, seconds: Int, centiseconds: Int): Long {
-        return (minutes * 60 * 1000L) + (seconds * 1000L) + (centiseconds * 10L)
+    private fun convertToMilliseconds(minutes: Int, seconds: Int, fraction: String): Long {
+        val fractionMs = if (fraction.length == 3) fraction.toLong() else fraction.toLong() * 10
+        return (minutes * 60 * 1000L) + (seconds * 1000L) + fractionMs
     }
 }

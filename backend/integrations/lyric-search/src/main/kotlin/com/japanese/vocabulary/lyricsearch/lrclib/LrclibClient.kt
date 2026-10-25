@@ -3,6 +3,7 @@ package com.japanese.vocabulary.lyricsearch.lrclib
 import org.springframework.stereotype.Component
 import com.japanese.vocabulary.common.retry.TransientHttpErrors
 import com.japanese.vocabulary.lyricsearch.JapaneseLyricValidator
+import com.japanese.vocabulary.lyricsearch.LanguageVersion
 import com.japanese.vocabulary.common.text.ArtistNameNormalizer
 import com.japanese.vocabulary.lyricsearch.AppleMusicArtistAliasVerifier
 import com.japanese.vocabulary.lyricsearch.LyricProvider
@@ -16,6 +17,7 @@ import org.springframework.core.annotation.Order
 import org.springframework.web.client.HttpClientErrorException
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.RestClientResponseException
+import java.text.Normalizer
 import kotlin.math.abs
 
 @Order(1)
@@ -84,6 +86,10 @@ class LrclibClient(
             return null
         }
 
+        if (LanguageVersion.of(response.trackName) != LanguageVersion.of(title)) {
+            logger.info("Rejected other language version | provider=LrcLib | track='{}' | lrclibId={}", response.trackName, response.id)
+            return null
+        }
         return toResult(response)?.also {
             logger.info(
                 "Lyric search hit | provider=LrcLib | strategy=exact-match | lrclibId={} | synced={}",
@@ -154,7 +160,7 @@ class LrclibClient(
         // Tier 1: artist name match
         for (response in results) {
             val responseArtist = ArtistNameNormalizer.normalize(response.artistName)
-            if (normalizedParts.any { responseArtist.contains(it) }) {
+            if (normalizedParts.any { responseArtist.contains(it) } && titleMatches(query, response.trackName)) {
                 toResult(response)?.let {
                     logger.info(
                         "Lyric search hit | provider=LrcLib | strategy=keyword-search | mode={} | matchedBy=artist | responseArtist='{}' | lrclibId={} | synced={}",
@@ -172,6 +178,7 @@ class LrclibClient(
         for (response in results) {
             val responseDuration = response.duration ?: continue
             if (abs(durationSeconds - responseDuration) > DURATION_TOLERANCE_SECONDS) continue
+            if (!titleMatches(query, response.trackName)) continue
             val sameArtist = verifiedArtists.getOrPut(response.artistName) {
                 artistAliasVerifier.isSameArtist(query.artistParts, response.artistName)
             }
@@ -204,15 +211,44 @@ class LrclibClient(
             return null
         }
 
-        val isSynced = response.syncedLyrics?.isNotBlank() == true
+        // Some uploads put the LRC text in plainLyrics; stored as PLAIN, the stamps would show in the lyric lines.
+        val isSynced = response.syncedLyrics?.isNotBlank() == true || isTimestamped(lyrics)
         return LyricsResult(
             lrclibId = response.id,
-            lyrics = if (isSynced) response.syncedLyrics!! else lyrics,
+            lyrics = lyrics,
             isSynced = isSynced,
         )
     }
 
+    private fun isTimestamped(lyrics: String): Boolean {
+        val lines = lyrics.lines().filter { it.isNotBlank() }
+        return lines.isNotEmpty() && lines.count { LRC_LINE_RE.containsMatchIn(it) }.toDouble() / lines.size >= MIN_TIMESTAMPED_LINE_RATIO
+    }
+
+    /**
+     * Search results list the artist's other songs too, so the title must match apart from feat/descriptor
+     * spelling ("春日影 - MyGO!!!!! ver." vs "春日影 (MyGO!!!!! ver.)").
+     */
+    private fun titleMatches(query: NormalizedSongQuery, trackName: String): Boolean {
+        val track = comparableTitle(trackName)
+        return track.isNotEmpty() &&
+            (track == comparableTitle(query.originalTitle) || track == comparableTitle(query.normalizedTitle)) &&
+            LanguageVersion.of(trackName) == LanguageVersion.of(query.originalTitle)
+    }
+
+    private fun comparableTitle(title: String): String =
+        Normalizer.normalize(title, Normalizer.Form.NFKC).lowercase()
+            .replace(FEAT_RE, "")
+            .replace(DESCRIPTOR_RE, "")
+            .replace(NON_WORD_RE, "")
+
     private companion object {
         const val DURATION_TOLERANCE_SECONDS = 3
+        const val MIN_TIMESTAMPED_LINE_RATIO = 0.5
+        val LRC_LINE_RE = Regex("""^\s*\[\d{2,3}:\d{2}[.:]\d{2,3}]""")
+        val FEAT_RE = Regex("""\s*[(\[（]?\s*(?<![a-z])(?:feat\.?|ft\.?|featuring)\s[^)\]）]*[)\]）]?""")
+        // Bracketed or " - " suffix descriptors; version markers are compared separately by languageVersions.
+        val DESCRIPTOR_RE = Regex("""\s*(?:[(\[（【][^)\]）】]*[)\]）】]|\s[-–—]\s.*$)""")
+        val NON_WORD_RE = Regex("""[\p{P}\p{S}\s]+""")
     }
 }

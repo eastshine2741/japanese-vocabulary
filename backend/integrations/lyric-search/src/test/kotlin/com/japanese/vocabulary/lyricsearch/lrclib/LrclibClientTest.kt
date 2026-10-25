@@ -35,7 +35,7 @@ class LrclibClientTest {
             server.expect(requestTo(startsWithPath("/api/search"))).andExpect(queryParam("artist_name", "Sohbana"))
                 .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON))
             server.expect(requestTo(startsWithPath("/api/search"))).andExpect(queryParam("q", "%E6%81%8B"))
-                .andRespond(withSuccess(candidates(track(1, "Conton Candy", 203)), MediaType.APPLICATION_JSON))
+                .andRespond(withSuccess(candidates(track(1, "Conton Candy", 203, "恋")), MediaType.APPLICATION_JSON))
         }
 
         assertThat(client.search(query("恋", "Sohbana", 206))).isNull()
@@ -51,7 +51,7 @@ class LrclibClientTest {
             server.expect(requestTo(startsWithPath("/api/search"))).andExpect(queryParam("q", "%E3%83%9E%E3%83%AA%E3%83%BC%E3%82%B4%E3%83%BC%E3%83%AB%E3%83%89"))
                 .andRespond(
                     withSuccess(
-                        candidates(track(1, "orange pekoe", 305), track(2, "Aimyon", 306)),
+                        candidates(track(1, "orange pekoe", 305, "マリーゴールド"), track(2, "Aimyon", 306, "マリーゴールド")),
                         MediaType.APPLICATION_JSON,
                     ),
                 )
@@ -72,7 +72,7 @@ class LrclibClientTest {
             server.expect(requestTo(startsWithPath("/api/search"))).andExpect(queryParam("q", "Lemon"))
                 .andRespond(
                     withSuccess(
-                        candidates(track(1, "N.E.R.D", 226), track(2, "Kenshi Yonezu(켄시 요네즈/米津 玄師)", 274)),
+                        candidates(track(1, "N.E.R.D", 226, "Lemon"), track(2, "Kenshi Yonezu(켄시 요네즈/米津 玄師)", 274, "Lemon")),
                         MediaType.APPLICATION_JSON,
                     ),
                 )
@@ -91,7 +91,7 @@ class LrclibClientTest {
             server.expect(requestTo(startsWithPath("/api/search"))).andExpect(queryParam("artist_name", "%E7%B1%B3%E6%B4%A5%E7%8E%84%E5%B8%AB"))
                 .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE))
             server.expect(requestTo(startsWithPath("/api/search"))).andExpect(queryParam("artist_name", "%E7%B1%B3%E6%B4%A5%E7%8E%84%E5%B8%AB"))
-                .andRespond(withSuccess(candidates(track(2, "米津玄師", 274)), MediaType.APPLICATION_JSON))
+                .andRespond(withSuccess(candidates(track(2, "米津玄師", 274, "Lemon")), MediaType.APPLICATION_JSON))
         }
 
         val result = client.search(query("Lemon", "米津玄師", 274))!!
@@ -111,6 +111,51 @@ class LrclibClientTest {
             .isInstanceOf(HttpServerErrorException.ServiceUnavailable::class.java)
     }
 
+    /** Search results list the artist's other songs too (lrclib's q= matches artist text as well as titles). */
+    @Test
+    fun `an artist match with another title is not taken`(): Unit = runBlocking {
+        val client = clientWith(sameArtist = { _, _ -> error("alias check must not run") }) { server ->
+            server.expect(requestTo(startsWithPath("/api/get"))).andRespond(withStatus(HttpStatus.NOT_FOUND))
+            server.expect(requestTo(startsWithPath("/api/search"))).andExpect(queryParam("artist_name", "Guiano"))
+                .andRespond(withSuccess(candidates(track(1, "Guiano", 243, "花火")), MediaType.APPLICATION_JSON))
+            server.expect(requestTo(startsWithPath("/api/search"))).andExpect(queryParam("q", "%E8%8A%B1"))
+                .andRespond(withSuccess(candidates(track(2, "Guiano", 210, "花 - Guiano ver.")), MediaType.APPLICATION_JSON))
+        }
+
+        assertThat(client.search(query("花", "Guiano", 210))!!.lrclibId).isEqualTo(2)
+    }
+
+    @Test
+    fun `a result marked as another language version is not taken`(): Unit = runBlocking {
+        val client = clientWith(sameArtist = { _, _ -> error("alias check must not run") }) { server ->
+            server.expect(requestTo(startsWithPath("/api/get")))
+                .andRespond(withSuccess(track(1, "IVE", 177, "LOVE DIVE (Japanese ver.)"), MediaType.APPLICATION_JSON))
+            server.expect(requestTo(startsWithPath("/api/search"))).andExpect(queryParam("artist_name", "IVE"))
+                .andRespond(withSuccess(candidates(track(1, "IVE", 177, "LOVE DIVE (Japanese ver.)")), MediaType.APPLICATION_JSON))
+            server.expect(requestTo(startsWithPath("/api/search"))).andExpect(queryParam("q", "LOVE%20DIVE"))
+                .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON))
+        }
+
+        assertThat(client.search(query("LOVE DIVE", "IVE", 177))).isNull()
+    }
+
+    @Test
+    fun `plain lyrics that carry LRC stamps are taken as synced`(): Unit = runBlocking {
+        val client = clientWith(sameArtist = { _, _ -> error("alias check must not run") }) { server ->
+            server.expect(requestTo(startsWithPath("/api/get"))).andRespond(
+                withSuccess(
+                    track(1, "ピノキオピー", 191, "嘘ミーム", plain = "\\n[00:05.19] アレも嘘\\n[00:06.77] コレも嘘", synced = null),
+                    MediaType.APPLICATION_JSON,
+                ),
+            )
+        }
+
+        val result = client.search(query("嘘ミーム", "ピノキオピー", 191))!!
+
+        assertThat(result.isSynced).isTrue()
+        assertThat(result.lyrics).contains("[00:05.19] アレも嘘")
+    }
+
     private fun query(title: String, artist: String, duration: Int) =
         SongQueryNormalizer.normalize(title = title, artist = artist, durationSeconds = duration)
 
@@ -118,9 +163,16 @@ class LrclibClientTest {
 
     private fun candidates(vararg tracks: String) = tracks.joinToString(",", prefix = "[", postfix = "]")
 
-    private fun track(id: Long, artist: String, duration: Int) = """
-        {"id":$id,"trackName":"t","artistName":"$artist","albumName":null,"duration":$duration,
-         "instrumental":false,"plainLyrics":"恋をした\n君と","syncedLyrics":"[00:01.00]恋をした\n[00:02.00]君と"}
+    private fun track(
+        id: Long,
+        artist: String,
+        duration: Int,
+        title: String,
+        plain: String = "恋をした\\n君と",
+        synced: String? = "[00:01.00]恋をした\\n[00:02.00]君と",
+    ) = """
+        {"id":$id,"trackName":"$title","artistName":"$artist","albumName":null,"duration":$duration,
+         "instrumental":false,"plainLyrics":"$plain","syncedLyrics":${synced?.let { "\"$it\"" } ?: "null"}}
     """.trimIndent()
 
     private fun clientWith(
