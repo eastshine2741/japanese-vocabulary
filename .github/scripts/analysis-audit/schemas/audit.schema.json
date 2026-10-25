@@ -1,0 +1,36 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summary", "findings"],
+  "properties": {
+    "summary": { "type": "string" },
+    "findings": {
+      "type": "array",
+      "maxItems": 15,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["category", "confidence", "lineIndex", "target", "problem", "evidence", "suggestion"],
+        "properties": {
+          "category": {
+            "enum": [
+              "SEGMENTATION",
+              "MEANING",
+              "TRANSLATION",
+              "LYRICS_WRONG_SONG",
+              "LYRICS_NOT_JAPANESE",
+              "LYRICS_BROKEN",
+              "MV_MISMATCH"
+            ]
+          },
+          "confidence": { "enum": ["high", "medium"] },
+          "lineIndex": { "type": ["integer", "null"] },
+          "target": { "type": ["string", "null"] },
+          "problem": { "type": "string" },
+          "evidence": { "type": ["string", "null"] },
+          "suggestion": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}

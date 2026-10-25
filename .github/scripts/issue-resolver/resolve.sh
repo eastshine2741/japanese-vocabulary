@@ -20,7 +20,15 @@ if [ -f "$LOCK_FILE" ]; then
     rm -f "$LOCK_FILE"
 fi
 echo $$ > "$LOCK_FILE"
-trap 'rm -f "$LOCK_FILE"' EXIT
+RUN_RECORD_DIR="${KOTONOHA_RUN_RECORD_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/kotonoha-runners}"
+# daily-digest reports a runner as stopped when this record goes stale.
+record_run() {
+    local f="$RUN_RECORD_DIR/issue-resolver.json"
+    mkdir -p "$RUN_RECORD_DIR" 2>/dev/null || return 0
+    jq -n --arg at "$(date -Iseconds)" --argjson code "$1" \
+        '{name: "issue-resolver", finishedAt: $at, exitCode: $code}' > "$f.tmp" && mv "$f.tmp" "$f" || true
+}
+trap 'code=$?; rm -f "$LOCK_FILE"; record_run "$code"' EXIT
 
 cd "$REPO_DIR"
 

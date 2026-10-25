@@ -26,15 +26,10 @@ import { useHomeChromeStore } from '../stores/homeChromeStore';
 import { useDeleteSongDeck } from '../hooks/useDeleteSongDeck';
 import { deckApi } from '../api/deckApi';
 import { songApi } from '../api/songApi';
-import { songReportApi } from '../api/songReportApi';
-import { apiErrorMessage } from '../api/errors';
 import SkeletonBox from '../components/SkeletonLoading';
 import SongInfoSheet from '../components/SongInfoSheet';
-import ErrorDialog from '../components/ErrorDialog';
 import {
   AppBottomSheet,
-  AppBottomSheetModal,
-  AppBottomSheetModalRef,
   AppBottomSheetRef,
   AppBottomSheetView,
 } from '../components/bottomSheet';
@@ -48,14 +43,14 @@ import {
   SongDetailMvBar,
   SongDetailWordsActionBar,
   SongDetailWordsTab,
-  SongReportSheet,
-  SongReportThanksSheet,
+  SongReportModal,
   type SongDetailMvBarRef,
-  type SongReportSheetTarget,
+  type SongReportModalRef,
   type SongDetailWordItem,
   useSongDetailWordsTab,
 } from '../components/songDetail';
 import { pickLineWords, pickSampleLyric } from '../components/songDetail/songCardSample';
+import { buildStudyLines } from '../components/lineStudy/studyLines';
 import type { PreviewSong } from '../components/rewardCards/cardPreview';
 import { Colors, Dimens } from '../theme/theme';
 import { Layers } from '../theme/layers';
@@ -64,7 +59,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import type { StudyEntryTrigger } from '../services/analytics';
 import type { DeckDetailResponse } from '../types/deck';
 import type { SongWordTierDto } from '../types/song';
-import type { SongContributor, SubmitSongReportRequest } from '../types/songReport';
+import type { SongContributor } from '../types/songReport';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SongDetail'>;
 type DetailTab = 'home' | 'words' | 'cards';
@@ -102,6 +97,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const coverageHelpSheetRef = useRef<AppBottomSheetRef>(null);
   const coverageHelpSheetOpenRef = useRef(false);
   const collapseLyricsSheetRef = useRef<(() => boolean) | null>(null);
+  const pauseMvRef = useRef<(() => void) | null>(null);
   const isInitialFocusRef = useRef(true);
 
   const status = useSongDetailStore(s => s.status);
@@ -279,6 +275,10 @@ export default function SongDetailScreen({ navigation, route }: Props) {
       words: pickLineWords(data.words.words, lyric.map(line => line.index)),
     };
   }, [data]);
+  const studyLines = useMemo(() => (data == null || songTiers == null || data.lyrics.mvSynced !== true
+    ? null
+    : buildStudyLines(data.lyrics.lines, data.words.words, data.words.lineWordIndexes, songTiers)
+  ), [data, songTiers]);
   const currentTier = useMemo(
     () => (songTiers != null ? selectCurrentTier(songTiers) : null),
     [songTiers],
@@ -413,6 +413,12 @@ export default function SongDetailScreen({ navigation, route }: Props) {
       },
     });
   }, [data?.song, navigation, songDeckDetail, songId]);
+
+  const handleStartLines = useCallback(() => {
+    if (songId == null) return;
+    pauseMvRef.current?.();
+    navigation.navigate('SongLineStudy', { songId });
+  }, [navigation, songId]);
 
   const handlePrimaryLearningPress = useCallback(() => {
     handleStartLearning();
@@ -681,6 +687,8 @@ export default function SongDetailScreen({ navigation, route }: Props) {
                     contributors={songContributors}
                     onCoverageHelpPress={handleOpenCoverageHelp}
                     onStartTier={handleStartTier}
+                    studyLines={studyLines}
+                    onStartLines={handleStartLines}
                     onPressContributor={handlePressContributor}
                   />
                 </View>
@@ -757,6 +765,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         busyWordKey={busyWordKey}
         onStartWordReview={handleStartWordReview}
         collapseSheetRef={collapseLyricsSheetRef}
+        pauseMvRef={pauseMvRef}
       />
 
       <View
@@ -918,6 +927,8 @@ interface PlaybackOverlaysProps {
   onStartWordReview: React.ComponentProps<typeof CurrentPlayingWordsSheet>['onStartWordReview'];
   /** 백버튼이 위에 뜬 시트들을 먼저 닫은 뒤 가사 시트를 접도록 부모의 백 핸들러가 부른다. */
   collapseSheetRef: React.MutableRefObject<(() => boolean) | null>;
+  /** 자기 MV 를 트는 화면으로 넘어가기 전에 부모가 불러 소리가 겹치지 않게 한다. */
+  pauseMvRef: React.MutableRefObject<(() => void) | null>;
 }
 
 const PlaybackOverlays = React.memo(function PlaybackOverlays({
@@ -936,6 +947,7 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
   busyWordKey,
   onStartWordReview,
   collapseSheetRef,
+  pauseMvRef,
 }: PlaybackOverlaysProps) {
   // 가사 줄을 지정해 들어오면(예문) 가사 시트를 펼친 채 그 줄 시각부터 튼다.
   const initialSheetIndex = initialLyricIndex != null ? 1 : 0;
@@ -945,11 +957,7 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
   const wordsSheetRef = useRef<AppBottomSheetRef>(null);
   const wordsSheetIndexRef = useRef(initialSheetIndex);
   const wordsSheetAnimatedIndex = useSharedValue(initialSheetIndex);
-  const reportSheetRef = useRef<AppBottomSheetModalRef>(null);
-  const [reportTarget, setReportTarget] = useState<SongReportSheetTarget | null>(null);
-  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
-  const [reportSent, setReportSent] = useState(false);
-  const [reportError, setReportError] = useState<string | null>(null);
+  const reportModalRef = useRef<SongReportModalRef>(null);
   const setCurrentMs = usePlayerStore(s => s.setCurrentMs);
   const setDurationMs = usePlayerStore(s => s.setDurationMs);
   useEffect(() => {
@@ -981,36 +989,19 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
       collapseSheetRef.current = null;
     };
   }, [collapseSheetRef]);
+  useEffect(() => {
+    pauseMvRef.current = () => mvBarRef.current?.pause();
+    return () => {
+      pauseMvRef.current = null;
+    };
+  }, [pauseMvRef]);
 
   const handleOpenLineReport = useCallback((line: React.ComponentProps<typeof CurrentPlayingWordsSheet>['lines'][number]) => {
-    setReportTarget({ group: 'LYRIC_LINE', line });
-    reportSheetRef.current?.present();
+    reportModalRef.current?.open({ group: 'LYRIC_LINE', line });
   }, []);
   const handleOpenMvReport = useCallback(() => {
-    setReportTarget({ group: 'MV' });
-    reportSheetRef.current?.present();
+    reportModalRef.current?.open({ group: 'MV' });
   }, []);
-  const handleCloseReport = useCallback(() => {
-    reportSheetRef.current?.dismiss();
-  }, []);
-  const handleReportDismissed = useCallback(() => {
-    setReportTarget(null);
-    setReportSent(false);
-  }, []);
-  const handleDismissReportError = useCallback(() => {
-    setReportError(null);
-  }, []);
-  const handleSubmitReport = useCallback(async (request: SubmitSongReportRequest) => {
-    setIsSubmittingReport(true);
-    try {
-      await songReportApi.submit(songId, request);
-      setReportSent(true);
-    } catch (e) {
-      setReportError(apiErrorMessage(e, '제보를 보내지 못했어요. 잠시 후 다시 보내주세요'));
-    } finally {
-      setIsSubmittingReport(false);
-    }
-  }, [songId]);
   const mvBarHeader = useMemo(() => (
     <SongDetailMvBar
       ref={mvBarRef}
@@ -1059,32 +1050,13 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
         onSyncedPageChange={handleSyncedPageChange}
       />
 
-      <AppBottomSheetModal
-        ref={reportSheetRef}
-        enableDynamicSizing
-        enablePanDownToClose
-        keyboardBehavior="interactive"
-        keyboardBlurBehavior="restore"
-        onDismiss={handleReportDismissed}
-      >
-        <AppBottomSheetView fitAboveKeyboard>
-          {reportSent ? (
-            <SongReportThanksSheet onClose={handleCloseReport} />
-          ) : reportTarget ? (
-            <SongReportSheet
-              target={reportTarget}
-              songTitle={title}
-              songArtist={artist}
-              youtubeUrl={youtubeUrl}
-              submitting={isSubmittingReport}
-              onSubmit={handleSubmitReport}
-              onClose={handleCloseReport}
-            />
-          ) : null}
-        </AppBottomSheetView>
-      </AppBottomSheetModal>
-
-      <ErrorDialog message={reportError} onDismiss={handleDismissReportError} />
+      <SongReportModal
+        ref={reportModalRef}
+        songId={songId}
+        title={title}
+        artist={artist}
+        youtubeUrl={youtubeUrl}
+      />
     </>
   );
 });

@@ -8,6 +8,7 @@ import com.japanese.vocabulary.featureflag.FeatureFlagKeys
 import com.japanese.vocabulary.song.dto.AnalyzeSongRequest
 import com.japanese.vocabulary.song.model.AnalyzedLine
 import com.japanese.vocabulary.song.model.LyricLineData
+import com.japanese.vocabulary.song.model.LyricLineTiming
 import com.japanese.vocabulary.song.model.PartOfSpeech
 import com.japanese.vocabulary.song.dto.RecentSongItemDto
 import com.japanese.vocabulary.song.dto.SongAnalysisWorkResponse
@@ -32,6 +33,9 @@ import com.japanese.vocabulary.songsearch.dto.SongSearchItemDto
 import com.japanese.vocabulary.songsearch.dto.SongSearchResponse
 import com.japanese.vocabulary.song.model.Token
 import com.japanese.vocabulary.song.entity.LyricEntity
+import com.japanese.vocabulary.song.entity.LyricMvSyncEntity
+import com.japanese.vocabulary.song.entity.LyricMvSyncMethod
+import com.japanese.vocabulary.song.entity.LyricMvSyncStatus
 import com.japanese.vocabulary.song.entity.LyricType
 import com.japanese.vocabulary.song.entity.SongEntity
 import com.japanese.vocabulary.song.repository.LyricRepository
@@ -633,6 +637,84 @@ class SongControllerTest : ApiBaseIntegrationTest() {
     }
 
     @Nested
+    inner class MvSyncedTimings {
+
+        @Test
+        fun `timings synced to the current MV replace raw times and turn a PLAIN lyric SYNCED`() {
+            val me = newUser()
+            val song = TestSongBuilder(entityManager).withYoutubeUrl("https://www.youtube.com/watch?v=SX_ViT4Ra7k").build()
+            val lyric = newLyric(
+                song,
+                raw = listOf(
+                    LyricLineData(index = 0, startTimeMs = null, text = "夢ならば"),
+                    LyricLineData(index = 1, startTimeMs = null, text = "未だに"),
+                ),
+            )
+            completedSync(lyric, "SX_ViT4Ra7k", listOf(LyricLineTiming(0, 7600), LyricLineTiming(1, 12600)))
+
+            mockMvc.get("/api/songs/${song.id}") { header("Authorization", bearer(me)) }
+                .andExpect { jsonPath("$.lyricType") { value("SYNCED") } }
+            mockMvc.get("/api/songs/${song.id}/lyrics") { header("Authorization", bearer(me)) }
+                .andExpect {
+                    jsonPath("$.mvSynced") { value(true) }
+                    jsonPath("$.lines[0].startTimeMs") { value(7600) }
+                    jsonPath("$.lines[1].startTimeMs") { value(12600) }
+                }
+            mockMvc.get("/api/songs?title=${song.title}&artistName=${song.artist}") { header("Authorization", bearer(me)) }
+                .andExpect {
+                    jsonPath("$.song.lyricType") { value("SYNCED") }
+                    jsonPath("$.studyUnits[1].startTimeMs") { value(12600) }
+                }
+        }
+
+        @Test
+        fun `timings synced to another MV are ignored`() {
+            val me = newUser()
+            val song = TestSongBuilder(entityManager).withYoutubeUrl("https://www.youtube.com/watch?v=SX_ViT4Ra7k").build()
+            val lyric = newLyric(song, raw = listOf(LyricLineData(index = 0, startTimeMs = null, text = "夢ならば")))
+            completedSync(lyric, "zzzzzzzzzzz", listOf(LyricLineTiming(0, 7600)))
+
+            mockMvc.get("/api/songs/${song.id}") { header("Authorization", bearer(me)) }
+                .andExpect { jsonPath("$.lyricType") { value("PLAIN") } }
+            mockMvc.get("/api/songs/${song.id}/lyrics") { header("Authorization", bearer(me)) }
+                .andExpect {
+                    jsonPath("$.mvSynced") { value(false) }
+                    jsonPath("$.lines[0].startTimeMs") { value(null) }
+                }
+        }
+
+        @Test
+        fun `timings the agent judged LOW are not served`() {
+            val me = newUser()
+            val song = TestSongBuilder(entityManager).withYoutubeUrl("https://www.youtube.com/watch?v=SX_ViT4Ra7k").build()
+            val lyric = newLyric(song, raw = listOf(LyricLineData(index = 0, startTimeMs = null, text = "夢ならば")))
+            completedSync(lyric, "SX_ViT4Ra7k", listOf(LyricLineTiming(0, 7600)), verdict = "LOW")
+
+            mockMvc.get("/api/songs/${song.id}") { header("Authorization", bearer(me)) }
+                .andExpect { jsonPath("$.lyricType") { value("PLAIN") } }
+            mockMvc.get("/api/songs/${song.id}/lyrics") { header("Authorization", bearer(me)) }
+                .andExpect {
+                    jsonPath("$.mvSynced") { value(false) }
+                    jsonPath("$.lines[0].startTimeMs") { value(null) }
+                }
+        }
+
+        private fun completedSync(lyric: LyricEntity, videoId: String, timings: List<LyricLineTiming>, verdict: String = "OK") {
+            entityManager.persist(
+                LyricMvSyncEntity(
+                    lyricId = lyric.id!!,
+                    youtubeVideoId = videoId,
+                    status = LyricMvSyncStatus.COMPLETED,
+                    method = LyricMvSyncMethod.ALIGNED,
+                    lineTimings = timings,
+                    confidence = mapOf("verdict" to verdict),
+                ),
+            )
+            entityManager.flush()
+        }
+    }
+
+    @Nested
     inner class SongDetailWords {
 
         @Test
@@ -749,6 +831,39 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             assertThat(dto.words[1].isSavedGlobally).isTrue
             assertThat(dto.words[1].isSavedForSong).isFalse
             assertThat(dto.words[1].savedWordId).isNull()
+        }
+
+        @Test
+        fun `word is studied only when its card has been reviewed once`() {
+            val me = newUser()
+            val song = newSong()
+            val wordCandidates = LyricWordCandidates(
+                candidates = listOf(
+                    candidate("復習済み", 99.0, 0, listOf(0), "N3", "NOUN"),
+                    candidate("담기만함", 90.0, 1, listOf(0), "N3", "NOUN"),
+                    candidate("안담음", 80.0, 2, listOf(0), "N3", "NOUN"),
+                ),
+                lineCandidates = mapOf("0" to listOf(0, 1, 2)),
+            )
+            newLyric(
+                song,
+                raw = listOf(LyricLineData(index = 0, startTimeMs = null, text = "復習済み담기만함안담음")),
+                wordCandidates = wordCandidates,
+            )
+            val reviewed = TestWordBuilder(entityManager).forUser(me).withJapaneseText("復習済み").build()
+            TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(reviewed).lastReviewedAt(Instant.now(clock)).build()
+            val savedOnly = TestWordBuilder(entityManager).forUser(me).withJapaneseText("담기만함").build()
+            TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(savedOnly).build()
+            entityManager.flush()
+
+            val dto = readBody<WordsInSongDto>(mockMvc.get("/api/songs/${song.id}/words") {
+                header("Authorization", bearer(me))
+            }.andExpect {
+                status { isOk() }
+            }.andReturn().response.contentAsString)
+
+            assertThat(dto.words.associate { it.japanese to it.isStudied })
+                .containsExactlyInAnyOrderEntriesOf(mapOf("復習済み" to true, "담기만함" to false, "안담음" to false))
         }
 
         @Test

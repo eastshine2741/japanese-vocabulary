@@ -29,6 +29,7 @@ export {
   type SongReportSheetTarget,
 } from './SongReportSheet';
 export { default as SongReportThanksSheet } from './SongReportThanksSheet';
+export { default as SongReportModal, type SongReportModalRef } from './SongReportModal';
 export {
   CurrentPlayingWordsSheet,
   CURRENT_PLAYING_WORDS_PEEK_HEIGHT,

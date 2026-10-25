@@ -126,6 +126,22 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
     echo "  generate: openssl rand -hex 32" >&2
     exit 1
   fi
+  # 비면 가사 싱크 실행기 API 가 닫혀 곡 시각이 MV 에 맞춰지지 않는다. 막지는 않고 알린다.
+  if [[ -z "${ADMIN_LYRIC_SYNC_AGENT_TOKEN:-}" ]]; then
+    echo "Warning: ADMIN_LYRIC_SYNC_AGENT_TOKEN 이 비어 가사 싱크 실행기가 admin-api 에 붙지 못한다 ($ENV_FILE)" >&2
+  elif [[ ${#ADMIN_LYRIC_SYNC_AGENT_TOKEN} -lt 32 ]]; then
+    echo "Error: ADMIN_LYRIC_SYNC_AGENT_TOKEN must be at least 32 characters in $ENV_FILE" >&2
+    echo "  generate: openssl rand -hex 32" >&2
+    exit 1
+  fi
+  # 비면 곡 분석 감사 러너가 admin-api 에 붙지 못한다. 막지는 않고 알린다.
+  if [[ -z "${ADMIN_ANALYSIS_AUDIT_TOKEN:-}" ]]; then
+    echo "Warning: ADMIN_ANALYSIS_AUDIT_TOKEN 이 비어 곡 분석 감사 러너가 admin-api 에 붙지 못한다 ($ENV_FILE)" >&2
+  elif [[ ${#ADMIN_ANALYSIS_AUDIT_TOKEN} -lt 32 ]]; then
+    echo "Error: ADMIN_ANALYSIS_AUDIT_TOKEN must be at least 32 characters in $ENV_FILE" >&2
+    echo "  generate: openssl rand -hex 32" >&2
+    exit 1
+  fi
   # 비면 앱 링크 검증 파일이 404 라 공유 링크가 앱 대신 브라우저로 열린다. 막지는 않고 알린다.
   if [[ -z "${SHARE_APPLE_APP_ID:-}" || -z "${SHARE_ANDROID_SHA256_FINGERPRINTS:-}" ]]; then
     echo "Warning: SHARE_APPLE_APP_ID / SHARE_ANDROID_SHA256_FINGERPRINTS 가 비어 공유 링크가 앱으로 열리지 않는다 ($ENV_FILE)" >&2
@@ -172,8 +188,8 @@ if [[ "$DEPLOY_ENV" == "dev" ]]; then
   export SHARE_DEV_ORIGIN SHARE_APP_SCHEME
 fi
 
-# 곡 분석 파이프라인이 batch 에서 worker 로 옮겨졌다. 전용 DSN 이 없으면 batch 가 쓰던 프로젝트로
-# 계속 보낸다 — .github/scripts/analysis-feedback 러너가 그 프로젝트(kotonoha-batch-prod)를 읽는다.
+# 곡 분석 파이프라인이 batch 에서 worker 로 옮겨졌다. 전용 DSN 이 없으면 batch 가 쓰던 프로젝트로 보낸다.
+# .github/scripts/analysis-feedback 러너의 SENTRY_PROJECT 는 이 DSN 의 프로젝트와 같아야 한다.
 SENTRY_DSN_WORKER="${SENTRY_DSN_WORKER:-${SENTRY_DSN_BATCH:-}}"
 
 # admin-web 은 asset base 와 router basename 을 빌드 시점에 굽는다.
@@ -222,7 +238,9 @@ build_boot_image() {
     -f "$module_dir/Dockerfile" "$ctx/"
 }
 export API_IMAGE BATCH_IMAGE WORKER_IMAGE MIGRATION_IMAGE ADMIN_API_IMAGE ADMIN_WEB_IMAGE SHARE_WEB_IMAGE LANDING_WEB_IMAGE NS SENTRY_ENVIRONMENT SENTRY_RELEASE
-export ADMIN_PASSWORD ADMIN_PASSWORD_SHA256 ADMIN_TOKEN_SECRET SHARE_TOKEN_KEYS
+ADMIN_LYRIC_SYNC_AGENT_TOKEN="${ADMIN_LYRIC_SYNC_AGENT_TOKEN:-}"
+ADMIN_ANALYSIS_AUDIT_TOKEN="${ADMIN_ANALYSIS_AUDIT_TOKEN:-}"
+export ADMIN_PASSWORD ADMIN_PASSWORD_SHA256 ADMIN_TOKEN_SECRET ADMIN_LYRIC_SYNC_AGENT_TOKEN ADMIN_ANALYSIS_AUDIT_TOKEN SHARE_TOKEN_KEYS
 export SENTRY_DSN_WORKER
 
 echo "=== env: $DEPLOY_ENV | namespace: $NS | sha: $GIT_SHA ==="
@@ -304,6 +322,8 @@ else
   echo "[k3s] importing images..."
   docker save "$API_IMAGE" "$BATCH_IMAGE" "$WORKER_IMAGE" "$MIGRATION_IMAGE" "$ADMIN_API_IMAGE" "$ADMIN_WEB_IMAGE" "$SHARE_WEB_IMAGE" "$LANDING_WEB_IMAGE" | sudo k3s ctr images import -
 fi
+# kubelet image GC 는 k3s containerd 만 비워서, docker 에 쌓인 이전 SHA 태그가 디스크를 채우면 노드가 disk-pressure 로 pod 를 내보낸다
+docker images --format '{{.Repository}}:{{.Tag}}' | grep "^${IMAGE_PREFIX}-" | grep -v ":${GIT_SHA}$" | xargs -r docker rmi >/dev/null 2>&1 || true
 echo "  → $((SECONDS - STEP_START))s"
 
 STEP_START=$SECONDS

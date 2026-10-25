@@ -21,13 +21,14 @@ interface Props {
   // Muted autoplay is always permitted by the platform.
   muted?: boolean;
   lowestQuality?: boolean;
+  startSeconds?: number;
   onTimeChange?: (seconds: number) => void;
   onDurationChange?: (seconds: number) => void;
   onStateChange?: (state: string) => void;
 }
 
 /** HTML template mirroring android-youtube-player's ayp_youtube_player.html: deferred IFrame API script, origin set to the app package name. */
-function buildPlayerHTML(videoId: string, autoplay: boolean, muted: boolean, lowestQuality: boolean): string {
+function buildPlayerHTML(videoId: string, autoplay: boolean, muted: boolean, lowestQuality: boolean, startSeconds: number): string {
   return `<!DOCTYPE html>
 <html>
   <style type="text/css">
@@ -61,7 +62,7 @@ function buildPlayerHTML(videoId: string, autoplay: boolean, muted: boolean, low
             sendMessage('ready', {});
             ${muted ? 'event.target.mute();' : ''}
             ${lowestQuality ? "event.target.setPlaybackQuality('small');" : ''}
-            ${autoplay ? `loadVideo('${videoId}', 0);` : `cueVideo('${videoId}', 0);`}
+            ${autoplay ? `loadVideo('${videoId}', ${startSeconds});` : `cueVideo('${videoId}', ${startSeconds});`}
           },
           onStateChange: function(event) { sendPlayerStateChange(event.data); },
           onError: function(error) { sendMessage('error', { code: error.data }); }
@@ -130,6 +131,7 @@ const YouTubePlayer = forwardRef<YouTubePlayerRef, Props>(({
   autoplay = true,
   muted = false,
   lowestQuality = false,
+  startSeconds = 0,
   onTimeChange,
   onDurationChange,
   onStateChange,
@@ -139,9 +141,10 @@ const YouTubePlayer = forwardRef<YouTubePlayerRef, Props>(({
   const initialAutoplay = useRef(autoplay).current;
   const initialMuted = useRef(muted).current;
   const initialLowestQuality = useRef(lowestQuality).current;
+  const initialStartSeconds = useRef(startSeconds).current;
   const html = useMemo(
-    () => buildPlayerHTML(videoId, initialAutoplay, initialMuted, initialLowestQuality),
-    [videoId, initialAutoplay, initialMuted, initialLowestQuality],
+    () => buildPlayerHTML(videoId, initialAutoplay, initialMuted, initialLowestQuality, initialStartSeconds),
+    [videoId, initialAutoplay, initialMuted, initialLowestQuality, initialStartSeconds],
   );
 
   useImperativeHandle(ref, () => ({

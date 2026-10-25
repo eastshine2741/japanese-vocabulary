@@ -26,6 +26,8 @@ export default function UserProfileScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     let alive = true;
+    // 카드가 가장 늦게 오므로 프로필을 기다리지 않고 같이 받는다. 내 프로필이면 버려진다.
+    useUserProfileStore.getState().loadCards(userId);
     userProfileApi.getProfile(userId)
       .then((data) => alive && setProfile(data))
       .catch(() => alive && setFailed(true));
@@ -54,11 +56,10 @@ export default function UserProfileScreen({ navigation, route }: Props) {
 function OtherProfile({ profile, navigation }: { profile: PublicUserProfile; navigation: Props['navigation'] }) {
   const { userId } = profile;
   const insets = useSafeAreaInsets();
-  const { cards, cardsStatus, loadCards } = useUserProfileStore(
+  const { cards, cardsStatus } = useUserProfileStore(
     useShallow((s) => ({
       cards: s.cards[userId],
       cardsStatus: s.cardsStatus[userId],
-      loadCards: s.loadCards,
     })),
   );
   const [stats, setStats] = useState<FlashcardStatsResponse | null>(null);
@@ -68,7 +69,6 @@ function OtherProfile({ profile, navigation }: { profile: PublicUserProfile; nav
 
   useEffect(() => {
     let alive = true;
-    loadCards(userId);
     userProfileApi.getFlashcardStats(userId)
       .then((data) => alive && setStats(data))
       .catch(() => alive && setStatsFailed(true));
@@ -81,7 +81,7 @@ function OtherProfile({ profile, navigation }: { profile: PublicUserProfile; nav
     return () => {
       alive = false;
     };
-  }, [userId, loadCards]);
+  }, [userId]);
 
   const displayName = profile.name.trim() || '학습자';
   const progressItems = useMemo(() => (songDecks ?? []).map(toSongProgressItem), [songDecks]);

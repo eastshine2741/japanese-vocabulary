@@ -8,6 +8,8 @@ import {
   adminUserDetail,
   adminUserWord,
   lyricDetail,
+  lyricMvSyncDetail,
+  lyricMvSyncSummary,
   page,
   recommendation,
   reelsSongCandidate,
@@ -63,6 +65,8 @@ function mockFetch() {
     if (url.endsWith("/recommendations/11") && init?.method === "DELETE") return new Response(null, { status: 204 })
     if (url.endsWith("/recommendations") && init?.method === "POST") return json({ error: "already recommended" }, 409)
     if (url.endsWith("/recommendations")) return json([recommendation])
+    if (url.includes("/lyric-mv-syncs/13")) return json(lyricMvSyncDetail)
+    if (url.includes("/lyric-mv-syncs?")) return json(page([lyricMvSyncSummary]))
     if (url.includes("/lyrics/2")) return json(lyricDetail)
     if (url.includes("/users/3/words")) {
       const words = new URL(url).searchParams.get("deckId") === "11" ? [adminUserWord] : [adminUserWord, { ...adminUserWord, id: 21, japaneseText: "夜", reading: "ヨル", senses: [{ meaning: "밤", partOfSpeech: "명사", jlpt: "N5", examples: [] }], sourceSongs: [], flashcard: { status: "NEW", fsrsState: 0, due: "2026-01-01T00:00:00Z", lastReview: null } }]
@@ -327,6 +331,31 @@ describe("admin web", () => {
     expect(screen.getByText("Elapsed time")).toBeInTheDocument()
     expect(screen.getByText("Created to terminal")).toBeInTheDocument()
     expect(screen.getAllByText("3m 00s").length).toBeGreaterThan(0)
+  })
+
+  test("lists lyric MV syncs filtered by verdict", async () => {
+    const user = userEvent.setup()
+    sessionStorage.setItem("kotonoha.admin.token", "admin-token")
+    const fetchMock = mockFetch()
+    renderApp("/lyric-mv-syncs")
+
+    expect(await screen.findByText("あだぽしゃ")).toBeInTheDocument()
+    expect(screen.getByText("2 / 3")).toBeInTheDocument()
+    await user.selectOptions(screen.getByLabelText("Verdict"), "LOW")
+    await user.click(screen.getByRole("button", { name: "Filter syncs" }))
+    await waitFor(() => expect(fetchMock.mock.calls.some(([input]) => String(input).includes("verdict=LOW"))).toBe(true))
+  })
+
+  test("lyric MV sync detail lists each line with its MV time and original time switch", async () => {
+    sessionStorage.setItem("kotonoha.admin.token", "admin-token")
+    renderApp("/lyric-mv-syncs/13")
+
+    expect(await screen.findByRole("heading", { name: "あだぽしゃ" })).toBeInTheDocument()
+    expect(screen.getByText("分かっていたでしょう")).toBeInTheDocument()
+    expect(screen.getByText("0:44.88")).toBeInTheDocument()
+    // PLAIN 가사라 원래 시각이 없어 원본 시각으로는 못 바꾼다.
+    expect(screen.getByRole("button", { name: "Original" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "MV sync" })).toHaveAttribute("aria-pressed", "true")
   })
 
   test("shows stage failures, stage output, and resumes from the failed stage", async () => {

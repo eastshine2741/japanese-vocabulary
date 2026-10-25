@@ -23,6 +23,7 @@ type AnalyticsEvent =
   | { name: 'review_exit'; params: ReviewExitParams }
   | { name: 'review_complete'; params: ReviewCompleteParams }
   | { name: 'review_continue'; params: ReviewContinueParams }
+  | { name: 'line_study_exit'; params: LineStudyExitParams }
   | { name: 'card_share'; params: { kind: ShareCardKind; method: 'x' | 'instagram_story' | 'instagram_dm' | 'link' } }
   | { name: 'share_link_open'; params: { kind: ShareCardKind } };
 
@@ -34,7 +35,7 @@ export type AnalyzeOutcome = 'success' | 'lyrics_not_found' | 'failed';
  * 복습 화면을 연 버튼. 곡 상세의 cta: 상단 학습 버튼, tier: 단계 학습 카드, word: 단어 탭.
  * streak/schedule: 연속 학습·복습 스케줄 화면의 CTA(전체 단어장). SongReview screen_view 파라미터.
  */
-export type StudyEntryTrigger = 'cta' | 'tier' | 'word' | 'streak' | 'schedule' | 'reward_card';
+export type StudyEntryTrigger = 'cta' | 'tier' | 'word' | 'streak' | 'schedule' | 'reward_card' | 'line';
 
 /** position: 이번 세션에서 이 카드 앞에 평가를 마친 카드 수 (첫 카드면 0). */
 export interface StudyCardParams {
@@ -77,6 +78,22 @@ export interface ReviewContinueParams {
   kind: ReviewContinueKind;
   song_id?: number;
   reviewed: number;
+}
+
+/** 줄 공부 화면을 떠날 때의 상태. 몇 줄까지 갔고 그중 몇 줄을 풀어 열었는지 본다. */
+export interface LineStudyExitParams {
+  song_id: number;
+  /** leave: 화면을 떠남, background: 앱이 백그라운드로 감(앱 종료 포함) */
+  how: 'leave' | 'background';
+  lines_total: number;
+  /** 가장 멀리 간 줄까지의 줄 수. 지나온 줄로 돌아가 들어도 줄지 않는다. */
+  lines_reached: number;
+  /** 이번 열림에서 단어를 풀어 번역이 열린 줄 수 */
+  lines_opened: number;
+  replays: number;
+  /** 마지막 줄에서 다음을 눌러 끝냄 */
+  completed: boolean;
+  dwell_sec: number;
 }
 
 // 모든 발화는 best-effort. 로깅 실패가 화면 동작을 막아선 안 된다.
@@ -127,6 +144,10 @@ export function trackReviewComplete(params: ReviewCompleteParams): void {
 
 export function trackReviewContinue(params: ReviewContinueParams): void {
   track({ name: 'review_continue', params });
+}
+
+export function trackLineStudyExit(params: LineStudyExitParams): void {
+  track({ name: 'line_study_exit', params });
 }
 
 export function trackCardShare(kind: ShareCardKind, method: 'x' | 'instagram_story' | 'instagram_dm' | 'link'): void {

@@ -355,3 +355,35 @@ export type FeatureFlag = {
   on: boolean
   updatedAt: string | null
 }
+
+export type LyricMvSyncSummary = {
+  id: number
+  songId: number | null
+  title: string | null
+  artist: string | null
+  lyricId: number
+  lyricType: string | null
+  youtubeVideoId: string
+  status: string
+  method: string | null
+  attempt: number
+  verdict: string | null
+  lineCount: number | null
+  anchoredCount: number | null
+  errorMessage: string | null
+  completedAt: string | null
+  inUse: boolean
+}
+
+export type LyricMvSyncLine = {
+  index: number
+  text: string
+  originalStartTimeMs: number | null
+  syncedStartTimeMs: number | null
+}
+
+export type LyricMvSyncDetail = {
+  summary: LyricMvSyncSummary
+  confidence: Record<string, unknown> | null
+  lines: LyricMvSyncLine[]
+}

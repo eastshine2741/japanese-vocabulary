@@ -1,0 +1,12 @@
+[Unit]
+Description=Kotonoha lyric MV sync agent
+After=network-online.target
+
+[Service]
+EnvironmentFile=%h/.config/kotonoha/lyric-sync-agent.env
+ExecStart=@AGENT_DIR@/run.sh
+Restart=on-failure
+RestartSec=60
+
+[Install]
+WantedBy=default.target

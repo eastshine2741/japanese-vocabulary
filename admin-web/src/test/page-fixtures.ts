@@ -3,6 +3,8 @@ import type {
   AdminUserDetail,
   AdminUserWord,
   LyricDetail,
+  LyricMvSyncDetail,
+  LyricMvSyncSummary,
   LyricSummary,
   PageResponse,
   Recommendation,
@@ -328,4 +330,33 @@ export const songReportDetail: SongReportDetail = {
       tokens: lyricDetail.analyzedContent![0].tokens,
     },
   },
+}
+
+export const lyricMvSyncSummary: LyricMvSyncSummary = {
+  id: 13,
+  songId: 1,
+  title: "あだぽしゃ",
+  artist: "いよわ",
+  lyricId: 2,
+  lyricType: "PLAIN",
+  youtubeVideoId: "Wr-2xcQkke4",
+  status: "COMPLETED",
+  method: "ALIGNED",
+  attempt: 1,
+  verdict: "LOW",
+  lineCount: 3,
+  anchoredCount: 2,
+  errorMessage: null,
+  completedAt: "2026-01-01T00:00:00Z",
+  inUse: true,
+}
+
+export const lyricMvSyncDetail: LyricMvSyncDetail = {
+  summary: lyricMvSyncSummary,
+  confidence: { lines: 3, anchored: 2, filled: 1, snapped: 0, verdict: "LOW" },
+  lines: [
+    { index: 0, text: "分かり合えないと", originalStartTimeMs: null, syncedStartTimeMs: 43300 },
+    { index: 1, text: "分かっていたでしょう", originalStartTimeMs: null, syncedStartTimeMs: 44880 },
+    { index: 2, text: "お互い幸せになりましょうね", originalStartTimeMs: null, syncedStartTimeMs: 46940 },
+  ],
 }

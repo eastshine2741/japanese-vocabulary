@@ -8,6 +8,7 @@ import com.japanese.vocabulary.song.model.SongEditOp
 import com.japanese.vocabulary.song.model.SongReportChange
 import com.japanese.vocabulary.song.model.SongReportChangeLocator
 import com.japanese.vocabulary.song.model.Token
+import com.japanese.vocabulary.song.model.YoutubeVideoId
 import org.springframework.stereotype.Component
 
 data class SongEditResult(
@@ -137,9 +138,7 @@ class SongEditApplier {
         SongReportChangeLocator(lyricId = lyric?.id, lineIndex = lineIndex, charStart = charStart, charEnd = charEnd)
 
     private fun normalizeYoutubeUrl(value: String): String {
-        val trimmed = value.trim()
-        val videoId = YOUTUBE_URL.find(trimmed)?.groupValues?.get(1)
-            ?: trimmed.takeIf { YOUTUBE_VIDEO_ID.matches(it) }
+        val videoId = YoutubeVideoId.parse(value)
             ?: throw IllegalArgumentException("not a YouTube URL or video id: $value")
         return "https://www.youtube.com/watch?v=$videoId"
     }
@@ -149,8 +148,6 @@ class SongEditApplier {
         text.map { if (it in 'ぁ'..'ゖ') it + KATAKANA_OFFSET else it }.joinToString("")
 
     companion object {
-        private val YOUTUBE_URL = Regex("""(?:v=|youtu\.be/|shorts/|embed/)([a-zA-Z0-9_-]{11})""")
-        private val YOUTUBE_VIDEO_ID = Regex("""[a-zA-Z0-9_-]{11}""")
         private const val KATAKANA_OFFSET = 0x60
     }
 }

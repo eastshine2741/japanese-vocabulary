@@ -40,6 +40,7 @@ export interface SongDetailMvBarProps {
 
 export interface SongDetailMvBarRef {
   seekToMs: (milliseconds: number) => void;
+  pause: () => void;
 }
 
 function formatTime(ms: number): string {
@@ -132,7 +133,13 @@ const SongDetailMvBarComponent = forwardRef<SongDetailMvBarRef, SongDetailMvBarP
     applySeekToMs(nextMs);
   }, [applySeekToMs, effectiveDurationMs]);
 
-  useImperativeHandle(ref, () => ({ seekToMs }), [seekToMs]);
+  const pause = useCallback(() => {
+    playerRef.current?.pause();
+    setIsPlaying(false);
+    onPlayingChange?.(false);
+  }, [onPlayingChange]);
+
+  useImperativeHandle(ref, () => ({ seekToMs, pause }), [pause, seekToMs]);
 
   const handleTogglePlayback = useCallback(() => {
     if (isPlaying) {

@@ -41,6 +41,8 @@ cd app-rn && npx expo start --web             # App - Web (dev)
 - 단어 뜻 파이프라인 guardrails: `docs/translation-pipeline.md`
 - 주요 단어 점수(`importanceScore`): `docs/architecture/major-word-scoring.md`
 - 곡 상세 단어 tier·이해도, 학습 세션 카드: `docs/architecture/song-word-tiers.md`
+- 가사 줄 시각을 MV 에 맞추기(로컬 PC 실행기 `lyric-sync-agent/`): `docs/architecture/lyric-mv-sync.md`
+- 가사 MV 싱크로 드러난 곡 데이터 결함(MV·가사 오연결) 기록: `docs/lyric-mv-sync-defects.md`
 - 아티스트 상세·Apple Music 아티스트 연결: `docs/architecture/artist-detail.md`
 - Feature flag(시각 구간): `docs/architecture/feature-flag.md`
 - 푸시 알림(연속 학습 알림 포함): `docs/architecture/push-notification.md`
@@ -54,6 +56,8 @@ cd app-rn && npx expo start --web             # App - Web (dev)
 - 앱 UI 함정: `docs/runbooks/bottom-sheet-nested-scroll.md`, `docs/runbooks/ios-native-animated-pitfalls.md`
 - Pen(.pen 디자인 파일) 편집: `docs/runbooks/pencil-editing.md`
 - 분석 결함 로그·자동 수정 러너: `.github/scripts/analysis-feedback/README.md`
+- 완료된 곡 분석 감사·issue 러너: `.github/scripts/analysis-audit/README.md`
+- 매일 아침 Discord 데일리 피드 러너(지표·골든패스·신기능·인프라·문의·러너 상태): `.github/scripts/daily-digest/README.md`
 
 `docs/archive/` 는 끝난 계획·조사라 근거로 쓰지 않는다.
 

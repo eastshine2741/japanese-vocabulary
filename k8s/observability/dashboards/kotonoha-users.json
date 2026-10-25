@@ -574,6 +574,230 @@
         "w": 24,
         "h": 8
       }
+    },
+    {
+      "type": "stat",
+      "title": "학습 리텐션",
+      "datasource": {
+        "type": "grafana-bigquery-datasource",
+        "uid": "bigquery"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-bigquery-datasource",
+            "uid": "bigquery"
+          },
+          "editorMode": "code",
+          "rawQuery": true,
+          "format": 1,
+          "rawSql": "WITH ev AS (\n  SELECT\n    user_pseudo_id,\n    user_id,\n    event_name,\n    PARSE_DATE('%Y%m%d', event_date) AS d,\n    (SELECT value.int_value FROM UNNEST(event_params) WHERE key = 'previous_first_open_count') AS prev_opens,\n    device.mobile_model_name AS model,\n    device.mobile_brand_name AS brand,\n    app_info.install_source AS install_source\n  FROM `japanese-vocabulary-490916.analytics_539684755.events_*`\n  WHERE (_TABLE_SUFFIX BETWEEN FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul')) AND FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))\n      OR _TABLE_SUFFIX BETWEEN CONCAT('intraday_', FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul'))) AND CONCAT('intraday_', FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))))\n    AND _TABLE_SUFFIX NOT IN (\n      SELECT CONCAT('intraday_', SUBSTR(table_id, 8))\n      FROM `japanese-vocabulary-490916.analytics_539684755.__TABLES__`\n      WHERE table_id BETWEEN CONCAT('events_', FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul'))) AND CONCAT('events_', FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))))\n    AND event_date BETWEEN FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul')) AND FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))\n    AND app_info.id = 'dev.eastshine.kotonoha'\n),\n-- 운영자·스토어 테스트 기기는 설치 단위로 뺀다 (docs/analytics.md 해석 주의)\nexcluded AS (\n  SELECT DISTINCT user_pseudo_id\n  FROM ev\n  WHERE user_id IN ('1', '32')\n    OR model = 'IN2025'\n    OR (install_source = 'manual_install' AND brand IS NULL)\n),\n-- card_rate 는 2026-10-05 부터 남아서 그 전 설치는 복귀를 셀 수 없다\ncohort AS (\n  SELECT user_pseudo_id, MIN(d) AS installed\n  FROM ev\n  WHERE event_name = 'first_open'\n    AND COALESCE(prev_opens, 0) = 0\n    AND d >= DATE '2026-10-05'\n    AND user_pseudo_id NOT IN (SELECT user_pseudo_id FROM excluded)\n  GROUP BY user_pseudo_id\n),\nreturned AS (\n  SELECT\n    user_pseudo_id,\n    installed,\n    LOGICAL_OR(s.d = DATE_ADD(installed, INTERVAL 1 DAY)) AS d1,\n    LOGICAL_OR(s.d = DATE_ADD(installed, INTERVAL 2 DAY)) AS d2,\n    LOGICAL_OR(s.d = DATE_ADD(installed, INTERVAL 7 DAY)) AS d7\n  FROM cohort\n  LEFT JOIN (SELECT DISTINCT user_pseudo_id, d FROM ev WHERE event_name = 'card_rate') s USING (user_pseudo_id)\n  GROUP BY user_pseudo_id, installed\n),\n-- 오늘은 아직 안 끝나서 복귀 판정에서 뺀다\nlast_day AS (\n  SELECT LEAST(DATE($__timeTo(), 'Asia/Seoul'), DATE_SUB(CURRENT_DATE('Asia/Seoul'), INTERVAL 1 DAY)) AS t\n)\nSELECT\n  SAFE_DIVIDE(COUNTIF(d1 AND installed <= DATE_SUB(t, INTERVAL 1 DAY)), COUNTIF(installed <= DATE_SUB(t, INTERVAL 1 DAY))) AS d1,\n  SAFE_DIVIDE(COUNTIF(d2 AND installed <= DATE_SUB(t, INTERVAL 2 DAY)), COUNTIF(installed <= DATE_SUB(t, INTERVAL 2 DAY))) AS d2,\n  SAFE_DIVIDE(COUNTIF(d7 AND installed <= DATE_SUB(t, INTERVAL 7 DAY)), COUNTIF(installed <= DATE_SUB(t, INTERVAL 7 DAY))) AS d7\nFROM returned CROSS JOIN last_day"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "d1"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "D1"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "d2"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "D2"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "d7"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "D7"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "id": 8,
+      "gridPos": {
+        "x": 0,
+        "y": 21,
+        "w": 8,
+        "h": 8
+      }
+    },
+    {
+      "type": "table",
+      "title": "주간 코호트 학습 리텐션",
+      "datasource": {
+        "type": "grafana-bigquery-datasource",
+        "uid": "bigquery"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-bigquery-datasource",
+            "uid": "bigquery"
+          },
+          "editorMode": "code",
+          "rawQuery": true,
+          "format": 1,
+          "rawSql": "WITH ev AS (\n  SELECT\n    user_pseudo_id,\n    user_id,\n    event_name,\n    PARSE_DATE('%Y%m%d', event_date) AS d,\n    (SELECT value.int_value FROM UNNEST(event_params) WHERE key = 'previous_first_open_count') AS prev_opens,\n    device.mobile_model_name AS model,\n    device.mobile_brand_name AS brand,\n    app_info.install_source AS install_source\n  FROM `japanese-vocabulary-490916.analytics_539684755.events_*`\n  WHERE (_TABLE_SUFFIX BETWEEN FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul')) AND FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))\n      OR _TABLE_SUFFIX BETWEEN CONCAT('intraday_', FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul'))) AND CONCAT('intraday_', FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))))\n    AND _TABLE_SUFFIX NOT IN (\n      SELECT CONCAT('intraday_', SUBSTR(table_id, 8))\n      FROM `japanese-vocabulary-490916.analytics_539684755.__TABLES__`\n      WHERE table_id BETWEEN CONCAT('events_', FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul'))) AND CONCAT('events_', FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))))\n    AND event_date BETWEEN FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul')) AND FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))\n    AND app_info.id = 'dev.eastshine.kotonoha'\n),\n-- 운영자·스토어 테스트 기기는 설치 단위로 뺀다 (docs/analytics.md 해석 주의)\nexcluded AS (\n  SELECT DISTINCT user_pseudo_id\n  FROM ev\n  WHERE user_id IN ('1', '32')\n    OR model = 'IN2025'\n    OR (install_source = 'manual_install' AND brand IS NULL)\n),\n-- card_rate 는 2026-10-05 부터 남아서 그 전 설치는 복귀를 셀 수 없다\ncohort AS (\n  SELECT user_pseudo_id, MIN(d) AS installed\n  FROM ev\n  WHERE event_name = 'first_open'\n    AND COALESCE(prev_opens, 0) = 0\n    AND d >= DATE '2026-10-05'\n    AND user_pseudo_id NOT IN (SELECT user_pseudo_id FROM excluded)\n  GROUP BY user_pseudo_id\n),\nreturned AS (\n  SELECT\n    user_pseudo_id,\n    installed,\n    LOGICAL_OR(s.d = DATE_ADD(installed, INTERVAL 1 DAY)) AS d1,\n    LOGICAL_OR(s.d = DATE_ADD(installed, INTERVAL 2 DAY)) AS d2,\n    LOGICAL_OR(s.d = DATE_ADD(installed, INTERVAL 7 DAY)) AS d7\n  FROM cohort\n  LEFT JOIN (SELECT DISTINCT user_pseudo_id, d FROM ev WHERE event_name = 'card_rate') s USING (user_pseudo_id)\n  GROUP BY user_pseudo_id, installed\n),\n-- 오늘은 아직 안 끝나서 복귀 판정에서 뺀다\nlast_day AS (\n  SELECT LEAST(DATE($__timeTo(), 'Asia/Seoul'), DATE_SUB(CURRENT_DATE('Asia/Seoul'), INTERVAL 1 DAY)) AS t\n)\nSELECT\n  DATE_TRUNC(installed, ISOWEEK) AS cohort_week,\n  COUNT(*) AS installs,\n  SAFE_DIVIDE(COUNTIF(d1 AND installed <= DATE_SUB(t, INTERVAL 1 DAY)), NULLIF(COUNTIF(installed <= DATE_SUB(t, INTERVAL 1 DAY)), 0)) AS d1,\n  SAFE_DIVIDE(COUNTIF(d2 AND installed <= DATE_SUB(t, INTERVAL 2 DAY)), NULLIF(COUNTIF(installed <= DATE_SUB(t, INTERVAL 2 DAY)), 0)) AS d2,\n  SAFE_DIVIDE(COUNTIF(d7 AND installed <= DATE_SUB(t, INTERVAL 7 DAY)), NULLIF(COUNTIF(installed <= DATE_SUB(t, INTERVAL 7 DAY)), 0)) AS d7\nFROM returned CROSS JOIN last_day\nGROUP BY cohort_week\nORDER BY cohort_week DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          },
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "cohort_week"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "설치 주"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "installs"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "설치"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "d1"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "D1"
+              },
+              {
+                "id": "unit",
+                "value": "percentunit"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "d2"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "D2"
+              },
+              {
+                "id": "unit",
+                "value": "percentunit"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "d7"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "D7"
+              },
+              {
+                "id": "unit",
+                "value": "percentunit"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 9,
+      "gridPos": {
+        "x": 8,
+        "y": 21,
+        "w": 16,
+        "h": 8
+      }
     }
   ]
 }

@@ -6,6 +6,7 @@ import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.model.AnalyzedLine
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.repository.SongRepository
+import com.japanese.vocabulary.song.service.LyricMvSyncService
 import com.japanese.vocabulary.song.service.SongAnalysisPreparationService
 import com.japanese.vocabulary.song.service.SongAnalysisPreparationService.PreparedLyric
 import com.japanese.vocabulary.song.service.WordCandidateGenerator
@@ -29,6 +30,7 @@ class SongAnalysisWorkCompletionService(
     private val songRepository: SongRepository,
     private val wordCandidateGenerator: WordCandidateGenerator,
     private val preparationService: SongAnalysisPreparationService,
+    private val lyricMvSyncService: LyricMvSyncService,
     private val eventPublisher: ApplicationEventPublisher,
 ) {
     /**
@@ -84,6 +86,8 @@ class SongAnalysisWorkCompletionService(
             song.updatedAt = now
             songRepository.save(song)
         }
+
+        songRepository.findById(lyric.songId).ifPresent(lyricMvSyncService::enqueue)
 
         if (!workService.completeStage(ref, output)) throw SongAnalysisStageSupersededException(ref)
         eventPublisher.publishEvent(SongAnalysisCompletedEvent(workId, lyric.songId))

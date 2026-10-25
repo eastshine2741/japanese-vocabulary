@@ -2,6 +2,7 @@ package com.japanese.vocabulary.word.service.songword
 
 import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
+import com.japanese.vocabulary.flashcard.repository.FlashcardRepository
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.model.WordCandidate
 import com.japanese.vocabulary.song.repository.LyricRepository
@@ -26,24 +27,37 @@ class SongWordQueryService(
     private val songRepository: SongRepository,
     private val lyricRepository: LyricRepository,
     private val wordRepository: WordRepository,
+    private val flashcardRepository: FlashcardRepository,
 ) {
     @Transactional(readOnly = true)
     fun words(songId: Long, userId: Long): WordsInSongDto {
         songRepository.findById(songId).orElseThrow { BusinessException(ErrorCode.SONG_NOT_FOUND) }
         val lyric = lyricRepository.findActiveBySongId(songId) ?: throw BusinessException(ErrorCode.LYRIC_NOT_FOUND)
-        val japanese = lyric.wordCandidates?.candidates.orEmpty().map { it.japanese }.distinct()
-        val savedWords = if (japanese.isEmpty()) emptyMap() else {
-            wordRepository.findByUserIdAndJapaneseTextIn(userId, japanese).associateBy { it.japaneseText }
+        // 리뷰 여부는 카드가 묶인 저장 키(원형)로도 찾아야 해서 두 표기를 다 읽는다.
+        val keys = wordKeys(lyric)
+        val savedWords = if (keys.isEmpty()) emptyMap() else {
+            wordRepository.findByUserIdAndJapaneseTextIn(userId, keys).associateBy { it.japaneseText }
         }
-        return assembleWords(lyric, savedWords)
+        val savedIds = savedWords.values.mapNotNull { it.id }
+        val studiedWordIds = if (savedIds.isEmpty()) emptySet() else {
+            flashcardRepository.findByUserIdAndWordIdIn(userId, savedIds).filter { it.lastReview != null }.map { it.wordId }.toSet()
+        }
+        return assembleWords(lyric, savedWords, studiedWordIds)
     }
 
     /** [assembleWords] 와 단계 카드가 찾는 유저 단어 표기. 곡의 표기와 담을 때의 표기(원형)를 함께 준다. */
     fun wordKeys(lyric: LyricEntity): List<String> =
         lyric.wordCandidates?.candidates.orEmpty().flatMap { listOf(it.japanese, it.addKey()) }.distinct()
 
-    /** DB 없이 가사와 유저 단어로 곡 단어 목록을 만든다. [savedWords] 는 japanese 표기로 찾는다. */
-    fun assembleWords(lyric: LyricEntity, savedWords: Map<String, WordEntity>): WordsInSongDto {
+    /**
+     * DB 없이 가사와 유저 단어로 곡 단어 목록을 만든다. [savedWords] 는 japanese 표기로 찾는다.
+     * [studiedWordIds] 를 안 주면 isStudied 는 모두 false 다.
+     */
+    fun assembleWords(
+        lyric: LyricEntity,
+        savedWords: Map<String, WordEntity>,
+        studiedWordIds: Set<Long> = emptySet(),
+    ): WordsInSongDto {
         val songId = lyric.songId
         val emptyDefaults = WordFilterDefaultsDto()
         val wordCandidates = lyric.wordCandidates
@@ -106,6 +120,8 @@ class SongWordQueryService(
             }
             val lineIndexes = candidates.flatMap { it.lineIndexes }.distinct().sorted()
             val saved = savedWords[candidate.japanese]
+            // 단계 카드와 같은 순서로 찾는다 — 저장 키가 먼저다.
+            val studyWord = savedWords[candidate.addKey()] ?: saved
             // ALL 판정: 곡이 제시한 뜻이 전부 저장돼 있어야 담긴 것으로 본다. 비교는 이미 로드한 senses 로 메모리에서.
             val savedWithMeaning = saved != null &&
                 senses.isNotEmpty() &&
@@ -137,6 +153,7 @@ class SongWordQueryService(
                     senses = senses,
                     songId = songId,
                 ),
+                isStudied = studyWord?.id in studiedWordIds,
             )
         }
         val lineWordIndexes = wordCandidates.lineCandidates.mapKeys { it.key.toInt() }.mapValues { (_, rawIndexes) ->

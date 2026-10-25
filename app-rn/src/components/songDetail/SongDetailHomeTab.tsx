@@ -6,6 +6,8 @@ import { SongDetailContributors } from './SongDetailContributors';
 import { SongDetailCoverageSection } from './SongDetailCoverageSection';
 import type { PreviewSong } from '../rewardCards/cardPreview';
 import { SongDetailTierJourney } from './SongDetailTierJourney';
+import type { StudyLine } from '../lineStudy/studyLines';
+import { SongDetailLineStudyEntry } from './SongDetailLineStudyEntry';
 
 interface SongDetailHomeTabProps {
   song: PreviewSong;
@@ -17,6 +19,9 @@ interface SongDetailHomeTabProps {
   contributors: SongContributorsDto | null;
   onCoverageHelpPress: () => void;
   onStartTier: (tier: SongWordTierDto) => void;
+  /** null 이면 진입 카드를 숨긴다. 줄 단위로 멈추는 학습은 MV 에 맞춘 시각이 아니면 엉뚱한 구간을 튼다. */
+  studyLines: readonly StudyLine[] | null;
+  onStartLines: () => void;
   onPressContributor: (contributor: SongContributor) => void;
   style?: StyleProp<ViewStyle>;
 }
@@ -28,11 +33,16 @@ export const SongDetailHomeTab = React.memo(function SongDetailHomeTab({
   contributors,
   onCoverageHelpPress,
   onStartTier,
+  studyLines,
+  onStartLines,
   onPressContributor,
   style,
 }: SongDetailHomeTabProps) {
   return (
     <View style={[styles.container, style]}>
+      {studyLines != null && studyLines.length > 0 && (
+        <SongDetailLineStudyEntry studyLines={studyLines} onStart={onStartLines} />
+      )}
       {coverage != null && (
         <SongDetailCoverageSection coverage={coverage} onHelpPress={onCoverageHelpPress} />
       )}

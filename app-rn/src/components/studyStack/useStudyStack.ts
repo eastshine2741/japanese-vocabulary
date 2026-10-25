@@ -12,7 +12,7 @@ import { useStudyStatsStore } from '../../stores/studyStatsStore';
 import { SongDeckSummary } from '../../types/deck';
 import { FlashcardMemory } from '../../types/flashcard';
 import { RewardCardRevealDto } from '../../types/rewardCard';
-import { SongStudyCardDto } from '../../types/song';
+import { SongStudyCardDto, SongWordTierKey } from '../../types/song';
 import { estimateSecondsPerCard, MAX_CARD_GAP_SECONDS } from './sessionEta';
 import { hapticCardDone, hapticRatingSelect, hapticReveal, hapticSessionComplete } from './studyHaptics';
 import { sourceFromDeck, sourceFromRecent, sourceFromRecommendation } from './studySource';
@@ -34,6 +34,7 @@ const SWIPE_COMMIT_DISTANCE = -72;
 export const RATING_HOLD_MS = 900;
 
 const DUE_PAGE_SIZE = 20;
+const LINE_TIER_KEYS: readonly SongWordTierKey[] = ['CHORUS', 'SINGALONG', 'FULL'];
 /** 로컬 버퍼에 이 개수 이하로 남으면 다음 페이지를 미리 불러온다. */
 const PREFETCH_REMAINING_THRESHOLD = 5;
 
@@ -130,6 +131,8 @@ export interface StudyStackState {
 export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStackState {
   const activeSourceRef = useRef<StudySource | null>(null);
   const requestVersion = useRef(0);
+  // 홈의 칩·넛지 값은 카드 로드(requestVersion 을 올린다)보다 늦게 올 수 있어 홈 로드 단위로 따로 센다.
+  const homeLoadVersion = useRef(0);
   const busyRef = useRef(false);
   /** 단계 학습처럼 처음 받은 카드가 전부인 세션인지. 이때는 서버 due 큐로 이어 붙이지 않는다. */
   const fixedQueueRef = useRef(false);
@@ -170,7 +173,9 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
 
   const sourceRef = useRef<StudySource | null>(source ?? null);
   sourceRef.current = source ?? null;
-  const sourceKey = source ? `${source.deckId}:${source.songId}:${source.tierKey ?? ''}` : null;
+  const sourceKey = source
+    ? `${source.deckId}:${source.songId}:${source.tierKey ?? ''}:${source.lineWords?.join(',') ?? ''}`
+    : null;
 
   const currentCard = cards[currentIndex] ?? null;
   const currentCardRef = useRef(currentCard);
@@ -310,6 +315,29 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     fixedQueueRef.current = false;
     wholeListRef.current = false;
     try {
+      if (target.lineWords != null && target.songId != null) {
+        // 줄 단어는 여러 단계에 걸친다. 세 단계의 due 카드를 모아 이 줄 단어만 줄 안 등장순으로 남긴다.
+        // 처음 보는 단어만 묻는다 — 앞 줄에서 본 단어의 복습은 홈 스택이 맡는다.
+        const songId = target.songId;
+        const results = await Promise.all(LINE_TIER_KEYS.map(key => songApi.getWordTierCards(songId, key)));
+        if (version !== requestVersion.current) return;
+        const order = new Map(target.lineWords.map((key, i) => [key, i]));
+        const lineCards = results
+          .flatMap(result => result.cards)
+          .filter(card => order.has(card.japanese) && card.memory === 'REMAINING')
+          .filter((card, i, all) => all.findIndex(other => other.japanese === card.japanese) === i)
+          .sort((a, b) => order.get(a.japanese)! - order.get(b.japanese)!);
+        const deckId = results.find(result => result.deckId != null)?.deckId ?? target.deckId;
+        const lineSource: StudySource = { ...target, deckId, totalCount: lineCards.length };
+        activeSourceRef.current = lineSource;
+        fixedQueueRef.current = true;
+        setDueCount(lineCards.length);
+        setSessionDueTotal(lineCards.length);
+        setCards(toStudyCards(lineCards, lineSource));
+        setCompletedSource(lineCards.length === 0 ? lineSource : null);
+        setStatus('ready');
+        return;
+      }
       if (target.tierKey != null && target.songId != null) {
         // 단계 학습: 서버가 그 단계의 due 단어를 한 번에 준다. 이 목록이 세션의 전부이고, 단어는 rating 때 한 장씩 담긴다.
         const result = await songApi.getWordTierCards(target.songId, target.tierKey);
@@ -480,6 +508,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
 
   const loadHomeStack = useCallback(async () => {
     const version = ++requestVersion.current;
+    const homeVersion = ++homeLoadVersion.current;
     activeSourceRef.current = null;
     fixedQueueRef.current = false;
     wholeListRef.current = false;
@@ -492,26 +521,32 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     setMemoryDiff(EMPTY_MEMORY_DIFF);
     setStatus('loading');
     setLoadError(null);
+    // 첫 카드는 덱 목록만 있으면 고를 수 있다. 나머지까지 기다리면, 앱 시작 직후 동시 요청 상한(Android 5개)에 밀린
+    // 요청 때문에 한국-서버 왕복(~300ms)이 한 번 더 든다. 칩·넛지 값은 도착하는 대로 채운다.
+    const isCurrentHome = () => homeVersion === homeLoadVersion.current;
+    const decksRequest = deckApi.getDecks();
+    const recommendationsRequest = songApi.getRecommendations().then(items => items.map(sourceFromRecommendation));
+    // 덱 목록이 실패하면 아무도 기다리지 않아 처리 안 된 rejection 으로 남는다.
+    recommendationsRequest.catch(() => undefined);
+    // 최근 곡은 추천곡을 대신할 뿐이라, 실패해도 홈을 깨지 않고 추천곡으로 넘어간다.
+    const recentRequest = songApi.getRecent().catch(() => []);
+    // 헤더 칩·넛지·축하 화면은 streakStore 가 든다. 실패 시 임의값으로 메우지 않는다.
+    studyStatsApi.getHome()
+      .then(homeStats => { if (isCurrentHome()) useStreakStore.getState().applyHomeStats(homeStats); })
+      .catch(() => undefined);
+    flashcardApi.getStats()
+      .then(stats => { if (isCurrentHome()) setDueTodayCount(stats.due); })
+      .catch(() => undefined);
     try {
-      const [deckRes, homeStats, recommendations, recentSongs, stats] = await Promise.all([
-        deckApi.getDecks(),
-        studyStatsApi.getHome(),
-        songApi.getRecommendations(),
-        // 최근 곡은 추천곡을 대신할 뿐이라, 실패해도 홈을 깨지 않고 추천곡으로 넘어간다.
-        songApi.getRecent().catch(() => []),
-        flashcardApi.getStats(),
-      ]);
+      const deckRes = await decksRequest;
       if (version !== requestVersion.current) return;
-      setDueTodayCount(stats.due);
-      const recommendedItems = recommendations.map(sourceFromRecommendation);
-      const recommended = recommendedItems[0] ?? null;
-      setRecommendedSource(recommended);
-      // 헤더 칩·넛지·축하 화면은 streakStore 가 든다. 실패 시 임의값으로 메우지 않는다.
-      useStreakStore.getState().applyHomeStats(homeStats);
 
       // 곡에 매핑되지 않은 일반 단어장(songId == null)은 덱 스트립의 곡 선택 대상이 아니다.
       const songDecks = deckRes.songDecks.filter(deck => deck.songId != null);
       if (songDecks.length > 0) {
+        recommendationsRequest
+          .then(items => { if (isCurrentHome()) setRecommendedSource(items[0] ?? null); })
+          .catch(() => undefined);
         const sortedDeckSources = [...songDecks]
           .sort((a, b) => b.dueCount - a.dueCount)
           .map(sourceFromDeck);
@@ -526,6 +561,8 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       }
 
       // 곡을 하나도 담지 않은 유저 — 최근 연 곡이 있으면 그 곡들을, 없으면 추천곡을 덱 스트립에 보여준다.
+      const [recommendedItems, recentSongs] = await Promise.all([recommendationsRequest, recentRequest]);
+      if (version !== requestVersion.current) return;
       const fallbackItems = recentSongs.length > 0 ? recentSongs.map(sourceFromRecent) : recommendedItems;
       const fallback = fallbackItems[0] ?? null;
       setRecommendedSource(fallback);
