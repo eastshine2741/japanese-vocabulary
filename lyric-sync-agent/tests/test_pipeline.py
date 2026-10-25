@@ -23,8 +23,19 @@ def test_age_restricted_mv_is_unavailable_not_a_pc_failure(monkeypatch, tmp_path
     ydl.__enter__.return_value.download.side_effect = yt_dlp.utils.DownloadError(
         "ERROR: [youtube] x8VYWazR5mE: Sign in to confirm your age. This video may be inappropriate for some users.")
     monkeypatch.setattr(yt_dlp, "YoutubeDL", MagicMock(return_value=ydl))
-    with pytest.raises(audio.VideoUnavailable):
+    with pytest.raises(audio.VideoUnavailable) as raised:
         audio.download("x8VYWazR5mE", tmp_path)
+    assert raised.value.reason == audio.AGE_RESTRICTED
+
+
+def test_removed_mv_is_unavailable(monkeypatch, tmp_path):
+    ydl = MagicMock()
+    ydl.__enter__.return_value.download.side_effect = yt_dlp.utils.DownloadError(
+        "ERROR: [youtube] Yt3p3kxWlwo: Video unavailable. This video has been removed by the uploader")
+    monkeypatch.setattr(yt_dlp, "YoutubeDL", MagicMock(return_value=ydl))
+    with pytest.raises(audio.VideoUnavailable) as raised:
+        audio.download("Yt3p3kxWlwo", tmp_path)
+    assert raised.value.reason == audio.UNAVAILABLE
 
 
 def test_other_download_errors_stay_retryable(monkeypatch, tmp_path):

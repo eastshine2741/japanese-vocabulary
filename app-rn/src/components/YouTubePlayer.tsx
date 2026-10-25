@@ -24,6 +24,8 @@ interface Props {
   onTimeChange?: (seconds: number) => void;
   onDurationChange?: (seconds: number) => void;
   onStateChange?: (state: string) => void;
+  /** IFrame API 오류 코드. 연령 제한·삭제·임베드 금지가 모두 150 이라 이유는 알 수 없다. */
+  onError?: (code: number) => void;
 }
 
 /** HTML template mirroring android-youtube-player's ayp_youtube_player.html: deferred IFrame API script, origin set to the app package name. */
@@ -133,6 +135,7 @@ const YouTubePlayer = forwardRef<YouTubePlayerRef, Props>(({
   onTimeChange,
   onDurationChange,
   onStateChange,
+  onError,
 }, ref) => {
   const webViewRef = useRef<WebView>(null);
   // Frozen at mount: changing the html source reloads the WebView and restarts the video. Use mute()/unMute() afterwards.
@@ -174,9 +177,11 @@ const YouTubePlayer = forwardRef<YouTubePlayerRef, Props>(({
         onDurationChange?.(msg.data.duration);
       } else if (msg.type === 'state') {
         onStateChange?.(msg.data.state);
+      } else if (msg.type === 'error') {
+        onError?.(msg.data.code);
       }
     } catch {}
-  }, [onTimeChange, onDurationChange, onStateChange]);
+  }, [onTimeChange, onDurationChange, onStateChange, onError]);
 
   return (
     <View style={[styles.container, height != null ? { height } : { flex: 1 }]}>

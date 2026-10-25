@@ -1,6 +1,7 @@
 package com.japanese.vocabulary.admin.dto
 
 import com.japanese.vocabulary.song.entity.LyricMvSyncMethod
+import com.japanese.vocabulary.song.entity.MvUnavailableReason
 import com.japanese.vocabulary.song.model.LyricLineData
 import com.japanese.vocabulary.song.model.LyricLineTiming
 
@@ -29,4 +30,6 @@ data class AdminLyricSyncFailRequest(
     val message: String,
     /** 실행기 쪽 사정(다운로드 차단, GPU 오류)이면 true. 곡 자체 문제(가사를 못 찾음)면 false. */
     val retryable: Boolean = false,
+    /** MV 를 받지 못해 실패했으면 그 이유. */
+    val mvUnavailable: MvUnavailableReason? = null,
 )

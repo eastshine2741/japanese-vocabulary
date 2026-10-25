@@ -11,7 +11,7 @@ def test_song_level_failure_is_final_and_does_not_count_against_the_pc(monkeypat
     api = MagicMock()
     monkeypatch.setattr(pipeline, "run", MagicMock(side_effect=pipeline.SyncError("no line found")))
     assert agent.process(api, JOB, "m", "cpu") is True
-    api.fail.assert_called_once_with(7, 2, "SyncError: no line found", retryable=False)
+    api.fail.assert_called_once_with(7, 2, "SyncError: no line found", retryable=False, mv_unavailable=None)
 
 
 def test_pc_failure_is_retryable_and_counts_against_the_pc(monkeypatch):
@@ -34,3 +34,10 @@ def test_a_failing_report_never_escapes(monkeypatch):
     api.fail.side_effect = Rejected("404")
     monkeypatch.setattr(pipeline, "run", MagicMock(side_effect=RuntimeError("boom")))
     assert agent.process(api, JOB, "m", "cpu") is False
+
+
+def test_unavailable_mv_reports_why_with_the_final_failure(monkeypatch):
+    api = MagicMock()
+    monkeypatch.setattr(pipeline, "run", MagicMock(side_effect=pipeline.SyncError("MV not downloadable: age", "AGE_RESTRICTED")))
+    assert agent.process(api, JOB, "m", "cpu") is True
+    api.fail.assert_called_once_with(7, 2, "SyncError: MV not downloadable: age", retryable=False, mv_unavailable="AGE_RESTRICTED")

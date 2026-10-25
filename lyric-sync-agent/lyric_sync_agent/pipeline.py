@@ -21,6 +21,10 @@ OK_PLAIN_ANCHOR_RATIO = 0.7
 class SyncError(Exception):
     """The song itself cannot be synced (its lines are not in the MV, or the MV cannot be fetched). Retrying gives the same answer."""
 
+    def __init__(self, message: str, mv_unavailable: str | None = None):
+        super().__init__(message)
+        self.mv_unavailable = mv_unavailable
+
 
 @dataclass
 class SyncResult:
@@ -35,7 +39,7 @@ def run(job: dict, model_name: str, device: str) -> SyncResult:
         try:
             wav = audio.download(job["youtubeVideoId"], workdir)
         except audio.VideoUnavailable as e:
-            raise SyncError(f"MV not downloadable: {e}") from e
+            raise SyncError(f"MV not downloadable: {e}", e.reason) from e
         vocals = audio.separate_vocals(wav, workdir, device)
         # Loaded per job, not kept: the GPU is shared with the desktop and the agent mostly idles.
         transcriber = Transcriber(model_name, device)

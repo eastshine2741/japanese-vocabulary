@@ -1,6 +1,8 @@
 import React, { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import {
+  Linking,
   StyleSheet,
+  Text,
   TouchableOpacity,
   View,
   ViewStyle,
@@ -12,6 +14,8 @@ import YouTubePlayer, { YouTubePlayerRef } from '../YouTubePlayer';
 import ReportIcon from '../ReportIcon';
 import { Colors } from '../../theme/theme';
 import { extractYoutubeVideoId } from '../../utils/youtube';
+import type { MvUnavailableReason } from '../../types/song';
+import { canWatchOnYoutube, mvBlock, mvBlockLabel } from './mvUnavailable';
 
 export const SONG_DETAIL_MV_BAR_HEIGHT = 56;
 
@@ -20,6 +24,7 @@ export interface SongDetailMvBarProps {
   artist: string;
   youtubeUrl?: string | null;
   videoId?: string | null;
+  mvUnavailableReason?: MvUnavailableReason | null;
   initialSeekMs?: number;
   currentTimeMs?: number;
   durationMs?: number;
@@ -54,6 +59,7 @@ const SongDetailMvBarComponent = forwardRef<SongDetailMvBarRef, SongDetailMvBarP
   artist,
   youtubeUrl,
   videoId,
+  mvUnavailableReason,
   initialSeekMs,
   currentTimeMs,
   durationMs,
@@ -81,7 +87,9 @@ const SongDetailMvBarComponent = forwardRef<SongDetailMvBarRef, SongDetailMvBarP
 
   const [internalCurrentMs, setInternalCurrentMs] = useState(0);
   const [internalDurationMs, setInternalDurationMs] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(autoplay);
+  const [playerFailed, setPlayerFailed] = useState(false);
+  const block = mvBlock(mvUnavailableReason, playerFailed);
+  const [isPlaying, setIsPlaying] = useState(autoplay && block == null);
 
   const effectiveCurrentMs = currentTimeMs ?? internalCurrentMs;
   const effectiveDurationMs = durationMs ?? internalDurationMs;
@@ -123,6 +131,16 @@ const SongDetailMvBarComponent = forwardRef<SongDetailMvBarRef, SongDetailMvBarP
     setIsPlaying(nextPlaying);
     onPlayingChange?.(nextPlaying);
   }, [onPlayingChange]);
+
+  const handlePlayerError = useCallback(() => {
+    setPlayerFailed(true);
+    setIsPlaying(false);
+    onPlayingChange?.(false);
+  }, [onPlayingChange]);
+
+  const handleOpenYoutube = useCallback(() => {
+    if (youtubeUrl) Linking.openURL(youtubeUrl).catch(() => {});
+  }, [youtubeUrl]);
 
   const seekToMs = useCallback((milliseconds: number) => {
     const nextMs = Math.max(0, milliseconds);
@@ -172,7 +190,7 @@ const SongDetailMvBarComponent = forwardRef<SongDetailMvBarRef, SongDetailMvBarP
           accessibilityLabel={onBarPress ? '재생 중 단어 패널 전환' : undefined}
         >
           <View pointerEvents="none" style={styles.mvThumb}>
-            {resolvedVideoId ? (
+            {resolvedVideoId && block == null ? (
               <YouTubePlayer
                 ref={playerRef}
                 videoId={resolvedVideoId}
@@ -183,10 +201,11 @@ const SongDetailMvBarComponent = forwardRef<SongDetailMvBarRef, SongDetailMvBarP
                 onTimeChange={handleTimeChange}
                 onDurationChange={handleDurationChange}
                 onStateChange={handleStateChange}
+                onError={handlePlayerError}
               />
             ) : (
               <View style={styles.thumbFallback}>
-                <Feather name="play" size={12} color="#FFFFFF" />
+                <Feather name={block != null ? 'video-off' : 'play'} size={12} color="#FFFFFF" />
               </View>
             )}
           </View>
@@ -194,8 +213,9 @@ const SongDetailMvBarComponent = forwardRef<SongDetailMvBarRef, SongDetailMvBarP
           <View style={styles.textCol}>
             <Animated.Text style={[styles.title, titleColorStyle]} numberOfLines={1}>{title}</Animated.Text>
             <Animated.Text style={[styles.artist, artistColorStyle]} numberOfLines={1}>
-              {artist}
-              {effectiveDurationMs > 0 ? ` · ${formatTime(effectiveCurrentMs)} / ${formatTime(effectiveDurationMs)}` : ''}
+              {block != null
+                ? mvBlockLabel(block)
+                : `${artist}${effectiveDurationMs > 0 ? ` · ${formatTime(effectiveCurrentMs)} / ${formatTime(effectiveDurationMs)}` : ''}`}
             </Animated.Text>
           </View>
         </TouchableOpacity>
@@ -212,6 +232,18 @@ const SongDetailMvBarComponent = forwardRef<SongDetailMvBarRef, SongDetailMvBarP
           </TouchableOpacity>
         ) : null}
 
+        {block != null ? (
+          canWatchOnYoutube(block) && youtubeUrl ? (
+            <TouchableOpacity
+              style={styles.youtubeLink}
+              onPress={handleOpenYoutube}
+              activeOpacity={0.75}
+              accessibilityRole="link"
+            >
+              <Text style={styles.youtubeLinkText}>YouTube에서 보기</Text>
+            </TouchableOpacity>
+          ) : null
+        ) : (
         <TouchableOpacity
           style={styles.toggle}
           onPress={handleTogglePlayback}
@@ -235,6 +267,7 @@ const SongDetailMvBarComponent = forwardRef<SongDetailMvBarRef, SongDetailMvBarP
             />
           </Animated.View>
         </TouchableOpacity>
+        )}
       </View>
     </Animated.View>
   );
@@ -334,6 +367,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'transparent',
+  },
+  youtubeLink: {
+    height: 30,
+    paddingHorizontal: 8,
+    borderRadius: 15,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  youtubeLinkText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.primary,
   },
   lightIcon: {
     ...StyleSheet.absoluteFillObject,

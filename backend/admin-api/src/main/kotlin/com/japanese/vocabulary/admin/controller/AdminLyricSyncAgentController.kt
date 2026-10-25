@@ -45,7 +45,7 @@ class AdminLyricSyncAgentController(
 
     @PostMapping("/syncs/{id}/fail")
     fun fail(@PathVariable id: Long, @RequestBody request: AdminLyricSyncFailRequest): ResponseEntity<Unit> {
-        lyricMvSyncService.fail(id, request.attempt, request.message, request.retryable)
+        lyricMvSyncService.fail(id, request.attempt, request.message, request.retryable, request.mvUnavailable)
         return ResponseEntity.noContent().build()
     }
 }

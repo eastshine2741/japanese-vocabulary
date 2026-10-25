@@ -63,7 +63,7 @@ import { Typography } from '../theme/typography';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import type { StudyEntryTrigger } from '../services/analytics';
 import type { DeckDetailResponse } from '../types/deck';
-import type { SongWordTierDto } from '../types/song';
+import type { MvUnavailableReason, SongWordTierDto } from '../types/song';
 import type { SongContributor, SubmitSongReportRequest } from '../types/songReport';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SongDetail'>;
@@ -747,6 +747,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         artist={song.artist}
         artworkUrl={song.artworkUrl}
         youtubeUrl={song.youtubeUrl}
+        mvUnavailableReason={song.mvUnavailableReason}
         initialSeekMs={route.params?.initialSeekMs}
         initialLyricIndex={route.params?.initialLyricIndex}
         bottomInset={insets.bottom}
@@ -907,6 +908,7 @@ interface PlaybackOverlaysProps {
   artist: string;
   artworkUrl: string | null;
   youtubeUrl: string | null;
+  mvUnavailableReason?: MvUnavailableReason | null;
   initialSeekMs?: number;
   initialLyricIndex?: number;
   bottomInset: number;
@@ -926,6 +928,7 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
   artist,
   artworkUrl,
   youtubeUrl,
+  mvUnavailableReason,
   initialSeekMs,
   initialLyricIndex,
   bottomInset,
@@ -1017,6 +1020,7 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
       title={title}
       artist={artist}
       youtubeUrl={youtubeUrl}
+      mvUnavailableReason={mvUnavailableReason}
       initialSeekMs={startSeekMs}
       embedded
       expandProgress={wordsSheetAnimatedIndex}
@@ -1029,6 +1033,7 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
     artist,
     handleOpenMvReport,
     handleToggleWordsSheet,
+    mvUnavailableReason,
     startSeekMs,
     wordsSheetAnimatedIndex,
     setCurrentMs,

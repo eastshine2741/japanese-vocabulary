@@ -54,7 +54,7 @@ def process(api: AdminApi, job: dict, model: str, device: str) -> bool:
         result = pipeline.run(job, model, device)
     except pipeline.SyncError as e:
         log.warning("sync %s: %s", sid, e)
-        report(lambda: api.fail(sid, attempt, f"SyncError: {e}", retryable=False))
+        report(lambda: api.fail(sid, attempt, f"SyncError: {e}", retryable=False, mv_unavailable=e.mv_unavailable))
         return True
     except Exception as e:  # noqa: BLE001 - every agent-side failure goes on the ledger instead of killing the loop
         log.exception("sync %s failed", sid)
