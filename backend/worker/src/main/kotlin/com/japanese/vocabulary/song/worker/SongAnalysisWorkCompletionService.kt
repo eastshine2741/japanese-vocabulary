@@ -3,6 +3,7 @@ package com.japanese.vocabulary.song.worker
 import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.song.entity.LyricEntity
+import com.japanese.vocabulary.song.entity.SongEntity
 import com.japanese.vocabulary.song.model.AnalyzedLine
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.repository.SongRepository
@@ -44,6 +45,7 @@ class SongAnalysisWorkCompletionService(
         youtubeUrl: String?,
         analyzedLines: List<AnalyzedLine>,
         output: String?,
+        clearCurrentMv: Boolean = false,
     ) {
         val now = Instant.now()
         val workId = ref.workId
@@ -75,8 +77,7 @@ class SongAnalysisWorkCompletionService(
             }
             requireNoOverlappingWriter(work, song.id!!)
             song.activeLyricId = lyric.id
-            // 재분석에서 MV 를 못 찾았으면 지금 MV 를 지우지 않는다.
-            work.youtubeUrl?.let { song.youtubeUrl = it }
+            applyMv(song, work.youtubeUrl, clearCurrentMv)
             song.updatedAt = now
             songRepository.save(song)
         }
@@ -87,12 +88,9 @@ class SongAnalysisWorkCompletionService(
         eventPublisher.publishEvent(SongAnalysisCompletedEvent(workId, lyric.songId))
     }
 
-    /**
-     * MV 만 다시 찾는 관리자 재분석의 마지막 단계. active 가사와 그 분석은 건드리지 않는다. MV 를 못 찾았으면
-     * 지금 MV 를 그대로 둔다.
-     */
+    /** MV 만 다시 찾는 관리자 재분석의 마지막 단계. active 가사와 그 분석은 건드리지 않는다. */
     @Transactional
-    fun completeMvOnly(ref: SongAnalysisStageRef, youtubeUrl: String?, output: String?) {
+    fun completeMvOnly(ref: SongAnalysisStageRef, youtubeUrl: String?, clearCurrentMv: Boolean, output: String?) {
         val work = workRepository.findByIdForUpdate(ref.workId)
             ?: throw BusinessException(ErrorCode.SONG_ANALYSIS_WORK_NOT_FOUND)
         if (work.status != SongAnalysisWorkStatus.RUNNING) throw SongAnalysisStageSupersededException(ref)
@@ -101,8 +99,7 @@ class SongAnalysisWorkCompletionService(
         requireNoOverlappingWriter(work, song.id!!)
 
         work.youtubeUrl = youtubeUrl
-        if (youtubeUrl != null) {
-            song.youtubeUrl = youtubeUrl
+        if (applyMv(song, youtubeUrl, clearCurrentMv)) {
             song.updatedAt = Instant.now()
             songRepository.save(song)
         }
@@ -110,6 +107,16 @@ class SongAnalysisWorkCompletionService(
 
         if (!workService.completeStage(ref, output)) throw SongAnalysisStageSupersededException(ref)
         eventPublisher.publishEvent(SongAnalysisCompletedEvent(ref.workId, song.id!!))
+    }
+
+    /**
+     * 찾은 MV 로 바꾼다. 못 찾았으면 지금 MV 를 두되, FETCH_YOUTUBE 가 지금 MV 도 규칙에 걸린다고 판정했으면
+     * 지운다. 바꿨으면 true.
+     */
+    private fun applyMv(song: SongEntity, foundUrl: String?, clearCurrentMv: Boolean): Boolean = when {
+        foundUrl != null -> { song.youtubeUrl = foundUrl; true }
+        clearCurrentMv && song.youtubeUrl != null -> { song.youtubeUrl = null; true }
+        else -> false
     }
 
     private fun requireNoOverlappingWriter(work: SongAnalysisWorkEntity, songId: Long) {

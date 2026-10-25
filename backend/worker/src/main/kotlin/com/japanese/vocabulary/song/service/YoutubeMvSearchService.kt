@@ -18,20 +18,21 @@ class YoutubeMvSearchService(
 ) {
     private val logger = LoggerFactory.getLogger(YoutubeMvSearchService::class.java)
 
-    fun searchMvUrl(title: String, artist: String, trackDurationSeconds: Int?): String? =
-        search(title, artist, trackDurationSeconds).url
+    fun searchMvUrl(title: String, artist: String, trackDurationSeconds: Int?, officialChannelIds: Set<String> = emptySet()): String? =
+        search(title, artist, trackDurationSeconds, officialChannelIds).url
 
     /** [MvSearchResult.candidates] holds what every path saw, so a miss can be judged without re-querying YouTube. */
-    fun search(title: String, artist: String, trackDurationSeconds: Int?): MvSearchResult {
+    /** [officialChannelIds]: channels an admin confirmed as the artist's; their uploads count as the artist's own. */
+    fun search(title: String, artist: String, trackDurationSeconds: Int?, officialChannelIds: Set<String> = emptySet()): MvSearchResult {
         val durationBounds = DurationBounds.forTrack(trackDurationSeconds)
         val trace = mutableListOf<MvSearchCandidate>()
 
         val cachedCandidates = artistChannelCache.get(artist)
-            ?.let { searchCachedUploads(title, artist, it, durationBounds, trace) }
+            ?.let { searchCachedUploads(title, artist, it, durationBounds, trace, officialChannelIds) }
             .orEmpty()
         pickMv(cachedCandidates)?.let { return MvSearchResult(youtubeUrl(it.videoId), trace) }
 
-        val fallbackCandidates = searchFallback(title, artist, durationBounds, trace)
+        val fallbackCandidates = searchFallback(title, artist, durationBounds, trace, officialChannelIds)
         pickMv(fallbackCandidates)?.let {
             maybeCacheArtistChannel(artist, it)
             return MvSearchResult(youtubeUrl(it.videoId), trace)
@@ -39,13 +40,37 @@ class YoutubeMvSearchService(
 
         // Leftovers of both paths are ranked together so a cached-channel live clip cannot pre-empt a broad-search MV.
         val leftovers = cachedCandidates + fallbackCandidates
-        val runnerUp = pickOfficialLyricVideo(leftovers)
-            ?: pickArtistLive(leftovers)
-            ?: pickUnofficialUpload(leftovers)
-            ?: return MvSearchResult(null, trace)
+        val runnerUp = pickRunnerUp(leftovers) ?: return MvSearchResult(null, trace)
         maybeCacheArtistChannel(artist, runnerUp)
         return MvSearchResult(youtubeUrl(runnerUp.videoId), trace)
     }
+
+    /**
+     * Whether the song's current MV would still be taken if it were the only candidate. A search that
+     * finds nothing keeps a current MV that passes and drops one the rules now reject.
+     * A YouTube error propagates: it must never be read as "the MV is gone".
+     */
+    fun acceptsAsOnlyCandidate(
+        videoId: String,
+        title: String,
+        artist: String,
+        trackDurationSeconds: Int?,
+        officialChannelIds: Set<String> = emptySet(),
+    ): Boolean {
+        val video = youtubeClient.getVideo(videoId) ?: return false
+        val snippet = video.snippet ?: return false
+        if (!titleMatches(snippet.title, title) || isShortsTitle(snippet.title) || versionMismatch(snippet.title, title)) return false
+        if (YoutubePlayability.unplayable(video) != null) return false
+        val seconds = parseDurationSeconds(video.contentDetails.duration)
+        if (seconds != null && DurationBounds.forTrack(trackDurationSeconds).rejectionReason(seconds) != null) return false
+        val only = listOf(mvCandidate(SOURCE_CURRENT, videoId, snippet.title, snippet.channelId, snippet.channelTitle, title, artist, officialChannelIds))
+        return (pickMv(only) ?: pickRunnerUp(only)) != null
+    }
+
+    // No tier for a stranger's reupload: it only existed while a missing MV failed the whole analysis,
+    // and what it took was mostly reactions, covers and fan videos.
+    private fun pickRunnerUp(candidates: List<MvCandidate>): MvCandidate? =
+        pickOfficialLyricVideo(candidates) ?: pickArtistLive(candidates)
 
     private fun searchCachedUploads(
         title: String,
@@ -53,6 +78,7 @@ class YoutubeMvSearchService(
         cached: ArtistChannelCacheEntry,
         durationBounds: DurationBounds,
         trace: MutableList<MvSearchCandidate>,
+        officialChannelIds: Set<String>,
     ): List<MvCandidate> {
         var pageToken: String? = null
         val matches = mutableListOf<MvCandidate>()
@@ -79,7 +105,7 @@ class YoutubeMvSearchService(
                     if (rejection != null) {
                         trace += MvSearchCandidate.rejected(SOURCE_UPLOADS, videoId, item.snippet.title, item.snippet.channelTitle, rejection)
                     } else {
-                        matches += mvCandidate(SOURCE_UPLOADS, videoId, item.snippet.title, null, item.snippet.channelTitle, title, artist)
+                        matches += mvCandidate(SOURCE_UPLOADS, videoId, item.snippet.title, item.snippet.channelId, item.snippet.channelTitle, title, artist, officialChannelIds)
                     }
                 }
 
@@ -93,6 +119,7 @@ class YoutubeMvSearchService(
         artist: String,
         durationBounds: DurationBounds,
         trace: MutableList<MvSearchCandidate>,
+        officialChannelIds: Set<String>,
     ): List<MvCandidate> {
         // No videoCategoryId filter: publisher uploads such as Project SEKAI MVs are categorized as Gaming.
         val query = "${title.replace(TRAILING_DESCRIPTOR_RE, "").trim().ifBlank { title }} $artist"
@@ -116,7 +143,7 @@ class YoutubeMvSearchService(
                 trace += MvSearchCandidate.rejected(source, videoId, item.snippet.title, item.snippet.channelTitle, rejection)
                 return@mapNotNull null
             }
-            mvCandidate(source, videoId, item.snippet.title, item.snippet.channelId, item.snippet.channelTitle, title, artist)
+            mvCandidate(source, videoId, item.snippet.title, item.snippet.channelId, item.snippet.channelTitle, title, artist, officialChannelIds)
         }
         return filterByDuration(candidates, durationBounds, trace)
     }
@@ -151,10 +178,6 @@ class YoutubeMvSearchService(
      */
     private fun pickArtistLive(candidates: List<MvCandidate>): MvCandidate? =
         candidates.bestEligible { it.officialSource && it.isLive }
-
-    /** A reupload on someone else's channel: the song, but neither official nor permanent. */
-    private fun pickUnofficialUpload(candidates: List<MvCandidate>): MvCandidate? =
-        candidates.bestEligible { !it.officialSource && !it.isLive }
 
     private fun List<MvCandidate>.bestEligible(tier: (MvCandidate) -> Boolean): MvCandidate? = this
         .filter { it.artistVerified && !isTopicChannel(it.channelTitle) }
@@ -245,9 +268,12 @@ class YoutubeMvSearchService(
         channelTitle: String,
         songTitle: String,
         artist: String,
+        officialChannelIds: Set<String>,
     ): MvCandidate {
         val isLive = LIVE_TITLE_RE.containsMatchIn(title)
-        val ownChannel = channelMatchesArtistOrMember(artist, channelTitle)
+        // A mapped channel is the artist's own even when neither its name nor the title says so (ラブライブ!スーパースター!! for Liella!).
+        val ownChannel = (channelId != null && channelId in officialChannelIds) ||
+            channelMatchesArtistOrMember(artist, channelTitle) || romanizedOwnChannel(artist, channelTitle)
         // The song's own title may contain a bad-title word ("ギターと孤独と蒼い惑星").
         val titleWithoutSong = withoutSongTitle(title, songTitle)
         return MvCandidate(
@@ -256,19 +282,26 @@ class YoutubeMvSearchService(
             title = title,
             channelId = channelId,
             channelTitle = channelTitle,
-            score = scoreMvCandidate(title, channelTitle, artist),
+            score = scoreMvCandidate(title, channelTitle, artist, ownChannel),
             isLive = isLive,
             // A publisher channel hosts many artists and same-titled swaps, so its upload must name the
             // artist; an artist's own channel rarely repeats its name in the title.
             artistVerified = ownChannel || titleNamesArtist(title, artist),
+            // A channel calling itself official ("mikitoP Official", "… 公式チャンネル") still needs the title to
+            // name the artist; artistVerified holds that.
             officialSource = ownChannel ||
                 KNOWN_PUBLISHER_CHANNEL_RE.containsMatchIn(channelTitle) ||
+                OFFICIAL_CHANNEL_RE.containsMatchIn(channelTitle) ||
                 OFFICIAL_TITLE_RE.containsMatchIn(title),
-            badTitle = BAD_TITLE_RE.containsMatchIn(titleWithoutSong),
+            badTitle = isBadTitle(titleWithoutSong, ownChannel),
             isOfficialLyricVideo = ownChannel && !isLive && LYRIC_VIDEO_RE.containsMatchIn(title) &&
-                !BAD_TITLE_RE.containsMatchIn(titleWithoutSong.replace(LYRIC_VIDEO_RE, "")),
+                !isBadTitle(titleWithoutSong.replace(LYRIC_VIDEO_RE, ""), ownChannel),
         )
     }
+
+    // On the artist's own channel a cover is the artist's own take, which is the song we have (an utaite such as まふまふ).
+    private fun isBadTitle(title: String, ownChannel: Boolean): Boolean =
+        BAD_TITLE_RE.containsMatchIn(title) || (!ownChannel && COVER_TITLE_RE.containsMatchIn(title))
 
     private fun withoutSongTitle(videoTitle: String, songTitle: String): String =
         (listOf(songTitle.replace(TRAILING_DESCRIPTOR_RE, "")) + songTitle.split(TITLE_SEPARATOR_RE))
@@ -277,9 +310,32 @@ class YoutubeMvSearchService(
             .sortedByDescending { it.length }
             .fold(videoTitle) { remaining, part -> remaining.replace(part, " ", ignoreCase = true) }
 
+    /** The whole credit, or for a collaboration ("Aqu3ra, 超かぐや姫! & 月見ヤチヨ") any one member. */
     private fun titleNamesArtist(title: String, artist: String): Boolean {
-        val normalizedArtist = normalizeForMatch(ArtistCredit.withoutFeaturing(artist))
-        return normalizedArtist.isNotBlank() && normalizeForMatch(title).contains(normalizedArtist)
+        val normalizedTitle = normalizeForMatch(title)
+        return artistNames(artist).map(::normalizeForMatch).any { it.length >= MIN_TITLE_PART_LENGTH && normalizedTitle.contains(it) }
+    }
+
+    private fun artistNames(artist: String): List<String> {
+        val credit = ArtistCredit.withoutFeaturing(artist)
+        // "wowaka(現実逃避P)": the alias in brackets is not how the title names the artist.
+        return (listOf(credit, credit.replace(TRAILING_DESCRIPTOR_RE, "")) + credit.split(ARTIST_SEPARATOR_RE))
+            .map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+    }
+
+    /**
+     * The artist's own channel under a romanized name (稲葉曇 → "inabakumori", ゆこぴ → "Yukopi"). Every word of the
+     * channel name other than an "official"/"channel" word must be the name itself, so "Kenshi Yonezu fanTR" fails.
+     * An all-Latin artist is left to [channelMatchesArtistOrMember]; there is nothing to romanize.
+     */
+    private fun romanizedOwnChannel(artist: String, channelTitle: String): Boolean {
+        val words = spacedForMatch(channelTitle).split(' ').filter { it.isNotBlank() && it !in OFFICIAL_CHANNEL_WORDS }
+        if (words.isEmpty() || words.any { word -> !word.all { it in 'a'..'z' || it in '0'..'9' } }) return false
+        val channel = RomanizedName.latinSkeleton(words.joinToString(""))
+        if (channel.length < MIN_ROMANIZED_SKELETON) return false
+        return artistNames(artist)
+            .filter { name -> name.any { it.code > 0x7F } }
+            .any { RomanizedName.skeleton(it) == channel }
     }
 
     private fun maybeCacheArtistChannel(artist: String, candidate: MvCandidate) {
@@ -374,14 +430,14 @@ class YoutubeMvSearchService(
             .distinct()
     }
 
-    private fun scoreMvCandidate(title: String, channelTitle: String, artist: String): Int {
+    private fun scoreMvCandidate(title: String, channelTitle: String, artist: String, ownChannel: Boolean): Int {
         val normalizedTitle = normalizeForMatch(title)
         val normalizedChannel = normalizeForMatch(channelTitle)
         val normalizedArtist = normalizeForMatch(ArtistCredit.withoutFeaturing(artist))
 
         var score = 0
         if (OFFICIAL_TITLE_RE.containsMatchIn(title)) score += 5
-        if (BAD_TITLE_RE.containsMatchIn(title)) score -= 10
+        if (isBadTitle(title, ownChannel)) score -= 10
         if (LIVE_TITLE_RE.containsMatchIn(title)) score -= LIVE_TITLE_PENALTY
         if (HANGUL_RE.containsMatchIn(channelTitle) && !HANGUL_RE.containsMatchIn(artist)) score -= 10
         if (normalizedArtist.isNotBlank() && normalizedChannel.contains(normalizedArtist)) score += 3
@@ -415,7 +471,7 @@ class YoutubeMvSearchService(
      *   [pickArtistLive] when no MV exists.
      * @param artistVerified the channel is the artist's own or the title names the artist.
      * @param officialSource from the artist, a known publisher, or titled as official. Without
-     *   it the upload is a stranger's reupload, which ranks below the artist's own live.
+     *   it the upload is a stranger's reupload, which is never taken.
      */
     private data class MvCandidate(
         val source: String,
@@ -454,6 +510,7 @@ class YoutubeMvSearchService(
         private const val SOURCE_UPLOADS = "uploads"
         private const val SOURCE_SEARCH = "search"
         private const val SOURCE_SEARCH_BY_VIEWS = "search:viewCount"
+        private const val SOURCE_CURRENT = "current"
         private const val REJECT_TITLE_MISMATCH = "title-mismatch"
         private const val REJECT_SHORTS_TAG = "shorts-tag"
         private const val REJECT_VERSION_MISMATCH = "version-mismatch"
@@ -468,13 +525,17 @@ class YoutubeMvSearchService(
 
         // Narrower than plain "MV" (AMV/MAD/original-MV covers). "非公式" contains "公式" and must not match.
         private val OFFICIAL_TITLE_RE = Regex(
-            "Music Video|Official Video|Official MV|オフィシャル|(?<!非)公式",
+            "Music Video|(?<![a-z])official(?![a-z])|オフィシャル|(?<!非)公式",
             RegexOption.IGNORE_CASE
         )
+        private val OFFICIAL_CHANNEL_RE = Regex("(?<![a-z])official(?![a-z])|(?<!非)公式", RegexOption.IGNORE_CASE)
+        private val OFFICIAL_CHANNEL_WORDS = setOf("official", "channel", "ch", "music", "youtube", "staff", "公式", "チャンネル", "ちゃんねる")
+        // Two consonants match too many names by chance.
+        private const val MIN_ROMANIZED_SKELETON = 3
         // Not the song as recorded (other performer, arrangement, no vocals, partial). A cut-down
         // upload can pass the duration bounds, so the title must catch it.
         private val BAD_TITLE_RE = Regex(
-            "弾いてみた|歌ってみた|cover|covered by|ピアノ|ギター|drum|アレンジ|off vocal|ニコカラ|字幕|歌詞|한글자막|中文字幕|ローマ字|lyrics|lyric video|the first take|game size|アナザーボーカル|AMV|MAD|非公式|unofficial|エイプリルフール|april fool" +
+            "弾いてみた|ピアノ|ギター|drum|アレンジ|off vocal|ニコカラ|字幕|歌詞|한글자막|中文字幕|ローマ字|lyrics|lyric video|the first take|game size|アナザーボーカル|AMV|MAD|非公式|unofficial|エイプリルフール|april fool" +
                 "|カラオケ|karaoke|instrumental|short ver|ショートver|ショートバージョン|tv size|tvサイズ" +
                 "|offvocal|off-vocal|[+-]\\d+\\s*key|原曲歌手|ドラム|演奏してみた|叩いてみた|踊ってみた|dance practice|振付" +
                 "|trailer|teaser|予告|react|切り抜き|譜面|sonolus|d4dj|グルミク|mashup|』×『|」×「|sped up" +
@@ -498,10 +559,12 @@ class YoutubeMvSearchService(
                 "|(?<![a-z0-9])@",
             RegexOption.IGNORE_CASE
         )
+        private val COVER_TITLE_RE = Regex("歌ってみた|cover", RegexOption.IGNORE_CASE)
         private val LYRIC_VIDEO_RE = Regex("lyric video", RegexOption.IGNORE_CASE)
         private val HANGUL_RE = Regex("""[\uAC00-\uD7AF]""")
+        // Label and IP channels that upload many artists' MVs; an upload must still name the artist.
         private val KNOWN_PUBLISHER_CHANNEL_RE = Regex(
-            "プロジェクトセカイ|HATSUNE MIKU: COLORFUL STAGE",
+            "プロジェクトセカイ|HATSUNE MIKU: COLORFUL STAGE|^SMTOWN$|ラブライブ|Love Live!|あんスタチャンネル|^U/M/A/A|^SPACE SHOWER",
             RegexOption.IGNORE_CASE
         )
         private val SHORTS_TITLE_RE = Regex("""[#＃](?:shorts?|ショート)""", RegexOption.IGNORE_CASE)
