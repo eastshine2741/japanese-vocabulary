@@ -47,3 +47,4 @@ local/mysql/
 # 사전 빌드 (tools/dictionary)
 tools/dictionary/.venv/
 tools/dictionary/work/
+tools/dictionary/__pycache__/
