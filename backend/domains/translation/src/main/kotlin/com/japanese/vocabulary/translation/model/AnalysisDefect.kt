@@ -21,10 +21,10 @@ data class AnalysisDefect(
 )
 
 enum class AnalysisDefectCause {
-    /** jisho answered with an error on every attempt. An outage to count, not a fact about the word. */
+    /** The dictionary file could not be read. An outage to count, not a fact about the word. */
     PROVIDER_ERROR,
 
-    /** jisho answered, and no entry matched the headword or any rescue probe. */
+    /** The dictionary was read, and no entry matched the headword or any rescue probe. */
     DICTIONARY_MISS,
 
     /** Japanese text on the line that no segmented surface covers; it renders with no word card. */

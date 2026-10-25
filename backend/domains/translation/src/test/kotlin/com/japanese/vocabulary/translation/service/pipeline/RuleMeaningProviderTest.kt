@@ -16,7 +16,7 @@ class RuleMeaningProviderTest {
 
     @Test
     fun `resolves archaic manima in no-manima-ni`() {
-        // 浮世の随に — 随 comes out as its own token with に split off, and jisho has no entry for it.
+        // 浮世の随に — 随 comes out as its own token with に split off, and the dictionary has no entry for it.
         val resolved = provider.resolve(PipelineToken(7, "随", "随", 3, 4))!!
 
         assertThat(resolved.baseForm).isEqualTo("随")
@@ -39,7 +39,7 @@ class RuleMeaningProviderTest {
     @Test
     fun `resolves teoku headword behind a colloquial contracted surface`() {
         // ただ泣きたくて 図っといて 集めちゃった感情参考書です — segmentation normalises といて to
-        // the headword ておく, which jisho has no entry for.
+        // the headword ておく, which the dictionary has no entry for.
         val resolved = provider.resolve(PipelineToken(34, "といて", "ておく", 10, 13))!!
 
         assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.AUXILIARY_VERB)
@@ -51,7 +51,7 @@ class RuleMeaningProviderTest {
     @Test
     fun `resolves conditional reba including its colloquial rya contraction`() {
         // 「無意味を集めりゃ意味になる」: segmentation splits 集めりゃ into 集め + りゃ(headword れば).
-        // れば is a conjugation ending, not a dictionary headword, so jisho cannot answer it.
+        // れば is a conjugation ending, not a dictionary headword, so the dictionary cannot answer it.
         val contracted = provider.resolve(PipelineToken(24, "りゃ", "れば", 7, 9, usedReading = "リャ"))!!
 
         assertThat(contracted.partOfSpeech).isEqualTo(PartOfSpeech.AUXILIARY_VERB)
@@ -72,7 +72,7 @@ class RuleMeaningProviderTest {
     @Test
     fun `resolves glued dakede as a single particle`() {
         // 嫌になんだよ お前を見ただけで — segmentation emits だけで as surface and headword, so
-        // GluedParticleSplitter has nothing to split and jisho has no entry for the glued form.
+        // GluedParticleSplitter has nothing to split and the dictionary has no entry for the glued form.
         val resolved = provider.resolve(PipelineToken(33, "だけで", "だけで", 11, 14))!!
 
         assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.PARTICLE)
@@ -82,7 +82,7 @@ class RuleMeaningProviderTest {
 
     @Test
     fun `resolves conditional tara and its voiced dara form`() {
-        // 声聞かせて その手掴んだら離さないから — segmentation emits だら on its own, and jisho has no
+        // 声聞かせて その手掴んだら離さないから — segmentation emits だら on its own, and the dictionary has no
         // entry for the た+ら suffix, so it has to be settled by rule like た and だ are.
         val dara = provider.resolve(PipelineToken(1, "だら", "だら", 9, 11))!!
 
@@ -95,7 +95,7 @@ class RuleMeaningProviderTest {
     @Test
     fun `resolves shiteiku glued after a suru-noun as auxiliary teiku`() {
         // 頭ん中ぎゅるんぎゅるん回転していく — segmentation emits していく as surface and headword
-        // after 回転, and jisho has no entry for the する + ていく chain.
+        // after 回転, and the dictionary has no entry for the する + ていく chain.
         val resolved = provider.resolve(PipelineToken(5, "していく", "していく", 13, 17))!!
 
         assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.AUXILIARY_VERB)
@@ -107,7 +107,7 @@ class RuleMeaningProviderTest {
     @Test
     fun `resolves colloquial concessive ttatte behind a mistaken toittatte headword`() {
         // 宙に舞ったったってその因果も — segmentation emits ったって with the headword といったって,
-        // which jisho has no entry for, so the concessive suffix must be settled by rule.
+        // which the dictionary has no entry for, so the concessive suffix must be settled by rule.
         val resolved = provider.resolve(PipelineToken(71, "ったって", "といったって", 5, 9))
 
         assertThat(resolved).isNotNull
@@ -119,7 +119,7 @@ class RuleMeaningProviderTest {
 
     @Test
     fun `resolves colloquial yada contraction of iyada`() {
-        // ああもうやだ 間違えたら正しさの先まで — segmentation writes the headword as 嫌だ, which jisho
+        // ああもうやだ 間違えたら正しさの先まで — segmentation writes the headword as 嫌だ, which the dictionary
         // has no entry for, and the やだ surface is the contraction itself.
         val resolved = provider.resolve(PipelineToken(4, "やだ", "嫌だ", 4, 6))!!
 
@@ -148,7 +148,7 @@ class RuleMeaningProviderTest {
     @Test
     fun `resolves colloquial mettara from yatara mettara`() {
         // なんでもかんでもやたらめったら性癖フェティシズム — めったら is a colloquial stretch of 滅多
-        // with no jisho headword, so it was reported as a dictionary miss.
+        // with no dictionary headword, so it was reported as a dictionary miss.
         val resolved = provider.resolve(PipelineToken(28, "めったら", "めったら", 11, 15))!!
 
         assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.ADVERB)
@@ -172,7 +172,7 @@ class RuleMeaningProviderTest {
     @Test
     fun `rewrites konnanimo into adverb and particle`() {
         // ただこんなにも君とリンクしてる — the model emits こんなにも as surface *and* headword, so
-        // GluedParticleSplitter sees no mismatch and jisho has no entry for the glued form.
+        // GluedParticleSplitter sees no mismatch and the dictionary has no entry for the glued form.
         val rewritten = provider.rewrite(
             listOf(
                 PipelineToken(42, "ただ", "ただ", 0, 2),

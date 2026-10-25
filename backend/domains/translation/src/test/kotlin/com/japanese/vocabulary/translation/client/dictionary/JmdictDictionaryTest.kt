@@ -1,7 +1,7 @@
 package com.japanese.vocabulary.translation.client.dictionary
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionaryLookupProvenance
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeAll
@@ -45,7 +45,7 @@ class JmdictDictionaryTest {
         val result = dictionary.lookup("前")
 
         assertThat(result.found).isTrue()
-        assertThat(result.provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(result.provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
         assertThat(result.entries.map { it.headword to it.reading }).containsExactly("前" to "マエ", "前" to "ゼン")
         assertThat(result.entries.first().jlpt).containsExactly("jlpt-n5")
         assertThat(result.entries.first().senses.single().pos).containsExactly("Noun")
@@ -79,7 +79,7 @@ class JmdictDictionaryTest {
         val result = dictionary.lookup("ゑゐ")
 
         assertThat(result.found).isFalse()
-        assertThat(result.provenance).isEqualTo(JishoLookupProvenance.NOT_FOUND)
+        assertThat(result.provenance).isEqualTo(DictionaryLookupProvenance.NOT_FOUND)
     }
 
     @Test

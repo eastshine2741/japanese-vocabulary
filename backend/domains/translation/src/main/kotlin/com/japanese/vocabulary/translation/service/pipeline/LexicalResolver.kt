@@ -1,43 +1,43 @@
 package com.japanese.vocabulary.translation.service.pipeline
 
 import com.japanese.vocabulary.song.model.PartOfSpeech
-import com.japanese.vocabulary.translation.client.jisho.JishoPartOfSpeechMapper
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoDictionaryEntryDto
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
+import com.japanese.vocabulary.translation.client.dictionary.DictionaryPartOfSpeechMapper
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionaryEntryDto
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionaryLookupDto
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionaryLookupProvenance
 import com.japanese.vocabulary.translation.model.LexicalResolution
 import com.japanese.vocabulary.translation.model.LexicalResolvedToken
 import com.japanese.vocabulary.translation.model.PipelineSenseOption
 import com.japanese.vocabulary.translation.model.PipelineToken
 import com.japanese.vocabulary.translation.model.PipelineTokenKey
-import com.japanese.vocabulary.translation.service.JishoService
+import com.japanese.vocabulary.translation.service.DictionaryService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
 /**
- * Narrows a jisho lookup to the dictionary entry the token actually means.
+ * Narrows a dictionary lookup to the dictionary entry the token actually means.
  *
  * The lookup key is the headword alone, and one headword can answer with several entries (前 returns
  * 前[マエ] and 先[サキ]). The pair `(headword, baseFormReading)` picks one entry, so sense-select
  * never chooses between different words' meanings. The LLM's reading can be wrong, so a miss is
- * graded rather than dropped: see [JishoLookupProvenance].
+ * graded rather than dropped: see [DictionaryLookupProvenance].
  */
 @Component
 class LexicalResolver(
-    private val jishoService: JishoService,
+    private val dictionaryService: DictionaryService,
 ) {
     private val logger = LoggerFactory.getLogger(LexicalResolver::class.java)
 
     suspend fun resolve(tokens: List<PipelineToken>): LexicalResolution {
         if (tokens.isEmpty()) return LexicalResolution(emptyMap(), emptyMap())
 
-        val firstPass = jishoService.lookupAll(tokens.map { it.headword }.distinct())
+        val firstPass = dictionaryService.lookupAll(tokens.map { it.headword }.distinct())
         // Narrow once per token and reuse; grading twice would emit every log line twice.
         val narrowed = tokens.associate { it.key to narrow(it, firstPass[it.headword], it.headword) }
         val potentialVerbProbes = tokens
             .filter { narrowed[it.key]?.let(::isPotentialVerbEntry) == true }
             .mapNotNull(::potentialFormProbe)
-        val probeLookups = jishoService.lookupAll(
+        val probeLookups = dictionaryService.lookupAll(
             (probeKeys(tokens.filter { narrowed[it.key] == null }) + potentialVerbProbes).distinct(),
         )
 
@@ -74,9 +74,6 @@ class LexicalResolver(
                 ?: resolvePotentialNegative(token, probeLookups)
 
             if (resolved == null) {
-                if (firstPass[token.headword]?.provenance == JishoLookupProvenance.REJECTED_FALLBACK) {
-                    logger.info("Rejected unsafe jisho fallback for '{}'", token.headword)
-                }
                 byToken[token.key] = LexicalResolvedToken(token, token.headword, emptyList())
                 continue
             }
@@ -98,7 +95,7 @@ class LexicalResolver(
                             baseForm = resolved.baseForm,
                             headword = entry.headword,
                             reading = entry.reading,
-                            partOfSpeech = JishoPartOfSpeechMapper.map(sense.pos),
+                            partOfSpeech = DictionaryPartOfSpeechMapper.map(sense.pos),
                             rawPos = sense.pos,
                             english = sense.english,
                             englishDefinitions = sense.englishDefinitions.ifEmpty {
@@ -121,7 +118,7 @@ class LexicalResolver(
      * segmentation stage can retry the line. A non-dictionary headword (`帰れない` for `帰る`) would
      * otherwise ship with no meaning and nothing downstream objecting.
      *
-     * Each miss says whether the dictionary actually answered: a [JishoLookupProvenance.FETCH_ERROR]
+     * Each miss says whether the dictionary actually answered: a [DictionaryLookupProvenance.FETCH_ERROR]
      * is not fixable by the segmentation model, and "no entry exists" would make it change a right headword.
      *
      * Lookups are local and cheap, so [resolve] repeats them. Grading is silent here to avoid duplicate logs.
@@ -129,11 +126,11 @@ class LexicalResolver(
     suspend fun unresolvedTokens(tokens: List<PipelineToken>): List<Unresolved> {
         if (tokens.isEmpty()) return emptyList()
 
-        val firstPass = jishoService.lookupAll(tokens.map { it.headword }.distinct())
+        val firstPass = dictionaryService.lookupAll(tokens.map { it.headword }.distinct())
         val missed = tokens.filter { narrow(it, firstPass[it.headword], it.headword, logGrading = false) == null }
         if (missed.isEmpty()) return emptyList()
 
-        val probeLookups = jishoService.lookupAll(probeKeys(missed))
+        val probeLookups = dictionaryService.lookupAll(probeKeys(missed))
         return missed
             .filter {
                 resolveIAdjective(it, probeLookups, logRescue = false) == null &&
@@ -160,11 +157,11 @@ class LexicalResolver(
             .map { token ->
                 val lookups = listOfNotNull(firstPass[token.headword]) +
                     probeKeysOf(token).mapNotNull(probeLookups::get)
-                Unresolved(token, providerError = lookups.any { it.provenance == JishoLookupProvenance.FETCH_ERROR })
+                Unresolved(token, providerError = lookups.any { it.provenance == DictionaryLookupProvenance.FETCH_ERROR })
             }
     }
 
-    /** A token [unresolvedTokens] could not answer, and whether that is jisho's silence or its verdict. */
+    /** A token [unresolvedTokens] could not answer, and whether that is a read failure or a real miss. */
     data class Unresolved(val token: PipelineToken, val providerError: Boolean)
 
     /** Every alternate lookup key the rescues below might ask for, in one batch. */
@@ -205,13 +202,13 @@ class LexicalResolver(
      */
     private fun narrow(
         token: PipelineToken,
-        lookup: JishoEntryDto?,
+        lookup: DictionaryLookupDto?,
         baseForm: String,
         expectedReading: String? = null,
         logGrading: Boolean = true,
     ): AcceptedLexicalEntry? {
         if (lookup == null || lookup.entries.isEmpty()) return null
-        if (lookup.provenance != JishoLookupProvenance.EXACT) return null
+        if (lookup.provenance != DictionaryLookupProvenance.EXACT) return null
 
         val baseFormAsKana = JapaneseText.toKatakana(baseForm)
         // The reading clause lets a kana headword match at all (かける vs kanji-spelled entries).
@@ -226,12 +223,12 @@ class LexicalResolver(
             // More than one entry survives, so the word is not pinned down. A kana headword (かける)
             // reaches this through `exact`; calling it EXACT would offer 掛ける / 賭ける / 欠ける senses
             // with no sign they are different words.
-            candidates.size > 1 -> JishoLookupProvenance.AMBIGUOUS_HEADWORD
+            candidates.size > 1 -> DictionaryLookupProvenance.AMBIGUOUS_HEADWORD
             // The reading missed but only one entry carries the headword; absorbs a wrong reading.
-            exact.isEmpty() -> JishoLookupProvenance.APPROVED_FALLBACK
-            else -> JishoLookupProvenance.EXACT
+            exact.isEmpty() -> DictionaryLookupProvenance.APPROVED_FALLBACK
+            else -> DictionaryLookupProvenance.EXACT
         }
-        if (logGrading && provenance != JishoLookupProvenance.EXACT) {
+        if (logGrading && provenance != DictionaryLookupProvenance.EXACT) {
             logger.info(
                 "Narrowed '{}' [{}] to {} candidate(s), graded {}",
                 baseForm,
@@ -245,12 +242,12 @@ class LexicalResolver(
 
     /**
      * Safety net for when the segmentation LLM hands back an adverbial 高く as the headword instead of
-     * 高い, or a classical terminal form such as 恙なし that jisho indexes only as 恙ない. Tried only
+     * 高い, or a classical terminal form such as 恙なし that the dictionary indexes only as 恙ない. Tried only
      * after the pair match has already failed.
      */
     private fun resolveIAdjective(
         token: PipelineToken,
-        iAdjectiveLookups: Map<String, JishoEntryDto>,
+        iAdjectiveLookups: Map<String, DictionaryLookupDto>,
         logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
         val base = iAdjectiveProbe(token) ?: return null
@@ -277,12 +274,12 @@ class LexicalResolver(
      * 愛したい — as the headword instead of 愛する. Tried only after the pair match has already failed.
      *
      * The し before たい is ambiguous: 愛したい is 愛する, but 吐き出したい is the godan verb 吐き出す.
-     * Both are probed, `stem + する` first, and the rescue only ever adds an entry jisho actually
+     * Both are probed, `stem + する` first, and the rescue only ever adds an entry the dictionary actually
      * indexes under the probed headword.
      */
     private fun resolveSuruDesiderative(
         token: PipelineToken,
-        lookups: Map<String, JishoEntryDto>,
+        lookups: Map<String, DictionaryLookupDto>,
         logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
         // As in the i-adjective probe, the reading (アイシタクナイ) is inflected back to アイスル with the base form.
@@ -313,14 +310,13 @@ class LexicalResolver(
     /**
      * Safety net for a word the lyric writes in katakana and the dictionary indexes in hiragana.
      *
-     * `アタシ`, `アンタ`, `アナタ` are dictionary words (私, 貴方), but jisho's *search* answers a
-     * katakana query with katakana headwords only (`アンタ` → アンタレス, never 貴方), so it is asked
-     * again in hiragana. The accepted entry reports `あたし` as the base form, merging the word with
-     * lines where segmentation normalized the script itself.
+     * `アタシ`, `アンタ`, `アナタ` are dictionary words (私, 貴方) indexed by their hiragana reading, so
+     * they are asked again in hiragana. The accepted entry reports `あたし` as the base form, merging the
+     * word with lines where segmentation normalized the script itself.
      */
     private fun resolveHiraganaQuery(
         token: PipelineToken,
-        lookups: Map<String, JishoEntryDto>,
+        lookups: Map<String, DictionaryLookupDto>,
         logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
         val base = hiraganaProbe(token) ?: return null
@@ -332,12 +328,12 @@ class LexicalResolver(
 
     /**
      * Safety net for a headword the lyric stretches with a small vowel kana: `さぁ` is the interjection
-     * さあ drawn out, and jisho indexes only `さあ`. The reading is written full size the same way, so
+     * さあ drawn out, and the dictionary indexes only `さあ`. The reading is written full size the same way, so
      * the pair match still decides.
      */
     private fun resolveSmallVowelElongation(
         token: PipelineToken,
-        lookups: Map<String, JishoEntryDto>,
+        lookups: Map<String, DictionaryLookupDto>,
         logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
         val base = smallVowelProbe(token) ?: return null
@@ -355,19 +351,19 @@ class LexicalResolver(
     /**
      * Safety net for a verb the lyric intensifies with colloquial ぶち / ぶっ (ぶち壊れる, ぶっ飛ぶ).
      *
-     * jisho indexes only a few of these compounds, so the prefix is dropped and the remainder asked
+     * The dictionary indexes only a few of these compounds, so the prefix is dropped and the remainder asked
      * for. Only verb senses are accepted; a noun answer is a different word.
      */
     private fun resolveIntensifierPrefix(
         token: PipelineToken,
-        lookups: Map<String, JishoEntryDto>,
+        lookups: Map<String, DictionaryLookupDto>,
         logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
         val base = intensifierPrefixProbe(token) ?: return null
         val accepted = narrow(token, lookups[base], base, intensifierPrefixProbeReading(token), logRescue)
             ?: return null
         val verbEntries = accepted.entries.mapNotNull { entry ->
-            val verbSenses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
+            val verbSenses = entry.senses.filter { DictionaryPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
             if (verbSenses.isEmpty()) null else entry.copy(senses = verbSenses)
         }
         if (verbEntries.isEmpty()) return null
@@ -391,12 +387,12 @@ class LexicalResolver(
     /**
      * Safety net for a noun+する verb the dictionary indexes only as the noun.
      *
-     * jisho has no entry for `交差する`; 交差 is a noun tagged "Suru verb". The noun is asked instead
+     * The dictionary has no entry for `交差する`; 交差 is a noun tagged "Suru verb". The noun is asked instead
      * and only its suru-verb senses are kept.
      */
     private fun resolveSuruVerb(
         token: PipelineToken,
-        lookups: Map<String, JishoEntryDto>,
+        lookups: Map<String, DictionaryLookupDto>,
         logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
         val base = suruVerbProbe(token) ?: return null
@@ -415,12 +411,12 @@ class LexicalResolver(
     /**
      * Safety net for a word the lyric writes with a variant kanji (異体字) the dictionary does not index.
      *
-     * `閧の声` is 鬨の声, but jisho has no entry under 閧. The headword is asked again in its standard
+     * `閧の声` is 鬨の声, but the dictionary has no entry under 閧. The headword is asked again in its standard
      * spelling from [KANJI_VARIANTS], and the accepted entry reports that spelling as the base form.
      */
     private fun resolveKanjiVariant(
         token: PipelineToken,
-        lookups: Map<String, JishoEntryDto>,
+        lookups: Map<String, DictionaryLookupDto>,
         logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
         val base = kanjiVariantProbe(token) ?: return null
@@ -447,7 +443,7 @@ class LexicalResolver(
      */
     private fun resolveLongVowelSpelling(
         token: PipelineToken,
-        lookups: Map<String, JishoEntryDto>,
+        lookups: Map<String, DictionaryLookupDto>,
         logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
         val base = longVowelProbe(token) ?: return null
@@ -510,29 +506,29 @@ class LexicalResolver(
         val reading: String?,
         val english: String,
         val rawPos: List<String>,
-        val provenance: JishoLookupProvenance,
+        val provenance: DictionaryLookupProvenance,
     )
 
     private data class AcceptedLexicalEntry(
         val baseForm: String,
-        val entries: List<JishoDictionaryEntryDto>,
-        val provenance: JishoLookupProvenance,
+        val entries: List<DictionaryEntryDto>,
+        val provenance: DictionaryLookupProvenance,
     )
 
     /**
-     * Safety net for a kanji headword jisho's search does not answer.
+     * Safety net for a kanji headword the dictionary does not spell that way.
      *
      * `燻む` comes back empty while `くすむ` finds it. The reading is asked instead and only an EXACT
      * grade is kept (a reading alone matches every homophone). The base form stays the lyric's headword.
      */
     private fun resolveReadingQuery(
         token: PipelineToken,
-        lookups: Map<String, JishoEntryDto>,
+        lookups: Map<String, DictionaryLookupDto>,
         logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
         val base = readingProbe(token) ?: return null
         val accepted = narrow(token, lookups[base], base, logGrading = logRescue) ?: return null
-        if (accepted.provenance != JishoLookupProvenance.EXACT) return null
+        if (accepted.provenance != DictionaryLookupProvenance.EXACT) return null
         if (logRescue) logger.info("Looked up kanji headword '{}' by its reading '{}'", token.headword, base)
         return accepted.copy(baseForm = token.headword)
     }
@@ -547,12 +543,12 @@ class LexicalResolver(
     /**
      * Safety net for a noun the lyric dresses with an honorific お / ご / 御 (御加減, おクスリ).
      *
-     * jisho indexes only common prefixed forms, so the prefix is dropped and the remainder asked for
+     * The dictionary indexes only common prefixed forms, so the prefix is dropped and the remainder asked for
      * (in hiragana when katakana, as in [resolveHiraganaQuery]). Only noun and na-adjective senses are accepted.
      */
     private fun resolveHonorificPrefix(
         token: PipelineToken,
-        lookups: Map<String, JishoEntryDto>,
+        lookups: Map<String, DictionaryLookupDto>,
         logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
         val base = honorificPrefixProbe(token) ?: return null
@@ -560,7 +556,7 @@ class LexicalResolver(
             ?: return null
         val nounEntries = accepted.entries.mapNotNull { entry ->
             val nounSenses = entry.senses.filter {
-                JishoPartOfSpeechMapper.map(it.pos) in setOf(PartOfSpeech.NOUN, PartOfSpeech.NA_ADJECTIVE)
+                DictionaryPartOfSpeechMapper.map(it.pos) in setOf(PartOfSpeech.NOUN, PartOfSpeech.NA_ADJECTIVE)
             }
             if (nounSenses.isEmpty()) null else entry.copy(senses = nounSenses)
         }
@@ -590,13 +586,13 @@ class LexicalResolver(
      */
     private fun resolveContinuativeNoun(
         token: PipelineToken,
-        lookups: Map<String, JishoEntryDto>,
+        lookups: Map<String, DictionaryLookupDto>,
         logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
         val base = continuativeNounProbe(token) ?: return null
         val accepted = narrow(token, lookups[base], base, logGrading = logRescue) ?: return null
         val nounEntries = accepted.entries.mapNotNull { entry ->
-            val nounSenses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.NOUN }
+            val nounSenses = entry.senses.filter { DictionaryPartOfSpeechMapper.map(it.pos) == PartOfSpeech.NOUN }
             if (nounSenses.isEmpty()) null else entry.copy(senses = nounSenses)
         }
         if (nounEntries.isEmpty()) return null
@@ -615,7 +611,7 @@ class LexicalResolver(
      */
     private fun resolveSuruPassive(
         token: PipelineToken,
-        lookups: Map<String, JishoEntryDto>,
+        lookups: Map<String, DictionaryLookupDto>,
         logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
         val base = suruPassiveProbe(token) ?: return null
@@ -642,12 +638,12 @@ class LexicalResolver(
 
     /**
      * Safety net for when the segmentation LLM hands back a passive — 呑み込まれる — as the headword
-     * instead of 呑み込む. Tried only after the pair match has failed, so verbs jisho indexes itself
+     * instead of 呑み込む. Tried only after the pair match has failed, so verbs the dictionary indexes itself
      * (生まれる, 忘れる) never reach it. The undone ending is a guess; only verb senses are accepted.
      */
     private fun resolvePassive(
         token: PipelineToken,
-        lookups: Map<String, JishoEntryDto>,
+        lookups: Map<String, DictionaryLookupDto>,
         logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
         val base = passiveProbe(token) ?: return null
@@ -655,7 +651,7 @@ class LexicalResolver(
         val reading = undoPassive(token.baseFormReading, PASSIVE_READING_ENDINGS)
         val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: return null
         val verbEntries = accepted.entries.mapNotNull { entry ->
-            val verbSenses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
+            val verbSenses = entry.senses.filter { DictionaryPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
             if (verbSenses.isEmpty()) null else entry.copy(senses = verbSenses)
         }
         if (verbEntries.isEmpty()) return null
@@ -681,14 +677,14 @@ class LexicalResolver(
      */
     private fun resolveAppearanceSou(
         token: PipelineToken,
-        lookups: Map<String, JishoEntryDto>,
+        lookups: Map<String, DictionaryLookupDto>,
         logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
         for (probe in appearanceSouProbes(token)) {
             val accepted = narrow(token, lookups[probe.baseForm], probe.baseForm, probe.reading, logRescue)
                 ?: continue
             val matchingEntries = accepted.entries.mapNotNull { entry ->
-                val senses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == probe.partOfSpeech }
+                val senses = entry.senses.filter { DictionaryPartOfSpeechMapper.map(it.pos) == probe.partOfSpeech }
                 if (senses.isEmpty()) null else entry.copy(senses = senses)
             }
             if (matchingEntries.isEmpty()) continue
@@ -732,13 +728,13 @@ class LexicalResolver(
      */
     private fun resolveCompletionSuffix(
         token: PipelineToken,
-        lookups: Map<String, JishoEntryDto>,
+        lookups: Map<String, DictionaryLookupDto>,
         logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
         for ((base, reading) in completionSuffixProbes(token)) {
             val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: continue
             val verbEntries = accepted.entries.mapNotNull { entry ->
-                val verbSenses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
+                val verbSenses = entry.senses.filter { DictionaryPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
                 if (verbSenses.isEmpty()) null else entry.copy(senses = verbSenses)
             }
             if (verbEntries.isEmpty()) continue
@@ -774,13 +770,13 @@ class LexicalResolver(
      */
     private fun resolveTeAuxMotion(
         token: PipelineToken,
-        lookups: Map<String, JishoEntryDto>,
+        lookups: Map<String, DictionaryLookupDto>,
         logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
         for ((base, reading) in teAuxMotionProbe(token)) {
             val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: continue
             val verbEntries = accepted.entries.mapNotNull { entry ->
-                val verbSenses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
+                val verbSenses = entry.senses.filter { DictionaryPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
                 if (verbSenses.isEmpty()) null else entry.copy(senses = verbSenses)
             }
             if (verbEntries.isEmpty()) continue
@@ -817,7 +813,7 @@ class LexicalResolver(
      */
     private fun resolveNegativeVerb(
         token: PipelineToken,
-        lookups: Map<String, JishoEntryDto>,
+        lookups: Map<String, DictionaryLookupDto>,
         logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
         val base = negativeVerbProbe(token.headword) ?: return null
@@ -825,7 +821,7 @@ class LexicalResolver(
         val reading = negativeVerbProbe(JapaneseText.toHiragana(token.baseFormReading))?.let(JapaneseText::toKatakana)
         val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: return null
         val verbEntries = accepted.entries.mapNotNull { entry ->
-            val verbSenses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
+            val verbSenses = entry.senses.filter { DictionaryPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
             if (verbSenses.isEmpty()) null else entry.copy(senses = verbSenses)
         }
         if (verbEntries.isEmpty()) return null
@@ -851,7 +847,7 @@ class LexicalResolver(
      */
     private fun resolvePotentialForm(
         token: PipelineToken,
-        lookups: Map<String, JishoEntryDto>,
+        lookups: Map<String, DictionaryLookupDto>,
         logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
         val base = potentialFormProbe(token) ?: return null
@@ -868,13 +864,13 @@ class LexicalResolver(
     }
 
     /**
-     * jisho lists some potential verbs as headwords of their own (眠れる: "to be able to sleep"), so
+     * The dictionary lists some potential verbs as headwords of their own (眠れる: "to be able to sleep"), so
      * the exact hit never reaches [resolvePotentialForm] and the card teaches "can sleep" instead of 眠る.
      * Only entries whose every verb sense is "to be able to …" are sent back: 行ける also means "to be good".
      */
     private fun isPotentialVerbEntry(accepted: AcceptedLexicalEntry): Boolean {
         val verbSenses = accepted.entries.flatMap { it.senses }
-            .filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
+            .filter { DictionaryPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
         return verbSenses.isNotEmpty() && verbSenses.all { it.english.startsWith("to be able to") }
     }
 
@@ -901,7 +897,7 @@ class LexicalResolver(
      */
     private fun resolveGodanRenyokei(
         token: PipelineToken,
-        lookups: Map<String, JishoEntryDto>,
+        lookups: Map<String, DictionaryLookupDto>,
         logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
         val base = godanRenyokeiProbe(token) ?: return null
@@ -911,7 +907,7 @@ class LexicalResolver(
             ?.let { token.baseFormReading.dropLast(1) + JapaneseText.toKatakana(it.toString()) }
         val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: return null
         val verbEntries = accepted.entries.mapNotNull { entry ->
-            val verbSenses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
+            val verbSenses = entry.senses.filter { DictionaryPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
             if (verbSenses.isEmpty()) null else entry.copy(senses = verbSenses)
         }
         if (verbEntries.isEmpty()) return null
@@ -933,7 +929,7 @@ class LexicalResolver(
      */
     private fun resolvePotentialNegative(
         token: PipelineToken,
-        lookups: Map<String, JishoEntryDto>,
+        lookups: Map<String, DictionaryLookupDto>,
         logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
         val base = potentialNegativeProbe(token) ?: return null
@@ -942,7 +938,7 @@ class LexicalResolver(
             ?.let(JapaneseText::toKatakana)
         val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: return null
         val verbEntries = accepted.entries.mapNotNull { entry ->
-            val verbSenses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
+            val verbSenses = entry.senses.filter { DictionaryPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
             if (verbSenses.isEmpty()) null else entry.copy(senses = verbSenses)
         }
         if (verbEntries.isEmpty()) return null
@@ -972,7 +968,7 @@ class LexicalResolver(
             "おぉこごそぞとどのほぼぽもよょろを" to 'う',
         )
 
-        /** Variant kanji jisho does not index → the standard spelling it does. Add pairs as misses appear. */
+        /** Variant kanji the dictionary does not index → the standard spelling it does. Add pairs as misses appear. */
         val KANJI_VARIANTS = mapOf('閧' to '鬨', '赦' to '許')
 
         /** Longest first, so したくない is not read as したい with a stem ending in く. */

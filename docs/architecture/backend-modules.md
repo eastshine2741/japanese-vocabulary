@@ -14,7 +14,7 @@ backend/
 │   ├── song-analysis/       — song_analysis_work 상태머신 + trigger/polling DTO. song 모듈을 의존하지 않으며 song_id/lyric_id는 Long projection으로만 보관
 │   ├── recommendation/      — 홈 추천곡 전역 목록(`recommended_song`). 운영자가 기존 곡을 넣고 순서를 정한다
 │   ├── karaoke/             — 노래방 일본 신곡 원장(karaoke_song, 노래방별 행)·본 카탈로그 번호(karaoke_catalog_number)와 song 연결·응답 합치기
-│   ├── translation/         — KoreanLyricTranslationService + GeminiClient + JishoService(내장 JMdict SQLite 조회, `JmdictDictionary`). worker만 의존
+│   ├── translation/         — KoreanLyricTranslationService + GeminiClient + DictionaryService(내장 JMdict SQLite 조회, `JmdictDictionary`). worker만 의존
 │   ├── word/                — 사용자 학습 데이터 일체. `word`/`flashcard`/`deck` 세 package 가 한 모듈에 있다. WordService 가 세 수명주기를 한 트랜잭션에서 소유한다. 곡 가사 단어 목록·단계 분류(`word.service.songword`)도 여기 있다
 │   ├── rewardcard/          — 곡·아티스트 보상 카드(달성·발급·순번 발급기·등급 판정). 등급은 word 의 곡 단어 단계 분류로 잰다
 │   ├── studystats/          — DailyStudySummary, StreakCalculator. Spring Batch job 본체는 batch 모듈로 분리됨

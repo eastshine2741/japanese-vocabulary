@@ -1,11 +1,11 @@
 package com.japanese.vocabulary.translation.service.pipeline
 
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoDictionaryEntryDto
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoOptionDto
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionaryEntryDto
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionaryLookupDto
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionaryLookupProvenance
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionarySenseDto
 import com.japanese.vocabulary.translation.model.PipelineToken
-import com.japanese.vocabulary.translation.service.JishoService
+import com.japanese.vocabulary.translation.service.DictionaryService
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -18,8 +18,8 @@ import org.junit.jupiter.api.Test
  * uncertain case is left whole: a wrong split destroys a real word, a glued one only mis-renders.
  */
 class GluedParticleSplitterTest {
-    private val jishoService = mockk<JishoService>()
-    private val splitter = GluedParticleSplitter(jishoService)
+    private val dictionaryService = mockk<DictionaryService>()
+    private val splitter = GluedParticleSplitter(dictionaryService)
 
     @Test
     fun `a leading particle is split off and the reading divides with it`(): Unit = runBlocking {
@@ -92,8 +92,8 @@ class GluedParticleSplitterTest {
     @Test
     fun `a lookup that failed leaves the token whole`(): Unit = runBlocking {
         // A network blip must not be read as "this is not a word".
-        coEvery { jishoService.lookupAll(any()) } returns mapOf(
-            "がある" to JishoEntryDto(found = false, word = "がある", provenance = JishoLookupProvenance.FETCH_ERROR),
+        coEvery { dictionaryService.lookupAll(any()) } returns mapOf(
+            "がある" to DictionaryLookupDto(found = false, word = "がある", provenance = DictionaryLookupProvenance.FETCH_ERROR),
         )
 
         val tokens = split(token(surface = "がある", headword = "ある", used = "ガアル", base = "アル", start = 0))
@@ -111,7 +111,7 @@ class GluedParticleSplitterTest {
         )
 
         assertThat(tokens.map { it.surface }).containsExactly("です", "ねばった")
-        coVerify(exactly = 0) { jishoService.lookupAll(any()) }
+        coVerify(exactly = 0) { dictionaryService.lookupAll(any()) }
     }
 
     @Test
@@ -123,7 +123,7 @@ class GluedParticleSplitterTest {
         )
 
         assertThat(tokens.map { it.surface }).containsExactly("離れない")
-        coVerify(exactly = 0) { jishoService.lookupAll(any()) }
+        coVerify(exactly = 0) { dictionaryService.lookupAll(any()) }
     }
 
     private suspend fun split(vararg tokens: PipelineToken): List<PipelineToken> =
@@ -141,22 +141,22 @@ class GluedParticleSplitterTest {
     )
 
     private fun stubMissing(word: String) {
-        coEvery { jishoService.lookupAll(any()) } returns mapOf(
-            word to JishoEntryDto(found = false, word = word, provenance = JishoLookupProvenance.NOT_FOUND),
+        coEvery { dictionaryService.lookupAll(any()) } returns mapOf(
+            word to DictionaryLookupDto(found = false, word = word, provenance = DictionaryLookupProvenance.NOT_FOUND),
         )
     }
 
     private fun stubEntry(word: String) {
-        coEvery { jishoService.lookupAll(any()) } returns mapOf(
-            word to JishoEntryDto(
+        coEvery { dictionaryService.lookupAll(any()) } returns mapOf(
+            word to DictionaryLookupDto(
                 found = true,
                 word = word,
                 entries = listOf(
-                    JishoDictionaryEntryDto(
+                    DictionaryEntryDto(
                         headword = word,
                         reading = JapaneseText.toKatakana(word),
                         senses = listOf(
-                            JishoOptionDto(
+                            DictionarySenseDto(
                                 pos = listOf("Adverb"),
                                 english = "always",
                                 englishDefinitions = listOf("always"),
@@ -164,7 +164,7 @@ class GluedParticleSplitterTest {
                         ),
                     ),
                 ),
-                provenance = JishoLookupProvenance.EXACT,
+                provenance = DictionaryLookupProvenance.EXACT,
             ),
         )
     }

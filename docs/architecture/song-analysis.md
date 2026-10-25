@@ -99,7 +99,7 @@ Completion is the active switch boundary: it locks the work row and target song 
 
 Detailed design: `docs/translation-pipeline.md`.
 
-Flow: `(translation || [segment -> surface/reading check + retry -> grammar rules -> jisho entry-select]) -> sense-select -> sense-translate -> assemble`.
+Flow: `(translation || [segment -> surface/reading check + retry -> grammar rules -> dictionary entry-select]) -> sense-select -> sense-translate -> assemble`.
 
 `KoreanLyricTranslationService` is the orchestrator. Concrete steps live in `translation.service.pipeline.stage` as `PipelineStage<I, O>` implementations, and stage DTOs live in `translation.model`.
 
@@ -107,7 +107,7 @@ Flow: `(translation || [segment -> surface/reading check + retry -> grammar rule
 2. **segment** (LLM, `gemini.segmentation-model`): original line -> segments, each with `surface`, `headword`, `usedReading`, `baseFormReading` (both katakana), and a short English `contextGloss`. Replaces Kuromoji. This stage carries the pipeline's disambiguation signal, so its model tier is configured separately from the cheaper downstream calls. Sent in `SEGMENT_CHUNK_LINES` chunks.
 3. **surface/reading check + retry** (code): validates that segmented surfaces cover the original Japanese text in order and that both readings are kana-only. Hiragana is normalized to katakana rather than retried; kanji left in a reading fails that line, which is retried on its own.
 4. **grammar rules** (code): deterministically handles only grammar tokens that lexical lookup cannot reliably recover, such as `ている/てる`, particles, and the `どうも こうも` rewrite. Ambiguous words such as `ない` and `から` stay out of the rule table.
-5. **jisho entry-select** (code): a lookup keyed by headword returns every dictionary entry it touched, boundaries intact — one entry per `(headword, reading)` pair. `LexicalResolver` narrows to the entry matching the segment's `(headword, baseFormReading)` pair and offers only that entry's senses — or, when the pair still matches several entries (a kana headword such as かける does this), offers them all with entry labels attached. See the grade table in `docs/translation-pipeline.md`. i-adjective adverbials such as `高く` can still be normalized through a `高い` probe.
+5. **dictionary entry-select** (code): a lookup keyed by headword returns every dictionary entry it touched, boundaries intact — one entry per `(headword, reading)` pair. `LexicalResolver` narrows to the entry matching the segment's `(headword, baseFormReading)` pair and offers only that entry's senses — or, when the pair still matches several entries (a kana headword such as かける does this), offers them all with entry labels attached. See the grade table in `docs/translation-pipeline.md`. i-adjective adverbials such as `高く` can still be normalized through a `高い` probe.
 6. **sense-select** (Jev, `jev.model`): chooses the matching sense ID for each word, using the lyric translation and the segment's `contextGloss` as context. One request per line, one `choice` question per word; the word is marked with 【】 inside the line so two identical surfaces in one line get different questions. It can only answer with an offered option, so it never creates meanings. **A word with only one candidate sense is settled in code without a request.** `SenseCandidateNarrowing` first drops candidates no line could mean (repeated glosses of variant spellings; content-word homophones of a word the `contextGloss` calls a particle/auxiliary/suffix). An answer under confidence `0.25` is stored as "no sense" (`-1`). Sense candidates carry headword/reading only in the `AMBIGUOUS_HEADWORD` grade.
 7. **sense-translate** (LLM): translates each chosen Japanese sense to one Korean meaning. Multiple English glosses for one sense are treated as one sense description, not concatenated gloss translations.
 8. **assemble** (code): `Token.reading` is the segment's inflected `usedReading` and `Token.baseFormReading` is the chosen entry's dictionary reading, so 行って keeps イッテ while its headword 行く reads イク. POS, JLPT, and meaning come from the rule result or the selected sense. If no sense exists, leave it empty. Punctuation, English, and numbers normally get no token at all — segment anchoring drops them and the app rebuilds them from the gaps between tokens; a non-Japanese surface that reaches this stage anyway is marked `SYMBOL` rather than sent to the dictionary. No line-level reading is stored — the tokens carry it.
@@ -130,7 +130,7 @@ Failures end as `song_analysis_work.status=FAILED` without work-level retry. Onl
 ### How the numbers below were measured
 
 A throwaway harness ran the real stage objects in `runPipeline`'s order while keeping every
-intermediate, so it could report what the finished `AnalyzedLine` does not carry — each token's jisho
+intermediate, so it could report what the finished `AnalyzedLine` does not carry — each token's dictionary
 provenance and whether sense-select answered `-1`. It was deleted after the measurement rather than
 kept: it only earns its keep when the model choice is reopened, and a live-API test sitting in the
 tree costs more in upkeep than in rewriting.
@@ -150,7 +150,7 @@ Golden 3 songs, one run each, temperature 0. "before" is the pre-refactor pipeli
 
 | | before | `gemini-3.1-flash-lite` | `gemini-3-flash-preview` |
 |---|---|---|---|
-| jisho `EXACT` share | 0.945 | 0.672 | 0.669 |
+| dictionary `EXACT` share | 0.945 | 0.672 | 0.669 |
 | candidate senses per token (mean) | 8.27 | 7.72 | — |
 | tokens offered >10 senses | 141 | 96 | — |
 | `senseId = -1` | 0.060 | 0.043 | 0.041 |
@@ -221,8 +221,8 @@ Bad Apple!!, 匿名M) against Jev and hand-graded the disagreements.
 
 ## JLPT Level Source
 
-- 공식 N1~N5 어휘 리스트는 없다(2010 개정 때 出題基準 공개 중단). jisho 를 포함한 모든 리스트가 tanos.co.uk 에서 나온다.
-- jisho `jlpt` 는 난이도가 아니라 리스트 등재 여부다. N1 은 N5~N2 리스트에 없는 상용어가 모이는 잔여 버킷(だけ·パジャマ·了解)이고, 忖度 같은 진짜 상급어는 무태그. entry 단위라 sense 별 등급도 없다.
+- 공식 N1~N5 어휘 리스트는 없다(2010 개정 때 出題基準 공개 중단). 흔히 쓰이는 리스트는 모두 tanos.co.uk 에서 나온다.
+- tanos `jlpt` 는 난이도가 아니라 리스트 등재 여부다. N1 은 N5~N2 리스트에 없는 상용어가 모이는 잔여 버킷(だけ·パジャマ·了解)이고, 忖度 같은 진짜 상급어는 무태그. entry 단위라 sense 별 등급도 없다.
 - 내장 사전(`docs/architecture/dictionary.md`)은 tanos 원본 CSV(`stephenmk/yomitan-jlpt-vocab` 의 `original_data/`, JMdict seq 단위, CC BY)를 엔트리에 붙인다. 가나 기준으로 눌러버린 가공본 `jlpt.zip` 은 같은 가나의 다른 단어까지 뭉개므로 금지. 등급 대신 난이도가 필요하면 사전의 `zipf` 를 쓴다. 日本語教育語彙表(JEV)는 연구·교육용 한정이라 앱에 넣을 수 없다.
 
 ## Major Word Ranking

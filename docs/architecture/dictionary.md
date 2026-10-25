@@ -1,6 +1,6 @@
 # 내장 사전 (JMdict SQLite)
 
-곡 분석의 사전 조회(`JishoService` → `JmdictDictionary`)는 jisho.org 대신 worker 파드가 기동할 때 받은 JMdict SQLite 파일을 읽는다. 단어 난이도로 쓸 빈도(`entries.zipf`)도 같은 파일에 들어 있다. 파일은 `tools/dictionary/` 스크립트로 만든다.
+곡 분석의 사전 조회(`DictionaryService` → `JmdictDictionary`)는 worker 파드가 기동할 때 받은 JMdict SQLite 파일을 읽는다. 단어 난이도로 쓸 빈도(`entries.zipf`)도 같은 파일에 들어 있다. 파일은 `tools/dictionary/` 스크립트로 만든다.
 
 ## 왜 운영 MySQL 이 아니라 파일인가
 
@@ -10,19 +10,15 @@
 
 ## 바꾸면 깨지는 것
 
-- **POS 문자열은 jisho 라벨이다** (`build_dictionary.py` 의 `JISHO_POS`). `JishoPartOfSpeechMapper` 와 `LexicalResolver` 가 `"suru verb"`, `"godan verb"` 같은 문자열로 판정한다. JMdict 원문 설명(`noun or participle which takes the aux. verb suru`)을 그대로 넣으면 する 동사 해석이 조용히 깨진다. 대응표는 dev jisho 캐시 응답과 sense 단위로 맞춰 뽑았다.
-- **검색 전용 표기(`sK`/`sk`)는 넣지 않는다.** jisho 도 응답에 넣지 않았다. 넣으면 다른 엔트리와 표기가 겹쳐 후보 엔트리가 늘고 `AMBIGUOUS_HEADWORD` 가 잦아진다.
+- **POS 문자열은 고정 라벨이다** (`build_dictionary.py` 의 `POS_LABELS`). `DictionaryPartOfSpeechMapper` 와 `LexicalResolver` 가 `"suru verb"`, `"godan verb"` 같은 문자열로 판정한다. JMdict 원문 설명(`noun or participle which takes the aux. verb suru`)을 그대로 넣으면 する 동사 해석이 조용히 깨진다.
+- **검색 전용 표기(`sK`/`sk`)는 넣지 않는다.** 넣으면 다른 엔트리와 표기가 겹쳐 후보 엔트리가 늘고 `AMBIGUOUS_HEADWORD` 가 잦아진다.
 - **읽기는 가타카나로 저장한다.** 조회 쪽 `JapaneseText.toKatakana` 와 같은 변환(히라가나 U+3041–3096 에 0x60)이라야 읽기 일치가 맞는다.
 
-## jisho 와 다른 점
+## 알려진 한계
 
-dev Redis 의 jisho 캐시 578단어와 대조한 결과 (2026-10).
-
-- jisho 가 돌려준 표기·읽기 쌍 1,672개 중 1,671개가 있다.
-- さん·だ·よう 같은 짧은 가나 8단어는 후보 엔트리가 더 많다. jisho 는 검색 결과 20개에서 잘렸다.
-- 인명·지명(JMnedict)과 위키백과 sense 가 없다. 학습 대상이 아닌 잡음(`集団` 에 붙던 `Shuudan`)이 빠지는 대신 楊貴妃 같은 한자 고유명사는 `DICTIONARY_MISS` 가 되어 분절 재시도를 한 번 부르고 뜻 없이 남는다. 가타카나 표면은 원래 이 검사에서 빠진다.
-- 감탄사는 `Interjection` 이다. jisho 는 라벨을 비워 보내 앞 sense 의 POS 가 이어 붙었다(ほら 가 대명사).
-- JLPT 는 tanos 원본 CSV 를 JMdict seq 로 붙인다. 파이프라인이 쓰는 "가장 쉬운 등급" 은 95% 가 jisho 와 같다.
+- さん·だ·よう 같은 짧은 가나는 읽기가 같은 엔트리가 모두 후보로 와서 `AMBIGUOUS_HEADWORD` 가 된다.
+- 인명·지명(JMnedict)은 없다. 楊貴妃 같은 한자 고유명사는 `DICTIONARY_MISS` 가 되어 분절 재시도를 한 번 부르고 뜻 없이 남는다. 가타카나 표면은 원래 이 검사에서 빠진다.
+- JLPT 는 tanos 원본 CSV 를 JMdict seq 로 붙인다.
 
 ## 난이도 (`zipf`)
 

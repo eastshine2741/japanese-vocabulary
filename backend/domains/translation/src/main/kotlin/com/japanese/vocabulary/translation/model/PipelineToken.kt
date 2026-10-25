@@ -8,9 +8,9 @@ data class PipelineToken(
     val charEnd: Int,
     /** Reading as sung on this line, katakana. Empty only for tokens rules rewrote before normalization. */
     val usedReading: String = "",
-    /** Reading of [headword], katakana. Half of the `(headword, reading)` jisho entry key. */
+    /** Reading of [headword], katakana. Half of the `(headword, reading)` dictionary entry key. */
     val baseFormReading: String = "",
-    /** Short English hint at the meaning this line uses; sense-select matches it against jisho glosses. */
+    /** Short English hint at the meaning this line uses; sense-select matches it against dictionary glosses. */
     val contextGloss: String = "",
 ) {
     val key: PipelineTokenKey = PipelineTokenKey(lineIndex, charStart, charEnd, surface)

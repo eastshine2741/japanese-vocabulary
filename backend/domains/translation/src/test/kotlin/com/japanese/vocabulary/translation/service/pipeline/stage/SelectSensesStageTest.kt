@@ -7,7 +7,7 @@ import com.japanese.vocabulary.translation.client.jev.JevClient
 import com.japanese.vocabulary.translation.client.jev.dto.JevAnswer
 import com.japanese.vocabulary.translation.client.jev.dto.JevChoiceQuestion
 import com.japanese.vocabulary.translation.client.gemini.dto.TranslationResultDto
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionaryLookupProvenance
 import com.japanese.vocabulary.translation.model.AnalysisDefect
 import com.japanese.vocabulary.translation.model.AnalysisDefectCause
 import com.japanese.vocabulary.translation.model.LexicalResolution
@@ -181,7 +181,7 @@ class SelectSensesStageTest {
         english = english,
         englishDefinitions = listOf(english),
         jlpt = emptyList(),
-        provenance = JishoLookupProvenance.EXACT,
+        provenance = DictionaryLookupProvenance.EXACT,
     )
 
     private fun input() =SenseSelectionStageInput(
@@ -228,7 +228,7 @@ class SelectSensesStageTest {
             english = "sense $senseId",
             englishDefinitions = listOf("sense $senseId"),
             jlpt = emptyList(),
-            provenance = JishoLookupProvenance.EXACT,
+            provenance = DictionaryLookupProvenance.EXACT,
         )
     }
 
@@ -241,7 +241,7 @@ class SelectSensesStageTest {
         }
         private val stage = SelectSensesStage(jevClient, defectReporter)
 
-        // 君のチクタクチクも僕の元に: jisho offered チク the 竹/築/地区 entries and the model rightly answered -1 (a clock's tick).
+        // 君のチクタクチクも僕の元に: the dictionary offered チク the 竹/築/地区 entries and the model rightly answered -1 (a clock's tick).
         private val raw = "君のチクタクチクも僕の元に"
         private val token = PipelineToken(
             lineIndex = 39,
@@ -309,7 +309,7 @@ class SelectSensesStageTest {
             english = "bamboo",
             englishDefinitions = listOf("bamboo"),
             jlpt = emptyList(),
-            provenance = JishoLookupProvenance.EXACT,
+            provenance = DictionaryLookupProvenance.EXACT,
         )
     }
 }

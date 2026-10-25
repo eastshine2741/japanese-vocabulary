@@ -4,7 +4,7 @@ import com.japanese.vocabulary.song.model.LyricLineData
 import com.japanese.vocabulary.song.model.PartOfSpeech
 import com.japanese.vocabulary.translation.client.gemini.GeminiCallContext
 import com.japanese.vocabulary.translation.client.gemini.dto.TranslationResultDto
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionaryLookupProvenance
 import com.japanese.vocabulary.translation.model.AssembleAnalyzedLinesInput
 import com.japanese.vocabulary.translation.model.LexicalResolution
 import com.japanese.vocabulary.translation.model.LexicalResolvedToken
@@ -180,7 +180,7 @@ class AssembleAnalyzedLinesStageTest {
 
     @Test
     fun `takes the dictionary reading when the surface is the dictionary form`(): Unit = runBlocking {
-        // The model misreads a word jisho spells out on the same token: 痛々しい is イタイタシイ.
+        // The model misreads a word the dictionary spells out on the same token: 痛々しい is イタイタシイ.
         val raw = "痛々しい"
         val option = senseOption(senseId = 0, baseForm = raw, reading = "イタイタシイ")
         val tokens = listOf(token(raw, raw, raw, "イタタマシイ", "イタイタシイ"))
@@ -220,7 +220,7 @@ class AssembleAnalyzedLinesStageTest {
         // correct a reading.
         val raw = "前"
         val option = senseOption(senseId = 0, baseForm = raw, reading = "ゼン")
-            .copy(provenance = JishoLookupProvenance.AMBIGUOUS_HEADWORD)
+            .copy(provenance = DictionaryLookupProvenance.AMBIGUOUS_HEADWORD)
         val tokens = listOf(token(raw, raw, raw, "マエ", "マエ"))
 
         val line = assembleWith(raw, tokens, option).single()
@@ -296,6 +296,6 @@ class AssembleAnalyzedLinesStageTest {
         english = "to go",
         englishDefinitions = listOf("to go"),
         jlpt = listOf("jlpt-n5"),
-        provenance = JishoLookupProvenance.EXACT,
+        provenance = DictionaryLookupProvenance.EXACT,
     )
 }

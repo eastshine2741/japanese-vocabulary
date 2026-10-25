@@ -1,11 +1,11 @@
 package com.japanese.vocabulary.translation.service.pipeline
 
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoDictionaryEntryDto
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoOptionDto
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionaryEntryDto
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionaryLookupDto
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionaryLookupProvenance
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionarySenseDto
 import com.japanese.vocabulary.translation.model.PipelineToken
-import com.japanese.vocabulary.translation.service.JishoService
+import com.japanese.vocabulary.translation.service.DictionaryService
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
@@ -18,8 +18,8 @@ import org.junit.jupiter.api.Test
  * graded rather than dropped.
  */
 class LexicalResolverTest {
-    private val jishoService = mockk<JishoService>()
-    private val resolver = LexicalResolver(jishoService)
+    private val dictionaryService = mockk<DictionaryService>()
+    private val resolver = LexicalResolver(dictionaryService)
 
     @Test
     fun `a matching pair narrows to that entry alone`(): Unit = runBlocking {
@@ -30,7 +30,7 @@ class LexicalResolverTest {
         assertThat(resolved.options.map { it.english }).containsExactly("before / earlier")
         assertThat(resolved.options.map { it.reading }).containsExactly("マエ")
         assertThat(resolved.options).allSatisfy {
-            assertThat(it.provenance).isEqualTo(JishoLookupProvenance.EXACT)
+            assertThat(it.provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
         }
     }
 
@@ -55,7 +55,7 @@ class LexicalResolverTest {
         val resolved = resolver.resolve(listOf(token("猫", "猫", "ミャオ"))).byTokenKey.values.single()
 
         assertThat(resolved.options.map { it.english }).containsExactly("cat")
-        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.APPROVED_FALLBACK)
+        assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.APPROVED_FALLBACK)
     }
 
     @Test
@@ -68,7 +68,7 @@ class LexicalResolverTest {
         assertThat(resolved.options.map { it.headword to it.reading })
             .containsExactly("前" to "ゼン", "前" to "マエ")
         assertThat(resolved.options).allSatisfy {
-            assertThat(it.provenance).isEqualTo(JishoLookupProvenance.AMBIGUOUS_HEADWORD)
+            assertThat(it.provenance).isEqualTo(DictionaryLookupProvenance.AMBIGUOUS_HEADWORD)
         }
     }
 
@@ -84,11 +84,11 @@ class LexicalResolverTest {
     @Test
     fun `a rejected fallback never reaches sense selection`(): Unit = runBlocking {
         stub(
-            "こうも" to JishoEntryDto(
+            "こうも" to DictionaryLookupDto(
                 found = false,
                 word = "こうも",
                 entries = listOf(entry(headword = "こうも", reading = "コウモ", english = "irrelevant")),
-                provenance = JishoLookupProvenance.REJECTED_FALLBACK,
+                provenance = DictionaryLookupProvenance.REJECTED_FALLBACK,
             ),
         )
 
@@ -123,7 +123,7 @@ class LexicalResolverTest {
         val resolved = resolver.resolve(listOf(token("かけて", "かける", "カケル"))).byTokenKey.values.single()
 
         assertThat(resolved.options).allSatisfy {
-            assertThat(it.provenance).isEqualTo(JishoLookupProvenance.AMBIGUOUS_HEADWORD)
+            assertThat(it.provenance).isEqualTo(DictionaryLookupProvenance.AMBIGUOUS_HEADWORD)
         }
         assertThat(resolved.options.map { it.headword })
             .containsExactly("掛ける", "賭ける", "欠ける")
@@ -131,7 +131,7 @@ class LexicalResolverTest {
 
     @Test
     fun `a kana headword whose homophones all carry kanji spellings stays ambiguous`(): Unit = runBlocking {
-        // Real jisho shape for もう: six entries, only one kana-headed. Matching on headword alone would
+        // Real dictionary shape for もう: six entries, only one kana-headed. Matching on headword alone would
         // drop the correct meaning and grading all EXACT would send unlabelled homophones, so they go out labelled.
         stub(
             "もう" to found(
@@ -148,13 +148,13 @@ class LexicalResolverTest {
 
         assertThat(resolved.options).hasSize(6)
         assertThat(resolved.options).allSatisfy {
-            assertThat(it.provenance).isEqualTo(JishoLookupProvenance.AMBIGUOUS_HEADWORD)
+            assertThat(it.provenance).isEqualTo(DictionaryLookupProvenance.AMBIGUOUS_HEADWORD)
         }
     }
 
     @Test
     fun `a kana headword with no kana-headed entry still keeps every meaning`(): Unit = runBlocking {
-        // ここ has no kana headword in jisho — every candidate is kanji-spelled. Restricting the
+        // ここ has no kana headword in the dictionary — every candidate is kanji-spelled. Restricting the
         // reading clause to kana-only entries would leave this word with no meaning at all.
         stub(
             "ここ" to found(
@@ -174,11 +174,11 @@ class LexicalResolverTest {
         // would call every rescue a fallback.
         stub(
             "高い" to found(
-                JishoDictionaryEntryDto(
+                DictionaryEntryDto(
                     headword = "高い",
                     reading = "タカイ",
                     senses = listOf(
-                        JishoOptionDto(
+                        DictionarySenseDto(
                             pos = listOf("I-adjective (keiyoushi)"),
                             english = "high / tall",
                             englishDefinitions = listOf("high", "tall"),
@@ -191,19 +191,19 @@ class LexicalResolverTest {
         val resolved = resolver.resolve(listOf(token("高く", "高く", "タカク"))).byTokenKey.values.single()
 
         assertThat(resolved.baseForm).isEqualTo("高い")
-        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
     }
 
     @Test
     fun `a classical adjective ending in shi is looked up as its modern i-adjective`(): Unit = runBlocking {
-        // 恙なし is the classical terminal form of 恙ない; jisho indexes only the modern form.
+        // 恙なし is the classical terminal form of 恙ない; the dictionary indexes only the modern form.
         stub(
             "恙ない" to found(
-                JishoDictionaryEntryDto(
+                DictionaryEntryDto(
                     headword = "恙ない",
                     reading = "ツツガナイ",
                     senses = listOf(
-                        JishoOptionDto(
+                        DictionarySenseDto(
                             pos = listOf("I-adjective (keiyoushi)"),
                             english = "safe / well / healthy",
                             englishDefinitions = listOf("safe", "well", "healthy"),
@@ -218,21 +218,21 @@ class LexicalResolverTest {
 
         assertThat(resolved.baseForm).isEqualTo("恙ない")
         assertThat(resolved.options.map { it.english }).containsExactly("safe / well / healthy")
-        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
         assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
     }
 
     @Test
     fun `a suru-verb desiderative handed back as the headword is rescued as stem plus suru`(): Unit = runBlocking {
-        // 愛したくない has no jisho entry. The reading アイシタクナイ belongs to that wrong headword, so it
+        // 愛したくない has no dictionary entry. The reading アイシタクナイ belongs to that wrong headword, so it
         // is inflected back to アイスル alongside the base form.
         stub(
             "愛する" to found(
-                JishoDictionaryEntryDto(
+                DictionaryEntryDto(
                     headword = "愛する",
                     reading = "アイスル",
                     senses = listOf(
-                        JishoOptionDto(
+                        DictionarySenseDto(
                             pos = listOf("Suru verb - special class", "Transitive verb"),
                             english = "to love",
                             englishDefinitions = listOf("to love"),
@@ -248,7 +248,7 @@ class LexicalResolverTest {
 
         assertThat(resolved.baseForm).isEqualTo("愛する")
         assertThat(resolved.options.map { it.english }).containsExactly("to love")
-        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
     }
 
     @Test
@@ -267,11 +267,11 @@ class LexicalResolverTest {
         // 吐き出したい is 吐き出す, a godan verb whose masu stem ends in し; probing only 吐き出する finds nothing.
         stub(
             "吐き出す" to found(
-                JishoDictionaryEntryDto(
+                DictionaryEntryDto(
                     headword = "吐き出す",
                     reading = "ハキダス",
                     senses = listOf(
-                        JishoOptionDto(
+                        DictionarySenseDto(
                             pos = listOf("Godan verb with 'su' ending", "Transitive verb"),
                             english = "to vomit, to spit out",
                             englishDefinitions = listOf("to vomit", "to spit out"),
@@ -286,7 +286,7 @@ class LexicalResolverTest {
 
         assertThat(resolved.baseForm).isEqualTo("吐き出す")
         assertThat(resolved.options.map { it.english }).containsExactly("to vomit, to spit out")
-        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
         assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
     }
 
@@ -302,14 +302,14 @@ class LexicalResolverTest {
 
     @Test
     fun `a passive handed back as the headword is rescued as its dictionary form`(): Unit = runBlocking {
-        // The model kept the passive 呑み込まれる as the headword; jisho has no such entry.
+        // The model kept the passive 呑み込まれる as the headword; the dictionary has no such entry.
         stub(
             "呑み込む" to found(
-                JishoDictionaryEntryDto(
+                DictionaryEntryDto(
                     headword = "呑み込む",
                     reading = "ノミコム",
                     senses = listOf(
-                        JishoOptionDto(
+                        DictionarySenseDto(
                             pos = listOf("Godan verb with 'mu' ending", "Transitive verb"),
                             english = "to swallow",
                             englishDefinitions = listOf("to swallow"),
@@ -324,25 +324,25 @@ class LexicalResolverTest {
 
         assertThat(resolved.baseForm).isEqualTo("呑み込む")
         assertThat(resolved.options.map { it.english }).containsExactly("to swallow")
-        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
         assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
     }
 
     @Test
     fun `a suru verb rescued through the probe is graded exact`(): Unit = runBlocking {
-        // jisho indexes 交差 as a noun that takes する, never 交差する itself.
+        // The dictionary indexes 交差 as a noun that takes する, never 交差する itself.
         stub(
             "交差" to found(
-                JishoDictionaryEntryDto(
+                DictionaryEntryDto(
                     headword = "交差",
                     reading = "コウサ",
                     senses = listOf(
-                        JishoOptionDto(
+                        DictionarySenseDto(
                             pos = listOf("Noun", "Suru verb", "Intransitive verb"),
                             english = "to intersect, to cross",
                             englishDefinitions = listOf("to intersect", "to cross"),
                         ),
-                        JishoOptionDto(
+                        DictionarySenseDto(
                             pos = listOf("Noun"),
                             english = "crossing",
                             englishDefinitions = listOf("crossing"),
@@ -357,20 +357,20 @@ class LexicalResolverTest {
 
         assertThat(resolved.baseForm).isEqualTo("交差")
         assertThat(resolved.options.map { it.english }).containsExactly("to intersect, to cross")
-        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
         assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
     }
 
     @Test
     fun `a noun written with a trailing り is looked up without it`(): Unit = runBlocking {
-        // 光り is the noun 光 spelled with 光る's continuative okurigana; jisho indexes only 光.
+        // 光り is the noun 光 spelled with 光る's continuative okurigana; the dictionary indexes only 光.
         stub(
             "光" to found(
-                JishoDictionaryEntryDto(
+                DictionaryEntryDto(
                     headword = "光",
                     reading = "ヒカリ",
                     senses = listOf(
-                        JishoOptionDto(
+                        DictionarySenseDto(
                             pos = listOf("Noun"),
                             english = "light, illumination",
                             englishDefinitions = listOf("light", "illumination"),
@@ -385,7 +385,7 @@ class LexicalResolverTest {
 
         assertThat(resolved.baseForm).isEqualTo("光")
         assertThat(resolved.options.map { it.english }).containsExactly("light, illumination")
-        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
         assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
     }
 
@@ -395,11 +395,11 @@ class LexicalResolverTest {
         // lyric spelled with り.
         stub(
             "光" to found(
-                JishoDictionaryEntryDto(
+                DictionaryEntryDto(
                     headword = "光",
                     reading = "ヒカリ",
                     senses = listOf(
-                        JishoOptionDto(
+                        DictionarySenseDto(
                             pos = listOf("Godan verb with 'ru' ending", "Intransitive verb"),
                             english = "to shine",
                             englishDefinitions = listOf("to shine"),
@@ -416,13 +416,13 @@ class LexicalResolverTest {
 
     @Test
     fun `a katakana headword the dictionary indexes in hiragana is queried again in hiragana`(): Unit = runBlocking {
-        // jisho's search is script-sensitive: アンタ answers with アンタレス and アンタナナリボ, never 貴方.
+        // The katakana query is stubbed to miss, so 貴方 is only reached through the hiragana probe.
         stub(
-            "アンタ" to JishoEntryDto(
+            "アンタ" to DictionaryLookupDto(
                 found = false,
                 word = "アンタ",
                 entries = listOf(entry(headword = null, reading = "アンタレス", english = "Antares")),
-                provenance = JishoLookupProvenance.REJECTED_FALLBACK,
+                provenance = DictionaryLookupProvenance.REJECTED_FALLBACK,
             ),
             "あんた" to found(entry(headword = "貴方", reading = "アンタ", english = "you")),
         )
@@ -431,7 +431,7 @@ class LexicalResolverTest {
 
         assertThat(resolved.baseForm).isEqualTo("あんた")
         assertThat(resolved.options.map { it.english }).containsExactly("you")
-        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
     }
 
     @Test
@@ -446,7 +446,7 @@ class LexicalResolverTest {
 
     @Test
     fun `a headword stretched with a small vowel kana is queried again at full size`(): Unit = runBlocking {
-        // さぁ is the interjection さあ drawn out with a small ぁ; jisho indexes only さあ.
+        // さぁ is the interjection さあ drawn out with a small ぁ; the dictionary indexes only さあ.
         stub("さあ" to found(entry(headword = "さあ", reading = "サア", english = "come now")))
 
         val tokens = listOf(token("さぁ", "さぁ", "サァ", lineIndex = 39))
@@ -454,25 +454,25 @@ class LexicalResolverTest {
 
         assertThat(resolved.baseForm).isEqualTo("さあ")
         assertThat(resolved.options.map { it.english }).containsExactly("come now")
-        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
         assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
     }
 
     @Test
     fun `an intensifier-prefixed verb is looked up without its prefix`(): Unit = runBlocking {
-        // ぶち壊れる is colloquial ぶち + 壊れる; jisho has no entry for the compound.
+        // ぶち壊れる is colloquial ぶち + 壊れる; the dictionary has no entry for the compound.
         stub(
             "壊れる" to found(
-                JishoDictionaryEntryDto(
+                DictionaryEntryDto(
                     headword = "壊れる",
                     reading = "コワレル",
                     senses = listOf(
-                        JishoOptionDto(
+                        DictionarySenseDto(
                             pos = listOf("Ichidan verb", "Intransitive verb"),
                             english = "to be broken",
                             englishDefinitions = listOf("to be broken", "to break"),
                         ),
-                        JishoOptionDto(
+                        DictionarySenseDto(
                             pos = listOf("Noun"),
                             english = "irrelevant noun sense",
                             englishDefinitions = listOf("irrelevant noun sense"),
@@ -488,18 +488,18 @@ class LexicalResolverTest {
 
         assertThat(resolved.baseForm).isEqualTo("壊れる")
         assertThat(resolved.options.map { it.english }).containsExactly("to be broken")
-        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
     }
 
     @Test
     fun `the prefix-stripped verb is not reported as unresolved`(): Unit = runBlocking {
         stub(
             "壊れる" to found(
-                JishoDictionaryEntryDto(
+                DictionaryEntryDto(
                     headword = "壊れる",
                     reading = "コワレル",
                     senses = listOf(
-                        JishoOptionDto(
+                        DictionarySenseDto(
                             pos = listOf("Ichidan verb"),
                             english = "to be broken",
                             englishDefinitions = listOf("to be broken"),
@@ -517,7 +517,7 @@ class LexicalResolverTest {
     @Test
     fun `a hiragana word stretched with the prolonged sound mark is looked up in its standard spelling`(): Unit =
         runBlocking {
-            // jisho indexes ぎゅうぎゅう; the lyric's ー spelling has no entry.
+            // The dictionary indexes ぎゅうぎゅう; the lyric's ー spelling has no entry.
             stub("ぎゅうぎゅう" to found(entry(headword = null, reading = "ギュウギュウ", english = "jam-packed")))
             val tokens = listOf(token("ぎゅーぎゅー", "ぎゅーぎゅー", "ギューギュー", lineIndex = 30))
 
@@ -525,13 +525,13 @@ class LexicalResolverTest {
 
             assertThat(resolved.baseForm).isEqualTo("ぎゅうぎゅう")
             assertThat(resolved.options.map { it.english }).containsExactly("jam-packed")
-            assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+            assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
             assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
         }
 
     @Test
     fun `a variant kanji headword is looked up in its standard spelling`(): Unit = runBlocking {
-        // 閧 is a variant of 鬨 (war cry); jisho indexes only 鬨.
+        // 閧 is a variant of 鬨 (war cry); the dictionary indexes only 鬨.
         stub("鬨" to found(entry(headword = "鬨", reading = "トキ", english = "war cry")))
         val tokens = listOf(token("閧", "閧", "トキ", lineIndex = 29))
 
@@ -539,15 +539,15 @@ class LexicalResolverTest {
 
         assertThat(resolved.baseForm).isEqualTo("鬨")
         assertThat(resolved.options.map { it.english }).containsExactly("war cry")
-        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
         assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
     }
 
     @Test
-    fun `a lookup jisho never answered is reported as a provider error, not a miss`(): Unit = runBlocking {
-        // A jisho outage must be distinguishable from a missing entry: one is retried against jisho,
+    fun `a lookup the dictionary could not read is reported as a provider error, not a miss`(): Unit = runBlocking {
+        // A read failure must be distinguishable from a missing entry: one is retried against the dictionary,
         // the other against the model.
-        stub("太陽" to JishoEntryDto(found = false, provenance = JishoLookupProvenance.FETCH_ERROR))
+        stub("太陽" to DictionaryLookupDto(found = false, provenance = DictionaryLookupProvenance.FETCH_ERROR))
 
         val missed = resolver.unresolvedTokens(
             listOf(token("太陽", "太陽", "タイヨウ"), token("鬱雑い", "鬱雑い", "ウザイ")),
@@ -592,11 +592,11 @@ class LexicalResolverTest {
         // 燻む answers nothing as a kanji query; the reading くすむ finds it and the pair match keeps the クスム entry.
         stub(
             "くすむ" to found(
-                JishoDictionaryEntryDto(
+                DictionaryEntryDto(
                     headword = "燻む",
                     reading = "クスム",
                     senses = listOf(
-                        JishoOptionDto(
+                        DictionarySenseDto(
                             pos = listOf("Godan verb with 'mu' ending", "Intransitive verb"),
                             english = "to be dull, to be somber",
                             englishDefinitions = listOf("to be dull", "to be somber"),
@@ -611,7 +611,7 @@ class LexicalResolverTest {
 
         assertThat(resolved.baseForm).isEqualTo("燻む")
         assertThat(resolved.options.map { it.english }).containsExactly("to be dull, to be somber")
-        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
         assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
     }
 
@@ -633,14 +633,14 @@ class LexicalResolverTest {
 
     @Test
     fun `a kanji honorific prefix is stripped before the lookup`(): Unit = runBlocking {
-        // jisho has no entry for 御加減, but 加減 under the honorific 御 is an ordinary noun.
+        // The dictionary has no entry for 御加減, but 加減 under the honorific 御 is an ordinary noun.
         stub(
             "加減" to found(
-                JishoDictionaryEntryDto(
+                DictionaryEntryDto(
                     headword = "加減",
                     reading = "カゲン",
                     senses = listOf(
-                        JishoOptionDto(
+                        DictionarySenseDto(
                             pos = listOf("Noun", "Suru verb"),
                             english = "condition, state of health",
                             englishDefinitions = listOf("condition", "state of health"),
@@ -655,13 +655,13 @@ class LexicalResolverTest {
 
         assertThat(resolved.baseForm).isEqualTo("加減")
         assertThat(resolved.options.map { it.english }).containsExactly("condition, state of health")
-        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
         assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
     }
 
     @Test
     fun `a kana honorific prefix on a katakana noun is stripped and queried in hiragana`(): Unit = runBlocking {
-        // お + katakana クスリ is 薬, which jisho answers only for a hiragana query.
+        // お + katakana クスリ is 薬, which the stub answers only for a hiragana query.
         stub("くすり" to found(entry(headword = "薬", reading = "クスリ", english = "medicine")))
         val tokens = listOf(token("おクスリ", "おクスリ", "オクスリ", lineIndex = 19))
 
@@ -669,20 +669,20 @@ class LexicalResolverTest {
 
         assertThat(resolved.baseForm).isEqualTo("くすり")
         assertThat(resolved.options.map { it.english }).containsExactly("medicine")
-        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
         assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
     }
 
     @Test
     fun `a suru-verb passive handed back as the headword is rescued as stem plus suru`(): Unit = runBlocking {
-        // 毒される has no jisho entry; the reading ドクサレル is inflected back to ドクスル with the base form.
+        // 毒される has no dictionary entry; the reading ドクサレル is inflected back to ドクスル with the base form.
         stub(
             "毒する" to found(
-                JishoDictionaryEntryDto(
+                DictionaryEntryDto(
                     headword = "毒する",
                     reading = "ドクスル",
                     senses = listOf(
-                        JishoOptionDto(
+                        DictionarySenseDto(
                             pos = listOf("Suru verb - special class", "Transitive verb"),
                             english = "to poison",
                             englishDefinitions = listOf("to poison", "to corrupt"),
@@ -697,20 +697,20 @@ class LexicalResolverTest {
 
         assertThat(resolved.baseForm).isEqualTo("毒する")
         assertThat(resolved.options.map { it.english }).containsExactly("to poison")
-        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
         assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
     }
 
     @Test
     fun `a verb stem with appearance sou is rescued as the verb's dictionary form`(): Unit = runBlocking {
-        // 泣きそう has no jisho entry; 泣き is 泣く's stem, so the probe turns its last i-row kana back to u-row.
+        // 泣きそう has no dictionary entry; 泣き is 泣く's stem, so the probe turns its last i-row kana back to u-row.
         stub(
             "泣く" to found(
-                JishoDictionaryEntryDto(
+                DictionaryEntryDto(
                     headword = "泣く",
                     reading = "ナク",
                     senses = listOf(
-                        JishoOptionDto(
+                        DictionarySenseDto(
                             pos = listOf("Godan verb with 'ku' ending", "Intransitive verb"),
                             english = "to cry",
                             englishDefinitions = listOf("to cry", "to weep"),
@@ -725,7 +725,7 @@ class LexicalResolverTest {
 
         assertThat(resolved.baseForm).isEqualTo("泣く")
         assertThat(resolved.options.map { it.english }).containsExactly("to cry")
-        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
         assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
     }
 
@@ -733,11 +733,11 @@ class LexicalResolverTest {
     fun `an i-adjective stem with appearance sou is rescued as the adjective`(): Unit = runBlocking {
         stub(
             "忙しい" to found(
-                JishoDictionaryEntryDto(
+                DictionaryEntryDto(
                     headword = "忙しい",
                     reading = "イソガシイ",
                     senses = listOf(
-                        JishoOptionDto(
+                        DictionarySenseDto(
                             pos = listOf("I-adjective (keiyoushi)"),
                             english = "busy",
                             englishDefinitions = listOf("busy"),
@@ -753,19 +753,19 @@ class LexicalResolverTest {
 
         assertThat(resolved.baseForm).isEqualTo("忙しい")
         assertThat(resolved.options.map { it.english }).containsExactly("busy")
-        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
     }
 
     @Test
     fun `a verb completed with kireru is looked up as the verb underneath`(): Unit = runBlocking {
-        // 伝えきる is 伝える + completion きる; jisho has no entry for the compound.
+        // 伝えきる is 伝える + completion きる; the dictionary has no entry for the compound.
         stub(
             "伝える" to found(
-                JishoDictionaryEntryDto(
+                DictionaryEntryDto(
                     headword = "伝える",
                     reading = "ツタエル",
                     senses = listOf(
-                        JishoOptionDto(
+                        DictionarySenseDto(
                             pos = listOf("Ichidan verb", "Transitive verb"),
                             english = "to convey",
                             englishDefinitions = listOf("to convey", "to tell"),
@@ -780,20 +780,20 @@ class LexicalResolverTest {
 
         assertThat(resolved.baseForm).isEqualTo("伝える")
         assertThat(resolved.options.map { it.english }).containsExactly("to convey")
-        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
         assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
     }
 
     @Test
     fun `a te-form verb followed by motion auxiliary iku is looked up as the bare verb`(): Unit = runBlocking {
-        // 飛んでいく is the right headword but jisho has no entry for te-form + いく; the verb underneath is 飛ぶ.
+        // 飛んでいく is the right headword but the dictionary has no entry for te-form + いく; the verb underneath is 飛ぶ.
         stub(
             "飛ぶ" to found(
-                JishoDictionaryEntryDto(
+                DictionaryEntryDto(
                     headword = "飛ぶ",
                     reading = "トブ",
                     senses = listOf(
-                        JishoOptionDto(
+                        DictionarySenseDto(
                             pos = listOf("Godan verb with 'bu' ending", "Intransitive verb"),
                             english = "to fly",
                             englishDefinitions = listOf("to fly", "to soar"),
@@ -808,7 +808,7 @@ class LexicalResolverTest {
 
         assertThat(resolved.baseForm).isEqualTo("飛ぶ")
         assertThat(resolved.options.map { it.english }).containsExactly("to fly")
-        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
         assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
     }
 
@@ -816,11 +816,11 @@ class LexicalResolverTest {
     fun `an ichidan te-form followed by kuru is looked up as the ru verb`(): Unit = runBlocking {
         stub(
             "消える" to found(
-                JishoDictionaryEntryDto(
+                DictionaryEntryDto(
                     headword = "消える",
                     reading = "キエル",
                     senses = listOf(
-                        JishoOptionDto(
+                        DictionarySenseDto(
                             pos = listOf("Ichidan verb", "Intransitive verb"),
                             english = "to disappear",
                             englishDefinitions = listOf("to disappear"),
@@ -835,19 +835,19 @@ class LexicalResolverTest {
         ).byTokenKey.values.single()
 
         assertThat(resolved.baseForm).isEqualTo("消える")
-        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
     }
 
     @Test
     fun `a negative verb handed back as the headword is rescued as its dictionary form`(): Unit = runBlocking {
-        // The negative いらない was given as the headword for いらん; jisho indexes only 要る.
+        // The negative いらない was given as the headword for いらん; the dictionary indexes only 要る.
         stub(
             "いる" to found(
-                JishoDictionaryEntryDto(
+                DictionaryEntryDto(
                     headword = "要る",
                     reading = "イル",
                     senses = listOf(
-                        JishoOptionDto(
+                        DictionarySenseDto(
                             pos = listOf("Godan verb with 'ru' ending", "Intransitive verb"),
                             english = "to be needed",
                             englishDefinitions = listOf("to be needed"),
@@ -867,19 +867,19 @@ class LexicalResolverTest {
     }
 
     @Test
-    fun `a potential verb jisho lists as its own headword is looked up as the godan verb`(): Unit = runBlocking {
+    fun `a potential verb the dictionary lists as its own headword is looked up as the godan verb`(): Unit = runBlocking {
         stub(
             "眠れる" to found(
-                JishoDictionaryEntryDto(
+                DictionaryEntryDto(
                     headword = "眠れる",
                     reading = "ネムレル",
                     senses = listOf(
-                        JishoOptionDto(
+                        DictionarySenseDto(
                             pos = listOf("Pre-noun adjectival (rentaishi)"),
                             english = "sleeping / asleep",
                             englishDefinitions = listOf("sleeping", "asleep"),
                         ),
-                        JishoOptionDto(
+                        DictionarySenseDto(
                             pos = listOf("Ichidan verb", "Intransitive verb"),
                             english = "to be able to sleep",
                             englishDefinitions = listOf("to be able to sleep"),
@@ -900,16 +900,16 @@ class LexicalResolverTest {
     fun `a potential-looking verb with a meaning of its own keeps its entry`(): Unit = runBlocking {
         stub(
             "行ける" to found(
-                JishoDictionaryEntryDto(
+                DictionaryEntryDto(
                     headword = "行ける",
                     reading = "イケル",
                     senses = listOf(
-                        JishoOptionDto(
+                        DictionarySenseDto(
                             pos = listOf("Ichidan verb", "Intransitive verb"),
                             english = "to be able to go",
                             englishDefinitions = listOf("to be able to go"),
                         ),
-                        JishoOptionDto(
+                        DictionarySenseDto(
                             pos = listOf("Ichidan verb", "Intransitive verb"),
                             english = "to be good / to be passable",
                             englishDefinitions = listOf("to be good", "to be passable"),
@@ -937,14 +937,14 @@ class LexicalResolverTest {
 
     @Test
     fun `a potential-form headword is looked up as its godan dictionary form`(): Unit = runBlocking {
-        // The potential 掴める was given as the headword; jisho has no entry for it. 掴む is the verb underneath.
+        // The potential 掴める was given as the headword; the dictionary has no entry for it. 掴む is the verb underneath.
         stub(
             "掴む" to found(
-                JishoDictionaryEntryDto(
+                DictionaryEntryDto(
                     headword = "掴む",
                     reading = "ツカム",
                     senses = listOf(
-                        JishoOptionDto(
+                        DictionarySenseDto(
                             pos = listOf("Godan verb with 'mu' ending", "Transitive verb"),
                             english = "to seize, to grasp",
                             englishDefinitions = listOf("to seize", "to grasp"),
@@ -959,7 +959,7 @@ class LexicalResolverTest {
 
         assertThat(resolved.baseForm).isEqualTo("掴む")
         assertThat(resolved.options.map { it.english }).containsExactly("to seize, to grasp")
-        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
         assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
     }
 
@@ -977,14 +977,14 @@ class LexicalResolverTest {
     @Test
     fun `a godan verb's renyokei handed back as the headword is restored to its dictionary form`(): Unit =
         runBlocking {
-            // 悼み is the renyokei of 悼む and jisho has no entry for it.
+            // 悼み is the renyokei of 悼む and the dictionary has no entry for it.
             stub(
                 "悼む" to found(
-                    JishoDictionaryEntryDto(
+                    DictionaryEntryDto(
                         headword = "悼む",
                         reading = "イタム",
                         senses = listOf(
-                            JishoOptionDto(
+                            DictionarySenseDto(
                                 pos = listOf("Godan verb with 'mu' ending", "Transitive verb"),
                                 english = "to grieve over",
                                 englishDefinitions = listOf("to grieve over", "to mourn", "to lament"),
@@ -999,20 +999,20 @@ class LexicalResolverTest {
 
             assertThat(resolved.baseForm).isEqualTo("悼む")
             assertThat(resolved.options.map { it.english }).containsExactly("to grieve over")
-            assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+            assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
             assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
         }
 
     @Test
     fun `a godan verb's potential negative handed back as the headword is rescued as the verb`(): Unit = runBlocking {
-        // jisho has no entry for 飛べない, but 飛べ is the potential stem of 飛ぶ.
+        // The dictionary has no entry for 飛べない, but 飛べ is the potential stem of 飛ぶ.
         stub(
             "飛ぶ" to found(
-                JishoDictionaryEntryDto(
+                DictionaryEntryDto(
                     headword = "飛ぶ",
                     reading = "トブ",
                     senses = listOf(
-                        JishoOptionDto(
+                        DictionarySenseDto(
                             pos = listOf("Godan verb with 'bu' ending", "Intransitive verb"),
                             english = "to fly",
                             englishDefinitions = listOf("to fly", "to soar"),
@@ -1027,7 +1027,7 @@ class LexicalResolverTest {
 
         assertThat(resolved.baseForm).isEqualTo("飛ぶ")
         assertThat(resolved.options.map { it.english }).containsExactly("to fly")
-        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
         assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
     }
 
@@ -1046,10 +1046,10 @@ class LexicalResolverTest {
         assertThat(resolution.optionsById.values.map { it.reading }).containsExactlyInAnyOrder("マエ", "ゼン")
     }
 
-    private fun stub(vararg entries: Pair<String, JishoEntryDto>) {
+    private fun stub(vararg entries: Pair<String, DictionaryLookupDto>) {
         val byWord = entries.toMap()
-        coEvery { jishoService.lookupAll(any()) } answers {
-            firstArg<List<String>>().associateWith { byWord[it] ?: JishoEntryDto(found = false, word = it) }
+        coEvery { dictionaryService.lookupAll(any()) } answers {
+            firstArg<List<String>>().associateWith { byWord[it] ?: DictionaryLookupDto(found = false, word = it) }
         }
     }
 
@@ -1060,11 +1060,11 @@ class LexicalResolverTest {
         entry(headword = "先", reading = "サキ", english = "ahead, previous"),
     )
 
-    private fun found(vararg entries: JishoDictionaryEntryDto) = JishoEntryDto(
+    private fun found(vararg entries: DictionaryEntryDto) = DictionaryLookupDto(
         found = true,
         word = entries.first().headword ?: entries.first().reading.orEmpty(),
         entries = entries.toList(),
-        provenance = JishoLookupProvenance.EXACT,
+        provenance = DictionaryLookupProvenance.EXACT,
     )
 
     private fun entry(
@@ -1072,20 +1072,20 @@ class LexicalResolverTest {
         reading: String,
         english: String,
         jlpt: List<String> = emptyList(),
-    ) = JishoDictionaryEntryDto(
+    ) = DictionaryEntryDto(
         headword = headword,
         reading = reading,
         jlpt = jlpt,
         senses = listOf(
-            JishoOptionDto(pos = listOf("Noun"), english = english, englishDefinitions = listOf(english)),
+            DictionarySenseDto(pos = listOf("Noun"), english = english, englishDefinitions = listOf(english)),
         ),
     )
 
-    private fun godanVerb(headword: String, reading: String, english: String) = JishoDictionaryEntryDto(
+    private fun godanVerb(headword: String, reading: String, english: String) = DictionaryEntryDto(
         headword = headword,
         reading = reading,
         senses = listOf(
-            JishoOptionDto(
+            DictionarySenseDto(
                 pos = listOf("Godan verb with '${reading.last()}' ending", "Intransitive verb"),
                 english = english,
                 englishDefinitions = listOf(english),

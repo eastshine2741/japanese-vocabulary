@@ -149,7 +149,7 @@ sense 동일성 기준은 **뜻 텍스트 문자열 일치**다. 비교 대상�
 `words` 의 유일성 제약은 `UNIQUE(user_id, japanese_text)`
 (`V8__word_unique_constraints.sql:1`) 이고 `reading` 은 word 당 하나다. 곡 분석
 파이프라인은 사전 entry 를 `(headword, reading)` 페어로 구분하지만
-(`docs/translation-pipeline.md` 의 "Jisho Entry Select"), **저장 계층은 headword
+(`docs/translation-pipeline.md` 의 "Core Invariants"), **저장 계층은 headword
 만으로 유일하다.** 그래서 前[マエ] 와 前[ゼン] 은 한 행으로 합쳐지고, `reading`
 은 먼저 담은 쪽이 이긴다. 나중에 담긴 뜻은 같은 행의 sense 로 붙어, 읽는 법이
 다른 두 단어의 뜻이 한 카드에 섞인다.

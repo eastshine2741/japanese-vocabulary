@@ -1,7 +1,7 @@
 package com.japanese.vocabulary.translation.model
 
 import com.japanese.vocabulary.song.model.PartOfSpeech
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionaryLookupProvenance
 
 /**
  * One sense candidate offered to sense-select; [headword]/[reading] (katakana) name its source entry.
@@ -17,5 +17,5 @@ data class PipelineSenseOption(
     val english: String,
     val englishDefinitions: List<String>,
     val jlpt: List<String>,
-    val provenance: JishoLookupProvenance,
+    val provenance: DictionaryLookupProvenance,
 )

@@ -34,7 +34,7 @@ class SegmentAnchoringValidatorTest {
 
     @Test
     fun `trims digits glued to a counter so the headword is the counter alone`() {
-        // `80億` as one word went to jisho as `80億`, which has no entry.
+        // `80億` as one word went to the dictionary as `80億`, which has no entry.
         val result = validator.anchor(
             mapOf(0 to "80億分の1の奇跡"),
             listOf(
