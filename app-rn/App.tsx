@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react-native';
+import { fingerprintNativeCallRejection } from './src/services/sentryFingerprint';
 import {
   Inter_400Regular,
   Inter_500Medium,
@@ -21,6 +22,7 @@ Sentry.init({
   enabled: !!process.env.EXPO_PUBLIC_SENTRY_DSN,
   environment: process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT ?? 'development',
   tracesSampleRate: 0.1,
+  beforeSend: fingerprintNativeCallRejection,
 });
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
