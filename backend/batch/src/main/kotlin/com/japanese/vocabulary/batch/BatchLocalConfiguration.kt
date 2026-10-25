@@ -10,6 +10,8 @@ import com.japanese.vocabulary.karaoke.batch.KaraokeTjCollectTask
 import com.japanese.vocabulary.notification.StreakReminderTask
 import com.japanese.vocabulary.rewardcard.batch.RewardCardBackfillPushTask
 import com.japanese.vocabulary.rewardcard.batch.RewardCardBackfillTask
+import com.japanese.vocabulary.song.batch.LyricMeaningBackfillService
+import com.japanese.vocabulary.song.batch.LyricMeaningBackfillTask
 import com.japanese.vocabulary.song.batch.LyricReadingBackfillService
 import com.japanese.vocabulary.song.batch.LyricReadingBackfillTask
 import com.japanese.vocabulary.song.batch.LyricWordCandidateBackfillService
@@ -41,6 +43,8 @@ import org.springframework.context.annotation.Import
     KaraokeNewSongNotifier::class,
     LyricWordCandidateBackfillService::class,
     LyricWordCandidateBackfillTask::class,
+    LyricMeaningBackfillService::class,
+    LyricMeaningBackfillTask::class,
     LyricReadingBackfillService::class,
     LyricReadingBackfillTask::class,
     FreezeConsumeJobConfig::class,
