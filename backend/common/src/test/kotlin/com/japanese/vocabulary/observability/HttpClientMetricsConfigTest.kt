@@ -14,7 +14,6 @@ class HttpClientMetricsConfigTest {
     @CsvSource(
         "https://generativelanguage.googleapis.com/v1beta/models/x:generateContent, gemini, llm",
         "https://api.typesafe.ai/v1/systemone, jev, llm",
-        "https://jisho.org/api/v1/search/words, jisho, dictionary",
         "https://lrclib.net/api/search, lrclib, lyrics",
         "https://api.music.apple.com/v1/catalog/jp/songs, apple-music, music-meta",
         "https://vocadb.net/api/songs, vocadb, music-meta",

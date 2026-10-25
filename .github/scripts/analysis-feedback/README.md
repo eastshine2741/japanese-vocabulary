@@ -55,7 +55,7 @@ Sentry 없이 흐름만 볼 때:
 `~/.local/state/kotonoha-analysis-feedback/`
 
 - `ledger.json` — 키 `cause:headword` 별 상태. MV 누락은 `MV_NOT_FOUND:<아티스트> / <제목>`. `new` → `ignored` | `held` | `fixing`(PR 링크) |
-  `provider_error`(jisho 장애, LLM에 안 보냄). 같은 단어가 다른 곡에서 다시 나와도 키가 같으면 다시 안 묻는다.
+  `provider_error`(사전 파일 읽기 실패, LLM에 안 보냄). 같은 단어가 다른 곡에서 다시 나와도 키가 같으면 다시 안 묻는다.
 - `logs/analysis-feedback-YYYYMMDD.log`
 - `worktrees/` — 수정 패스용. PR 후 정리되며 `--no-push` 일 때만 남는다.
 

@@ -1,49 +1,31 @@
 package com.japanese.vocabulary.translation.service
 
-import org.springframework.stereotype.Service
-import com.japanese.vocabulary.translation.client.jisho.JishoClient
-import com.japanese.vocabulary.translation.client.jisho.cache.JishoCache
+import com.japanese.vocabulary.translation.client.dictionary.JmdictDictionary
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
+import org.slf4j.LoggerFactory
+import org.springframework.stereotype.Service
 
 /**
- * Cache-aside over [JishoClient]: [JishoCache] first, misses fetched under a global concurrency limit.
+ * Dictionary lookups for the pipeline, answered by the bundled JMdict in jisho's response shape.
  *
- * - A process-global [Semaphore] caps outbound requests at [MAX_CONCURRENCY]; 6 triggered HTTP 429.
- * - A fetch error yields a not-found result that is NOT cached. Successful fetches (found or
- *   genuine not-found) are cached.
+ * A read failure (missing or corrupt file) yields [JishoLookupProvenance.FETCH_ERROR], so the line is reported
+ * as a provider error rather than "no such word" — the segmentation model must not rewrite a correct headword.
  */
 @Service
 class JishoService(
-    private val jishoClient: JishoClient,
-    private val jishoCache: JishoCache,
+    private val dictionary: JmdictDictionary,
 ) {
-    private val semaphore = Semaphore(MAX_CONCURRENCY)
+    private val logger = LoggerFactory.getLogger(JishoService::class.java)
 
-    suspend fun lookupAll(words: List<String>): Map<String, JishoEntryDto> = coroutineScope {
-        words.distinct()
-            .map { word -> async { word to lookup(word) } }
-            .awaitAll()
-            .toMap()
-    }
+    suspend fun lookupAll(words: List<String>): Map<String, JishoEntryDto> =
+        words.distinct().associateWith { lookup(it) }
 
-    suspend fun lookup(word: String): JishoEntryDto {
-        jishoCache.get(word)?.let { return it }
-        val fetched = semaphore.withPermit { jishoClient.fetch(word) }
-        if (fetched != null) {
-            jishoCache.put(word, fetched) // cache 200 results (found or genuine not-found) only
-            return fetched
+    suspend fun lookup(word: String): JishoEntryDto =
+        try {
+            dictionary.lookup(word)
+        } catch (e: Exception) {
+            logger.warn("dictionary lookup failed for '{}': {}", word, e.toString())
+            JishoEntryDto(found = false, word = word, provenance = JishoLookupProvenance.FETCH_ERROR)
         }
-        return NOT_FOUND // error path: do not cache, retries next run
-    }
-
-    private companion object {
-        const val MAX_CONCURRENCY = 3
-        val NOT_FOUND = JishoEntryDto(found = false, provenance = JishoLookupProvenance.FETCH_ERROR)
-    }
 }

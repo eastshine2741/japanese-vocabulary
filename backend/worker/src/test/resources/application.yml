@@ -19,3 +19,7 @@ song-analysis:
 lyric-search:
   retry:
     initial-backoff: 0s
+
+dictionary:
+  # JishoService 는 목이라 파일을 열지 않는다.
+  path: /nonexistent/jmdict.sqlite

@@ -32,8 +32,7 @@ object JapaneseText {
     }.joinToString("")
 
     /**
-     * Katakana → hiragana, for a **dictionary lookup key** only, never a reading: jisho's search is
-     * script-sensitive (`アタシ` needs the query `あたし`).
+     * Katakana → hiragana, for a **dictionary lookup key** only, never a reading.
      */
     fun toHiragana(text: String): String = text.map { ch ->
         if (ch in KATAKANA_START..KATAKANA_END) ch - KATAKANA_OFFSET else ch

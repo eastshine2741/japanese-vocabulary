@@ -124,8 +124,7 @@ class LexicalResolver(
      * Each miss says whether the dictionary actually answered: a [JishoLookupProvenance.FETCH_ERROR]
      * is not fixable by the segmentation model, and "no entry exists" would make it change a right headword.
      *
-     * Repeated lookups are served from [com.japanese.vocabulary.translation.service.JishoService]'s
-     * cache (errors are never cached). Grading is silent here to avoid duplicate logs.
+     * Lookups are local and cheap, so [resolve] repeats them. Grading is silent here to avoid duplicate logs.
      */
     suspend fun unresolvedTokens(tokens: List<PipelineToken>): List<Unresolved> {
         if (tokens.isEmpty()) return emptyList()

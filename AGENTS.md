@@ -37,6 +37,7 @@ cd app-rn && npx expo start --web             # App - Web (dev)
 - Backend 테스트 작성법: `backend/TESTING.md`
 - Word·flashcard·deck 수명주기와 스키마: `docs/architecture/word-schema.md`
 - 곡 분석 작업 큐(원장·claim·sweeper·재시도 예산)·JLPT 출처: `docs/architecture/song-analysis.md`
+- 내장 사전(JMdict SQLite)·단어 빈도 난이도: `docs/architecture/dictionary.md`
 - 단어 뜻 파이프라인 guardrails: `docs/translation-pipeline.md`
 - 주요 단어 점수(`importanceScore`): `docs/architecture/major-word-scoring.md`
 - 곡 상세 단어 tier·이해도, 학습 세션 카드: `docs/architecture/song-word-tiers.md`

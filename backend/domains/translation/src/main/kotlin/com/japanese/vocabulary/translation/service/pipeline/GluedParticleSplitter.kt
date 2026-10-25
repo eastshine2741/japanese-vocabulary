@@ -78,9 +78,8 @@ class GluedParticleSplitter(
     }
 
     /**
-     * True only when jisho answered and had no entry for this exact form. A fetch error is not an
-     * answer (a network blip must not split real words); [JishoLookupProvenance.REJECTED_FALLBACK]
-     * counts as no entry.
+     * True only when the dictionary answered and had no entry for this exact form. A read error is not an
+     * answer (it must not split real words); [JishoLookupProvenance.REJECTED_FALLBACK] counts as no entry.
      */
     private fun isMissingFromDictionary(lookup: JishoEntryDto?): Boolean =
         lookup != null &&
