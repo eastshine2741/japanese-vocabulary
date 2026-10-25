@@ -499,6 +499,36 @@ class YoutubeMvSearchServiceTest {
     }
 
     @Test
+    fun `search takes an official MV whose title carries the song's version tag under an abbreviated artist name`() {
+        // The title abbreviates the artist; the version tag tells it from the same song's original-language MV.
+        val artist = "TOMORROW X TOGETHER"
+        every { artistChannelCache.get(artist) } returns null
+        stubSearch(
+            searchItem("d5bbqKYu51w", "TXT (투모로우바이투게더) &#39;0X1=LOVESONG (I Know I Love You) feat. Seori&#39; Official MV", "HYBE LABELS"),
+            searchItem("vPULo1B730o", "TXT - 0X1=LOVESONG (I Know I Love You) feat. Seori Lyrics (Color Coded Lyrics)", "Jaeguchi"),
+            searchItem("swZ-GR0maMs", "[최초공개] TXT - 0X1=LOVESONG (I Know I Love You) feat. Seori | TXT COMEBACKSHOW | Mnet 210531 방송", "M2"),
+            searchItem("OylSv6vVDeI", "TXT (투모로우바이투게더) - ‘0X1=LOVESONG (I Know I Love You) feat. Seori&#39; @ Good Morning America", "TOMORROW X TOGETHER OFFICIAL"),
+            searchItem("95brCYLNoEo", "[KCON LA 2026] TOMORROW X TOGETHER - 0X1=LOVESONG (I Know I Love You) feat. Seori | Mnet 260906 방송", "KCON official"),
+            searchItem("TiuPfYJeDkQ", "TOMORROW X TOGETHER - 0X1=LOVESONG(I Know I Love You)(Band Ver.)) (Sketchbook) | KBS WORLD TV 210618", "KBS WORLD TV"),
+            searchItem("dEPvbNz9koM", "Tomorrow X Together - 0X1=LOVESONG (I Know I Love You) (Music Bank) | KBS WORLD TV 210611", "KBS WORLD TV"),
+            searchItem("AXcwwO_YeKo", "TXT (투모로우바이투게더) &#39;0X1=LOVESONG (I Know I Love You) feat. Seori&#39; Dance Practice", "TOMORROW X TOGETHER OFFICIAL"),
+            searchItem("4Ikf3r_LfbQ", "TXT- 0X1LOVESONG(I know I love you)Feat. Seori (Audio)", "ANULAGEU(아누라그)"),
+            searchItem("0M4XP3DeP3Q", "TOMORROW X TOGETHER - 0X1=LOVESONG(I Know I Love You) (Music Bank Special) | KBS WORLD TV 210625", "KBS WORLD TV"),
+            searchItem("ot5ynAV7MMA", "0X1=LOVESONG (I Know I Love You) 피처링. Seori (Emocore Mix)", "TOMORROW X TOGETHER - Topic"),
+            searchItem("8o0w6tGLoq8", "TXT 0X1=LOVESONG (I Know I Love You) feat. Seori Lyrics [Color Coded Lyrics/Han/Rom/Eng]", "Lemoring"),
+            searchItem("s8lMfE7kjes", "[TOMORROW X TOGETHER - 0X1=LOVESONG (I Know I Love You) feat.Seori] Comeback Stage |  Mnet 210603 방송", "Mnet K-POP"),
+            searchItem("wwElgBu3VNE", "TXT - 0X1=LOVESONG (I Know I Love You) feat. Seori (Line Distribution + Lyrics) PATREON REQUESTED", "random_k"),
+            searchItem("EieUsaKgbsU", "TXT (투모로우바이투게더) &#39;0X1=LOVESONG (I Know I Love You) feat. Ikuta Lilas [Japanese Ver.]&#39; Official MV", "HYBE LABELS"),
+        )
+        stubDurations("EieUsaKgbsU" to "PT4M14S")
+
+        val result = service.search("0X1=LOVESONG (I Know I Love You) [feat. 幾田りら] [Japanese Ver.]", artist, 205)
+
+        assertThat(result.url).isEqualTo("https://www.youtube.com/watch?v=EieUsaKgbsU")
+        assertThat(result.candidates.single { it.videoId == "d5bbqKYu51w" }.artistVerified).isFalse()
+    }
+
+    @Test
     fun `a miss reports every candidate and why it was dropped`() {
         every { artistChannelCache.get(ARTIST) } returns null
         stubSearch(

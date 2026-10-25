@@ -238,6 +238,9 @@ class YoutubeMvSearchService(
         val ownChannel = channelMatchesArtistOrMember(artist, channelTitle)
         // The song's own title may contain a bad-title word ("ギターと孤独と蒼い惑星").
         val titleWithoutSong = withoutSongTitle(title, songTitle)
+        val officialSource = ownChannel ||
+            KNOWN_PUBLISHER_CHANNEL_RE.containsMatchIn(channelTitle) ||
+            OFFICIAL_TITLE_RE.containsMatchIn(title)
         return MvCandidate(
             source = source,
             videoId = videoId,
@@ -247,11 +250,11 @@ class YoutubeMvSearchService(
             score = scoreMvCandidate(title, channelTitle, artist),
             isLive = isLive,
             // A publisher channel hosts many artists and same-titled swaps, so its upload must name the
-            // artist; an artist's own channel rarely repeats its name in the title.
-            artistVerified = ownChannel || titleNamesArtist(title, artist),
-            officialSource = ownChannel ||
-                KNOWN_PUBLISHER_CHANNEL_RE.containsMatchIn(channelTitle) ||
-                OFFICIAL_TITLE_RE.containsMatchIn(title),
+            // artist; an artist's own channel rarely repeats its name in the title. A version tag the
+            // song carries ("Japanese Ver.") is specific enough to stand in for an abbreviated artist name.
+            artistVerified = ownChannel || titleNamesArtist(title, artist) ||
+                (officialSource && titleCarriesVersionTags(title, songTitle)),
+            officialSource = officialSource,
             badTitle = BAD_TITLE_RE.containsMatchIn(titleWithoutSong),
             isOfficialLyricVideo = ownChannel && !isLive && LYRIC_VIDEO_RE.containsMatchIn(title) &&
                 !BAD_TITLE_RE.containsMatchIn(titleWithoutSong.replace(LYRIC_VIDEO_RE, "")),
@@ -268,6 +271,12 @@ class YoutubeMvSearchService(
     private fun titleNamesArtist(title: String, artist: String): Boolean {
         val normalizedArtist = normalizeForMatch(ArtistCredit.withoutFeaturing(artist))
         return normalizedArtist.isNotBlank() && normalizeForMatch(title).contains(normalizedArtist)
+    }
+
+    private fun titleCarriesVersionTags(videoTitle: String, songTitle: String): Boolean {
+        val tags = VERSION_TAG_RE.findAll(songTitle).map { normalizeForMatch(it.groupValues[1]) }.toList()
+        val normalizedVideoTitle = normalizeForMatch(videoTitle)
+        return tags.isNotEmpty() && tags.all { it.isNotBlank() && normalizedVideoTitle.contains(it) }
     }
 
     private fun maybeCacheArtistChannel(artist: String, candidate: MvCandidate) {
@@ -451,7 +460,8 @@ class YoutubeMvSearchService(
         )
         private val SHORTS_TITLE_RE = Regex("""[#＃](?:shorts?|ショート)""", RegexOption.IGNORE_CASE)
         private val TRAILING_DESCRIPTOR_RE = Regex("""\s*[\[(（【].*?[】）)\]]\s*$""")
-        private val TITLE_SEPARATOR_RE = Regex("""\s+[-–—/／|｜]\s+""")
+        private val VERSION_TAG_RE = Regex("""[\[(（【]([^\[\]()（）【】]*?(?<![a-z])ver(?:sion)?\.?)\s*[】）)\]]""", RegexOption.IGNORE_CASE)
+        private val TITLE_SEPARATOR_RE =Regex("""\s+[-–—/／|｜]\s+""")
         // No "×": unit names use it ("ワンダーランズ×ショウタイム").
         private val ARTIST_SEPARATOR_RE = Regex("""\s*(?:&|＆|,|、)\s*""")
         private val HTML_ENTITY_RE = Regex("""&(?:amp|quot|#39|apos);""", RegexOption.IGNORE_CASE)
