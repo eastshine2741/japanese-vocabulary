@@ -281,6 +281,38 @@ class YoutubeMvSearchServiceTest {
     }
 
     @Test
+    fun `an artist's own channel under a romanized name counts as official`() {
+        stubVideo("inaba-id", "稲葉曇『ラグトレイン』Vo. 歌愛ユキ", channelTitle = "inabakumori", duration = "PT3M")
+        stubVideo("yukopi-id", "カニを求めて", channelTitle = "Yukopi", duration = "PT3M")
+        stubVideo("hiiragi-id", "雑魚 / 柊マグネタイト", channelTitle = "Hiiragi Magnetite", duration = "PT3M")
+        stubVideo("cosmo-id", "ヤミナベ!!!! - cosMo＠暴走P feat.初音ミク", channelTitle = "cosMo@bousouP Official Channel", duration = "PT3M")
+
+        assertThat(service.acceptsAsOnlyCandidate("inaba-id", "ラグトレイン", "稲葉曇", 180)).isTrue()
+        assertThat(service.acceptsAsOnlyCandidate("yukopi-id", "カニを求めて", "ゆこぴ", 180)).isTrue()
+        assertThat(service.acceptsAsOnlyCandidate("hiiragi-id", "雑魚", "柊マグネタイト", 180)).isTrue()
+        assertThat(service.acceptsAsOnlyCandidate("cosmo-id", "ヤミナベ!!!!", "cosMo@暴走P", 180)).isTrue()
+    }
+
+    @Test
+    fun `a fan channel carrying the romanized name plus other words is not the artist's own`() {
+        stubVideo(
+            "fan-id", "米津玄師「メランコリーキッチン」- Kenshi Yonezu （Melancholy Kitchen） - （Türkçe Çeviri + 日本語 + Romaji）",
+            channelTitle = "Kenshi Yonezu fanTR", duration = "PT4M",
+        )
+        stubVideo("remake-id", "強風オールバック / ゆこぴ（1982年）", channelTitle = "The Night Jukebox", duration = "PT3M")
+
+        assertThat(service.acceptsAsOnlyCandidate("fan-id", "メランコリーキッチン", "米津玄師", 240)).isFalse()
+        assertThat(service.acceptsAsOnlyCandidate("remake-id", "強風オールバック", "ゆこぴ", 180)).isFalse()
+    }
+
+    @Test
+    fun `a label channel's upload naming the artist is official`() {
+        stubVideo("smtown-id", "Red Velvet レッドベルベット 'WILDSIDE' MV", channelTitle = "SMTOWN", duration = "PT3M30S")
+
+        assertThat(service.acceptsAsOnlyCandidate("smtown-id", "WILDSIDE", "Red Velvet", 210)).isTrue()
+    }
+
+    @Test
     fun `the current MV is dropped when the app cannot play it`() {
         stubVideo(
             "age-id", "$TITLE Official MV", channelTitle = ARTIST, duration = "PT4M",

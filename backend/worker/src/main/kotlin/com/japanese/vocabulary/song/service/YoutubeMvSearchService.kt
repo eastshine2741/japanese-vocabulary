@@ -261,7 +261,7 @@ class YoutubeMvSearchService(
         artist: String,
     ): MvCandidate {
         val isLive = LIVE_TITLE_RE.containsMatchIn(title)
-        val ownChannel = channelMatchesArtistOrMember(artist, channelTitle)
+        val ownChannel = channelMatchesArtistOrMember(artist, channelTitle) || romanizedOwnChannel(artist, channelTitle)
         // The song's own title may contain a bad-title word ("ギターと孤独と蒼い惑星").
         val titleWithoutSong = withoutSongTitle(title, songTitle)
         return MvCandidate(
@@ -275,8 +275,11 @@ class YoutubeMvSearchService(
             // A publisher channel hosts many artists and same-titled swaps, so its upload must name the
             // artist; an artist's own channel rarely repeats its name in the title.
             artistVerified = ownChannel || titleNamesArtist(title, artist),
+            // A channel calling itself official ("mikitoP Official", "… 公式チャンネル") still needs the title to
+            // name the artist; artistVerified holds that.
             officialSource = ownChannel ||
                 KNOWN_PUBLISHER_CHANNEL_RE.containsMatchIn(channelTitle) ||
+                OFFICIAL_CHANNEL_RE.containsMatchIn(channelTitle) ||
                 OFFICIAL_TITLE_RE.containsMatchIn(title),
             badTitle = BAD_TITLE_RE.containsMatchIn(titleWithoutSong),
             isOfficialLyricVideo = ownChannel && !isLive && LYRIC_VIDEO_RE.containsMatchIn(title) &&
@@ -291,9 +294,32 @@ class YoutubeMvSearchService(
             .sortedByDescending { it.length }
             .fold(videoTitle) { remaining, part -> remaining.replace(part, " ", ignoreCase = true) }
 
+    /** The whole credit, or for a collaboration ("Aqu3ra, 超かぐや姫! & 月見ヤチヨ") any one member. */
     private fun titleNamesArtist(title: String, artist: String): Boolean {
-        val normalizedArtist = normalizeForMatch(ArtistCredit.withoutFeaturing(artist))
-        return normalizedArtist.isNotBlank() && normalizeForMatch(title).contains(normalizedArtist)
+        val normalizedTitle = normalizeForMatch(title)
+        return artistNames(artist).map(::normalizeForMatch).any { it.length >= MIN_TITLE_PART_LENGTH && normalizedTitle.contains(it) }
+    }
+
+    private fun artistNames(artist: String): List<String> {
+        val credit = ArtistCredit.withoutFeaturing(artist)
+        // "wowaka(現実逃避P)": the alias in brackets is not how the title names the artist.
+        return (listOf(credit, credit.replace(TRAILING_DESCRIPTOR_RE, "")) + credit.split(ARTIST_SEPARATOR_RE))
+            .map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+    }
+
+    /**
+     * The artist's own channel under a romanized name (稲葉曇 → "inabakumori", ゆこぴ → "Yukopi"). Every word of the
+     * channel name other than an "official"/"channel" word must be the name itself, so "Kenshi Yonezu fanTR" fails.
+     * An all-Latin artist is left to [channelMatchesArtistOrMember]; there is nothing to romanize.
+     */
+    private fun romanizedOwnChannel(artist: String, channelTitle: String): Boolean {
+        val words = spacedForMatch(channelTitle).split(' ').filter { it.isNotBlank() && it !in OFFICIAL_CHANNEL_WORDS }
+        if (words.isEmpty() || words.any { word -> !word.all { it in 'a'..'z' || it in '0'..'9' } }) return false
+        val channel = RomanizedName.latinSkeleton(words.joinToString(""))
+        if (channel.length < MIN_ROMANIZED_SKELETON) return false
+        return artistNames(artist)
+            .filter { name -> name.any { it.code > 0x7F } }
+            .any { RomanizedName.skeleton(it) == channel }
     }
 
     private fun maybeCacheArtistChannel(artist: String, candidate: MvCandidate) {
@@ -483,9 +509,13 @@ class YoutubeMvSearchService(
 
         // Narrower than plain "MV" (AMV/MAD/original-MV covers). "非公式" contains "公式" and must not match.
         private val OFFICIAL_TITLE_RE = Regex(
-            "Music Video|Official Video|Official MV|オフィシャル|(?<!非)公式",
+            "Music Video|(?<![a-z])official(?![a-z])|オフィシャル|(?<!非)公式",
             RegexOption.IGNORE_CASE
         )
+        private val OFFICIAL_CHANNEL_RE = Regex("(?<![a-z])official(?![a-z])|(?<!非)公式", RegexOption.IGNORE_CASE)
+        private val OFFICIAL_CHANNEL_WORDS = setOf("official", "channel", "ch", "music", "youtube", "staff", "公式", "チャンネル", "ちゃんねる")
+        // Two consonants match too many names by chance.
+        private const val MIN_ROMANIZED_SKELETON = 3
         // Not the song as recorded (other performer, arrangement, no vocals, partial). A cut-down
         // upload can pass the duration bounds, so the title must catch it.
         private val BAD_TITLE_RE = Regex(
@@ -515,8 +545,9 @@ class YoutubeMvSearchService(
         )
         private val LYRIC_VIDEO_RE = Regex("lyric video", RegexOption.IGNORE_CASE)
         private val HANGUL_RE = Regex("""[\uAC00-\uD7AF]""")
+        // Label and IP channels that upload many artists' MVs; an upload must still name the artist.
         private val KNOWN_PUBLISHER_CHANNEL_RE = Regex(
-            "プロジェクトセカイ|HATSUNE MIKU: COLORFUL STAGE",
+            "プロジェクトセカイ|HATSUNE MIKU: COLORFUL STAGE|^SMTOWN$|ラブライブ|Love Live!|あんスタチャンネル|^U/M/A/A|^SPACE SHOWER",
             RegexOption.IGNORE_CASE
         )
         private val SHORTS_TITLE_RE = Regex("""[#＃](?:shorts?|ショート)""", RegexOption.IGNORE_CASE)
