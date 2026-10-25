@@ -235,7 +235,8 @@ class YoutubeMvSearchService(
         artist: String,
     ): MvCandidate {
         val isLive = LIVE_TITLE_RE.containsMatchIn(title)
-        val ownChannel = channelMatchesArtistOrMember(artist, channelTitle)
+        val ownChannel = channelMatchesArtistOrMember(artist, channelTitle) ||
+            projectChannelNamesMember(artist, channelTitle, title)
         // The song's own title may contain a bad-title word ("ギターと孤独と蒼い惑星").
         val titleWithoutSong = withoutSongTitle(title, songTitle)
         return MvCandidate(
@@ -316,6 +317,23 @@ class YoutubeMvSearchService(
             .map { normalizeForMatch(it) }
             .filter { it.length >= MIN_TITLE_PART_LENGTH }
             .any { nameMatchesChannel(it, channelTitle) }
+    }
+
+    /**
+     * A character credit ("MILGRAM シドウ (CV: 仲村宗悟)") is uploaded on the project's channel, which carries
+     * only the first word; the remaining words must then appear in the video title.
+     */
+    private fun projectChannelNamesMember(artist: String, channelTitle: String, videoTitle: String): Boolean {
+        val words = ArtistCredit.withoutFeaturing(artist)
+            .replace(VOICE_ACTOR_CREDIT_RE, " ")
+            .trim()
+            .split(WHITESPACE_RE)
+            .map { normalizeForMatch(it) }
+            .filter { it.isNotEmpty() }
+        if (words.size < 2 || words.first().length < MIN_TITLE_PART_LENGTH) return false
+        val normalizedTitle = normalizeForMatch(videoTitle)
+        return normalizeForMatch(channelTitle).contains(words.first()) &&
+            words.drop(1).all { normalizedTitle.contains(it) }
     }
 
     private fun nameMatchesChannel(normalizedName: String, channelTitle: String): Boolean {
@@ -454,6 +472,7 @@ class YoutubeMvSearchService(
         private val TITLE_SEPARATOR_RE = Regex("""\s+[-–—/／|｜]\s+""")
         // No "×": unit names use it ("ワンダーランズ×ショウタイム").
         private val ARTIST_SEPARATOR_RE = Regex("""\s*(?:&|＆|,|、)\s*""")
+        private val VOICE_ACTOR_CREDIT_RE = Regex("""[(（]\s*CV\s*[.:：].*?[)）]""", RegexOption.IGNORE_CASE)
         private val HTML_ENTITY_RE = Regex("""&(?:amp|quot|#39|apos);""", RegexOption.IGNORE_CASE)
         private val PUNCTUATION_RE = Regex("""[\p{P}\p{S}]""")
         private val WHITESPACE_RE = Regex("""\s+""")

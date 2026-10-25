@@ -433,6 +433,44 @@ class YoutubeMvSearchServiceTest {
     }
 
     @Test
+    fun `search accepts a character's MV on the project channel that names the character in the title`() {
+        val artist = "MILGRAM シドウ (CV: 仲村宗悟)"
+        every { artistChannelCache.get(artist) } returns null
+        stubSearch(
+            searchItem("YR4sGpMqQJQ", "MILGRAM -ミルグラム- / シドウ「スローダウン」第一審MV", "MILGRAM -ミルグラム-"),
+            searchItem("snV3847fBj4", "【D4DJ/グルミク】スローダウン / MILGRAM シドウ (CV: 仲村宗悟) [PFC(MAX-3)]", "からむちょ"),
+            searchItem("YCFhkXR6h9A", "【中日歌詞翻譯】MILGRAM -ミルグラム- / 桐崎獅童(シドウ)「スローダウン/Throw down」第一審MV（後附Shidou角色介紹）(Full/Lyrics/中文字幕)", "yuka。中日翻譯"),
+            searchItem("EzQAKC8L1-w", "【歌ってみた】MILGRAM - ミルグラム - / シドウ「スローダウン」第一審MV", "Mikado Kujo"),
+            searchItem("T5AJfkJ8EwQ", "【D4DJ グルミク】スローダウン (EX12/PFC/手元) MILGRAM シドウ(CV: 仲村宗悟)/ DECO*27【高音質 Groovy Mix】", "とてちゃむ.Tote-cham."),
+            searchItem("3Lenmxh5uFE", "【MILGRAM ミルグラム】シドウ(左) x エス(右)「スローダウン」中日歌詞", "咩醬"),
+            searchItem("WYBBgKQQEN8", "【歌ってみた】スローダウン／MILGRAM シドウ(CV.仲村宗悟)", "りーな"),
+            searchItem("ETjhKDpG_sk", "【MILGRAM】005シドウ一審歌曲『スローダウン』歌詞&amp;MV解析｜紫夜星羽", "紫夜星羽"),
+            searchItem("X30VYjI1g5s", "MILGRAM ミルグラム /Throw Down シドウ「スローダウン」-【.jpeg】cover", "jpeg_gg"),
+            searchItem("KA8xH1QELeI", "MILGRAM -ミルグラム- / 「スローダウン -エス Cover-」", "MILGRAM -ミルグラム-"),
+            searchItem("BKjpPePYn4Y", "MILGRAM -ミルグラム- / シドウ「トリアージ」第二審MV", "MILGRAM -ミルグラム-"),
+            searchItem("KiqJfym6YEo", "Throw Down (Off Voice)", "MILGRAM Shidou (CV: Shugo Nakamura) - Topic"),
+            searchItem("et3CPTd2Qb4", "MILGRAM -ミルグラム- / 囚人番号005番『桐崎 獅童』第三審", "MILGRAM -ミルグラム-"),
+            searchItem("Dj3J36IgJl8", "MILGRAM -ミルグラム- / 第二審 5th EP シドウ (CV: 仲村宗悟)「トリアージ」Trailer", "MILGRAM -ミルグラム-"),
+            searchItem("Cg6j59ADn2g", "Liar Dance (SHIDOU Cover)", "MILGRAM Shidou (CV: Shugo Nakamura) - Topic"),
+        )
+        stubDurations(
+            "YR4sGpMqQJQ" to "PT3M48S",
+            "snV3847fBj4" to "PT2M31S",
+            "YCFhkXR6h9A" to "PT3M58S",
+            "EzQAKC8L1-w" to "PT3M48S",
+            "T5AJfkJ8EwQ" to "PT2M42S",
+            "3Lenmxh5uFE" to "PT3M48S",
+            "WYBBgKQQEN8" to "PT3M45S",
+            "ETjhKDpG_sk" to "PT18M33S",
+            "X30VYjI1g5s" to "PT3M53S",
+            "KA8xH1QELeI" to "PT3M48S",
+        )
+
+        assertThat(service.searchMvUrl("スローダウン", artist, 229))
+            .isEqualTo("https://www.youtube.com/watch?v=YR4sGpMqQJQ")
+    }
+
+    @Test
     fun `search takes the artist's official lyric video when the song has no MV`() {
         every { artistChannelCache.get("Mrs. GREEN APPLE") } returns null
         stubSearch(
