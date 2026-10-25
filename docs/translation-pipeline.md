@@ -44,8 +44,8 @@ segment -> anchor/retry -> rules -> dictionary entry-select
 - Sense translation and rule-table tokens carry exactly one Korean meaning.
   The word save path splits on commas and merges the same sense across songs,
   so a "A, B" from one song and "A" from another pile up as "A, B, A".
-  `TranslateSensesStage` keeps only the first meaning if the model still lists
-  several.
+  `KoreanMeaning.first` keeps only the first meaning if the model still lists
+  several; `lyric-meaning-backfill` applies the same cut to lyrics analyzed before.
 - Dictionary entry identity is `(headword, reading)`, not just headword. Ambiguous
   kana headwords are sent to sense-select with entry labels.
 - Readings are normalized to katakana through `JapaneseText.toKatakana`.

@@ -221,6 +221,49 @@ spec:
 apiVersion: batch/v1
 kind: CronJob
 metadata:
+  name: lyric-meaning-backfill
+spec:
+  # 수동 백필 전용. 스케줄은 절대 오지 않는 날짜로 둔다
+  schedule: "0 0 31 2 *"
+  timeZone: "Asia/Seoul"
+  suspend: false
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: Never
+          enableServiceLinks: false
+          containers:
+            - name: batch
+              image: ${BATCH_IMAGE}
+              imagePullPolicy: Never
+              args:
+                - "--task=lyric-meaning-backfill"
+              env:
+                - name: GOOGLE_APPLICATION_CREDENTIALS
+                  value: /var/secrets/firebase/service-account.json
+              envFrom:
+                - configMapRef:
+                    name: batch-config
+                - secretRef:
+                    name: batch-secret
+              volumeMounts:
+                - name: firebase-credentials
+                  mountPath: /var/secrets/firebase
+                  readOnly: true
+          volumes:
+            - name: firebase-credentials
+              secret:
+                secretName: firebase-credentials
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
   name: reward-card-backfill
 spec:
   # 카드 기능 전부터 담아 둔 곡을 카드로 채운다. 알림은 reward-card-backfill-push 가 따로 보낸다. 새 앱이 퍼진 뒤 한 번만 수동으로 돌린다. 스케줄은 절대 오지 않는 날짜로 둔다

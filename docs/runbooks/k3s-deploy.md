@@ -72,6 +72,9 @@ kubectl create job --from=cronjob/lyric-word-candidate-backfill backfill-$(date 
 # lyrics 에 낙관적 락이 없어 같은 시각의 재분석·제보 승인을 덮어쓸 수 있다. 분석 작업이 없을 때 돌린다.
 kubectl create job --from=cronjob/lyric-reading-backfill reading-$(date +%s) -n <ns>
 
+# 가사 토큰의 쉼표로 이어진 한국어 뜻을 첫 뜻만 남긴다(재분석 없음). dryRun·동시 실행 주의는 위와 같다.
+kubectl create job --from=cronjob/lyric-meaning-backfill meaning-$(date +%s) -n <ns>
+
 # 곡 MV 재생 불가 이유(songs.mv_unavailable_reason, V53)를 채우는 수동 백필. V53 배포 뒤 한 번 돌린다. 곡 700개에 15 unit 남짓.
 # batch-secret 의 YOUTUBE_API_KEY 를 쓴다(worker 와 같은 키, 같은 하루 quota).
 kubectl create job --from=cronjob/mv-playability-backfill mvplay-$(date +%s) -n <ns>
