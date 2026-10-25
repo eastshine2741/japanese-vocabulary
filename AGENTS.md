@@ -55,6 +55,7 @@ cd app-rn && npx expo start --web             # App - Web (dev)
 - 앱 UI 함정: `docs/runbooks/bottom-sheet-nested-scroll.md`, `docs/runbooks/ios-native-animated-pitfalls.md`
 - Pen(.pen 디자인 파일) 편집: `docs/runbooks/pencil-editing.md`
 - 분석 결함 로그·자동 수정 러너: `.github/scripts/analysis-feedback/README.md`
+- 완료된 곡 분석 감사·issue 러너: `.github/scripts/analysis-audit/README.md`
 
 `docs/archive/` 는 끝난 계획·조사라 근거로 쓰지 않는다.
 
