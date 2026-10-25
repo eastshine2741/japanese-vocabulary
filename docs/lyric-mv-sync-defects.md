@@ -28,6 +28,7 @@ MV 오연결·가사 오연결이 FAILED 나 LOW 로 드러난다. 곡을 고치
 | 10-25 | 427 | 428 | Songbird (Japanese Ver.) / NCT WISH | `Gsafas5vpV8` | 한국어판 안무 연습 영상(`Dance Practice`). 1/49줄 | |
 | 10-25 | 435 | 436 | poppop (Japanese Ver.) / NCT WISH | `L0QIuPZL20M` | 한국어판 안무 연습 영상. 1/74줄 | |
 | 10-25 | 436 | 437 | WISH (Japanese Ver.) / NCT WISH | `_t9bc8WNA1c` | 다른 곡 트레일러(`'I SPY' Trailer Part 2`, 92초). 0/48줄 | |
+| 10-25 | 736 | 747 | RUDE! (Japanese Ver.) / Hearts2Hearts | `RXQCY_zxz-E` | 한국어판 안무 연습 영상(`'RUDE!' Dance Practice`). 5/92줄 | |
 | 10-25 | 524 | 525 | へでもねーよ / 藤井 風 | `RIzilG2vJwk` | 인트로 편곡 이야기를 하는 해설 영상(`イントロは高校時代に編曲したあの曲から`, 179초). 0/53줄 | |
 | 10-25 | 542 | 544 | エンヴィーベイビー / Kanaria | `PFjxcYPH-E0` | 다른 곡과 합친 매시업(`『エンヴィーベイビー』×『KING』`, 142초). 3/37줄 | |
 | 10-25 | 592 | 594 | 神っぽいな / Ado | `Pl2lf5I6Z_Q` | 방송 클립(`【切り抜き】`, 143초) — 부른 계기를 말하는 영상. 7/91줄 | |
