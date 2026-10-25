@@ -22,7 +22,8 @@ enum class SongReportType(
     WORD_MEANING(SongReportGroup.LYRIC_LINE, "단어 뜻이 틀려요", SongReportTargetKind.LINE_TOKEN, true, "어떤 단어인가요?", "맞는 뜻을 알려주세요"),
     SEGMENTATION(SongReportGroup.LYRIC_LINE, "단어가 잘못 나뉘었어요", SongReportTargetKind.LINE, true, null, "어떻게 나누는 게 맞는지 알려주세요"),
     MV_WRONG_SONG(SongReportGroup.MV, "다른 곡의 영상이에요", SongReportTargetKind.NONE, false, null, "맞는 영상을 알고 계시면 링크를 남겨주세요"),
-    MV_OTHER_VERSION(SongReportGroup.MV, "다른 가수가 부른 커버 영상이에요", SongReportTargetKind.NONE, false, null, "맞는 영상을 알고 계시면 링크를 남겨주세요");
+    MV_OTHER_VERSION(SongReportGroup.MV, "다른 가수가 부른 커버 영상이에요", SongReportTargetKind.NONE, false, null, "맞는 영상을 알고 계시면 링크를 남겨주세요"),
+    MV_MISSING(SongReportGroup.MV, "영상이 없어요", SongReportTargetKind.NONE, false, null, "영상을 알고 계시면 링크를 남겨주세요");
 
     companion object {
         fun of(name: String): SongReportType =

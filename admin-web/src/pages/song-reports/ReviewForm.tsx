@@ -30,6 +30,7 @@ const defaultOpByType: Record<string, OpKind> = {
   SEGMENTATION: "REPLACE_LINE_TOKENS",
   MV_WRONG_SONG: "SET_YOUTUBE_URL",
   MV_OTHER_VERSION: "SET_YOUTUBE_URL",
+  MV_MISSING: "SET_YOUTUBE_URL",
 }
 
 let nextKey = 1

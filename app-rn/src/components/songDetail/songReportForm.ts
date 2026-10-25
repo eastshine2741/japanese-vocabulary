@@ -15,11 +15,19 @@ export interface SongReportTokenChoice {
   charEnd: number;
 }
 
+const MV_MISSING_TYPE = 'MV_MISSING';
+
+/** 영상이 붙은 곡엔 "영상이 없어요"를, 영상이 없는 곡엔 그 영상을 탓하는 유형을 내놓지 않는다. */
 export function selectSongReportTypes(
   types: SongReportTypeDto[],
   group: SongReportGroup,
+  hasMv: boolean,
 ): SongReportTypeDto[] {
-  return types.filter(type => type.group === group);
+  return types.filter(type => {
+    if (type.group !== group) return false;
+    if (group !== 'MV') return true;
+    return (type.type === MV_MISSING_TYPE) !== hasMv;
+  });
 }
 
 /** 서버는 제보 시점의 토큰 오프셋으로 위치를 찾으므로, 가사 줄이 준 오프셋을 그대로 돌려보낸다. */

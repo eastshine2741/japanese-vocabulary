@@ -43,8 +43,17 @@ describe('selectSongReportTypes', () => {
       type({ type: 'MV_WRONG_SONG', group: 'MV', targetKind: 'NONE' }),
       type({ type: 'TRANSLATION' }),
     ];
-    expect(selectSongReportTypes(types, 'LYRIC_LINE').map(t => t.type)).toEqual(['LYRIC_TEXT', 'TRANSLATION']);
-    expect(selectSongReportTypes(types, 'MV').map(t => t.type)).toEqual(['MV_WRONG_SONG']);
+    expect(selectSongReportTypes(types, 'LYRIC_LINE', true).map(t => t.type)).toEqual(['LYRIC_TEXT', 'TRANSLATION']);
+    expect(selectSongReportTypes(types, 'MV', true).map(t => t.type)).toEqual(['MV_WRONG_SONG']);
+  });
+
+  it('영상이 없는 곡엔 영상 없음만, 있는 곡엔 그 밖의 MV 유형만 남긴다', () => {
+    const types = [
+      type({ type: 'MV_WRONG_SONG', group: 'MV', targetKind: 'NONE' }),
+      type({ type: 'MV_MISSING', group: 'MV', targetKind: 'NONE' }),
+    ];
+    expect(selectSongReportTypes(types, 'MV', false).map(t => t.type)).toEqual(['MV_MISSING']);
+    expect(selectSongReportTypes(types, 'MV', true).map(t => t.type)).toEqual(['MV_WRONG_SONG']);
   });
 });
 
