@@ -1,4 +1,5 @@
 """One claimed sync: MV audio -> vocal stem -> Whisper -> line anchors -> line start times."""
+import re
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,6 +17,14 @@ PROMPT_CHARS = 200
 # even on a clean fit, so a strict cut there hid MV shifts that were right (マリーゴールド +2.95s).
 OK_MIN_ANCHORS, OK_SYNCED_ANCHOR_RATIO, OK_WITHIN_HALF_SECOND = 8, 0.6, 0.5
 OK_PLAIN_ANCHOR_RATIO = 0.7
+# Below this share of lines heard on the stem, the full mix is heard too: Demucs can strip a synthetic voice
+# almost entirely (ループザルーム: 64% of lines heard on the mix, 17% on the stem).
+MIX_RETRY_RATIO = 0.7
+# A SYNCED song whose lines were nearly all found but disagree with every offset fit has lrclib times for another
+# cut or sloppy times (グランドエスケープ Movie edit vs full MV: 15/16 found, 33% within 0.5s); the found times win.
+DIRECT_ANCHOR_RATIO = 0.8
+# Lines without kana or kanji (English lines of K-pop Japanese versions) cannot match a Japanese transcript.
+JAPANESE_RE = re.compile(r"[\u3040-\u30ff\u3400-\u9fff\uff66-\uff9f々]")
 
 
 class SyncError(Exception):
@@ -40,10 +49,15 @@ def run(job: dict, model_name: str, device: str) -> SyncResult:
         # Loaded per job, not kept: the GPU is shared with the desktop and the agent mostly idles.
         transcriber = Transcriber(model_name, device)
         texts = [line["text"] for line in job["lines"]]
+        heard = vocals
         anchors = line_anchors(texts, transcriber.full(vocals))
-        fill_gaps(anchors, texts, transcriber, vocals)
+        if heard_ratio(texts, anchors) < MIX_RETRY_RATIO:
+            on_mix = line_anchors(texts, transcriber.full(wav, vad=False))
+            if heard_ratio(texts, on_mix) > heard_ratio(texts, anchors):
+                heard, anchors = wav, on_mix
+        fill_gaps(anchors, texts, transcriber, heard)
         timing.drop_out_of_order(anchors)
-        timing.snap_to_onsets(anchors, audio.voiced_mask(vocals), audio.VOICED_HOP)
+        timing.snap_to_onsets(anchors, audio.voiced_mask(heard), audio.VOICED_HOP)
     if job["lyricType"] == "SYNCED":
         return offset_result(job, anchors)
     return aligned_result(job, anchors)
@@ -92,6 +106,11 @@ def offset_result(job: dict, anchors: list[Anchor | None]) -> SyncResult:
     segments = timing.fit_offsets(pts)
     residuals = [abs(y - x - timing.offset_at(segments, x)) for x, y in pts]
     within = sum(r <= 0.5 for r in residuals) / len(residuals)
+    texts = [line["text"] for line in lines]
+    if within < OK_WITHIN_HALF_SECOND and heard_ratio(texts, anchors) >= DIRECT_ANCHOR_RATIO:
+        result = aligned_result(job, anchors)
+        result.confidence["offsetWithin500ms"] = round(float(within), 3)
+        return result
     # Where the MV cuts a verse the offset drops, and lines just before the cut would land after the next one.
     shifted = timing.non_decreasing(
         [None if line["startTimeMs"] is None else line["startTimeMs"] / 1000 + timing.offset_at(segments, line["startTimeMs"] / 1000)
@@ -102,13 +121,13 @@ def offset_result(job: dict, anchors: list[Anchor | None]) -> SyncResult:
         **counts(anchors),
         "within500ms": round(float(within), 3),
         "segments": [{"fromLrcSec": round(float(s.from_lrc), 2), "offsetSec": round(float(s.offset), 2)} for s in segments],
-        "verdict": "OK" if synced_ok(len(pts), len(lines), within) else "LOW",
+        "verdict": "OK" if synced_ok(*heard_counts(texts, anchors), within) else "LOW",
     }
     return SyncResult("OFFSET", out, confidence)
 
 
 def synced_ok(anchored: int, lines: int, within: float) -> bool:
-    return anchored >= OK_MIN_ANCHORS and anchored / lines >= OK_SYNCED_ANCHOR_RATIO and within >= OK_WITHIN_HALF_SECOND
+    return lines > 0 and anchored >= OK_MIN_ANCHORS and anchored / lines >= OK_SYNCED_ANCHOR_RATIO and within >= OK_WITHIN_HALF_SECOND
 
 
 def aligned_result(job: dict, anchors: list[Anchor | None]) -> SyncResult:
@@ -119,8 +138,19 @@ def aligned_result(job: dict, anchors: list[Anchor | None]) -> SyncResult:
     out = [{"index": line["index"], "startTimeMs": None if t is None else max(0, int(round(t * 1000)))}
            for line, t in zip(lines, times)]
     c = counts(anchors)
-    c["verdict"] = "OK" if c["anchored"] / c["lines"] >= OK_PLAIN_ANCHOR_RATIO else "LOW"
+    c["verdict"] = "OK" if heard_ratio([line["text"] for line in lines], anchors) >= OK_PLAIN_ANCHOR_RATIO else "LOW"
     return SyncResult("ALIGNED", out, c)
+
+
+def heard_counts(texts: list[str], anchors: list[Anchor | None]) -> tuple[int, int]:
+    """(found, total) over the lines a Japanese transcript can match; the other lines are still timed by interpolation."""
+    sung = [a for t, a in zip(texts, anchors) if JAPANESE_RE.search(t)]
+    return sum(a is not None for a in sung), len(sung)
+
+
+def heard_ratio(texts: list[str], anchors: list[Anchor | None]) -> float:
+    found, total = heard_counts(texts, anchors)
+    return found / total if total else 0.0
 
 
 def counts(anchors: list[Anchor | None]) -> dict:
