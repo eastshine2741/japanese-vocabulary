@@ -17,9 +17,9 @@ import sqlite3
 import sys
 import xml.etree.ElementTree as ET
 
-# jisho 가 내려주던 POS 라벨. JishoPartOfSpeechMapper 와 LexicalResolver 가 이 문자열("suru verb", "godan verb")로 판정하므로
+# POS 라벨. DictionaryPartOfSpeechMapper 와 LexicalResolver 가 이 문자열("suru verb", "godan verb")로 판정하므로
 # JMdict 원문 설명("noun or participle which takes the aux. verb suru")을 그대로 쓰면 판정이 깨진다.
-JISHO_POS = {
+POS_LABELS = {
     "adj-f": "Noun or verb acting prenominally",
     "adj-i": "I-adjective (keiyoushi)",
     "adj-ix": "I-Adjective (keiyoushi) - yoi/ii class",
@@ -37,7 +37,6 @@ JISHO_POS = {
     "cop": "Copula",
     "ctr": "Counter",
     "exp": "Expressions (phrases, clauses, etc.)",
-    # jisho 는 감탄사 라벨을 비워 보내 앞 sense 의 POS 가 이어 붙었다(ほら 가 대명사로 분류됨)
     "int": "Interjection",
     "n": "Noun",
     "n-pref": "Noun, used as a prefix",
@@ -90,8 +89,8 @@ def load_jmdict(path):
     raw = re.sub(r"&([\w-]+);", lambda m: m.group(0) if m.group(1) in XML_ENTITIES else m.group(1), raw)
 
     def label(code):
-        if code in JISHO_POS:
-            return JISHO_POS[code]
+        if code in POS_LABELS:
+            return POS_LABELS[code]
         d = descriptions.get(code, code)
         return d[:1].upper() + d[1:]
 
@@ -100,10 +99,10 @@ def load_jmdict(path):
         if el.tag != "entry":
             continue
         seq = int(el.findtext("ent_seq"))
-        # 검색 전용 표기(sK/sk)는 jisho 도 응답에 넣지 않는다. 넣으면 다른 엔트리와 표기가 겹쳐 후보가 늘어난다
+        # 검색 전용 표기(sK/sk)는 넣지 않는다. 넣으면 다른 엔트리와 표기가 겹쳐 후보가 늘어난다
         kebs = [k.findtext("keb") for k in el.findall("k_ele") if "sK" not in [x.text for x in k.findall("ke_inf")]]
 
-        # jisho 응답의 japanese[] 순서: 한자 표기마다 그 표기에 붙는 읽기, 그다음 한자 없이 쓰는 읽기
+        # forms 순서: 한자 표기마다 그 표기에 붙는 읽기, 그다음 한자 없이 쓰는 읽기
         readings = []
         for r in el.findall("r_ele"):
             if "sk" in [x.text for x in r.findall("re_inf")]:

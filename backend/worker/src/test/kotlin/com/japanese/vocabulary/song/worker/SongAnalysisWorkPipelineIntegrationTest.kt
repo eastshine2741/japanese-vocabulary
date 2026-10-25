@@ -32,10 +32,10 @@ import com.japanese.vocabulary.translation.client.gemini.dto.SegLineDto
 import com.japanese.vocabulary.translation.client.gemini.dto.SegWordDto
 import com.japanese.vocabulary.translation.client.gemini.dto.SenseTranslationDto
 import com.japanese.vocabulary.translation.client.gemini.dto.TranslationResultDto
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoDictionaryEntryDto
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoOptionDto
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionaryLookupDto
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionaryLookupProvenance
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionaryEntryDto
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionarySenseDto
 import com.japanese.vocabulary.song.service.MvSearchDefectReporter
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -553,7 +553,7 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
                 ),
             ),
         )
-        coEvery { jishoService.lookupAll(any()) } returns mapOf(
+        coEvery { dictionaryService.lookupAll(any()) } returns mapOf(
             "ももいろ" to exactEntry("ももいろ", "モモイロ", "pink"),
             "鍵" to exactEntry("鍵", "カギ", "key"),
         )
@@ -577,17 +577,17 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
             contextGloss = "gloss",
         )
 
-    private fun exactEntry(word: String, reading: String, english: String) = JishoEntryDto(
+    private fun exactEntry(word: String, reading: String, english: String) = DictionaryLookupDto(
         found = true,
         word = word,
         entries = listOf(
-            JishoDictionaryEntryDto(
+            DictionaryEntryDto(
                 headword = word,
                 reading = reading,
-                senses = listOf(JishoOptionDto(pos = listOf("Noun"), english = english, englishDefinitions = listOf(english))),
+                senses = listOf(DictionarySenseDto(pos = listOf("Noun"), english = english, englishDefinitions = listOf(english))),
             ),
         ),
-        provenance = JishoLookupProvenance.EXACT,
+        provenance = DictionaryLookupProvenance.EXACT,
     )
 
     private fun stubLyricAnalysisFailure() {
@@ -595,7 +595,7 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         coEvery { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(
             SegLineDto(0, listOf(segWord("ももいろ", "モモイロ"))),
         )
-        coEvery { jishoService.lookupAll(any()) } returns emptyMap()
+        coEvery { dictionaryService.lookupAll(any()) } returns emptyMap()
     }
 
     private companion object {

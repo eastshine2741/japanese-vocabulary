@@ -10,7 +10,7 @@ dependencies {
     // Bundled JMdict dictionary file (JmdictDictionary), built by tools/dictionary.
     implementation("org.xerial:sqlite-jdbc:3.46.1.3")
 
-    // LexicalResolverTest stubs JishoService to exercise entry narrowing without a network call.
+    // LexicalResolverTest stubs DictionaryService to exercise entry narrowing without a network call.
     // Same mockk the bootstrap modules use; domain modules do not get :common's test fixtures.
     testImplementation("io.mockk:mockk:1.13.10")
 }

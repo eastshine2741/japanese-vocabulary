@@ -8,7 +8,7 @@ Kotonoha 곡 분석 파이프라인이 단어를 뜻 없이 내보낸 기록(`AN
 
 ## 입력이 어떻게 만들어졌는지
 
-- `cause=DICTIONARY_MISS`: jisho가 응답했고, `headword`로도 규칙(`RuleMeaningProvider`)으로도
+- `cause=DICTIONARY_MISS`: 사전을 읽었지만, `headword`로도 규칙(`RuleMeaningProvider`)으로도
   i-형용사·히라가나 재조회로도 항목을 못 찾았다. 분절 모델이 원형을 잘못 잡았거나, 구어 축약이거나,
   사전에 정말 없는 말이다.
 - `cause=UNCOVERED`: 가사 줄의 일본어 일부가 어떤 surface에도 안 잡혔다. `surface`가 그 글자다.

@@ -1,10 +1,10 @@
 package com.japanese.vocabulary.translation.client.dictionary
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoDictionaryEntryDto
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoOptionDto
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionaryEntryDto
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionaryLookupDto
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionaryLookupProvenance
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionarySenseDto
 import com.japanese.vocabulary.translation.service.pipeline.JapaneseText
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
@@ -15,10 +15,10 @@ import java.sql.DriverManager
 
 /**
  * Read-only lookups against the bundled JMdict SQLite file (built by `tools/dictionary/build_dictionary.py`),
- * answered in jisho's response shape so [com.japanese.vocabulary.translation.service.pipeline.LexicalResolver] is unchanged.
+ * answered as [DictionaryLookupDto] for [com.japanese.vocabulary.translation.service.pipeline.LexicalResolver].
  *
  * A query matches an entry when one of its spellings equals the query or one of its readings equals the query as
- * katakana — the same rule jisho's results were filtered by. Every spelling/reading pair of a matched entry is returned.
+ * katakana. Every spelling/reading pair of a matched entry is returned.
  */
 @Component
 class JmdictDictionary(
@@ -32,12 +32,12 @@ class JmdictDictionary(
     }
 
     @Synchronized
-    fun lookup(word: String): JishoEntryDto {
+    fun lookup(word: String): DictionaryLookupDto {
         val seqs = matchingSeqs(word)
-        if (seqs.isEmpty()) return JishoEntryDto(found = false, word = word, provenance = JishoLookupProvenance.NOT_FOUND)
+        if (seqs.isEmpty()) return DictionaryLookupDto(found = false, word = word, provenance = DictionaryLookupProvenance.NOT_FOUND)
         val entries = entriesOf(seqs)
         val forms = formsOf(seqs)
-        return JishoEntryDto(
+        return DictionaryLookupDto(
             found = true,
             word = word,
             entries = seqs.flatMap { seq ->
@@ -45,14 +45,14 @@ class JmdictDictionary(
                 forms[seq].orEmpty().mapNotNull { (headword, reading) ->
                     val kanaReading = reading.takeIf(JapaneseText::isKanaOnly)
                     if (headword == null && kanaReading == null) return@mapNotNull null
-                    JishoDictionaryEntryDto(headword = headword, reading = kanaReading, jlpt = entry.jlpt, senses = entry.senses)
+                    DictionaryEntryDto(headword = headword, reading = kanaReading, jlpt = entry.jlpt, senses = entry.senses)
                 }
             },
-            provenance = JishoLookupProvenance.EXACT,
+            provenance = DictionaryLookupProvenance.EXACT,
         )
     }
 
-    /** Most frequent entry first, as jisho ranked common words first. */
+    /** Most frequent entry first: rescues and sense-select prefer the first candidate. */
     private fun matchingSeqs(word: String): List<Long> =
         connection.prepareStatement(
             """
@@ -73,7 +73,7 @@ class JmdictDictionary(
                 generateSequence {
                     if (!rs.next()) return@generateSequence null
                     rs.getLong(1) to Entry(
-                        senses = objectMapper.readValue(rs.getString(2), Array<JishoOptionDto>::class.java).toList(),
+                        senses = objectMapper.readValue(rs.getString(2), Array<DictionarySenseDto>::class.java).toList(),
                         jlpt = objectMapper.readValue(rs.getString(3), Array<String>::class.java).toList(),
                     )
                 }.toMap()
@@ -93,5 +93,5 @@ class JmdictDictionary(
 
     private fun placeholders(seqs: List<Long>) = seqs.joinToString(",") { "?" }
 
-    private data class Entry(val senses: List<JishoOptionDto>, val jlpt: List<String>)
+    private data class Entry(val senses: List<DictionarySenseDto>, val jlpt: List<String>)
 }

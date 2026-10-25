@@ -1,7 +1,7 @@
 package com.japanese.vocabulary.translation.service.pipeline
 
 import com.japanese.vocabulary.song.model.PartOfSpeech
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionaryLookupProvenance
 import com.japanese.vocabulary.translation.model.PipelineSenseOption
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -24,7 +24,7 @@ class SenseTranslationPreparerTest {
                     english = "head over heels / headlong / head first",
                     englishDefinitions = listOf("head over heels", "headlong", "head first"),
                     jlpt = emptyList(),
-                    provenance = JishoLookupProvenance.EXACT,
+                    provenance = DictionaryLookupProvenance.EXACT,
                 ),
             ),
         )

@@ -1,7 +1,7 @@
 package com.japanese.vocabulary.translation.service.pipeline
 
 import com.japanese.vocabulary.song.model.PartOfSpeech
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionaryLookupProvenance
 import com.japanese.vocabulary.translation.model.PipelineSenseOption
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -24,7 +24,7 @@ class SenseCandidateNarrowingTest {
 
     @Test
     fun `a counter suffix keeps the counter sense`() {
-        // ラット1つ: つ glossed "counter suffix" is jisho's Counter, which the suffix hint must keep.
+        // ラット1つ: つ glossed "counter suffix" is the dictionary's Counter, which the suffix hint must keep.
         val options = listOf(option(1, "general-purpose counter", "Counter"), option(2, "harbour", "Noun"))
 
         val narrowed = SenseCandidateNarrowing.narrow("counter suffix", options)
@@ -74,6 +74,6 @@ class SenseCandidateNarrowingTest {
         english = english,
         englishDefinitions = listOf(english),
         jlpt = emptyList(),
-        provenance = JishoLookupProvenance.AMBIGUOUS_HEADWORD,
+        provenance = DictionaryLookupProvenance.AMBIGUOUS_HEADWORD,
     )
 }

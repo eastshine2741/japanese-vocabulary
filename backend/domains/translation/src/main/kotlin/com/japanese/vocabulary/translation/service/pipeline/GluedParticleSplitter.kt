@@ -1,10 +1,10 @@
 package com.japanese.vocabulary.translation.service.pipeline
 
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionaryLookupDto
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionaryLookupProvenance
 import com.japanese.vocabulary.translation.model.PipelineToken
 import com.japanese.vocabulary.translation.model.PipelineTokenKey
-import com.japanese.vocabulary.translation.service.JishoService
+import com.japanese.vocabulary.translation.service.DictionaryService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
@@ -19,14 +19,14 @@ import org.springframework.stereotype.Component
  *
  * Wrongly splitting destroys a real dictionary entry, while leaving a glued token only mis-renders
  * it, so the token passes through untouched when the dictionary knows the glued form, the reading
- * does not line up, or jisho could not be reached.
+ * does not line up, or the dictionary file could not be read.
  *
  * Only case-marking particles are in the sets. `で` and `ね` are excluded because `です` (headword
  * `だ`) and `ねばった` (`粘る`) would match the leading shape; `に` because its hits are mostly `ように`.
  */
 @Component
 class GluedParticleSplitter(
-    private val jishoService: JishoService,
+    private val dictionaryService: DictionaryService,
 ) {
     private val logger = LoggerFactory.getLogger(GluedParticleSplitter::class.java)
 
@@ -37,7 +37,7 @@ class GluedParticleSplitter(
         if (candidates.isEmpty()) return tokensByIndex
 
         // If the glued form itself is a dictionary word (いつも, ように), splitting would break a real entry.
-        val lookups = jishoService.lookupAll(candidates.map { it.first.surface }.distinct())
+        val lookups = dictionaryService.lookupAll(candidates.map { it.first.surface }.distinct())
         val splitByKey = mutableMapOf<PipelineTokenKey, List<PipelineToken>>()
         for ((token, glued) in candidates) {
             if (!isMissingFromDictionary(lookups[token.surface])) continue
@@ -79,13 +79,13 @@ class GluedParticleSplitter(
 
     /**
      * True only when the dictionary answered and had no entry for this exact form. A read error is not an
-     * answer (it must not split real words); [JishoLookupProvenance.REJECTED_FALLBACK] counts as no entry.
+     * answer (it must not split real words); [DictionaryLookupProvenance.REJECTED_FALLBACK] counts as no entry.
      */
-    private fun isMissingFromDictionary(lookup: JishoEntryDto?): Boolean =
+    private fun isMissingFromDictionary(lookup: DictionaryLookupDto?): Boolean =
         lookup != null &&
             (
-                lookup.provenance == JishoLookupProvenance.NOT_FOUND ||
-                    lookup.provenance == JishoLookupProvenance.REJECTED_FALLBACK
+                lookup.provenance == DictionaryLookupProvenance.NOT_FOUND ||
+                    lookup.provenance == DictionaryLookupProvenance.REJECTED_FALLBACK
                 )
 
     /** The two tokens, in position order, or null when the reading cannot be divided without guessing. */
@@ -165,7 +165,7 @@ class GluedParticleSplitter(
     private companion object {
         /**
          * Particles that can be glued to the end of the word before them. Each must be in
-         * [RuleMeaningProvider]'s particle table so the split-off token never reaches jisho.
+         * [RuleMeaningProvider]'s particle table so the split-off token never reaches the dictionary.
          */
         val TRAILING_PARTICLES = setOf('は', 'を', 'が', 'も')
 

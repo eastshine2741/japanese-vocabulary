@@ -208,7 +208,7 @@ track_prompt() { [[ "$1" == mv ]] && echo "$PROMPTS_DIR/$2-mv.md" || echo "$PROM
 #
 # status: new | provider_error | ignored | held | fixing
 #   new            never shown to the classifier
-#   provider_error jisho outage — recorded, never classified
+#   provider_error dictionary read failure — recorded, never classified
 #   ignored        classifier said the word legitimately has no meaning, or the song has no usable video
 #   held           classifier or fix pass could not act; a person looks
 #   fixing         a PR exists (prUrl)
@@ -642,7 +642,7 @@ main() {
   local provider_errors
   provider_errors="$(jq -s '[.[] | select(.defect.cause == "PROVIDER_ERROR")] | length' "$events")"
   if [[ "$provider_errors" -ge "$PROVIDER_ERROR_ALERT" ]]; then
-    log "WARN" "jisho outage: $provider_errors PROVIDER_ERROR defect(s) in the window — nothing to fix in code; the affected songs shipped those words without a meaning and can be re-analysed"
+    log "WARN" "dictionary read failure: $provider_errors PROVIDER_ERROR defect(s) in the window — nothing to fix in code; the affected songs shipped those words without a meaning and can be re-analysed"
   fi
 
   local track

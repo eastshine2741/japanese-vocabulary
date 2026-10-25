@@ -44,7 +44,7 @@ class RuleMeaningProvider {
     }
 
     private companion object {
-        // Only deterministic grammar rewrites that Jisho/sense-select cannot recover from; ambiguous
+        // Only deterministic grammar rewrites that the dictionary/sense-select cannot recover from; ambiguous
         // lexical items stay out so sense selection can choose.
         val rewriteRules = listOf(
             TokenRewriteRule(
@@ -201,9 +201,9 @@ class RuleMeaningProvider {
             "こう" to RuleResolvedToken("こう", "こう", "コウ", "コウ", PartOfSpeech.ADVERB, "이렇게"),
             // Archaic 〜の随(まにま)に: segmentation splits off に, so the token reads マニマ, not マニマニ.
             "随" to RuleResolvedToken("随", "随", "マニマ", "マニマ", PartOfSpeech.NOUN, "~대로, ~에 맡겨"),
-            // Second half of やたらめったら, a colloquial stretch of 滅多. Jisho has no headword for it.
+            // Second half of やたらめったら, a colloquial stretch of 滅多. The dictionary has no headword for it.
             "めったら" to RuleResolvedToken("めったら", "めったら", "メッタラ", "メッタラ", PartOfSpeech.ADVERB, "마구, 함부로"),
-            // Colloquial contraction of いやだ. Segmentation writes the headword as 嫌だ, which jisho
+            // Colloquial contraction of いやだ. Segmentation writes the headword as 嫌だ, which the dictionary
             // has no entry for. Keyed on the surface only: いやだ shares that headword but not the reading.
             "やだ" to RuleResolvedToken("やだ", "嫌だ", "ヤダ", "イヤダ", PartOfSpeech.NA_ADJECTIVE, "싫다, 싫어"),
         )
@@ -224,7 +224,7 @@ class RuleMeaningProvider {
             "ね" to particle("ね", "~네"),
             "よ" to particle("よ", "~야"),
             // だけ + で. The model emits だけで as both surface and headword, so GluedParticleSplitter
-            // sees no mismatch and jisho has no entry for the combined form.
+            // sees no mismatch and the dictionary has no entry for the combined form.
             "だけで" to particle("だけで", "~만으로, ~하기만 해도"),
             // Connective て; SegmentAnchoringValidator fills it in when the model leaves it off the verb.
             "て" to particle("て", "~하고, ~해서"),
@@ -236,7 +236,7 @@ class RuleMeaningProvider {
             // Keyed on the headword: segmentation normalises っちゃった/じゃった/ちゃう to てしまう.
             "てしまう" to auxiliary("てしまう", "~해 버리다"),
             // Segmentation glues する onto ていく after a する-noun (回転していく) and emits していく as
-            // the headword; jisho has no entry for either form.
+            // the headword; the dictionary has no entry for either form.
             "ていく" to auxiliary("ていく", "~해 가다"),
             "していく" to auxiliary("していく", "~해 가다"),
             // Same headword fallback: segmentation normalises といて/とく to ておく.
@@ -245,12 +245,12 @@ class RuleMeaningProvider {
             "だ" to auxiliary("だ", "~이다"),
             // Conditional ending; segmentation also normalizes the colloquial りゃ to this headword.
             "れば" to auxiliary("れば", "~하면"),
-            // た/だ + conditional ら. Segmentation splits 掴んだら into 掴ん + だら; jisho has no entry for
+            // た/だ + conditional ら. Segmentation splits 掴んだら into 掴ん + だら; the dictionary has no entry for
             // the suffix. だら is the voiced form after ん/ぶ/ぐ stems.
             "たら" to auxiliary("たら", "~하면, ~했더니"),
             "だら" to auxiliary("だら", "~하면, ~했더니"),
             // Colloquial concessive (even if). Segmentation splits 舞ったったって into 舞った + ったって and
-            // guesses the headword といったって, which jisho lacks; resolve() tries the surface first.
+            // guesses the headword といったって, which the dictionary lacks; resolve() tries the surface first.
             "たって" to auxiliary("たって", "~해도, ~한들"),
             "ったって" to auxiliary("ったって", "~해도, ~한들"),
         )
@@ -314,7 +314,7 @@ class RuleMeaningProvider {
             val endOffset: Int,
             /**
              * Replaces the gloss the segmentation model would have written for this span; without it the
-             * token reaches sense-select with an empty hint (`ここ` gets five homophones from jisho).
+             * token reaches sense-select with an empty hint (`ここ` gets five homophones from the dictionary).
              */
             val contextGloss: String = "",
         )

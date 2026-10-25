@@ -3,7 +3,7 @@ package com.japanese.vocabulary.translation.service.pipeline.stage
 import com.japanese.vocabulary.translation.client.jev.JevClient
 import com.japanese.vocabulary.translation.client.jev.dto.JevAnswer
 import com.japanese.vocabulary.translation.client.jev.dto.JevChoiceQuestion
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionaryLookupProvenance
 import com.japanese.vocabulary.translation.model.AnalysisDefect
 import com.japanese.vocabulary.translation.model.AnalysisDefectCause
 import com.japanese.vocabulary.translation.model.PipelineSenseOption
@@ -105,11 +105,11 @@ class SelectSensesStage(
     }
 
     /**
-     * Headword and reading lead the label only for [JishoLookupProvenance.AMBIGUOUS_HEADWORD], where
+     * Headword and reading lead the label only for [DictionaryLookupProvenance.AMBIGUOUS_HEADWORD], where
      * senses from several entries share a question (前[マエ] vs 前[ゼン]).
      */
     private fun label(option: PipelineSenseOption): String {
-        val entry = if (option.provenance == JishoLookupProvenance.AMBIGUOUS_HEADWORD && option.headword != null) {
+        val entry = if (option.provenance == DictionaryLookupProvenance.AMBIGUOUS_HEADWORD && option.headword != null) {
             "${option.headword}[${option.reading.orEmpty()}] "
         } else {
             ""

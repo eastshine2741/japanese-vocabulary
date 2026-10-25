@@ -9,7 +9,7 @@ import com.japanese.vocabulary.translation.model.PipelineSenseOption
 object SenseCandidateNarrowing {
 
     /**
-     * The contextGloss wording the segment stage uses for a function word, and the jisho POS families
+     * The contextGloss wording the segment stage uses for a function word, and the dictionary POS families
      * that can match it. First match wins, so the more specific wording comes first.
      */
     private val functionWordHints = listOf(
@@ -24,7 +24,7 @@ object SenseCandidateNarrowing {
         keepFunctionWordSenses(contextGloss, dropRepeatedGlosses(options))
 
     /**
-     * Variant spellings of one word (此れ/是/之/維/惟 for これ) come back from jisho as separate
+     * Variant spellings of one word (此れ/是/之/維/惟 for これ) come back from the dictionary as separate
      * entries repeating the same glosses; one copy is kept.
      */
     private fun dropRepeatedGlosses(options: List<PipelineSenseOption>): List<PipelineSenseOption> =

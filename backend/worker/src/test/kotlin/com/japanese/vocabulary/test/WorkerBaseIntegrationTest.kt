@@ -11,7 +11,7 @@ import com.japanese.vocabulary.translation.client.gemini.GeminiClient
 import com.japanese.vocabulary.translation.client.jev.JevClient
 import com.japanese.vocabulary.translation.client.jev.dto.JevAnswer
 import com.japanese.vocabulary.translation.client.jev.dto.JevChoiceQuestion
-import com.japanese.vocabulary.translation.service.JishoService
+import com.japanese.vocabulary.translation.service.DictionaryService
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.clearMocks
 import io.mockk.coEvery
@@ -27,7 +27,7 @@ abstract class WorkerBaseIntegrationTest : BaseIntegrationTest() {
     protected lateinit var jevClient: JevClient
 
     @MockkBean
-    protected lateinit var jishoService: JishoService
+    protected lateinit var dictionaryService: DictionaryService
 
     @MockkBean
     protected lateinit var lrclibClient: LrclibClient
@@ -62,7 +62,7 @@ abstract class WorkerBaseIntegrationTest : BaseIntegrationTest() {
         clearMocks(
             geminiClient,
             jevClient,
-            jishoService,
+            dictionaryService,
             lrclibClient,
             vocadbClient,
             utaitedbClient,

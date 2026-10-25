@@ -1,11 +1,11 @@
-package com.japanese.vocabulary.translation.client.jisho.dto
+package com.japanese.vocabulary.translation.client.dictionary.dto
 
 /**
- * How confidently a jisho lookup was narrowed to one dictionary entry.
+ * How confidently a dictionary lookup was narrowed to one dictionary entry.
  *
  * The first three are usable; the last three yield no sense candidates at all.
  */
-enum class JishoLookupProvenance {
+enum class DictionaryLookupProvenance {
     /** Headword and reading matched exactly one entry. */
     EXACT,
 
@@ -19,7 +19,7 @@ enum class JishoLookupProvenance {
      */
     AMBIGUOUS_HEADWORD,
 
-    /** No entry carried the headword. jisho's top hit is retained as evidence but never used. */
+    /** No entry carried the headword. The bundled dictionary never produces it; stored stage payloads may still hold it. */
     REJECTED_FALLBACK,
 
     NOT_FOUND,

@@ -4,7 +4,7 @@ import com.japanese.vocabulary.song.model.AnalyzedLine
 import com.japanese.vocabulary.song.model.PartOfSpeech
 import com.japanese.vocabulary.song.model.SungReading
 import com.japanese.vocabulary.song.model.Token
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionaryLookupProvenance
 import com.japanese.vocabulary.translation.model.AssembleAnalyzedLinesInput
 import com.japanese.vocabulary.translation.model.LexicalResolution
 import com.japanese.vocabulary.translation.model.PipelineSenseOption
@@ -106,7 +106,7 @@ class AssembleAnalyzedLinesStage : PipelineStage<AssembleAnalyzedLinesInput, Lis
 
     /**
      * The dictionary's reading, when the surface *is* the dictionary form. The model misreads some
-     * (痛々しい → イタタマシイ where jisho says イタイタシイ).
+     * (痛々しい → イタタマシイ where the dictionary says イタイタシイ).
      *
      * Only for an unambiguous entry: otherwise a wrong sense-select pick would corrupt the reading
      * too (前 as マエ or ゼン). A lyric's ruby reading is lost here; rare.
@@ -124,7 +124,7 @@ class AssembleAnalyzedLinesStage : PipelineStage<AssembleAnalyzedLinesInput, Lis
         SungReading.of(token.surface, partOfSpeech, reading, text.getOrNull(token.charStart - 1))
 
     /**
-     * jisho jlpt is an entry-level array (e.g. ["jlpt-n1","jlpt-n5"]); reduce to the EASIEST level
+     * The dictionary's jlpt is an entry-level array (e.g. ["jlpt-n1","jlpt-n5"]); reduce to the EASIEST level
      * (largest N). Mirrors `easiest_jlpt`.
      */
     private fun easiestJlpt(jlpt: List<String>): String? {
@@ -134,8 +134,8 @@ class AssembleAnalyzedLinesStage : PipelineStage<AssembleAnalyzedLinesInput, Lis
 
     private companion object {
         val TRUSTED_READING_PROVENANCE = setOf(
-            JishoLookupProvenance.EXACT,
-            JishoLookupProvenance.APPROVED_FALLBACK,
+            DictionaryLookupProvenance.EXACT,
+            DictionaryLookupProvenance.APPROVED_FALLBACK,
         )
     }
 }

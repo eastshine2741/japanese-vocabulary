@@ -55,7 +55,7 @@ class SegmentLyricsStage(
         val acceptedDefects = mutableMapOf<Int, LineDefects>()
         var pendingByIndex = input.rawByIndex
         var anchorFailures: Map<Int, String> = emptyMap()
-        // Null feedback still resends the line, which makes the jisho lookup happen again.
+        // Null feedback still resends the line, which makes the dictionary lookup happen again.
         var defectFeedback: Map<Int, String?> = emptyMap()
         var defectRetriesLeft = MAX_DEFECT_RETRIES
 
@@ -163,7 +163,7 @@ class SegmentLyricsStage(
      *
      * Grammar comes first: [RuleMeaningProvider] settles particles and auxiliaries without a
      * dictionary, so `は` and `ている` would otherwise be reported. The rewrite is applied here only
-     * to decide what to check ([ApplyRuleMeaningsStage] applies it for real); jisho caches.
+     * to decide what to check ([ApplyRuleMeaningsStage] applies it for real).
      *
      * Exempt: katakana-only surfaces (`ステンバイミー`, `チリン`), where a retry cannot help, and a
      * headword with no Japanese in it (`あいうぉんちゅー` → "I want you"), which a Japanese
@@ -217,7 +217,7 @@ class SegmentLyricsStage(
         val isClean: Boolean get() = count == 0
 
         /**
-         * Feedback for the model. A headword jisho never answered is left out (it may be right, and
+         * Feedback for the model. A headword the dictionary could not be read for is left out (it may be right, and
          * the feedback would push the model to invent another); the line is still resent.
          */
         fun retryMessage(): String? =
@@ -259,7 +259,7 @@ class SegmentLyricsStage(
                 .joinToString(", ") { "'${it.headword}' (surface '${it.surface}')" }
             val omitted = dictionaryMisses.size - FAILURE_DETAIL_LIMIT
             val suffix = if (omitted > 0) " (+$omitted more)" else ""
-            return "No jisho dictionary entry exists for headword $named$suffix"
+            return "No dictionary entry exists for headword $named$suffix"
         }
     }
 

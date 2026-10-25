@@ -1,43 +1,43 @@
-package com.japanese.vocabulary.translation.client.jisho
+package com.japanese.vocabulary.translation.client.dictionary
 
 import com.japanese.vocabulary.song.model.PartOfSpeech
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
-class JishoPartOfSpeechMapperTest {
+class DictionaryPartOfSpeechMapperTest {
     @Test
     fun `maps expressions label to expression POS`() {
-        assertThat(JishoPartOfSpeechMapper.map(listOf("Expressions (phrases, clauses, etc.)")))
+        assertThat(DictionaryPartOfSpeechMapper.map(listOf("Expressions (phrases, clauses, etc.)")))
             .isEqualTo(PartOfSpeech.EXPRESSION)
     }
 
     @Test
     fun `keeps existing core mappings`() {
-        assertThat(JishoPartOfSpeechMapper.map(listOf("Noun"))).isEqualTo(PartOfSpeech.NOUN)
-        assertThat(JishoPartOfSpeechMapper.map(listOf("Godan verb"))).isEqualTo(PartOfSpeech.VERB)
-        assertThat(JishoPartOfSpeechMapper.map(listOf("I-adjective"))).isEqualTo(PartOfSpeech.ADJECTIVE)
-        assertThat(JishoPartOfSpeechMapper.map(listOf("Adverb"))).isEqualTo(PartOfSpeech.ADVERB)
-        assertThat(JishoPartOfSpeechMapper.map(listOf("Particle"))).isEqualTo(PartOfSpeech.PARTICLE)
+        assertThat(DictionaryPartOfSpeechMapper.map(listOf("Noun"))).isEqualTo(PartOfSpeech.NOUN)
+        assertThat(DictionaryPartOfSpeechMapper.map(listOf("Godan verb"))).isEqualTo(PartOfSpeech.VERB)
+        assertThat(DictionaryPartOfSpeechMapper.map(listOf("I-adjective"))).isEqualTo(PartOfSpeech.ADJECTIVE)
+        assertThat(DictionaryPartOfSpeechMapper.map(listOf("Adverb"))).isEqualTo(PartOfSpeech.ADVERB)
+        assertThat(DictionaryPartOfSpeechMapper.map(listOf("Particle"))).isEqualTo(PartOfSpeech.PARTICLE)
     }
 
     @Test
     fun `descriptive noun labels that embed other POS names stay nouns`() {
         // The literal string contains "particle"; 当たり前 / 最低 / 最初 / 隣 were all classified PARTICLE.
-        assertThat(JishoPartOfSpeechMapper.map(listOf("Noun which may take the genitive case particle 'no'")))
+        assertThat(DictionaryPartOfSpeechMapper.map(listOf("Noun which may take the genitive case particle 'no'")))
             .isEqualTo(PartOfSpeech.NOUN)
         // Contains "verb".
-        assertThat(JishoPartOfSpeechMapper.map(listOf("Noun or verb acting prenominally")))
+        assertThat(DictionaryPartOfSpeechMapper.map(listOf("Noun or verb acting prenominally")))
             .isEqualTo(PartOfSpeech.NOUN)
         // Contains "particle", but the leading token decides.
-        assertThat(JishoPartOfSpeechMapper.map(listOf("Adverb taking the 'to' particle")))
+        assertThat(DictionaryPartOfSpeechMapper.map(listOf("Adverb taking the 'to' particle")))
             .isEqualTo(PartOfSpeech.ADVERB)
     }
 
     @Test
     fun `usage markers yield to a real POS in the same sense`() {
-        // 当たり前's actual jisho label list.
+        // 当たり前's actual label list.
         assertThat(
-            JishoPartOfSpeechMapper.map(
+            DictionaryPartOfSpeechMapper.map(
                 listOf(
                     "Noun which may take the genitive case particle 'no'",
                     "Na-adjective (keiyodoshi)",
@@ -50,21 +50,21 @@ class JishoPartOfSpeechMapperTest {
     @Test
     fun `usage marker alone still resolves to noun`() {
         // 日々's first sense carries nothing else.
-        assertThat(JishoPartOfSpeechMapper.map(listOf("Noun which may take the genitive case particle 'no'")))
+        assertThat(DictionaryPartOfSpeechMapper.map(listOf("Noun which may take the genitive case particle 'no'")))
             .isEqualTo(PartOfSpeech.NOUN)
     }
 
     @Test
     fun `label order decides when several real POS labels are present`() {
-        // jisho lists the primary word class first; do not re-rank it.
-        assertThat(JishoPartOfSpeechMapper.map(listOf("Noun", "Adverb (fukushi)"))).isEqualTo(PartOfSpeech.NOUN)
-        assertThat(JishoPartOfSpeechMapper.map(listOf("Adverb (fukushi)", "Noun"))).isEqualTo(PartOfSpeech.ADVERB)
-        assertThat(JishoPartOfSpeechMapper.map(listOf("Noun", "Suru verb", "Transitive verb")))
+        // The dictionary lists the primary word class first; do not re-rank it.
+        assertThat(DictionaryPartOfSpeechMapper.map(listOf("Noun", "Adverb (fukushi)"))).isEqualTo(PartOfSpeech.NOUN)
+        assertThat(DictionaryPartOfSpeechMapper.map(listOf("Adverb (fukushi)", "Noun"))).isEqualTo(PartOfSpeech.ADVERB)
+        assertThat(DictionaryPartOfSpeechMapper.map(listOf("Noun", "Suru verb", "Transitive verb")))
             .isEqualTo(PartOfSpeech.NOUN)
     }
 
     @Test
-    fun `maps the rest of the observed jisho label inventory`() {
+    fun `maps the rest of the observed dictionary label inventory`() {
         mapOf(
             "Intransitive verb" to PartOfSpeech.VERB,
             "Godan verb with 'ru' ending (irregular verb)" to PartOfSpeech.VERB,
@@ -85,13 +85,13 @@ class JishoPartOfSpeechMapperTest {
             "Noun, used as a prefix" to PartOfSpeech.PREFIX,
             "Noun, used as a suffix" to PartOfSpeech.SUFFIX,
         ).forEach { (label, expected) ->
-            assertThat(JishoPartOfSpeechMapper.map(listOf(label))).describedAs(label).isEqualTo(expected)
+            assertThat(DictionaryPartOfSpeechMapper.map(listOf(label))).describedAs(label).isEqualTo(expected)
         }
     }
 
     @Test
     fun `unknown and empty input fall back to OTHER`() {
-        assertThat(JishoPartOfSpeechMapper.map(emptyList())).isEqualTo(PartOfSpeech.OTHER)
-        assertThat(JishoPartOfSpeechMapper.map(listOf("Place"))).isEqualTo(PartOfSpeech.OTHER)
+        assertThat(DictionaryPartOfSpeechMapper.map(emptyList())).isEqualTo(PartOfSpeech.OTHER)
+        assertThat(DictionaryPartOfSpeechMapper.map(listOf("Place"))).isEqualTo(PartOfSpeech.OTHER)
     }
 }

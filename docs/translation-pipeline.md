@@ -19,7 +19,7 @@ rationales should live beside the code or in focused tests.
    reading checks agree.
 5. `ApplyRuleMeaningsStage`: resolves deterministic grammar tokens through
    `RuleMeaningProvider`.
-6. `ResolveLexicalSensesStage`: uses `LexicalResolver` and Jisho entries to find
+6. `ResolveLexicalSensesStage`: uses `LexicalResolver` and dictionary entries to find
    candidate dictionary senses.
 7. `SelectSensesStage`: Jev (TypeSafe) chooses sense IDs when code cannot decide,
    one request per line. A word with one candidate sense is settled in code;
@@ -34,7 +34,7 @@ translate lyrics
         \
          -> sense-select -> sense-translate -> assemble
         /
-segment -> anchor/retry -> rules -> jisho entry-select
+segment -> anchor/retry -> rules -> dictionary entry-select
 ```
 
 ## Core Invariants
@@ -44,7 +44,7 @@ segment -> anchor/retry -> rules -> jisho entry-select
 - Sense translation returns exactly one Korean meaning per dictionary sense.
   Comma-separated Korean strings are split into word senses later by the word
   save path.
-- Jisho entry identity is `(headword, reading)`, not just headword. Ambiguous
+- Dictionary entry identity is `(headword, reading)`, not just headword. Ambiguous
   kana headwords are sent to sense-select with entry labels.
 - Readings are normalized to katakana through `JapaneseText.toKatakana`.
 - `Token.reading` is the sung reading for that token. No line-level reading is
@@ -84,11 +84,11 @@ segment -> anchor/retry -> rules -> jisho entry-select
   `PROVIDER_ERROR` so it counts as an outage rather than a word to fix. The log
   line is the input of `.github/scripts/analysis-feedback` (see its README).
 - Katakana-only surfaces are exempt from the dictionary headword check because
-  many are loanwords, sounds, or lyric coinages that Jisho should not hold.
+  many are loanwords, sounds, or lyric coinages the dictionary does not hold.
 
 ## Rule Table Policy
 
-`RuleMeaningProvider` is for deterministic grammar handling that Jisho and
+`RuleMeaningProvider` is for deterministic grammar handling that the dictionary and
 sense-select cannot reliably recover after coarse segmentation.
 
 Allowed:
@@ -98,7 +98,7 @@ Allowed:
 - narrow rewrites such as `どうも` + `こうも` into grammar pieces
 
 Do not add ambiguous lexical words such as `ない` or `から`; they must flow through
-Jisho and sense selection.
+the dictionary and sense selection.
 
 ## Pronunciation
 
@@ -110,7 +110,7 @@ Server-side rules:
 - app-rn `inflectionStartOf` matches a verb's trailing kana against its reading;
   it must accept the sung final `ワ`, or `ている` collapses into a long vowel.
 - Uninflected unambiguous surfaces prefer the dictionary reading when the model's
-  reading conflicts with Jisho.
+  reading conflicts with the dictionary.
 - Rule-table readings are fallback values, not overrides for longer sung
   surfaces.
 
@@ -125,6 +125,6 @@ before token-level sung readings may need reanalysis or `lyric-reading-backfill`
 
 ## Dictionary
 
-Lookups read the bundled JMdict file in jisho's response shape. Build rules that the
-resolver depends on (jisho POS labels, search-only spellings left out) are in
+Lookups read the bundled JMdict file. Build rules that the
+resolver depends on (fixed POS labels, search-only spellings left out) are in
 `docs/architecture/dictionary.md`.

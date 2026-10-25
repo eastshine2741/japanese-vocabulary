@@ -1,11 +1,11 @@
-package com.japanese.vocabulary.translation.client.jisho
+package com.japanese.vocabulary.translation.client.dictionary
 
 import com.japanese.vocabulary.song.model.PartOfSpeech
 
 /**
- * Maps jisho.org English part-of-speech labels onto the app's [PartOfSpeech] enum.
+ * Maps the dictionary's English part-of-speech labels onto the app's [PartOfSpeech] enum.
  *
- * jisho labels are free-form strings ("Godan verb with 'ku' ending"); the FIRST label of a sense is
+ * Labels are free-form strings ("Godan verb with 'ku' ending"); the FIRST label of a sense is
  * the primary one, so order is preserved rather than re-ranked.
  *
  * Naive substring matching is wrong for two reasons:
@@ -17,11 +17,11 @@ import com.japanese.vocabulary.song.model.PartOfSpeech
  *
  * Unknown / empty input falls back to [PartOfSpeech.OTHER].
  */
-object JishoPartOfSpeechMapper {
+object DictionaryPartOfSpeechMapper {
 
-    fun map(jishoPos: List<String>): PartOfSpeech {
+    fun map(labels: List<String>): PartOfSpeech {
         var weak: PartOfSpeech? = null
-        for (raw in jishoPos) {
+        for (raw in labels) {
             val s = raw.lowercase().trim()
             val pos = classify(s) ?: continue
             if (isUsageMarker(s)) {

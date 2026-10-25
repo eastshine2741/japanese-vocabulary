@@ -9,7 +9,7 @@ import com.japanese.vocabulary.song.service.SongAnalysisPreparationService.Prepa
 import com.japanese.vocabulary.translation.client.gemini.dto.SegLineDto
 import com.japanese.vocabulary.translation.client.gemini.dto.SegWordDto
 import com.japanese.vocabulary.translation.client.gemini.dto.TranslationResultDto
-import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
+import com.japanese.vocabulary.translation.client.dictionary.dto.DictionaryLookupProvenance
 import com.japanese.vocabulary.translation.model.LexicalResolution
 import com.japanese.vocabulary.translation.model.LexicalResolvedToken
 import com.japanese.vocabulary.translation.model.PipelineSenseOption
@@ -51,7 +51,7 @@ class SongAnalysisStageCodecTest {
             english = "love",
             englishDefinitions = listOf("love", "romance"),
             jlpt = listOf("jlpt-n3"),
-            provenance = JishoLookupProvenance.EXACT,
+            provenance = DictionaryLookupProvenance.EXACT,
         )
         val segLines = listOf(SegLineDto(3, listOf(SegWordDto("恋:愛", "恋愛", "レンアイ", "レンアイ", "romance"))))
         val tokensByIndex = mapOf(3 to listOf(token))

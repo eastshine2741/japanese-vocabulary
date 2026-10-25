@@ -2,7 +2,7 @@ package com.japanese.vocabulary.translation.service.pipeline
 
 /**
  * The single kana-normalization entry point for the pipeline. Readings arrive in mixed scripts (LLM,
- * jisho, [RuleMeaningProvider]) but the app's `readingConverter.convertReading` assumes **katakana**;
+ * dictionary, [RuleMeaningProvider]) but the app's `readingConverter.convertReading` assumes **katakana**;
  * a hiragana reading silently breaks its display modes. Every reading normalizes through [toKatakana].
  */
 object JapaneseText {
