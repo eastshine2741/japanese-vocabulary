@@ -114,6 +114,24 @@ export type Recommendation = {
   createdAt: string
 }
 
+export type ArtistSummary = {
+  id: number
+  name: string
+  artworkUrl: string | null
+}
+
+export type ArtistChannel = {
+  channelId: string
+  channelTitle: string | null
+  createdAt: string | null
+}
+
+export type ArtistDetail = {
+  artist: ArtistSummary
+  appleMusicUrl: string | null
+  youtubeChannels: ArtistChannel[]
+}
+
 export type RawLyricLine = {
   index: number
   startTimeMs?: number | null

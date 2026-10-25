@@ -12,6 +12,8 @@ import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeThumbnailsDto
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeContentDetailsDto
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeVideoIdDto
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeVideoItemDto
+import com.japanese.vocabulary.song.entity.ArtistEntity
+import com.japanese.vocabulary.song.entity.ArtistYoutubeChannelEntity
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType
 import com.japanese.vocabulary.song.entity.SongEntity
@@ -196,6 +198,40 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
 
         assertThat(workRepository.findById(work.id!!).orElseThrow().status).isEqualTo(SongAnalysisWorkStatus.COMPLETED)
         assertThat(songRepository.findById(song.id!!).orElseThrow().youtubeUrl).isEqualTo(CURRENT_MV_URL)
+    }
+
+    @Test
+    fun `a new song takes an upload from a channel mapped to its artist, found by the artist's name`(): Unit = runBlocking {
+        stubLyricsFound()
+        stubLyricAnalysis()
+        val artist = ArtistEntity(appleMusicId = "am-iyowa", name = ARTIST).also { entityManager.persist(it) }
+        entityManager.persist(ArtistYoutubeChannelEntity(artistId = artist.id!!, channelId = MAPPED_CHANNEL_ID))
+        entityManager.flush()
+        every {
+            youtubeClient.searchVideos(query = any(), pageToken = any(), maxResults = any(), videoCategoryId = any(), order = any())
+        } returns YoutubeSearchResponse(
+            nextPageToken = null,
+            items = listOf(
+                YoutubeSearchItemDto(
+                    id = YoutubeVideoIdDto(videoId = "label-video"),
+                    snippet = YoutubeSnippetDto(
+                        title = TITLE,
+                        thumbnails = YoutubeThumbnailsDto(medium = null, default = null),
+                        channelTitle = "どこかのレーベル",
+                        channelId = MAPPED_CHANNEL_ID,
+                    ),
+                ),
+            ),
+        )
+        every { youtubeClient.listVideoContentDetails(any()) } returns listOf(
+            YoutubeVideoItemDto(id = "label-video", contentDetails = YoutubeContentDetailsDto(duration = "PT3M30S")),
+        )
+
+        val created = workService.createOrReuse(title = TITLE, artist = "$ARTIST feat. 初音ミク", durationSeconds = 210)
+        drive(created.workId)
+
+        val song = songRepository.findById(workRepository.findById(created.workId).orElseThrow().songId!!).orElseThrow()
+        assertThat(song.youtubeUrl).isEqualTo("https://www.youtube.com/watch?v=label-video")
     }
 
     @Test
@@ -753,5 +789,6 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         const val ARTIST = "いよわ"
         const val CURRENT_MV_ID = "currentmv01"
         const val CURRENT_MV_URL = "https://www.youtube.com/watch?v=$CURRENT_MV_ID"
+        const val MAPPED_CHANNEL_ID = "UCmappedchannel000000000"
     }
 }

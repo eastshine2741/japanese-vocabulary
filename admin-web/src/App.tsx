@@ -8,6 +8,8 @@ import { SongsPage } from "@/pages/songs/SongsPage"
 import { LyricDetailPage } from "@/pages/lyrics/LyricDetailPage"
 import { LyricMvSyncDetailPage } from "@/pages/lyric-mv-syncs/LyricMvSyncDetailPage"
 import { LyricMvSyncsPage } from "@/pages/lyric-mv-syncs/LyricMvSyncsPage"
+import { ArtistDetailPage } from "@/pages/artists/ArtistDetailPage"
+import { ArtistsPage } from "@/pages/artists/ArtistsPage"
 import { RecommendationsPage } from "@/pages/recommendations/RecommendationsPage"
 import { SongAnalysisWorkDetailPage } from "@/pages/song-analysis-works/SongAnalysisWorkDetailPage"
 import { SongAnalysisWorksPage } from "@/pages/song-analysis-works/SongAnalysisWorksPage"
@@ -28,6 +30,8 @@ export function App() {
             <Route path="/songs" element={<SongsPage />} />
             <Route path="/songs/:songId" element={<SongDetailPage />} />
             <Route path="/lyrics/:lyricId" element={<LyricDetailPage />} />
+            <Route path="/artists" element={<ArtistsPage />} />
+            <Route path="/artists/:artistId" element={<ArtistDetailPage />} />
             <Route path="/recommendations" element={<RecommendationsPage />} />
             <Route path="/song-analysis-works" element={<SongAnalysisWorksPage />} />
             <Route path="/song-analysis-works/:workId" element={<SongAnalysisWorkDetailPage />} />

@@ -10,6 +10,9 @@ import type {
   ManualPushResult,
   PageResponse,
   Recommendation,
+  ArtistChannel,
+  ArtistDetail,
+  ArtistSummary,
   ReelsRenderJob,
   ReelsRenderRequest,
   ReelsSongCandidate,
@@ -179,6 +182,21 @@ export const adminApi = {
       method: "PUT",
       body: JSON.stringify({ ids }),
     })
+  },
+  artists(token: string, query: string) {
+    return request<ArtistSummary[]>(`/artists?query=${encodeURIComponent(query)}`, token)
+  },
+  artist(token: string, id: string) {
+    return request<ArtistDetail>(`/artists/${id}`, token)
+  },
+  addArtistChannel(token: string, artistId: number, channel: string, channelTitle: string | null) {
+    return request<ArtistChannel>(`/artists/${artistId}/youtube-channels`, token, {
+      method: "POST",
+      body: JSON.stringify({ channel, channelTitle }),
+    })
+  },
+  removeArtistChannel(token: string, artistId: number, channelId: string) {
+    return request<void>(`/artists/${artistId}/youtube-channels/${encodeURIComponent(channelId)}`, token, { method: "DELETE" })
   },
   featureFlags(token: string) {
     return request<FeatureFlag[]>("/feature-flags", token)

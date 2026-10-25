@@ -61,7 +61,7 @@ class SongAnalysisStageExecutor(
 
     private suspend fun fetchYoutube(claimed: ClaimedSongAnalysisStage) {
         val work = claimed.work
-        val result = preparationService.searchYoutube(work.rawTitle, work.rawArtist, work.durationSeconds)
+        val result = preparationService.searchYoutube(work.rawTitle, work.rawArtist, work.durationSeconds, work.songId)
         // MV 가 없어도 가사 학습은 되므로 작업을 실패시키지 않는다. YouTube 오류는 이미 위로 던져졌다.
         if (result.url != null) return finish(claimed, FetchYoutubeOutput(result.url))
         mvSearchDefectReporter.report(claimed.ref.workId, work.rawTitle, work.rawArtist, work.durationSeconds, result)
@@ -70,7 +70,7 @@ class SongAnalysisStageExecutor(
             ?.let { songRepository.findById(it).orElse(null) }
             ?.let { YoutubeVideoId.parse(it.youtubeUrl) }
         val clear = currentVideoId != null &&
-            !preparationService.acceptsCurrentMv(currentVideoId, work.rawTitle, work.rawArtist, work.durationSeconds)
+            !preparationService.acceptsCurrentMv(currentVideoId, work.rawTitle, work.rawArtist, work.durationSeconds, work.songId)
         finish(claimed, FetchYoutubeOutput(null, clearCurrentMv = clear))
     }
 

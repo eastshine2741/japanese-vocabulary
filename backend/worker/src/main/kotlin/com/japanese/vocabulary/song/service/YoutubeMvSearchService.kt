@@ -18,20 +18,21 @@ class YoutubeMvSearchService(
 ) {
     private val logger = LoggerFactory.getLogger(YoutubeMvSearchService::class.java)
 
-    fun searchMvUrl(title: String, artist: String, trackDurationSeconds: Int?): String? =
-        search(title, artist, trackDurationSeconds).url
+    fun searchMvUrl(title: String, artist: String, trackDurationSeconds: Int?, officialChannelIds: Set<String> = emptySet()): String? =
+        search(title, artist, trackDurationSeconds, officialChannelIds).url
 
     /** [MvSearchResult.candidates] holds what every path saw, so a miss can be judged without re-querying YouTube. */
-    fun search(title: String, artist: String, trackDurationSeconds: Int?): MvSearchResult {
+    /** [officialChannelIds]: channels an admin confirmed as the artist's; their uploads count as the artist's own. */
+    fun search(title: String, artist: String, trackDurationSeconds: Int?, officialChannelIds: Set<String> = emptySet()): MvSearchResult {
         val durationBounds = DurationBounds.forTrack(trackDurationSeconds)
         val trace = mutableListOf<MvSearchCandidate>()
 
         val cachedCandidates = artistChannelCache.get(artist)
-            ?.let { searchCachedUploads(title, artist, it, durationBounds, trace) }
+            ?.let { searchCachedUploads(title, artist, it, durationBounds, trace, officialChannelIds) }
             .orEmpty()
         pickMv(cachedCandidates)?.let { return MvSearchResult(youtubeUrl(it.videoId), trace) }
 
-        val fallbackCandidates = searchFallback(title, artist, durationBounds, trace)
+        val fallbackCandidates = searchFallback(title, artist, durationBounds, trace, officialChannelIds)
         pickMv(fallbackCandidates)?.let {
             maybeCacheArtistChannel(artist, it)
             return MvSearchResult(youtubeUrl(it.videoId), trace)
@@ -49,14 +50,20 @@ class YoutubeMvSearchService(
      * finds nothing keeps a current MV that passes and drops one the rules now reject.
      * A YouTube error propagates: it must never be read as "the MV is gone".
      */
-    fun acceptsAsOnlyCandidate(videoId: String, title: String, artist: String, trackDurationSeconds: Int?): Boolean {
+    fun acceptsAsOnlyCandidate(
+        videoId: String,
+        title: String,
+        artist: String,
+        trackDurationSeconds: Int?,
+        officialChannelIds: Set<String> = emptySet(),
+    ): Boolean {
         val video = youtubeClient.getVideo(videoId) ?: return false
         val snippet = video.snippet ?: return false
         if (!titleMatches(snippet.title, title) || isShortsTitle(snippet.title) || versionMismatch(snippet.title, title)) return false
         if (YoutubePlayability.unplayable(video) != null) return false
         val seconds = parseDurationSeconds(video.contentDetails.duration)
         if (seconds != null && DurationBounds.forTrack(trackDurationSeconds).rejectionReason(seconds) != null) return false
-        val only = listOf(mvCandidate(SOURCE_CURRENT, videoId, snippet.title, snippet.channelId, snippet.channelTitle, title, artist))
+        val only = listOf(mvCandidate(SOURCE_CURRENT, videoId, snippet.title, snippet.channelId, snippet.channelTitle, title, artist, officialChannelIds))
         return (pickMv(only) ?: pickRunnerUp(only)) != null
     }
 
@@ -71,6 +78,7 @@ class YoutubeMvSearchService(
         cached: ArtistChannelCacheEntry,
         durationBounds: DurationBounds,
         trace: MutableList<MvSearchCandidate>,
+        officialChannelIds: Set<String>,
     ): List<MvCandidate> {
         var pageToken: String? = null
         val matches = mutableListOf<MvCandidate>()
@@ -97,7 +105,7 @@ class YoutubeMvSearchService(
                     if (rejection != null) {
                         trace += MvSearchCandidate.rejected(SOURCE_UPLOADS, videoId, item.snippet.title, item.snippet.channelTitle, rejection)
                     } else {
-                        matches += mvCandidate(SOURCE_UPLOADS, videoId, item.snippet.title, null, item.snippet.channelTitle, title, artist)
+                        matches += mvCandidate(SOURCE_UPLOADS, videoId, item.snippet.title, item.snippet.channelId, item.snippet.channelTitle, title, artist, officialChannelIds)
                     }
                 }
 
@@ -111,6 +119,7 @@ class YoutubeMvSearchService(
         artist: String,
         durationBounds: DurationBounds,
         trace: MutableList<MvSearchCandidate>,
+        officialChannelIds: Set<String>,
     ): List<MvCandidate> {
         // No videoCategoryId filter: publisher uploads such as Project SEKAI MVs are categorized as Gaming.
         val query = "${title.replace(TRAILING_DESCRIPTOR_RE, "").trim().ifBlank { title }} $artist"
@@ -134,7 +143,7 @@ class YoutubeMvSearchService(
                 trace += MvSearchCandidate.rejected(source, videoId, item.snippet.title, item.snippet.channelTitle, rejection)
                 return@mapNotNull null
             }
-            mvCandidate(source, videoId, item.snippet.title, item.snippet.channelId, item.snippet.channelTitle, title, artist)
+            mvCandidate(source, videoId, item.snippet.title, item.snippet.channelId, item.snippet.channelTitle, title, artist, officialChannelIds)
         }
         return filterByDuration(candidates, durationBounds, trace)
     }
@@ -259,9 +268,12 @@ class YoutubeMvSearchService(
         channelTitle: String,
         songTitle: String,
         artist: String,
+        officialChannelIds: Set<String>,
     ): MvCandidate {
         val isLive = LIVE_TITLE_RE.containsMatchIn(title)
-        val ownChannel = channelMatchesArtistOrMember(artist, channelTitle) || romanizedOwnChannel(artist, channelTitle)
+        // A mapped channel is the artist's own even when neither its name nor the title says so (ラブライブ!スーパースター!! for Liella!).
+        val ownChannel = (channelId != null && channelId in officialChannelIds) ||
+            channelMatchesArtistOrMember(artist, channelTitle) || romanizedOwnChannel(artist, channelTitle)
         // The song's own title may contain a bad-title word ("ギターと孤独と蒼い惑星").
         val titleWithoutSong = withoutSongTitle(title, songTitle)
         return MvCandidate(

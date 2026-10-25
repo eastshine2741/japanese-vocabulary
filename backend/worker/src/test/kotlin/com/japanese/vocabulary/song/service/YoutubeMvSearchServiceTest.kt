@@ -306,6 +306,53 @@ class YoutubeMvSearchServiceTest {
     }
 
     @Test
+    fun `an upload on a channel mapped to the artist is the MV even when neither title nor channel names the artist`() {
+        every { artistChannelCache.get("Liella!") } returns null
+        stubSearch(searchItem("ll-id", "Sing！Shine！Smile！", "ラブライブ!スーパースター!!", channelId = "UCLLSUPERSTAR0000000000"))
+        stubDurations("ll-id" to "PT4M")
+        every { youtubeClient.getChannel(any()) } returns null
+
+        assertThat(service.searchMvUrl("Sing!Shine!Smile!", "Liella!", 240)).isNull()
+        assertThat(service.searchMvUrl("Sing!Shine!Smile!", "Liella!", 240, officialChannelIds = setOf("UCLLSUPERSTAR0000000000")))
+            .isEqualTo("https://www.youtube.com/watch?v=ll-id")
+    }
+
+    @Test
+    fun `the cached uploads path knows the mapped channel from the playlist owner`() {
+        every { artistChannelCache.get("Liella!") } returns
+            ArtistChannelCacheEntry("Liella!", "UCLLSUPERSTAR0000000000", "UULLSUPERSTAR0000000000", "ラブライブ!スーパースター!!")
+        every { youtubeClient.listPlaylistItems(any(), any(), any()) } returns YoutubePlaylistItemsResponse(
+            nextPageToken = null,
+            items = listOf(
+                YoutubePlaylistItemDto(
+                    snippet = YoutubePlaylistItemSnippetDto(
+                        title = "POP TALKING",
+                        channelTitle = "ラブライブ!スーパースター!!",
+                        resourceId = YoutubeResourceIdDto(videoId = "pop-id"),
+                        channelId = "UCLLSUPERSTAR0000000000",
+                    ),
+                ),
+            ),
+        )
+        stubDurations("pop-id" to "PT4M")
+
+        assertThat(service.searchMvUrl("POP TALKING", "Liella!", 240, officialChannelIds = setOf("UCLLSUPERSTAR0000000000")))
+            .isEqualTo("https://www.youtube.com/watch?v=pop-id")
+    }
+
+    @Test
+    fun `a current MV on a mapped channel is kept`() {
+        every { youtubeClient.getVideo("ll-id") } returns YoutubeVideoItemDto(
+            id = "ll-id",
+            contentDetails = YoutubeContentDetailsDto(duration = "PT4M"),
+            snippet = searchItem("ll-id", "Starlight Prologue", "ラブライブ!スーパースター!!", channelId = "UCLLSUPERSTAR0000000000").snippet,
+        )
+
+        assertThat(service.acceptsAsOnlyCandidate("ll-id", "Starlight Prologue", "Liella!", 240)).isFalse()
+        assertThat(service.acceptsAsOnlyCandidate("ll-id", "Starlight Prologue", "Liella!", 240, setOf("UCLLSUPERSTAR0000000000"))).isTrue()
+    }
+
+    @Test
     fun `a label channel's upload naming the artist is official`() {
         stubVideo("smtown-id", "Red Velvet レッドベルベット 'WILDSIDE' MV", channelTitle = "SMTOWN", duration = "PT3M30S")
 
