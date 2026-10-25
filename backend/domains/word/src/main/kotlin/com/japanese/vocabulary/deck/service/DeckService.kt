@@ -40,6 +40,7 @@ import java.time.Instant
 class DeckService(
     private val deckRepository: DeckRepository,
     private val deckWordRepository: DeckWordRepository,
+    private val deckStatsReader: DeckStatsReader,
     private val songRepository: SongRepository,
     private val wordRepository: WordRepository,
     private val flashcardService: FlashcardService,
@@ -94,7 +95,7 @@ class DeckService(
         }
 
         val deckIds = decks.mapNotNull { it.id }
-        val statsMap = deckRepository.findDeckStats(userId, deckIds, Instant.now(clock), longTermThreshold.days()).associateBy { it.getDeckId() }
+        val statsMap = deckStatsReader.read(userId, deckIds, Instant.now(clock), longTermThreshold.days())
 
         val songIds = decks.mapNotNull { it.songId }.toSet()
         val artworkMap = if (songIds.isEmpty()) emptyMap() else {
@@ -109,13 +110,13 @@ class DeckService(
                 title = d.title,
                 artist = d.description,
                 artworkUrl = d.songId?.let { artworkMap[it] },
-                wordCount = stats?.getWordCount() ?: 0,
-                dueCount = stats?.getDueCount() ?: 0,
-                masteredCount = stats?.getMasteredCount() ?: 0,
-                studyingCount = stats?.getStudyingCount() ?: 0,
-                newWordCount = stats?.getNewWordCount() ?: 0,
-                longTermCount = stats?.getLongTermCount() ?: 0,
-                shortTermCount = stats?.getShortTermCount() ?: 0,
+                wordCount = stats?.wordCount ?: 0,
+                dueCount = stats?.dueCount ?: 0,
+                masteredCount = stats?.masteredCount ?: 0,
+                studyingCount = stats?.studyingCount ?: 0,
+                newWordCount = stats?.newWordCount ?: 0,
+                longTermCount = stats?.longTermCount ?: 0,
+                shortTermCount = stats?.shortTermCount ?: 0,
             )
         }
 

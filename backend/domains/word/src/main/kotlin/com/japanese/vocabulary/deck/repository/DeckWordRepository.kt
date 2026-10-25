@@ -8,6 +8,16 @@ import org.springframework.data.repository.query.Param
 
 interface DeckWordRepository : JpaRepository<DeckWordEntity, Long> {
     fun findByDeckId(deckId: Long): List<DeckWordEntity>
+
+    // words JOIN 은 소유자 스코프용이라 없으면 wordCount 가 단어장 상세와 어긋난다.
+    @Query(
+        "SELECT dw FROM DeckWordEntity dw, WordEntity w " +
+            "WHERE w.id = dw.wordId AND w.userId = :userId AND dw.deckId IN :deckIds"
+    )
+    fun findOwnedByDeckIdIn(
+        @Param("userId") userId: Long,
+        @Param("deckIds") deckIds: Collection<Long>,
+    ): List<DeckWordEntity>
     fun existsByDeckIdAndWordId(deckId: Long, wordId: Long): Boolean
 
     @Modifying(flushAutomatically = true)
