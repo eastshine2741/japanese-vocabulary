@@ -23,6 +23,8 @@ spec:
             - --collect.perf_schema.eventsstatements
             - --collect.perf_schema.eventsstatements.limit=50
             - --collect.perf_schema.eventsstatements.digest_text_limit=200
+            # 추적 합계를 container_memory_rss 와 겹쳐 봐야 RSS 증가가 MySQL 할당인지 malloc 단편화인지 갈린다.
+            - --collect.perf_schema.memory_events
           env:
             - name: MYSQLD_EXPORTER_PASSWORD
               valueFrom:
