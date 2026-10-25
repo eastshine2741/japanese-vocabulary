@@ -156,6 +156,25 @@ class LrclibClientTest {
         assertThat(result.lyrics).contains("[00:05.19] アレも嘘")
     }
 
+    /**
+     * Real lrclib 2116394: the Japanese lyrics then a romaji copy restarting at 00:00. Rejected as non-Japanese, the
+     * search fell through to the twenty vandal uploads titled exactly `アイドル` (「相壊す ぐわんぐわんな」).
+     */
+    @Test
+    fun `an exact hit with an appended romaji copy is taken without the copy`(): Unit = runBlocking {
+        val fixture = javaClass.getResource("/lrclib/idol-with-romaji-2116394.json")!!.readText()
+        val client = clientWith(sameArtist = { _, _ -> error("alias check must not run") }) { server ->
+            server.expect(requestTo(startsWithPath("/api/get"))).andExpect(queryParam("duration", "213"))
+                .andRespond(withSuccess(fixture, MediaType.APPLICATION_JSON))
+        }
+
+        val result = client.search(query("アイドル", "YOASOBI", 213))!!
+
+        assertThat(result.lrclibId).isEqualTo(2116394)
+        assertThat(result.isSynced).isTrue()
+        assertThat(result.lyrics).contains("無敵の笑顔で荒らすメディア").doesNotContain("Muteki no egao")
+    }
+
     private fun query(title: String, artist: String, duration: Int) =
         SongQueryNormalizer.normalize(title = title, artist = artist, durationSeconds = duration)
 

@@ -202,9 +202,10 @@ class LrclibClient(
     }
 
     private fun toResult(response: LrclibResponse): LyricsResult? {
-        val lyrics = response.syncedLyrics?.takeIf { it.isNotBlank() }
+        val lyrics = (response.syncedLyrics?.takeIf { it.isNotBlank() }
             ?: response.plainLyrics?.takeIf { it.isNotBlank() }
-            ?: return null
+            ?: return null)
+            .let(::withoutAppendedTransliteration)
 
         if (!JapaneseLyricValidator.isJapaneseLyrics(lyrics)) {
             logger.info("Rejected non-Japanese lyrics | provider=LrcLib | lrclibId={}", response.id)
@@ -218,6 +219,25 @@ class LrclibClient(
             lyrics = lyrics,
             isSynced = isSynced,
         )
+    }
+
+    /**
+     * Some uploads append a romaji copy whose stamps restart from the top (アイドル / YOASOBI). It halves the
+     * kana-line ratio so the right upload fails the Japanese check, and stored as is it would repeat the song in romaji.
+     */
+    private fun withoutAppendedTransliteration(lyrics: String): String {
+        val lines = lyrics.lines()
+        var latest = -1.0
+        for ((i, line) in lines.withIndex()) {
+            val seconds = LRC_TIME_RE.find(line)?.destructured?.let { (m, s, f) -> m.toInt() * 60 + s.toInt() + "0.$f".toDouble() }
+                ?: continue
+            if (seconds < latest - RESTART_SECONDS) {
+                val rest = lines.drop(i).filter { it.isNotBlank() }
+                return if (rest.none { KANA_RE.containsMatchIn(it) }) lines.take(i).joinToString("\n") else lyrics
+            }
+            latest = maxOf(latest, seconds)
+        }
+        return lyrics
     }
 
     private fun isTimestamped(lyrics: String): Boolean {
@@ -246,6 +266,9 @@ class LrclibClient(
         const val DURATION_TOLERANCE_SECONDS = 3
         const val MIN_TIMESTAMPED_LINE_RATIO = 0.5
         val LRC_LINE_RE = Regex("""^\s*\[\d{2,3}:\d{2}[.:]\d{2,3}]""")
+        val LRC_TIME_RE = Regex("""^\s*\[(\d{2,3}):(\d{2})[.:](\d{2,3})]""")
+        val KANA_RE = Regex("[぀-ゟ゠-ヿｦ-ﾟ]")
+        const val RESTART_SECONDS = 30.0
         val FEAT_RE = Regex("""\s*[(\[（]?\s*(?<![a-z])(?:feat\.?|ft\.?|featuring)\s[^)\]）]*[)\]）]?""")
         // Bracketed or " - " suffix descriptors; version markers are compared separately by languageVersions.
         val DESCRIPTOR_RE = Regex("""\s*(?:[(\[（【][^)\]）】]*[)\]）】]|\s[-–—]\s.*$)""")
