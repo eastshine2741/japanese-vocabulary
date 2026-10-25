@@ -131,6 +131,17 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves tagaru derived verb shiritagaru by headword`() {
+        // ねぇ 私の世界(ほし)が知りたがっているわ さあ — 知る + たがる has no jisho headword of its own.
+        val resolved = provider.resolve(PipelineToken(20, "知りたがって", "知りたがる", 12, 18))!!
+
+        assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.VERB)
+        assertThat(resolved.baseForm).isEqualTo("知りたがる")
+        assertThat(resolved.baseFormReading).isEqualTo("シリタガル")
+        assertThat(resolved.koreanText).isEqualTo("알고 싶어하다")
+    }
+
+    @Test
     fun `does not rule-resolve ambiguous grammar-like words`() {
         assertThat(provider.resolve(token("ない"))).isNull()
         assertThat(provider.resolve(token("から"))).isNull()
