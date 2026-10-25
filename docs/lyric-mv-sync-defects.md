@@ -98,6 +98,7 @@ MV 오연결·가사 오연결이 FAILED 나 LOW 로 드러난다. 곡을 고치
 | 10-25 | 405 | 406 | Lost / yama | `bbmOEiorMrg` | |
 | 10-25 | 428 | 429 | CHOO CHOO / NCT WISH (재생 불가) | `hLnqOCjQL40` | |
 | 10-25 | 429 | 430 | P.O.V / NCT WISH (재생 불가) | `19WKEzyy260` | |
+| 10-25 | 627 | 629 | ぼくらは肉でできている / 内田温 | `2W2Vp2gWvxE` | |
 
 ## 원인 미확인
 
