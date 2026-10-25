@@ -70,8 +70,13 @@ class YoutubeMvSearchService(
                 .filter { titleMatches(it.snippet.title, title) }
                 .forEach { item ->
                     val videoId = item.snippet.resourceId.videoId ?: return@forEach
-                    if (isShortsTitle(item.snippet.title)) {
-                        trace += MvSearchCandidate.rejected(SOURCE_UPLOADS, videoId, item.snippet.title, item.snippet.channelTitle, REJECT_SHORTS_TAG)
+                    val rejection = when {
+                        isShortsTitle(item.snippet.title) -> REJECT_SHORTS_TAG
+                        versionMismatch(item.snippet.title, title) -> REJECT_VERSION_MISMATCH
+                        else -> null
+                    }
+                    if (rejection != null) {
+                        trace += MvSearchCandidate.rejected(SOURCE_UPLOADS, videoId, item.snippet.title, item.snippet.channelTitle, rejection)
                     } else {
                         matches += mvCandidate(SOURCE_UPLOADS, videoId, item.snippet.title, null, item.snippet.channelTitle, title, artist)
                     }
@@ -103,6 +108,7 @@ class YoutubeMvSearchService(
             val rejection = when {
                 !titleMatches(item.snippet.title, title) -> REJECT_TITLE_MISMATCH
                 isShortsTitle(item.snippet.title) -> REJECT_SHORTS_TAG
+                versionMismatch(item.snippet.title, title) -> REJECT_VERSION_MISMATCH
                 else -> null
             }
             if (rejection != null) {
@@ -326,19 +332,38 @@ class YoutubeMvSearchService(
 
     private fun titleMatches(videoTitle: String, targetTitle: String): Boolean {
         val normalizedVideoTitle = normalizeForMatch(videoTitle)
-        return targetTitleVariants(targetTitle).any { normalizedVideoTitle.contains(it) }
+        val spacedVideoTitle by lazy { " ${spacedForMatch(videoTitle)} " }
+        return targetTitleVariants(targetTitle, ::normalizeForMatch).any { variant ->
+            // A one- to three-letter title sits inside other songs' titles ("花" in "花火"), so it must stand alone.
+            if (variant.codePointCount(0, variant.length) > MAX_SHORT_TITLE_LENGTH) return@any normalizedVideoTitle.contains(variant)
+            targetTitleVariants(targetTitle, ::spacedForMatch)
+                .filter { normalizeForMatch(it) == variant }
+                .any { spacedVideoTitle.contains(" $it ") }
+        }
     }
+
+    /**
+     * A language version or edit the song names (or the upload names and the song does not) is another
+     * recording: the Korean MV of a "(Japanese Ver.)" track, the full cut of a "[Movie edit]".
+     * Japanese is only required one way, since the plain title of a Japanese song often is the Japanese version.
+     */
+    private fun versionMismatch(videoTitle: String, songTitle: String): Boolean =
+        VERSION_MARKERS.any { (marker, japanese) ->
+            val inSong = marker.containsMatchIn(songTitle)
+            val inVideo = marker.containsMatchIn(videoTitle)
+            (inSong && !inVideo) || (!japanese && inVideo && !inSong)
+        }
 
     /**
      * Catalog titles are often bilingual ("ピースサイン - Peace Sign") while an upload carries one half,
      * so each separator-delimited part is its own variant. Single-character parts are too ambiguous.
      */
-    private fun targetTitleVariants(title: String): List<String> {
+    private fun targetTitleVariants(title: String, normalize: (String) -> String): List<String> {
         val withoutTrailingDescriptor = title.replace(TRAILING_DESCRIPTOR_RE, "")
         val parts = withoutTrailingDescriptor.split(TITLE_SEPARATOR_RE)
-            .map { normalizeForMatch(it) }
-            .filter { it.length >= MIN_TITLE_PART_LENGTH }
-        return (listOf(normalizeForMatch(title), normalizeForMatch(withoutTrailingDescriptor)) + parts)
+            .map(normalize)
+            .filter { normalizeForMatch(it).length >= MIN_TITLE_PART_LENGTH }
+        return (listOf(normalize(title), normalize(withoutTrailingDescriptor)) + parts)
             .filter { it.isNotBlank() }
             .distinct()
     }
@@ -370,6 +395,14 @@ class YoutubeMvSearchService(
             .replace(HTML_ENTITY_RE, " ")
             .replace(PUNCTUATION_RE, "")
             .replace(WHITESPACE_RE, "")
+
+    private fun spacedForMatch(value: String): String =
+        Normalizer.normalize(value, Normalizer.Form.NFKC)
+            .lowercase()
+            .replace(HTML_ENTITY_RE, " ")
+            .replace(PUNCTUATION_RE, " ")
+            .replace(WHITESPACE_RE, " ")
+            .trim()
 
     /**
      * @param isLive the title marks a live/tour/concert performance; loses to an MV, accepted by
@@ -417,6 +450,8 @@ class YoutubeMvSearchService(
         private const val SOURCE_SEARCH_BY_VIEWS = "search:viewCount"
         private const val REJECT_TITLE_MISMATCH = "title-mismatch"
         private const val REJECT_SHORTS_TAG = "shorts-tag"
+        private const val REJECT_VERSION_MISMATCH = "version-mismatch"
+        private const val MAX_SHORT_TITLE_LENGTH = 3
         private const val MAX_PLAYLIST_PAGES = 4
         private const val PLAYLIST_PAGE_SIZE = 50
         private const val MIN_ACCEPTABLE_SCORE = 0
@@ -434,13 +469,27 @@ class YoutubeMvSearchService(
         // upload can pass the duration bounds, so the title must catch it.
         private val BAD_TITLE_RE = Regex(
             "弾いてみた|歌ってみた|cover|covered by|ピアノ|ギター|drum|アレンジ|off vocal|ニコカラ|字幕|歌詞|한글자막|中文字幕|ローマ字|lyrics|lyric video|the first take|game size|アナザーボーカル|AMV|MAD|非公式|unofficial|エイプリルフール|april fool" +
-                "|カラオケ|karaoke|instrumental|short ver|ショートver|ショートバージョン|tv size|tvサイズ",
+                "|カラオケ|karaoke|instrumental|short ver|ショートver|ショートバージョン|tv size|tvサイズ" +
+                "|offvocal|off-vocal|[+-]\\d+\\s*key|原曲歌手|ドラム|演奏してみた|叩いてみた|踊ってみた|dance practice|振付" +
+                "|trailer|teaser|予告|react|切り抜き|譜面|sonolus|d4dj|グルミク|mashup|』×『|」×「|sped up" +
+                "|中文|翻譯|翻訳|(?<![a-z])(?:thai|rus|eng|indo|viet|esp)\\s*sub|thaisub",
             RegexOption.IGNORE_CASE
+        )
+        // Pairs of (marker, isJapanese); see versionMismatch.
+        private val VERSION_MARKERS = listOf(
+            Regex("""japanese|日本語|(?<![a-z])jpn?(?![a-z])""", RegexOption.IGNORE_CASE) to true,
+            Regex("""english\s*ver|英語ver|英語版""", RegexOption.IGNORE_CASE) to false,
+            Regex("""korean\s*ver|韓国語ver|韓国語版""", RegexOption.IGNORE_CASE) to false,
+            Regex("""thai\s*ver""", RegexOption.IGNORE_CASE) to false,
+            Regex("""chinese\s*ver|中国語ver|中国語版""", RegexOption.IGNORE_CASE) to false,
+            Regex("""movie\s*edit""", RegexOption.IGNORE_CASE) to false,
         )
         // Live clips often run exactly the track length, so only the title tells them from the MV.
         // Lookarounds instead of \b: its Unicode handling differs across JDKs ("LIVE映像" must match).
         private val LIVE_TITLE_RE = Regex(
-            "(?<![a-z])(?:live|tour|concert)(?![a-z])|ライブ|ライヴ|ツアー|コンサート|フェス",
+            "(?<![a-z])(?:live|tour|concert|fes|festival)(?![a-z])|ライブ|ライヴ|ツアー|コンサート|フェス|fuji\\s*rock|summer\\s*sonic" +
+                // A stage take is titled "'Song' @ venue"; a producer handle such as "cosMo@暴走P" has a letter before the @.
+                "|(?<![a-z0-9])@",
             RegexOption.IGNORE_CASE
         )
         private val LYRIC_VIDEO_RE = Regex("lyric video", RegexOption.IGNORE_CASE)
