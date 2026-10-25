@@ -44,12 +44,12 @@ class SongEntity(
     @Column(name = "youtube_url")
     var youtubeUrl: String? = youtubeUrl
         set(value) {
-            // 이유는 그 MV 에 붙은 것이라 MV 가 바뀌면 새 MV 를 다음 확인 때 다시 본다.
+            // 이유는 그 MV 에 붙은 것이다. 새 MV 는 검색이 재생 불가 후보를 이미 거른다.
             if (value != field) mvUnavailableReason = null
             field = value
         }
 
-    /** [youtubeUrl] 을 앱에서 재생할 수 없는 이유. batch `mv-playability-check` 가 YouTube Data API 로 채운다. */
+    /** [youtubeUrl] 을 앱에서 재생할 수 없는 이유. 기존 곡은 batch `mv-playability-backfill` 이 YouTube Data API 로 채웠다. */
     @Enumerated(EnumType.STRING)
     @Column(name = "mv_unavailable_reason", length = 20)
     var mvUnavailableReason: MvUnavailableReason? = null

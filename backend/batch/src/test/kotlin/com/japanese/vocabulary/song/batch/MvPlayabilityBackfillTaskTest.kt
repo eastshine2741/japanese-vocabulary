@@ -17,11 +17,11 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.DefaultApplicationArguments
 
-class MvPlayabilityCheckTaskTest : BatchBaseIntegrationTest() {
+class MvPlayabilityBackfillTaskTest : BatchBaseIntegrationTest() {
 
     @MockkBean private lateinit var youtubeClient: YoutubeClient
 
-    @Autowired private lateinit var task: MvPlayabilityCheckTask
+    @Autowired private lateinit var task: MvPlayabilityBackfillTask
 
     @Test
     fun `marks age-restricted and removed MVs and clears an MV that plays again`() {

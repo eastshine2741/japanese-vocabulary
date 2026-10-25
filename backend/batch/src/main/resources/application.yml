@@ -48,7 +48,7 @@ apple-music:
   private-key-base64: ${APPLE_MUSIC_PRIVATE_KEY_BASE64:}
 
 youtube:
-  # Only mv-playability-check calls it. Blank boots but fails that task's first call.
+  # Only the mv-playability-backfill task calls it. Blank boots but fails that task's first call.
   api-key: ${YOUTUBE_API_KEY:}
 
 sentry:

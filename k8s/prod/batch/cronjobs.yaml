@@ -597,19 +597,19 @@ spec:
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: mv-playability-check
+  name: mv-playability-backfill
 spec:
-  # 곡 MV 가 연령 제한·삭제 등으로 앱에서 재생되지 않는지 YouTube Data API 로 보고 곡에 이유를 남긴다 (곡 700개에 15 unit 남짓)
-  schedule: "45 4 * * *"
+  # 수동 백필 전용. MV 검색이 재생 불가 MV 를 거르기 전에 붙은 곡에 재생 불가 이유를 채운다. 배포 뒤 한 번만 돌린다. 스케줄은 절대 오지 않는 날짜로 두고 suspend 한다
+  schedule: "0 0 31 2 *"
   timeZone: "Asia/Seoul"
-  suspend: false
+  suspend: true
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 600
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
-      # 매번 전체를 다시 보므로 실패해도 다음 날 실행이 같은 일을 한다.
+      # 매번 전체를 다시 보므로 실패하면 다시 돌리면 된다.
       backoffLimit: 0
       template:
         spec:
@@ -622,7 +622,7 @@ spec:
               image: ${BATCH_IMAGE}
               imagePullPolicy: IfNotPresent
               args:
-                - "--task=mv-playability-check"
+                - "--task=mv-playability-backfill"
               env:
                 - name: GOOGLE_APPLICATION_CREDENTIALS
                   value: /var/secrets/firebase/service-account.json
