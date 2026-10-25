@@ -64,16 +64,6 @@ function mockFetch() {
     if (url.endsWith("/song-analysis-works/5/stages/ANALYZE_LYRICS/output")) return json({ translation: { "0": { index: 0, koreanLyrics: "고양이" } } })
     if (url.includes("/song-analysis-works/5")) return json(failedSongAnalysisWorkDetail)
     if (url.includes("/song-analysis-works?")) return json(page([songAnalysisWorkSummary]))
-    if (url.includes("/artists/7/youtube-channels/") && init?.method === "DELETE") return new Response(null, { status: 204 })
-    if (url.endsWith("/artists/7/youtube-channels") && init?.method === "POST")
-      return json({ channelId: "UCabcdefghijklmnopqrstuv", channelTitle: "ラブライブ!スーパースター!!", createdAt: "2026-10-25T00:00:00Z" }, 201)
-    if (url.endsWith("/artists/7"))
-      return json({
-        artist: { id: 7, name: "Liella!", artworkUrl: null },
-        appleMusicUrl: null,
-        youtubeChannels: [{ channelId: "UCzzzzzzzzzzzzzzzzzzzzzz", channelTitle: "Liella! Official", createdAt: "2026-10-24T00:00:00Z" }],
-      })
-    if (url.includes("/artists?query=")) return json([{ id: 7, name: "Liella!", artworkUrl: null }])
     if (url.endsWith("/recommendations/order") && init?.method === "PUT") return json(JSON.parse(String(init.body)).ids.map((id: number) => ({ ...recommendation, id })))
     if (url.endsWith("/recommendations/11") && init?.method === "DELETE") return new Response(null, { status: 204 })
     if (url.endsWith("/recommendations") && init?.method === "POST") return json({ error: "already recommended" }, 409)
@@ -245,30 +235,6 @@ describe("admin web", () => {
     expect(await screen.findByText(/기기 2대 중/)).toHaveTextContent("기기 2대 중 1 성공 · 1 실패")
     const call = fetchMock.mock.calls.find(([input]) => String(input).endsWith("/push/send"))!
     expect(JSON.parse(String(call[1]?.body))).toEqual({ userId: 3, title: "공지", body: "오늘도 복습해요" })
-  })
-
-  test("artist detail adds an official channel by URL and removes one", async () => {
-    const user = userEvent.setup()
-    const fetchMock = mockFetch()
-    sessionStorage.setItem("kotonoha.admin.token", "admin-token")
-    renderApp("/artists/7")
-
-    expect(await screen.findByRole("heading", { name: "Liella!" })).toBeInTheDocument()
-    await user.type(screen.getByLabelText("Channel ID or URL"), "https://www.youtube.com/channel/UCabcdefghijklmnopqrstuv")
-    await user.click(screen.getByRole("button", { name: "Add channel" }))
-    expect(await screen.findByRole("link", { name: "ラブライブ!スーパースター!!" })).toBeInTheDocument()
-    const post = fetchMock.mock.calls.find(([input, init]) => String(input).endsWith("/artists/7/youtube-channels") && init?.method === "POST")!
-    expect(JSON.parse(String(post[1]?.body))).toEqual({ channel: "https://www.youtube.com/channel/UCabcdefghijklmnopqrstuv", channelTitle: null })
-
-    await user.click(screen.getByRole("button", { name: "Remove Liella! Official" }))
-    await waitFor(() => expect(screen.queryByRole("link", { name: "Liella! Official" })).not.toBeInTheDocument())
-  })
-
-  test("artists page lists search results", async () => {
-    mockFetch()
-    sessionStorage.setItem("kotonoha.admin.token", "admin-token")
-    renderApp("/artists")
-    expect(await screen.findByRole("link", { name: "Liella!" })).toBeInTheDocument()
   })
 
   test("lists recommendations, blocks duplicate adds, and removes", async () => {

@@ -318,21 +318,20 @@ class YoutubeMvSearchServiceTest {
     }
 
     @Test
-    fun `an upload on a channel mapped to the artist is the MV even when neither title nor channel names the artist`() {
-        every { artistChannelCache.get("Liella!") } returns null
-        stubSearch(searchItem("ll-id", "Sing！Shine！Smile！", "ラブライブ!スーパースター!!", channelId = "UCLLSUPERSTAR0000000000"))
+    fun `an upload on a channel listed for the artist is the MV even when neither title nor channel names the artist`() {
+        every { artistChannelCache.get(any()) } returns null
+        stubSearch(searchItem("ll-id", "Sing！Shine！Smile！", "ラブライブ!スーパースター!!", channelId = LIELLA_CHANNEL_ID))
         stubDurations("ll-id" to "PT4M")
         every { youtubeClient.getChannel(any()) } returns null
 
-        assertThat(service.searchMvUrl("Sing!Shine!Smile!", "Liella!", 240)).isNull()
-        assertThat(service.searchMvUrl("Sing!Shine!Smile!", "Liella!", 240, officialChannelIds = setOf("UCLLSUPERSTAR0000000000")))
-            .isEqualTo("https://www.youtube.com/watch?v=ll-id")
+        assertThat(service.searchMvUrl("Sing!Shine!Smile!", "Aqours", 240)).isNull()
+        assertThat(service.searchMvUrl("Sing!Shine!Smile!", "Liella!", 240)).isEqualTo("https://www.youtube.com/watch?v=ll-id")
     }
 
     @Test
     fun `the cached uploads path knows the mapped channel from the playlist owner`() {
         every { artistChannelCache.get("Liella!") } returns
-            ArtistChannelCacheEntry("Liella!", "UCLLSUPERSTAR0000000000", "UULLSUPERSTAR0000000000", "ラブライブ!スーパースター!!")
+            ArtistChannelCacheEntry("Liella!", LIELLA_CHANNEL_ID, "UULLSUPERSTAR0000000000", "ラブライブ!スーパースター!!")
         every { youtubeClient.listPlaylistItems(any(), any(), any()) } returns YoutubePlaylistItemsResponse(
             nextPageToken = null,
             items = listOf(
@@ -341,27 +340,27 @@ class YoutubeMvSearchServiceTest {
                         title = "POP TALKING",
                         channelTitle = "ラブライブ!スーパースター!!",
                         resourceId = YoutubeResourceIdDto(videoId = "pop-id"),
-                        channelId = "UCLLSUPERSTAR0000000000",
+                        channelId = LIELLA_CHANNEL_ID,
                     ),
                 ),
             ),
         )
         stubDurations("pop-id" to "PT4M")
 
-        assertThat(service.searchMvUrl("POP TALKING", "Liella!", 240, officialChannelIds = setOf("UCLLSUPERSTAR0000000000")))
+        assertThat(service.searchMvUrl("POP TALKING", "Liella!", 240))
             .isEqualTo("https://www.youtube.com/watch?v=pop-id")
     }
 
     @Test
-    fun `a current MV on a mapped channel is kept`() {
+    fun `a current MV on a listed channel is kept`() {
         every { youtubeClient.getVideo("ll-id") } returns YoutubeVideoItemDto(
             id = "ll-id",
             contentDetails = YoutubeContentDetailsDto(duration = "PT4M"),
-            snippet = searchItem("ll-id", "Starlight Prologue", "ラブライブ!スーパースター!!", channelId = "UCLLSUPERSTAR0000000000").snippet,
+            snippet = searchItem("ll-id", "Starlight Prologue", "ラブライブ!スーパースター!!", channelId = LIELLA_CHANNEL_ID).snippet,
         )
 
-        assertThat(service.acceptsAsOnlyCandidate("ll-id", "Starlight Prologue", "Liella!", 240)).isFalse()
-        assertThat(service.acceptsAsOnlyCandidate("ll-id", "Starlight Prologue", "Liella!", 240, setOf("UCLLSUPERSTAR0000000000"))).isTrue()
+        assertThat(service.acceptsAsOnlyCandidate("ll-id", "Starlight Prologue", "Aqours", 240)).isFalse()
+        assertThat(service.acceptsAsOnlyCandidate("ll-id", "Starlight Prologue", "Liella!", 240)).isTrue()
     }
 
     @Test
@@ -833,6 +832,7 @@ class YoutubeMvSearchServiceTest {
     companion object {
         private const val TITLE = "ももいろの鍵"
         private const val ARTIST = "テストアーティスト"
+        private const val LIELLA_CHANNEL_ID = "UCGzO-WBL6ggp2TIoW0fhPjA"
         private const val TRACK_SECONDS = 240
         private const val NIIGO = "25時、ナイトコードで。"
         private const val NIIGO_TITLE = "熱異常 (feat. 宵崎奏, 朝比奈まふゆ, 東雲絵名, 暁山瑞希 & KAITO)"

@@ -1,4 +1,4 @@
-import { Activity, AudioLines, Clapperboard, Disc3, Flag, LogOut, MessageSquareWarning, MicVocal, Sparkles, Users } from "lucide-react"
+import { Activity, AudioLines, Clapperboard, Disc3, Flag, LogOut, MessageSquareWarning, Sparkles, Users } from "lucide-react"
 import { NavLink, Outlet, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/features/auth"
@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils"
 
 const navItems = [
   { to: "/songs", label: "Songs", icon: Disc3 },
-  { to: "/artists", label: "Artists", icon: MicVocal },
   { to: "/recommendations", label: "Recommendations", icon: Sparkles },
   { to: "/song-analysis-works", label: "Analysis Work", icon: Activity },
   { to: "/lyric-mv-syncs", label: "Lyric MV Sync", icon: AudioLines },

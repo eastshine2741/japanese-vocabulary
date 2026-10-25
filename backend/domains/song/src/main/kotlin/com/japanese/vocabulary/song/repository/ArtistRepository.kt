@@ -9,10 +9,6 @@ import org.springframework.data.repository.query.Param
 interface ArtistRepository : JpaRepository<ArtistEntity, Long> {
     fun findByAppleMusicId(appleMusicId: String): ArtistEntity?
 
-    fun findByNameIn(names: Collection<String>): List<ArtistEntity>
-
-    fun findTop50ByNameContainingOrderByNameAsc(name: String): List<ArtistEntity>
-
     /** worker 가 같은 아티스트의 두 곡을 동시에 이을 수 있어 unique 키로 합친다. 사진·이름은 최신으로 덮는다. */
     @Modifying
     @Query(

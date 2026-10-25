@@ -47,7 +47,6 @@ class SongAnalysisPreparationServiceTest {
         lrcParser = LrcParser(),
         songRepository = mockk(),
         youtubeMvSearchService = mockk(),
-        artistYoutubeChannelService = mockk(),
         lyricRepository = mockk(),
         providerMaxAttempts = 1,
         providerInitialBackoff = Duration.ZERO,
