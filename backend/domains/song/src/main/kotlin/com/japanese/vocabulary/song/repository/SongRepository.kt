@@ -14,6 +14,8 @@ interface SongRepository : JpaRepository<SongEntity, Long> {
 
     fun findByArtistId(artistId: Long): List<SongEntity>
 
+    fun findByYoutubeUrlIsNotNull(): List<SongEntity>
+
     fun findByArtistIdIsNullAndIdGreaterThanOrderByIdAsc(id: Long, pageable: Pageable): List<SongEntity>
 
     @Modifying

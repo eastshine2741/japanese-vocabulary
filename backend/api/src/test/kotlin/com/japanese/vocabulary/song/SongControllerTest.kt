@@ -697,35 +697,20 @@ class SongControllerTest : ApiBaseIntegrationTest() {
         fun `song metadata says why the current MV cannot be played`() {
             val me = newUser()
             val song = TestSongBuilder(entityManager).withYoutubeUrl("https://www.youtube.com/watch?v=SX_ViT4Ra7k").build()
-            val lyric = newLyric(song, raw = listOf(LyricLineData(index = 0, startTimeMs = null, text = "夢ならば")))
-            failedSync(lyric, "SX_ViT4Ra7k", MvUnavailableReason.AGE_RESTRICTED)
+            song.mvUnavailableReason = MvUnavailableReason.AGE_RESTRICTED
+            entityManager.flush()
 
             mockMvc.get("/api/songs/${song.id}") { header("Authorization", bearer(me)) }
                 .andExpect { jsonPath("$.mvUnavailableReason") { value("AGE_RESTRICTED") } }
         }
 
         @Test
-        fun `a reason recorded for an earlier MV is not served`() {
+        fun `a playable MV carries no reason`() {
             val me = newUser()
             val song = TestSongBuilder(entityManager).withYoutubeUrl("https://www.youtube.com/watch?v=SX_ViT4Ra7k").build()
-            val lyric = newLyric(song, raw = listOf(LyricLineData(index = 0, startTimeMs = null, text = "夢ならば")))
-            failedSync(lyric, "zzzzzzzzzzz", MvUnavailableReason.UNAVAILABLE)
 
             mockMvc.get("/api/songs/${song.id}") { header("Authorization", bearer(me)) }
                 .andExpect { jsonPath("$.mvUnavailableReason") { doesNotExist() } }
-        }
-
-        private fun failedSync(lyric: LyricEntity, videoId: String, reason: MvUnavailableReason) {
-            entityManager.persist(
-                LyricMvSyncEntity(
-                    lyricId = lyric.id!!,
-                    youtubeVideoId = videoId,
-                    status = LyricMvSyncStatus.FAILED,
-                    errorMessage = "SyncError: MV not downloadable",
-                    mvUnavailable = reason,
-                ),
-            )
-            entityManager.flush()
         }
 
         private fun completedSync(lyric: LyricEntity, videoId: String, timings: List<LyricLineTiming>, verdict: String = "OK") {

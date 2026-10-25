@@ -4,6 +4,7 @@ import com.japanese.vocabulary.common.text.ArtistCredit
 import com.japanese.vocabulary.song.cache.ArtistChannelCache
 import com.japanese.vocabulary.song.cache.ArtistChannelCacheEntry
 import com.japanese.vocabulary.mvsearch.client.youtube.YoutubeClient
+import com.japanese.vocabulary.mvsearch.client.youtube.YoutubePlayability
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeSearchItemDto
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -168,6 +169,9 @@ class YoutubeMvSearchService(
      *
      * Videos with a missing or unparsable duration are kept so a flaky lookup does not drop a
      * legitimate MV. `P0D` (live/premiere) has no length and is dropped.
+     *
+     * The same 1-unit call carries playability, so a video the app cannot play (age-restricted,
+     * private, embedding off, blocked in KR) is dropped here too; see [YoutubePlayability].
      */
     private fun filterByDuration(
         candidates: List<MvCandidate>,
@@ -176,17 +180,19 @@ class YoutubeMvSearchService(
     ): List<MvCandidate> {
         if (candidates.isEmpty()) return candidates
 
-        val durationsByVideoId = runCatching {
-            youtubeClient.listVideoContentDetails(candidates.map { it.videoId })
-                .associate { it.id to parseDurationSeconds(it.contentDetails.duration) }
+        val detailsByVideoId = runCatching {
+            youtubeClient.listVideoContentDetails(candidates.map { it.videoId }).associateBy { it.id }
         }.getOrElse { e ->
             logger.warn("YouTube duration lookup failed, keeping all candidates: {}", e.message)
             emptyMap()
         }
 
         return candidates.mapNotNull { candidate ->
-            val seconds = durationsByVideoId[candidate.videoId]
-            val rejection = seconds?.let { bounds.rejectionReason(it) }
+            val details = detailsByVideoId[candidate.videoId]
+            val seconds = details?.let { parseDurationSeconds(it.contentDetails.duration) }
+            // An MV the app's embedded player cannot play is no MV for the app, however well it matches.
+            val rejection = details?.let { YoutubePlayability.unplayable(it) }?.let { "unplayable:${it.name}" }
+                ?: seconds?.let { bounds.rejectionReason(it) }
             trace += candidate.trace(seconds, rejection)
             if (rejection == null) return@mapNotNull candidate
             logger.info(

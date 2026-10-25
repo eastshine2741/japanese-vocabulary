@@ -5,7 +5,6 @@ import com.japanese.vocabulary.song.entity.LyricMvSyncEntity
 import com.japanese.vocabulary.song.entity.LyricMvSyncMethod
 import com.japanese.vocabulary.song.entity.LyricMvSyncStatus
 import com.japanese.vocabulary.song.entity.LyricType
-import com.japanese.vocabulary.song.entity.MvUnavailableReason
 import com.japanese.vocabulary.song.entity.SongEntity
 import com.japanese.vocabulary.song.model.LyricLineData
 import com.japanese.vocabulary.song.service.LyricMvSyncService
@@ -141,17 +140,6 @@ class AdminLyricSyncAgentControllerTest : AdminBaseIntegrationTest() {
     }
 
     @Test
-    fun `the reason an MV could not be fetched is kept with the failure`() {
-        val (_, lyric) = songWithLyric(VIDEO_ID)
-        val sync = pending(lyric, VIDEO_ID)
-        claim().andExpect { status { isOk() } }
-
-        fail(sync, attempt = 1, retryable = false, mvUnavailable = "AGE_RESTRICTED").andExpect { status { isNoContent() } }
-
-        assertThat(reload(sync).mvUnavailable).isEqualTo(MvUnavailableReason.AGE_RESTRICTED)
-    }
-
-    @Test
     fun `an agent-side failure waits before the retry and gives up after the last attempt`() {
         val (_, lyric) = songWithLyric(VIDEO_ID)
         val sync = pending(lyric, VIDEO_ID)
@@ -203,12 +191,12 @@ class AdminLyricSyncAgentControllerTest : AdminBaseIntegrationTest() {
             )
         }
 
-    private fun fail(sync: LyricMvSyncEntity, attempt: Int, retryable: Boolean, mvUnavailable: String? = null): ResultActionsDsl =
+    private fun fail(sync: LyricMvSyncEntity, attempt: Int, retryable: Boolean): ResultActionsDsl =
         mockMvc.post("/admin/api/lyric-sync-agent/syncs/${sync.id}/fail") {
             header("Authorization", "Bearer $AGENT_TOKEN")
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(
-                mapOf("attempt" to attempt, "message" to "SyncError: no line found", "retryable" to retryable, "mvUnavailable" to mvUnavailable),
+                mapOf("attempt" to attempt, "message" to "SyncError: no line found", "retryable" to retryable),
             )
         }
 

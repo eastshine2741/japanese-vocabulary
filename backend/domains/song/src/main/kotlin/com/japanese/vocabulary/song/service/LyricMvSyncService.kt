@@ -7,7 +7,6 @@ import com.japanese.vocabulary.song.entity.LyricMvSyncEntity
 import com.japanese.vocabulary.song.entity.LyricMvSyncMethod
 import com.japanese.vocabulary.song.entity.LyricMvSyncStatus
 import com.japanese.vocabulary.song.entity.LyricType
-import com.japanese.vocabulary.song.entity.MvUnavailableReason
 import com.japanese.vocabulary.song.entity.SongEntity
 import com.japanese.vocabulary.song.model.LyricLineData
 import com.japanese.vocabulary.song.model.LyricLineTiming
@@ -112,10 +111,9 @@ class LyricMvSyncService(
      * 태우므로 [RETRY_DELAY] 뒤로 미루고, [MAX_ATTEMPTS] 번째에는 FAILED 로 둔다.
      */
     @Transactional
-    fun fail(id: Long, attempt: Int, message: String, retryable: Boolean, mvUnavailable: MvUnavailableReason? = null) {
+    fun fail(id: Long, attempt: Int, message: String, retryable: Boolean) {
         val row = lockRunning(id, attempt)
         row.errorMessage = message.take(MAX_ERROR_LENGTH)
-        row.mvUnavailable = mvUnavailable
         if (retryable && row.attempt < MAX_ATTEMPTS) {
             row.status = LyricMvSyncStatus.PENDING
             row.leaseUntil = Instant.now(clock).plus(RETRY_DELAY)
@@ -135,14 +133,6 @@ class LyricMvSyncService(
         val timings = row.lineTimings ?: return null
         if (!coversEveryLine(timings, lyric)) return null
         return timings.associate { it.index to it.startTimeMs }
-    }
-
-    /** 곡의 지금 MV 를 실행기가 받지 못했으면 그 이유. 앱은 깨진 플레이어 대신 이유를 보여준다. */
-    @Transactional(readOnly = true)
-    fun mvUnavailableFor(song: SongEntity): MvUnavailableReason? {
-        val lyricId = song.activeLyricId ?: return null
-        val videoId = YoutubeVideoId.parse(song.youtubeUrl) ?: return null
-        return syncRepository.findByLyricIdAndYoutubeVideoIdAndStatus(lyricId, videoId, LyricMvSyncStatus.FAILED)?.mvUnavailable
     }
 
     private fun lockRunning(id: Long, attempt: Int): LyricMvSyncEntity {

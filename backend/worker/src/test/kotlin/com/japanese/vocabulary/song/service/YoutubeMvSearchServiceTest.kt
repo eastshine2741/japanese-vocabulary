@@ -2,9 +2,11 @@ package com.japanese.vocabulary.song.service
 
 import com.japanese.vocabulary.mvsearch.client.youtube.YoutubeClient
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeContentDetailsDto
+import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeContentRatingDto
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubePlaylistItemDto
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubePlaylistItemSnippetDto
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubePlaylistItemsResponse
+import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeRegionRestrictionDto
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeResourceIdDto
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeSearchItemDto
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeSearchResponse
@@ -63,6 +65,41 @@ class YoutubeMvSearchServiceTest {
         every { artistChannelCache.get(ARTIST) } returns null
         stubSearch(searchItem("short-id", "$TITLE Official MV"))
         stubDurations("short-id" to "PT30S")
+
+        assertThat(service.searchMvUrl(TITLE, ARTIST, TRACK_SECONDS)).isNull()
+    }
+
+    @Test
+    fun `search skips an MV the app cannot play and traces why`() {
+        every { artistChannelCache.get(ARTIST) } returns null
+        stubSearch(
+            searchItem("age-id", "$TITLE Official MV"),
+            searchItem("mv-id", "$TITLE Music Video"),
+        )
+        every { youtubeClient.listVideoContentDetails(any()) } returns listOf(
+            YoutubeVideoItemDto(
+                id = "age-id",
+                contentDetails = YoutubeContentDetailsDto(duration = "PT4M13S", contentRating = YoutubeContentRatingDto(ytRating = "ytAgeRestricted")),
+            ),
+            YoutubeVideoItemDto(id = "mv-id", contentDetails = YoutubeContentDetailsDto(duration = "PT4M13S")),
+        )
+
+        val result = service.search(TITLE, ARTIST, TRACK_SECONDS)
+
+        assertThat(result.url).isEqualTo("https://www.youtube.com/watch?v=mv-id")
+        assertThat(result.candidates.single { it.videoId == "age-id" }.rejection).isEqualTo("unplayable:AGE_RESTRICTED")
+    }
+
+    @Test
+    fun `search returns nothing rather than an MV blocked in Korea`() {
+        every { artistChannelCache.get(ARTIST) } returns null
+        stubSearch(searchItem("mv-id", "$TITLE Official MV"))
+        every { youtubeClient.listVideoContentDetails(any()) } returns listOf(
+            YoutubeVideoItemDto(
+                id = "mv-id",
+                contentDetails = YoutubeContentDetailsDto(duration = "PT4M13S", regionRestriction = YoutubeRegionRestrictionDto(allowed = listOf("JP"))),
+            ),
+        )
 
         assertThat(service.searchMvUrl(TITLE, ARTIST, TRACK_SECONDS)).isNull()
     }

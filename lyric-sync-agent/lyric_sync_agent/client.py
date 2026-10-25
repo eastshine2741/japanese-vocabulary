@@ -27,11 +27,8 @@ class AdminApi:
     def complete(self, sync_id: int, attempt: int, method: str, lines: list[dict], confidence: dict) -> None:
         self._post(f"syncs/{sync_id}/complete", {"attempt": attempt, "method": method, "lines": lines, "confidence": confidence})
 
-    def fail(self, sync_id: int, attempt: int, message: str, retryable: bool, mv_unavailable: str | None = None) -> None:
-        body = {"attempt": attempt, "message": message, "retryable": retryable}
-        if mv_unavailable is not None:
-            body["mvUnavailable"] = mv_unavailable
-        self._post(f"syncs/{sync_id}/fail", body)
+    def fail(self, sync_id: int, attempt: int, message: str, retryable: bool) -> None:
+        self._post(f"syncs/{sync_id}/fail", {"attempt": attempt, "message": message, "retryable": retryable})
 
     def _post(self, path: str, body: dict) -> None:
         url = f"{self.base}/{path}"

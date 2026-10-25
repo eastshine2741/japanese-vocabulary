@@ -35,9 +35,3 @@ def test_a_second_connection_failure_is_left_to_the_lease():
     api = api_with(requests.ConnectionError("down"), requests.ConnectionError("down"))
     with pytest.raises(requests.ConnectionError):
         api.complete(41, 1, "OFFSET", [], {})
-
-
-def test_unavailable_reason_rides_on_the_failure():
-    api = api_with(response(204))
-    api.fail(41, 1, "SyncError: MV not downloadable", retryable=False, mv_unavailable="AGE_RESTRICTED")
-    assert api.session.post.call_args.kwargs["json"]["mvUnavailable"] == "AGE_RESTRICTED"

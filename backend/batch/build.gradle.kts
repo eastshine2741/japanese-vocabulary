@@ -25,6 +25,8 @@ dependencies {
     implementation(project(":domains:word"))
     implementation(project(":domains:rewardcard"))
     implementation(project(":integrations:song-search"))
+    // 곡 MV 가 앱에서 재생되는지 매일 본다.
+    implementation(project(":integrations:mv-search"))
     implementation(project(":integrations:karaoke-listing"))
     // 노래방 신곡의 분석 요청을 worker 큐로 넘긴다.
     implementation(project(":integrations:message-queue"))

@@ -11,20 +11,16 @@ VOICED_HOP = 0.02
 QUIET_DB = 20
 
 # YouTube refuses these to an anonymous client every time; retrying only burns the retry budget and the backoff.
-# The app's embedded player reports all of them as the same error 150, so the reason is known only here.
-AGE_RESTRICTED, UNAVAILABLE = "AGE_RESTRICTED", "UNAVAILABLE"
 UNAVAILABLE_MARKERS = (
-    ("Sign in to confirm your age", AGE_RESTRICTED),
-    ("Private video", UNAVAILABLE),
-    ("Video unavailable", UNAVAILABLE),
-    ("This video has been removed", UNAVAILABLE),
+    "Sign in to confirm your age",
+    "Private video",
+    "Video unavailable",
+    "This video has been removed",
 )
 
 
 class VideoUnavailable(Exception):
-    def __init__(self, message: str, reason: str):
-        super().__init__(message)
-        self.reason = reason
+    pass
 
 
 def download(video_id: str, workdir: Path) -> Path:
@@ -39,9 +35,8 @@ def download(video_id: str, workdir: Path) -> Path:
         with yt_dlp.YoutubeDL(opts) as ydl:
             ydl.download([f"https://www.youtube.com/watch?v={video_id}"])
     except yt_dlp.utils.DownloadError as e:
-        reason = next((r for marker, r in UNAVAILABLE_MARKERS if marker in str(e)), None)
-        if reason is not None:
-            raise VideoUnavailable(str(e), reason) from e
+        if any(marker in str(e) for marker in UNAVAILABLE_MARKERS):
+            raise VideoUnavailable(str(e)) from e
         raise
     return workdir / "mv.wav"
 

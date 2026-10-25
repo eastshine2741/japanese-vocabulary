@@ -504,3 +504,48 @@ spec:
             - name: firebase-credentials
               secret:
                 secretName: firebase-credentials
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mv-playability-check
+spec:
+  # 곡 MV 가 연령 제한·삭제 등으로 앱에서 재생되지 않는지 YouTube Data API 로 보고 곡에 이유를 남긴다 (곡 700개에 15 unit 남짓)
+  schedule: "45 4 * * *"
+  timeZone: "Asia/Seoul"
+  suspend: false
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      # 매번 전체를 다시 보므로 실패해도 다음 날 실행이 같은 일을 한다.
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          enableServiceLinks: false
+          containers:
+            - name: batch
+              image: ${BATCH_IMAGE}
+              imagePullPolicy: Never
+              args:
+                - "--task=mv-playability-check"
+              env:
+                - name: GOOGLE_APPLICATION_CREDENTIALS
+                  value: /var/secrets/firebase/service-account.json
+              envFrom:
+                - configMapRef:
+                    name: batch-config
+                - secretRef:
+                    name: batch-secret
+              volumeMounts:
+                - name: firebase-credentials
+                  mountPath: /var/secrets/firebase
+                  readOnly: true
+          volumes:
+            - name: firebase-credentials
+              secret:
+                secretName: firebase-credentials

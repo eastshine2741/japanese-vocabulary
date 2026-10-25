@@ -21,9 +21,6 @@ enum class LyricMvSyncStatus { PENDING, RUNNING, COMPLETED, FAILED }
 
 enum class LyricMvSyncMethod { OFFSET, ALIGNED }
 
-/** 실행기가 MV 를 받지 못한 이유. 연령 제한은 YouTube 에 로그인하면 볼 수 있고, 나머지는 영상 자체가 없다. */
-enum class MvUnavailableReason { AGE_RESTRICTED, UNAVAILABLE }
-
 /** 가사 하나를 MV 하나에 맞춘 줄 시각. 행이 로컬 실행기의 작업 원장이기도 하다(V52). */
 @Entity
 @Table(name = "lyric_mv_sync")
@@ -61,10 +58,6 @@ class LyricMvSyncEntity(
 
     @Column(name = "error_message", length = 1000)
     var errorMessage: String? = null,
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "mv_unavailable", length = 20)
-    var mvUnavailable: MvUnavailableReason? = null,
 
     @Column(name = "completed_at")
     var completedAt: Instant? = null,

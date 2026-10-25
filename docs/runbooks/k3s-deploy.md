@@ -72,6 +72,10 @@ kubectl create job --from=cronjob/lyric-word-candidate-backfill backfill-$(date 
 # lyrics 에 낙관적 락이 없어 같은 시각의 재분석·제보 승인을 덮어쓸 수 있다. 분석 작업이 없을 때 돌린다.
 kubectl create job --from=cronjob/lyric-reading-backfill reading-$(date +%s) -n <ns>
 
+# 곡 MV 재생 불가 이유(songs.mv_unavailable_reason)를 YouTube Data API 로 다시 본다. 매일 04:45 KST, 곡 700개에 15 unit 남짓.
+# batch-secret 의 YOUTUBE_API_KEY 를 쓴다(worker 와 같은 키, 같은 하루 quota).
+kubectl create job --from=cronjob/mv-playability-check mvplay-$(date +%s) -n <ns>
+
 # 큐 상태
 kubectl exec -n <ns> statefulset/rabbitmq -- rabbitmqctl list_queues name messages
 kubectl exec -n <ns> statefulset/rabbitmq -- rabbitmqctl list_bindings
