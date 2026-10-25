@@ -39,13 +39,31 @@ class YoutubeMvSearchService(
 
         // Leftovers of both paths are ranked together so a cached-channel live clip cannot pre-empt a broad-search MV.
         val leftovers = cachedCandidates + fallbackCandidates
-        val runnerUp = pickOfficialLyricVideo(leftovers)
-            ?: pickArtistLive(leftovers)
-            ?: pickUnofficialUpload(leftovers)
-            ?: return MvSearchResult(null, trace)
+        val runnerUp = pickRunnerUp(leftovers) ?: return MvSearchResult(null, trace)
         maybeCacheArtistChannel(artist, runnerUp)
         return MvSearchResult(youtubeUrl(runnerUp.videoId), trace)
     }
+
+    /**
+     * Whether the song's current MV would still be taken if it were the only candidate. A search that
+     * finds nothing keeps a current MV that passes and drops one the rules now reject.
+     * A YouTube error propagates: it must never be read as "the MV is gone".
+     */
+    fun acceptsAsOnlyCandidate(videoId: String, title: String, artist: String, trackDurationSeconds: Int?): Boolean {
+        val video = youtubeClient.getVideo(videoId) ?: return false
+        val snippet = video.snippet ?: return false
+        if (!titleMatches(snippet.title, title) || isShortsTitle(snippet.title) || versionMismatch(snippet.title, title)) return false
+        if (YoutubePlayability.unplayable(video) != null) return false
+        val seconds = parseDurationSeconds(video.contentDetails.duration)
+        if (seconds != null && DurationBounds.forTrack(trackDurationSeconds).rejectionReason(seconds) != null) return false
+        val only = listOf(mvCandidate(SOURCE_CURRENT, videoId, snippet.title, snippet.channelId, snippet.channelTitle, title, artist))
+        return (pickMv(only) ?: pickRunnerUp(only)) != null
+    }
+
+    // No tier for a stranger's reupload: it only existed while a missing MV failed the whole analysis,
+    // and what it took was mostly reactions, covers and fan videos.
+    private fun pickRunnerUp(candidates: List<MvCandidate>): MvCandidate? =
+        pickOfficialLyricVideo(candidates) ?: pickArtistLive(candidates)
 
     private fun searchCachedUploads(
         title: String,
@@ -151,10 +169,6 @@ class YoutubeMvSearchService(
      */
     private fun pickArtistLive(candidates: List<MvCandidate>): MvCandidate? =
         candidates.bestEligible { it.officialSource && it.isLive }
-
-    /** A reupload on someone else's channel: the song, but neither official nor permanent. */
-    private fun pickUnofficialUpload(candidates: List<MvCandidate>): MvCandidate? =
-        candidates.bestEligible { !it.officialSource && !it.isLive }
 
     private fun List<MvCandidate>.bestEligible(tier: (MvCandidate) -> Boolean): MvCandidate? = this
         .filter { it.artistVerified && !isTopicChannel(it.channelTitle) }
@@ -415,7 +429,7 @@ class YoutubeMvSearchService(
      *   [pickArtistLive] when no MV exists.
      * @param artistVerified the channel is the artist's own or the title names the artist.
      * @param officialSource from the artist, a known publisher, or titled as official. Without
-     *   it the upload is a stranger's reupload, which ranks below the artist's own live.
+     *   it the upload is a stranger's reupload, which is never taken.
      */
     private data class MvCandidate(
         val source: String,
@@ -454,6 +468,7 @@ class YoutubeMvSearchService(
         private const val SOURCE_UPLOADS = "uploads"
         private const val SOURCE_SEARCH = "search"
         private const val SOURCE_SEARCH_BY_VIEWS = "search:viewCount"
+        private const val SOURCE_CURRENT = "current"
         private const val REJECT_TITLE_MISMATCH = "title-mismatch"
         private const val REJECT_SHORTS_TAG = "shorts-tag"
         private const val REJECT_VERSION_MISMATCH = "version-mismatch"

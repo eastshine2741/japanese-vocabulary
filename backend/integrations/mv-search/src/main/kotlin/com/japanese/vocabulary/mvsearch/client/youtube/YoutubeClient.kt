@@ -75,6 +75,21 @@ class YoutubeClient(
                 ?: emptyList()
         }
 
+    /** One video with its title and channel as well; null when YouTube no longer has it. */
+    fun getVideo(videoId: String): YoutubeVideoItemDto? =
+        restClient.get()
+            .uri { builder ->
+                builder.path("/youtube/v3/videos")
+                    .queryParam("id", videoId)
+                    .queryParam("part", "snippet,contentDetails,status")
+                    .queryParam("key", apiKey)
+                    .build()
+            }
+            .retrieve()
+            .body(YoutubeVideosResponse::class.java)
+            ?.items
+            ?.firstOrNull()
+
     fun listPlaylistItems(
         playlistId: String,
         pageToken: String? = null,

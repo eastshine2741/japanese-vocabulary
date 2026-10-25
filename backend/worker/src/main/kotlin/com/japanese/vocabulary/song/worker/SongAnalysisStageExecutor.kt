@@ -2,7 +2,9 @@ package com.japanese.vocabulary.song.worker
 
 import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
+import com.japanese.vocabulary.song.model.YoutubeVideoId
 import com.japanese.vocabulary.song.repository.LyricRepository
+import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.song.service.MvSearchDefectReporter
 import com.japanese.vocabulary.song.service.SongAnalysisPreparationService
 import com.japanese.vocabulary.songanalysis.dto.ClaimedSongAnalysisStage
@@ -33,6 +35,7 @@ class SongAnalysisStageExecutor(
     private val completionService: SongAnalysisWorkCompletionService,
     private val translationService: KoreanLyricTranslationService,
     private val lyricRepository: LyricRepository,
+    private val songRepository: SongRepository,
     private val codec: SongAnalysisStageCodec,
     private val mvSearchDefectReporter: MvSearchDefectReporter,
 ) {
@@ -60,10 +63,15 @@ class SongAnalysisStageExecutor(
         val work = claimed.work
         val result = preparationService.searchYoutube(work.rawTitle, work.rawArtist, work.durationSeconds)
         // MV 가 없어도 가사 학습은 되므로 작업을 실패시키지 않는다. YouTube 오류는 이미 위로 던져졌다.
-        if (result.url == null) {
-            mvSearchDefectReporter.report(claimed.ref.workId, work.rawTitle, work.rawArtist, work.durationSeconds, result)
-        }
-        finish(claimed, FetchYoutubeOutput(result.url))
+        if (result.url != null) return finish(claimed, FetchYoutubeOutput(result.url))
+        mvSearchDefectReporter.report(claimed.ref.workId, work.rawTitle, work.rawArtist, work.durationSeconds, result)
+        // 재분석이 못 찾았을 때 지금 MV 가 규칙을 통과하면 두고, 아니면 완료 단계가 지운다.
+        val currentVideoId = work.songId
+            ?.let { songRepository.findById(it).orElse(null) }
+            ?.let { YoutubeVideoId.parse(it.youtubeUrl) }
+        val clear = currentVideoId != null &&
+            !preparationService.acceptsCurrentMv(currentVideoId, work.rawTitle, work.rawArtist, work.durationSeconds)
+        finish(claimed, FetchYoutubeOutput(null, clearCurrentMv = clear))
     }
 
     private fun createSongAndLyric(claimed: ClaimedSongAnalysisStage) {
@@ -135,13 +143,14 @@ class SongAnalysisStageExecutor(
         val scope = claimed.work.rerunFrom?.rerunScope()
         val outputs = Outputs(claimed)
         // 범위 밖 단계는 돌지 않았으니 그 산출물 대신 곡의 지금 가사·MV 가 그대로 남는다.
-        val youtubeUrl = if (scope == null || SongAnalysisWorkStage.FETCH_YOUTUBE in scope) {
-            outputs.read(SongAnalysisWorkStage.FETCH_YOUTUBE, FetchYoutubeOutput::class.java).youtubeUrl
+        val mv = if (scope == null || SongAnalysisWorkStage.FETCH_YOUTUBE in scope) {
+            outputs.read(SongAnalysisWorkStage.FETCH_YOUTUBE, FetchYoutubeOutput::class.java)
         } else {
-            null
+            FetchYoutubeOutput(null)
         }
+        val youtubeUrl = mv.youtubeUrl
         if (claimed.work.rerunFrom == SongAnalysisWorkStage.FETCH_YOUTUBE) {
-            completionService.completeMvOnly(claimed.ref, youtubeUrl, codec.write(CompleteOutput(analyzedLines = 0)))
+            completionService.completeMvOnly(claimed.ref, youtubeUrl, mv.clearCurrentMv, codec.write(CompleteOutput(analyzedLines = 0)))
             logger.info("[workId={}] MV-only reanalysis completed", claimed.ref.workId)
             return
         }
@@ -158,6 +167,7 @@ class SongAnalysisStageExecutor(
             ref = claimed.ref,
             preparedLyric = outputs.read(SongAnalysisWorkStage.FETCH_LYRICS, FetchLyricsOutput::class.java),
             youtubeUrl = youtubeUrl,
+            clearCurrentMv = mv.clearCurrentMv,
             analyzedLines = lines,
             output = codec.write(CompleteOutput(analyzedLines = lines.size)),
         )

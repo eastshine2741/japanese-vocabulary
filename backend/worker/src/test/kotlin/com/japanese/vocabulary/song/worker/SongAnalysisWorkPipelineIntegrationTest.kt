@@ -182,6 +182,64 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
     }
 
     @Test
+    fun `admin reanalysis that finds no MV keeps a current MV that still passes the rules`(): Unit = runBlocking {
+        stubLyricsFound()
+        stubYoutubeMissing()
+        stubLyricAnalysis()
+        stubCurrentVideo(title = "$TITLE Official MV", channelTitle = ARTIST)
+        val song = persistSongWithOldMv(CURRENT_MV_URL)
+        persistActiveLyric(song.id!!, "古い歌詞")
+        val work = persistAdminWork(song.id!!, status = SongAnalysisWorkStatus.PENDING)
+        drive(work.id!!)
+        entityManager.flush()
+        entityManager.clear()
+
+        assertThat(workRepository.findById(work.id!!).orElseThrow().status).isEqualTo(SongAnalysisWorkStatus.COMPLETED)
+        assertThat(songRepository.findById(song.id!!).orElseThrow().youtubeUrl).isEqualTo(CURRENT_MV_URL)
+    }
+
+    @Test
+    fun `an MV-only rerun that finds no MV drops a current MV the rules now reject`(): Unit = runBlocking {
+        stubLyricsFound()
+        stubYoutubeMissing()
+        stubLyricAnalysis()
+        val song = persistSongWithOldMv()
+        persistActiveLyric(song.id!!, "古い歌詞")
+        val first = persistAdminWork(song.id!!, status = SongAnalysisWorkStatus.PENDING)
+        drive(first.id!!)
+        // 남의 채널 재업로드가 지금 MV 로 붙어 있다.
+        songRepository.findById(song.id!!).orElseThrow().also { it.youtubeUrl = CURRENT_MV_URL }.let(songRepository::saveAndFlush)
+        stubCurrentVideo(title = "$ARTIST - $TITLE", channelTitle = "音楽音楽")
+
+        val rerun = workService.rerun(first.id!!, SongAnalysisWorkStage.FETCH_YOUTUBE)
+        drive(rerun.workId)
+        entityManager.flush()
+        entityManager.clear()
+
+        assertThat(workRepository.findById(rerun.workId).orElseThrow().status).isEqualTo(SongAnalysisWorkStatus.COMPLETED)
+        assertThat(songRepository.findById(song.id!!).orElseThrow().youtubeUrl).isNull()
+    }
+
+    @Test
+    fun `a YouTube error while judging the current MV fails the stage and keeps the MV`(): Unit = runBlocking {
+        stubLyricsFound()
+        stubYoutubeMissing()
+        stubLyricAnalysis()
+        every { youtubeClient.getVideo(CURRENT_MV_ID) } throws RuntimeException("403 Forbidden: quota exceeded")
+        val song = persistSongWithOldMv(CURRENT_MV_URL)
+        persistActiveLyric(song.id!!, "古い歌詞")
+        val work = persistAdminWork(song.id!!, status = SongAnalysisWorkStatus.PENDING)
+        drive(work.id!!)
+        entityManager.flush()
+        entityManager.clear()
+
+        val refreshedWork = workRepository.findById(work.id!!).orElseThrow()
+        assertThat(refreshedWork.status).isEqualTo(SongAnalysisWorkStatus.FAILED)
+        assertThat(refreshedWork.currentStage).isEqualTo(SongAnalysisWorkStage.FETCH_YOUTUBE)
+        assertThat(songRepository.findById(song.id!!).orElseThrow().youtubeUrl).isEqualTo(CURRENT_MV_URL)
+    }
+
+    @Test
     fun `lyric lookup failure fails work without youtube search or player-ready milestone`(): Unit = runBlocking {
         stubLyricsMissing()
         stubYoutubeFound()
@@ -521,12 +579,25 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         return lyric
     }
 
-    private fun persistSongWithOldMv(): SongEntity {
+    private fun stubCurrentVideo(title: String, channelTitle: String) {
+        every { youtubeClient.getVideo(CURRENT_MV_ID) } returns YoutubeVideoItemDto(
+            id = CURRENT_MV_ID,
+            contentDetails = YoutubeContentDetailsDto(duration = "PT3M30S"),
+            snippet = YoutubeSnippetDto(
+                title = title,
+                thumbnails = YoutubeThumbnailsDto(medium = null, default = null),
+                channelTitle = channelTitle,
+            ),
+        )
+    }
+
+    // "old-mv" 는 video id 로 읽히지 않아 지금 MV 판정 없이 그대로 남는다.
+    private fun persistSongWithOldMv(youtubeUrl: String = "https://youtu.be/old-mv"): SongEntity {
         val song = SongEntity(
             title = TITLE,
             artist = ARTIST,
             durationSeconds = 210,
-            youtubeUrl = "https://youtu.be/old-mv",
+            youtubeUrl = youtubeUrl,
         )
         entityManager.persist(song)
         entityManager.flush()
@@ -680,5 +751,7 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
     private companion object {
         const val TITLE = "ももいろの鍵"
         const val ARTIST = "いよわ"
+        const val CURRENT_MV_ID = "currentmv01"
+        const val CURRENT_MV_URL = "https://www.youtube.com/watch?v=$CURRENT_MV_ID"
     }
 }

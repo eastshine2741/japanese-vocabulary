@@ -79,6 +79,9 @@ class SongAnalysisPreparationService(
     suspend fun searchYoutube(title: String, artist: String, durationSeconds: Int?): MvSearchResult =
         withProviderRetry("YouTube") { youtubeMvSearchService.search(title, artist, durationSeconds) }
 
+    suspend fun acceptsCurrentMv(videoId: String, title: String, artist: String, durationSeconds: Int?): Boolean =
+        withProviderRetry("YouTube") { youtubeMvSearchService.acceptsAsOnlyCandidate(videoId, title, artist, durationSeconds) }
+
     fun saveSongAndLyric(
         title: String,
         artist: String,

@@ -20,6 +20,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 
 /**
@@ -253,13 +254,48 @@ class YoutubeMvSearchServiceTest {
     }
 
     @Test
-    fun `search accepts a reupload on a stranger's channel when nothing official is found`() {
+    fun `a reupload on a stranger's channel is never taken, even when nothing else is found`() {
         every { artistChannelCache.get(ARTIST) } returns null
         stubSearch(searchItem("reupload-id", "$ARTIST - $TITLE", "音楽音楽"))
         stubDurations("reupload-id" to "PT3M58S")
 
-        assertThat(service.searchMvUrl(TITLE, ARTIST, TRACK_SECONDS))
-            .isEqualTo("https://www.youtube.com/watch?v=reupload-id")
+        assertThat(service.searchMvUrl(TITLE, ARTIST, TRACK_SECONDS)).isNull()
+    }
+
+    @Test
+    fun `the current MV is kept when it would pass as the only candidate`() {
+        stubVideo("mv-id", "$TITLE Official MV", channelTitle = ARTIST, duration = "PT4M")
+
+        assertThat(service.acceptsAsOnlyCandidate("mv-id", TITLE, ARTIST, TRACK_SECONDS)).isTrue()
+    }
+
+    @Test
+    fun `the current MV is dropped when it is a stranger's reupload, a reaction, or gone`() {
+        stubVideo("reupload-id", "$ARTIST - $TITLE", channelTitle = "音楽音楽", duration = "PT4M")
+        stubVideo("reaction-id", "$TITLE Official MV reaction", channelTitle = ARTIST, duration = "PT4M")
+        every { youtubeClient.getVideo("gone-id") } returns null
+
+        assertThat(service.acceptsAsOnlyCandidate("reupload-id", TITLE, ARTIST, TRACK_SECONDS)).isFalse()
+        assertThat(service.acceptsAsOnlyCandidate("reaction-id", TITLE, ARTIST, TRACK_SECONDS)).isFalse()
+        assertThat(service.acceptsAsOnlyCandidate("gone-id", TITLE, ARTIST, TRACK_SECONDS)).isFalse()
+    }
+
+    @Test
+    fun `the current MV is dropped when the app cannot play it`() {
+        stubVideo(
+            "age-id", "$TITLE Official MV", channelTitle = ARTIST, duration = "PT4M",
+            contentRating = YoutubeContentRatingDto(ytRating = "ytAgeRestricted"),
+        )
+
+        assertThat(service.acceptsAsOnlyCandidate("age-id", TITLE, ARTIST, TRACK_SECONDS)).isFalse()
+    }
+
+    @Test
+    fun `a YouTube error while judging the current MV propagates instead of dropping it`() {
+        every { youtubeClient.getVideo("mv-id") } throws RuntimeException("503 Service Unavailable")
+
+        assertThatThrownBy { service.acceptsAsOnlyCandidate("mv-id", TITLE, ARTIST, TRACK_SECONDS) }
+            .isInstanceOf(RuntimeException::class.java)
     }
 
     @Test
@@ -664,6 +700,20 @@ class YoutubeMvSearchServiceTest {
                 contentDetails = YoutubeContentDetailsDto(duration = duration),
             )
         }
+    }
+
+    private fun stubVideo(
+        videoId: String,
+        title: String,
+        channelTitle: String,
+        duration: String,
+        contentRating: YoutubeContentRatingDto? = null,
+    ) {
+        every { youtubeClient.getVideo(videoId) } returns YoutubeVideoItemDto(
+            id = videoId,
+            contentDetails = YoutubeContentDetailsDto(duration = duration, contentRating = contentRating),
+            snippet = searchItem(videoId, title, channelTitle).snippet,
+        )
     }
 
     private fun searchItem(
