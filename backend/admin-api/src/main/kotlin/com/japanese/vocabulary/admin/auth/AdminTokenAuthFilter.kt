@@ -23,15 +23,14 @@ class AdminTokenAuthFilter(
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             val token = authHeader.removePrefix("Bearer ")
             SecurityContextHolder.getContext().authentication = when {
-                isLyricSyncAgentToken(token) -> LyricSyncAgentAuthentication()
+                matches(token, properties.lyricSyncAgentToken) -> LyricSyncAgentAuthentication()
+                matches(token, properties.analysisAuditToken) -> AnalysisAuditAuthentication()
                 else -> adminTokenService.validate(token)?.let { AdminAuthentication(it.expiration.toInstant()) }
             }
         }
         filterChain.doFilter(request, response)
     }
 
-    private fun isLyricSyncAgentToken(token: String): Boolean {
-        val expected = properties.lyricSyncAgentToken
-        return expected.isNotEmpty() && MessageDigest.isEqual(expected.toByteArray(), token.toByteArray())
-    }
+    private fun matches(token: String, expected: String): Boolean =
+        expected.isNotEmpty() && MessageDigest.isEqual(expected.toByteArray(), token.toByteArray())
 }

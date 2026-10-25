@@ -74,20 +74,8 @@ die() { log "ERROR" "$*"; exit 1; }
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-ADMIN_TOKEN=""
-
-# ADMIN_API_TOKEN skips the login, for a token issued some other way.
-admin_login() {
-  if [[ -n "${ADMIN_API_TOKEN:-}" ]]; then ADMIN_TOKEN="$ADMIN_API_TOKEN"; return; fi
-  : "${ADMIN_PASSWORD:?ADMIN_PASSWORD is required}"
-  ADMIN_TOKEN="$(curl -sS --fail-with-body --max-time "$HTTP_TIMEOUT" -X POST -H 'Content-Type: application/json' \
-    -d "$(jq -cn --arg p "$ADMIN_PASSWORD" '{password: $p}')" "$ADMIN_API_BASE/auth/login" | jq -r '.token // empty')" \
-    || die "admin-api login failed"
-  [[ -n "$ADMIN_TOKEN" ]] || die "admin-api login returned no token"
-}
-
 admin_get() {
-  curl -sS --fail-with-body --max-time "$HTTP_TIMEOUT" -H "Authorization: Bearer $ADMIN_TOKEN" "$ADMIN_API_BASE$1"
+  curl -sS --fail-with-body --max-time "$HTTP_TIMEOUT" -H "Authorization: Bearer $ANALYSIS_AUDIT_TOKEN" "$ADMIN_API_BASE$1"
 }
 
 preflight() {
@@ -95,7 +83,7 @@ preflight() {
   for tool in jq curl gh claude python3; do
     command -v "$tool" >/dev/null 2>&1 || die "Missing tool: $tool"
   done
-  admin_login
+  [[ -n "${ANALYSIS_AUDIT_TOKEN:-}" ]] || die "ANALYSIS_AUDIT_TOKEN is required"
   admin_get "/song-analysis-works?status=COMPLETED&size=1" | jq -e '.content|type=="array"' >/dev/null \
     || die "admin-api did not return song analysis works"
   gh auth status >/dev/null 2>&1 || die "gh is not authenticated"

@@ -2,6 +2,7 @@ package com.japanese.vocabulary.admin.config
 
 import com.japanese.vocabulary.admin.auth.AdminAuthentication
 import com.japanese.vocabulary.admin.auth.AdminTokenAuthFilter
+import com.japanese.vocabulary.admin.auth.AnalysisAuditAuthentication
 import com.japanese.vocabulary.admin.auth.LyricSyncAgentAuthentication
 import jakarta.servlet.DispatcherType
 import org.springframework.boot.context.properties.EnableConfigurationProperties
@@ -43,6 +44,13 @@ class SecurityConfig(
                     .requestMatchers("/error").permitAll()
                     // 실행기 토큰은 이 경로에만, admin 로그인 토큰은 이 경로를 뺀 나머지에만 쓴다.
                     .requestMatchers("/admin/api/lyric-sync-agent/**").hasAuthority(LyricSyncAgentAuthentication.AUTHORITY)
+                    // 감사 러너 토큰은 완료된 분석과 가사를 읽기만 한다. 재개·stage 출력·다른 화면 API 는 못 쓴다.
+                    .requestMatchers(
+                        HttpMethod.GET,
+                        "/admin/api/song-analysis-works",
+                        "/admin/api/song-analysis-works/*",
+                        "/admin/api/lyrics/*",
+                    ).hasAnyAuthority(AdminAuthentication.AUTHORITY, AnalysisAuditAuthentication.AUTHORITY)
                     .requestMatchers("/admin/api/**").hasAuthority(AdminAuthentication.AUTHORITY)
                     .anyRequest().denyAll()
             }

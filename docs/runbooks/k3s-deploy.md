@@ -162,6 +162,7 @@ DEPLOY_NS=issue-21 npx expo run:android
 | `ADMIN_PASSWORD` / `ADMIN_PASSWORD_SHA256` | Admin API password source. Local dev defaults `ADMIN_PASSWORD` to `admin` in `deploy.sh` if unset |
 | `ADMIN_TOKEN_SECRET` | Admin-only bearer token signing key. Separate from public `JWT_SECRET` |
 | `ADMIN_LYRIC_SYNC_AGENT_TOKEN` | 로컬 PC 가사 싱크 실행기(`lyric-sync-agent/`)가 admin-api 에 쓰는 고정 토큰(32자 이상, `openssl rand -hex 32`). 이 토큰은 실행기 API 만 열고 admin 화면 API 는 못 쓴다. 비면 실행기 API 가 닫힌다(prod 는 경고만) |
+| `ADMIN_ANALYSIS_AUDIT_TOKEN` | 로컬 PC 곡 분석 감사 러너(`.github/scripts/analysis-audit/`)가 admin-api 에 쓰는 고정 토큰(32자 이상). 분석 작업 목록·상세와 가사 상세를 읽기만 한다. 비면 러너가 붙지 못한다(prod 는 경고만) |
 | `SHARE_APPLE_APP_ID` | `.env.prod`. `<TeamID>.dev.eastshine.kotonoha`. 비면 `/.well-known/apple-app-site-association` 이 404 라 카드 공유 링크(`/c/*`)가 Universal Link 로 앱을 열지 않는다 |
 | `SHARE_ANDROID_SHA256_FINGERPRINTS` | `.env.prod`. 앱 서명 인증서 SHA-256 (Play 앱 서명 키, 쉼표로 여러 개). 비면 `/.well-known/assetlinks.json` 이 404 라 App Links 검증이 안 된다 |
 | `SHARE_TOKEN_KEYS` | 카드 공유 링크 서명 키. `kid:secret`(secret 32자 이상)을 쉼표로 잇고 첫 키로 서명한다. prod 필수(`.env.prod`, 예 `s1:$(openssl rand -hex 32)`), dev 는 기본값. 키를 버리면 올라간 링크가 깨지므로 바꿀 땐 새 키를 앞에 붙이고 옛 키를 남긴다 |
