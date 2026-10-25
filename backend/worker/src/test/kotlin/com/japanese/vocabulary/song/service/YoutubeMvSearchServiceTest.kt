@@ -499,6 +499,57 @@ class YoutubeMvSearchServiceTest {
     }
 
     @Test
+    fun `a Hangul suffix on the artist's own channel is not penalized`() {
+        every { artistChannelCache.get("PLAVE") } returns null
+        stubSearch(
+            searchItem("pOmJ65UnPEY", "PLAVE &#39;Flame (feat. milet)&#39; M/V", "PLAVE 플레이브"),
+            searchItem("oYSgcuif8pI", "PLAVE &#39;Flame (feat. milet)&#39; Lyrics (플레이브 Flame 가사) [Color Coded Kan_Rom_Eng]", "Chenyeol"),
+            searchItem("OiFqCyW3KyI", "PLAVE (플레이브) - Flame (feat. milet) | Color Coded Lyrics (Kan/Rom/Eng)", "Soba-chan"),
+            searchItem("lcCUH5vr9Ps", "[플레이브] 260927 Flame (feat. milet) | PLAVE World Tour [KEEP IT MANIC] in Japan", "뮈.."),
+            searchItem("retiYLphYXw", "Flame ⚽️🏃🏃🏃‍♀️🏃💨 #PLAVE #プレイブ #YEJUN #NOAH #HAMIN #Flame #milet @miletOfficialYouTubeChannel", "PLAVE 플레이브"),
+            searchItem("6BKWNyK7RbU", "260926 PLAVE KEEP IT MANIC IN JAPAN FLAME 신곡 무대 #플레이브 #plave", "김폴링"),
+            searchItem("3-fzl8V8l2g", "PLAVE - Flame [Flame (feat. milet)]ㅣ가사/Lyrics", "베어뮤직 BearMusic"),
+            searchItem("fQx32Q6HTn8", "PLAVE &#39;Flame (feat. milet)&#39; M/V Teaser", "PLAVE 플레이브"),
+            searchItem("2WnL2ARuj5I", "Musician Reacts to PLAVE (플레이브) - &#39;Flame (feat. milet)&#39; M/V | First Time Reaction!", "Velo City"),
+            searchItem("oXPB_Pa58aU", "PLAVE &#39;Flame (feat. milet)&#39; M/V REACTION", "Alexa Takes A Look"),
+            searchItem("leVEgwDQijA", "PLAVE &#39;Flame (feat. milet)&#39; M/V Teaser #PLAVE #プレイブ #milet @miletOfficialYouTubeChannel", "PLAVE 플레이브"),
+            searchItem("VPC4Rd49O6M", "REACTING TO PLAVE&#39;S NEW MUSIC VIDEO FLAME", "Phoenixx Reacts"),
+            searchItem("DwYIjCC7IlM", "PLAVE (플레이브) - Flame (feat. milet) | 260927 KEEP IT MANIC in JAPAN", "왕옹"),
+            searchItem("IvuMf8vQA40", "PLAVE x milet ‘FLAME’ MV REACTION | THEIR VOICES TOGETHER?!", "Fangirlz Reacts"),
+            searchItem("-3yStw4kjR4", "26/09/26 플레이브 일본콘서트-Flame(feat.milet)", "할리밤"),
+        )
+        stubDurations(
+            "pOmJ65UnPEY" to "PT3M13S",
+            "oYSgcuif8pI" to "PT3M11S",
+            "OiFqCyW3KyI" to "PT3M8S",
+            "lcCUH5vr9Ps" to "PT3M9S",
+            "retiYLphYXw" to "PT27S",
+            "6BKWNyK7RbU" to "PT3M9S",
+            "3-fzl8V8l2g" to "PT3M8S",
+            "fQx32Q6HTn8" to "PT30S",
+            "2WnL2ARuj5I" to "PT5M24S",
+            "oXPB_Pa58aU" to "PT7M32S",
+            "leVEgwDQijA" to "PT30S",
+            "VPC4Rd49O6M" to "PT6M22S",
+            "DwYIjCC7IlM" to "PT3M9S",
+            "IvuMf8vQA40" to "PT22M15S",
+            "-3yStw4kjR4" to "PT3M10S",
+        )
+
+        assertThat(service.searchMvUrl("Flame (feat. milet)", "PLAVE", 187))
+            .isEqualTo("https://www.youtube.com/watch?v=pOmJ65UnPEY")
+    }
+
+    @Test
+    fun `a Hangul channel that is not the artist's still loses its reupload`() {
+        every { artistChannelCache.get("PLAVE") } returns null
+        stubSearch(searchItem("reupload-id", "PLAVE &#39;Flame (feat. milet)&#39; M/V", "플레이브 팬"))
+        stubDurations("reupload-id" to "PT3M13S")
+
+        assertThat(service.searchMvUrl("Flame (feat. milet)", "PLAVE", 187)).isNull()
+    }
+
+    @Test
     fun `a miss reports every candidate and why it was dropped`() {
         every { artistChannelCache.get(ARTIST) } returns null
         stubSearch(

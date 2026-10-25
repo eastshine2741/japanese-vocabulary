@@ -348,12 +348,15 @@ class YoutubeMvSearchService(
         val normalizedChannel = normalizeForMatch(channelTitle)
         val normalizedArtist = normalizeForMatch(ArtistCredit.withoutFeaturing(artist))
 
+        val channelNamesArtist = normalizedArtist.isNotBlank() && normalizedChannel.contains(normalizedArtist)
+
         var score = 0
         if (OFFICIAL_TITLE_RE.containsMatchIn(title)) score += 5
         if (BAD_TITLE_RE.containsMatchIn(title)) score -= 10
         if (LIVE_TITLE_RE.containsMatchIn(title)) score -= LIVE_TITLE_PENALTY
-        if (HANGUL_RE.containsMatchIn(channelTitle) && !HANGUL_RE.containsMatchIn(artist)) score -= 10
-        if (normalizedArtist.isNotBlank() && normalizedChannel.contains(normalizedArtist)) score += 3
+        // A Korean act's own channel adds its Hangul name ("PLAVE 플레이브"); only strangers' channels lose points.
+        if (HANGUL_RE.containsMatchIn(channelTitle) && !HANGUL_RE.containsMatchIn(artist) && !channelNamesArtist) score -= 10
+        if (channelNamesArtist) score += 3
         if (normalizedArtist.isNotBlank() && normalizedTitle.startsWith(normalizedArtist)) score += 1
         return score
     }
