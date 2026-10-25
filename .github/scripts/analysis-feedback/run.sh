@@ -164,18 +164,23 @@ fetch_marker() {
   query="$(urlencode "message:${marker}")"
   base="/organizations/${org}/events/?dataset=errors&field=id&field=timestamp&field=message&per_page=100&sort=-timestamp&statsPeriod=${WINDOW}&project=${SENTRY_PROJECT}&query=${query}"
   path="$base"
+  body="$(tmp)"
+  # The events API's `message` is the log line followed by the event title; a long line's title is a
+  # cut copy of it, so only the part before the second marker is JSON.
+  local payload='.message | ltrimstr($marker + " ") | split(" " + $marker + " ")[0]'
   while :; do
-    body="$(sentry_get "$path")" || die "Sentry events fetch failed on page $page ($marker)"
+    # Not $(...): sentry_get leaves the next cursor in a variable, which a subshell would drop.
+    sentry_get "$path" > "$body" || die "Sentry events fetch failed on page $page ($marker)"
     local unparsed
-    unparsed="$(jq --arg marker "$marker" '[.data[] | select(.message | startswith($marker + " ")) | select((.message | ltrimstr($marker + " ") | fromjson?) == null)] | length' <<<"$body")"
+    unparsed="$(jq --arg marker "$marker" '[.data[] | select(.message | startswith($marker + " ")) | select(('"$payload"' | fromjson?) == null)] | length' "$body")"
     [[ "$unparsed" -eq 0 ]] || log "WARN" "$unparsed $marker event(s) on page $page are not valid JSON (cut by Sentry?) and are skipped"
     jq -c --arg marker "$marker" '
       .data[]
       | select(.message | startswith($marker + " "))
-      | {marker: $marker, eventId: .id, timestamp: .timestamp, defect: (.message | ltrimstr($marker + " ") | fromjson? // empty)}
+      | {marker: $marker, eventId: .id, timestamp: .timestamp, defect: ('"$payload"' | fromjson? // empty)}
       | select(.defect != null)
       | '"$NORMALIZE_EVENT"'
-    ' <<<"$body"
+    ' "$body"
     [[ -n "$SENTRY_NEXT_CURSOR" ]] || break
     page=$((page + 1))
     [[ $page -le 10 ]] || { log "WARN" "Stopping after 10 pages of $marker; the rest waits for the next run"; break; }
@@ -428,7 +433,7 @@ pr_body() {
   first="$(jq -r --argjson keys "$(jq -c '.keys' <<<"$group")" '[.defects[$keys[]].firstSeen] | min | .[:10]' "$LEDGER_FILE")"
   last="$(jq -r --argjson keys "$(jq -c '.keys' <<<"$group")" '[.defects[$keys[]].lastSeen] | max | .[:10]' "$LEDGER_FILE")"
   echo
-  if [[ "$first" == "$last" ]]; then echo "(${first} 발생, Sentry kotonoha-batch-prod)"; else echo "(${first} ~ ${last} 발생, Sentry kotonoha-batch-prod)"; fi
+  if [[ "$first" == "$last" ]]; then echo "(${first} 발생, Sentry kotonoha-worker-prod)"; else echo "(${first} ~ ${last} 발생, Sentry kotonoha-worker-prod)"; fi
   echo
   echo "## 왜"
   echo

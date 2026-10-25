@@ -9,15 +9,15 @@ worker: SegmentLyricsStage / SelectSensesStage
 worker: FETCH_YOUTUBE
   └─ MV 못 찾음 = 로그 1줄  →  MV_SEARCH_DEFECT {"workId":762,"title":"少女A","artist":"椎名もた","durationSeconds":221,"candidates":[...]}
         ↓  (sentry-logback, warn)
-Sentry kotonoha-batch-prod — 이벤트만 읽는다, 이슈는 안 본다
+Sentry kotonoha-worker-prod — 이벤트만 읽는다, 이슈는 안 본다
         ↓
 run.sh  fetch → ledger(cause:headword) → 새 키만 → classify(sonnet, 읽기 전용)
         → fix(opus, origin/main 워크트리, translation 모듈만) → 테스트 main:실패/브랜치:통과 → PR
 ```
 
-> 곡 분석 파이프라인은 `batch` 에서 `worker` 로 옮겨졌지만, 이 러너가 읽는 Sentry 프로젝트는
-> `kotonoha-batch-prod` 그대로다. `.env.prod` 의 `SENTRY_DSN_WORKER` 가 그 프로젝트를 가리켜야
-> 결손 로그가 계속 여기로 들어온다. 새 Sentry 프로젝트를 만들면 이 문서의 프로젝트 id 도 같이 바꿀 것.
+> `.env` 의 `SENTRY_PROJECT` 는 `.env.prod` 의 `SENTRY_DSN_WORKER` 가 가리키는 프로젝트(DSN 끝의 숫자)와
+> 같아야 한다. 어긋나면 러너는 오류 없이 "0건"만 읽는다. 결손 로그가 오는지와 무관하게 곡 결과를 검사하는
+> 러너는 `../analysis-audit/` 다.
 
 ## Files
 
