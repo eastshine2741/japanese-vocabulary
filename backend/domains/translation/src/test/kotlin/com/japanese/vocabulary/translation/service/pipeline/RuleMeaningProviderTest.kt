@@ -88,8 +88,8 @@ class RuleMeaningProviderTest {
 
         assertThat(dara.partOfSpeech).isEqualTo(PartOfSpeech.AUXILIARY_VERB)
         assertThat(dara.baseFormReading).isEqualTo("ダラ")
-        assertThat(dara.koreanText).isEqualTo("~하면, ~했더니")
-        assertThat(provider.resolve(token("たら"))!!.koreanText).isEqualTo("~하면, ~했더니")
+        assertThat(dara.koreanText).isEqualTo("~하면")
+        assertThat(provider.resolve(token("たら"))!!.koreanText).isEqualTo("~하면")
     }
 
     @Test
@@ -113,8 +113,8 @@ class RuleMeaningProviderTest {
         assertThat(resolved).isNotNull
         assertThat(resolved!!.partOfSpeech).isEqualTo(PartOfSpeech.AUXILIARY_VERB)
         assertThat(resolved.baseForm).isEqualTo("ったって")
-        assertThat(resolved.koreanText).isEqualTo("~해도, ~한들")
-        assertThat(provider.resolve(token("たって"))!!.koreanText).isEqualTo("~해도, ~한들")
+        assertThat(resolved.koreanText).isEqualTo("~해도")
+        assertThat(provider.resolve(token("たって"))!!.koreanText).isEqualTo("~해도")
     }
 
     @Test

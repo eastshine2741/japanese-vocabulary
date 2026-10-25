@@ -96,7 +96,7 @@ class GeminiClient(
     }
 
     /**
-     * Translate the chosen English senses to Korean: POS-consistent, 1–2 comma-separated meanings;
+     * Translate the chosen English senses to Korean: POS-consistent, exactly one meaning per sense;
      * particles render as Korean particles (は→"~은/는").
      */
     suspend fun translateSenses(senses: List<Map<String, Any?>>, context: GeminiCallContext): List<SenseTranslationDto> {
@@ -423,13 +423,12 @@ class GeminiClient(
             규칙:
             - koreanText = 주어진 Japanese sense의 **정확하고 구체적인 한국어 사전 뜻**. baseForm/reading은 어떤 일본어 단어의 뜻인지 확인하기 위한 정체성 단서다.
             - **sense 하나에 한국어 뜻 하나.** englishDefinitions에 여러 gloss가 있어도 그것들이 공유하는 핵심 뜻을 파악해 **가장 자연스러운 한 개**만 쓴다.
-              유의어를 나열하지 마라 — 이 문자열은 단어장에서 뜻 목록으로 쪼개지므로, 비슷한 말을 덧붙이면 같은 뜻이 여러 개로 저장된다.
+              유의어를 나열하지 마라 — 같은 sense 가 다른 곡에서 다른 표현으로 번역되면 뜻이 겹쳐 쌓인다.
               예: english "shy" → "수줍다" (X: "수줍은, 부끄러움을 타는"), "head over heels / headlong / head first" → "곤두박질".
-            - 한 뜻을 표현하는 데 쉼표가 필요한 경우가 아니면 쉼표(,)를 쓰지 마라. 슬래시(/)는 쓰지 마라.
-              괄호로 대상을 한정하는 것은 뜻 하나다: "(사람, 물건이) 있다".
+            - 괄호 밖에서는 쉼표(,)와 슬래시(/)를 쓰지 마라. 괄호로 대상을 한정하는 것은 뜻 하나다: "(사람, 물건이) 있다".
             - 품사 일관: 동사/형용사(형용동사 포함)→"~다"(명사형 금지, 好き→"좋아하다"), 명사→명사, 부사→부사.
-            - **pos가 PARTICLE(조사)면** 영어 설명("indicates the subject" 등)을 그대로 옮기지 말고, **같은 기능의 한국어 조사로** 번역한다. 문장에 끼워도 자연스러운 조사 형태로. 예: は→"~은/는", が→"~이/가", を→"~을/를", の→"~의", に→"~에, ~에게", へ→"~으로", と→"~와/과, ~라고", も→"~도", から→"~부터, ~에서", まで→"~까지", で→"~에서, ~로", や→"~이나".
-              조사는 대응하는 한국어 조사 형태를 병기하는 것이 사전 표기이므로, 위 예시처럼 두 형태를 쉼표로 잇는 것은 허용한다. 조사가 아닌 단어는 뜻 하나다.
+            - **pos가 PARTICLE(조사)면** 영어 설명("indicates the subject" 등)을 그대로 옮기지 말고, **같은 기능의 한국어 조사로** 번역한다. 문장에 끼워도 자연스러운 조사 형태로. 예: は→"~은/는", が→"~이/가", を→"~을/를", の→"~의", に→"~에", へ→"~으로", と→"~와/과", も→"~도", から→"~부터", まで→"~까지", で→"~에서", や→"~이나".
+              조사도 뜻 하나다. 받침에 따라 갈리는 이형태("~은/는")만 슬래시로 묶는다.
             - 한자어는 한국 한자음이 아니라 실제 의미로. english 그대로의 뜻만 옮기고 새 뜻을 지어내지 마라.
         """.trimIndent()
 

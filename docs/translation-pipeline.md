@@ -41,9 +41,11 @@ segment -> anchor/retry -> rules -> dictionary entry-select
 
 - One dictionary sense gets one `senseId` for the whole song. A repeated chorus
   must not send the same sense to sense-translate once per occurrence.
-- Sense translation returns exactly one Korean meaning per dictionary sense.
-  Comma-separated Korean strings are split into word senses later by the word
-  save path.
+- Sense translation and rule-table tokens carry exactly one Korean meaning.
+  The word save path splits on commas and merges the same sense across songs,
+  so a "A, B" from one song and "A" from another pile up as "A, B, A".
+  `TranslateSensesStage` keeps only the first meaning if the model still lists
+  several.
 - Dictionary entry identity is `(headword, reading)`, not just headword. Ambiguous
   kana headwords are sent to sense-select with entry labels.
 - Readings are normalized to katakana through `JapaneseText.toKatakana`.
