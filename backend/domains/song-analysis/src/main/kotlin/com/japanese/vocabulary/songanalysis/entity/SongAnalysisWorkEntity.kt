@@ -64,6 +64,14 @@ class SongAnalysisWorkEntity(
     @Column(name = "created_by_user_id")
     val createdByUserId: Long? = null,
 
+    /** 관리자가 고른 다시 돌릴 단계. null 이면 파이프라인 전체다. 범위 밖 단계 산출물은 [sourceWorkId] 에서 물려받는다. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "rerun_from")
+    val rerunFrom: SongAnalysisWorkStage? = null,
+
+    @Column(name = "source_work_id")
+    val sourceWorkId: Long? = null,
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     var createdAt: Instant? = null,
@@ -85,6 +93,9 @@ class SongAnalysisWorkEntity(
     @Column(name = "failed_at")
     var failedAt: Instant? = null,
 ) {
+    val rerunScope: Set<SongAnalysisWorkStage>?
+        get() = rerunFrom?.rerunScope()
+
     fun clearFailure() {
         errorCode = null
         errorMessage = null

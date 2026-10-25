@@ -26,4 +26,9 @@ data class AdminSongAnalysisWorkDetailResponse(
     val stages: List<AdminSongAnalysisStageResponse>,
     /** 실패한 단계부터 다시 돌릴 수 있는지. 단계 원장이 생기기 전에 실패한 작업은 못 한다. */
     val resumable: Boolean,
+    /** null 이면 파이프라인 전체를 돈 작업이다. 범위 밖 단계 산출물은 [sourceWorkId] 작업에서 복사돼 있다. */
+    val rerunFrom: String?,
+    val sourceWorkId: Long?,
+    /** 단계 이름 → 그 단계부터 다시 돌릴 수 없는 이유. null 이면 돌릴 수 있다. */
+    val rerunBlockers: Map<String, String?>,
 )

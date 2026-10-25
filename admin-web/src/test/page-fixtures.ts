@@ -218,6 +218,16 @@ export const songAnalysisWorkDetail: SongAnalysisWorkDetail = {
   startedAt: "2026-01-01T00:00:00Z",
   stages: [],
   resumable: false,
+  rerunFrom: null,
+  sourceWorkId: null,
+  rerunBlockers: {
+    FETCH_LYRICS: null,
+    FETCH_YOUTUBE: null,
+    ANALYZE_LYRICS: null,
+    SELECT_SENSES: null,
+    TRANSLATE_SENSES: null,
+    COMPLETE: null,
+  },
 }
 
 export const failedSongAnalysisWorkDetail: SongAnalysisWorkDetail = {
@@ -230,6 +240,14 @@ export const failedSongAnalysisWorkDetail: SongAnalysisWorkDetail = {
   errorCode: "SONG_ANALYSIS_WORK_FAILED",
   errorMessage: "Song analysis failed",
   resumable: true,
+  rerunBlockers: {
+    FETCH_LYRICS: null,
+    FETCH_YOUTUBE: null,
+    ANALYZE_LYRICS: null,
+    SELECT_SENSES: "No ANALYZE_LYRICS output on this work",
+    TRANSLATE_SENSES: "No ANALYZE_LYRICS output on this work",
+    COMPLETE: "No ANALYZE_LYRICS output on this work",
+  },
   stages: [
     {
       stage: "FETCH_LYRICS",
@@ -254,6 +272,24 @@ export const failedSongAnalysisWorkDetail: SongAnalysisWorkDetail = {
       finishedAt: "2026-01-01T00:02:00Z",
     },
   ],
+}
+
+export const rerunSongAnalysisWorkDetail: SongAnalysisWorkDetail = {
+  ...failedSongAnalysisWorkDetail,
+  id: 6,
+  status: "PENDING",
+  currentStage: "ANALYZE_LYRICS",
+  triggerSource: "ADMIN",
+  failedAt: null,
+  errorCode: null,
+  errorMessage: null,
+  resumable: false,
+  rerunFrom: "ANALYZE_LYRICS",
+  sourceWorkId: 5,
+  rerunBlockers: Object.fromEntries(
+    ["FETCH_LYRICS", "FETCH_YOUTUBE", "ANALYZE_LYRICS", "SELECT_SENSES", "TRANSLATE_SENSES", "COMPLETE"].map((stage) => [stage, "Work is still running"]),
+  ),
+  stages: [{ ...failedSongAnalysisWorkDetail.stages[0], attempt: 0 }],
 }
 
 export const reelsSongCandidate: ReelsSongCandidate = {

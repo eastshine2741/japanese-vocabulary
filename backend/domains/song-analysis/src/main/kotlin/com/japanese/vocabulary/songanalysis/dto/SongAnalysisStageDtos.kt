@@ -40,6 +40,7 @@ data class SongAnalysisWorkSnapshot(
     val songId: Long?,
     val lyricId: Long?,
     val youtubeUrl: String?,
+    val rerunFrom: SongAnalysisWorkStage? = null,
 )
 
 fun SongAnalysisWorkEntity.toSnapshot() = SongAnalysisWorkSnapshot(
@@ -52,4 +53,5 @@ fun SongAnalysisWorkEntity.toSnapshot() = SongAnalysisWorkSnapshot(
     songId = songId,
     lyricId = lyricId,
     youtubeUrl = youtubeUrl,
+    rerunFrom = rerunFrom,
 )

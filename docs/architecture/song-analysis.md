@@ -97,6 +97,15 @@ Admin reanalysis reruns lyric lookup, YouTube lookup, analysis, and lyric creati
 
 Completion is the active switch boundary: it locks the work row and target song row, creates the new lyric with its analyzed content, updates `songs.active_lyric_id`, overwrites current `songs.youtube_url` with the work-produced MV (kept as is when the work found none), updates `songs.updated_at`, and marks the work `COMPLETED`. Failures never mutate the active song pointer or MV and leave no candidate lyric. Previous lyric rows remain queryable for audit/comparison; previous active MV values are not guaranteed to be retained. Do not add `previous_youtube_url`; only the newly produced MV belongs on `song_analysis_work.youtube_url`.
 
+### Rerunning one stage of a work
+
+Full reanalysis redoes lyric lookup and every Gemini call just to fix one part (a wrong MV, one bad sense pass), and it overwrites whatever is not broken — including an MV an admin set by hand. So the admin work page can rerun a single stage of a finished or failed work: that stage and every stage that reads its output (`SongAnalysisWorkStage.dependsOn`) run again; nothing else does.
+
+- **A new work, not the old one reopened.** The rerun is a new `ADMIN` work bound to the song, with `rerun_from` and `source_work_id`. The source work's completed outputs for the stages outside the scope are copied onto the new work's ledger as `COMPLETED` rows (attempt 0), so stages read only their own work's ledger as always, the one-active-work-per-song rule and its gap lock apply unchanged, and the source work stays an untouched record.
+- **What stays.** The MV is applied only when `FETCH_YOUTUBE` is in the scope; otherwise `songs.youtube_url` is left as it is (the copied MV output is not reapplied). Any scope that touches lyric content — any lyric stage, or `COMPLETE` alone — re-assembles the lines and creates a new active lyric exactly like full reanalysis. Rerunning only `FETCH_YOUTUBE` switches the MV and keeps the active lyric and its analysis.
+- **When it is refused.** The source work is still active, it has no song (it failed before `COMPLETE` of a first request), another work for the song is active, or a stage the scope reads is not `COMPLETED` on the source work. The detail response carries the reason per stage so the page can disable the button.
+- `CREATE_SONG_AND_LYRIC` is never a rerun target and is not copied: a rerun always creates its lyric at `COMPLETE`.
+
 ## Word Meaning Pipeline
 
 Detailed design: `docs/translation-pipeline.md`.

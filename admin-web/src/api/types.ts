@@ -98,6 +98,10 @@ export type SongAnalysisWorkDetail = SongAnalysisWorkSummary & {
   startedAt: string | null
   stages: SongAnalysisStage[]
   resumable: boolean
+  rerunFrom: string | null
+  sourceWorkId: number | null
+  /** stage name -> why it cannot be rerun from this work; null when it can. */
+  rerunBlockers: Record<string, string | null>
 }
 
 export type Recommendation = {

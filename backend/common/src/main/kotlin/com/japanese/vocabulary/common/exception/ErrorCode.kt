@@ -23,6 +23,7 @@ enum class ErrorCode(val status: HttpStatus, val message: String) {
     SONG_ANALYSIS_WORK_TIMEOUT(HttpStatus.INTERNAL_SERVER_ERROR, "Song analysis timed out"),
     SONG_ANALYSIS_PROVIDER_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "An external service was unavailable during song analysis"),
     SONG_ANALYSIS_WORK_NOT_RESUMABLE(HttpStatus.CONFLICT, "Song analysis work cannot be resumed"),
+    SONG_ANALYSIS_WORK_NOT_RERUNNABLE(HttpStatus.CONFLICT, "Song analysis stage cannot be rerun from this work"),
     SONG_ANALYSIS_NOT_PENDING(HttpStatus.CONFLICT, "No pending analysis for this song"),
     ANALYSIS_NOTIFICATION_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "Analysis notification subscription is unavailable"),
     INVALID_NOTIFICATION_REQUEST(HttpStatus.BAD_REQUEST, "enabled must be a boolean"),

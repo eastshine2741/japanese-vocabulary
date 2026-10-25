@@ -132,8 +132,20 @@ class SongAnalysisStageExecutor(
     }
 
     private suspend fun complete(claimed: ClaimedSongAnalysisStage) {
-        val source = sourceOf(claimed)
+        val scope = claimed.work.rerunFrom?.rerunScope()
         val outputs = Outputs(claimed)
+        // 범위 밖 단계는 돌지 않았으니 그 산출물 대신 곡의 지금 가사·MV 가 그대로 남는다.
+        val youtubeUrl = if (scope == null || SongAnalysisWorkStage.FETCH_YOUTUBE in scope) {
+            outputs.read(SongAnalysisWorkStage.FETCH_YOUTUBE, FetchYoutubeOutput::class.java).youtubeUrl
+        } else {
+            null
+        }
+        if (claimed.work.rerunFrom == SongAnalysisWorkStage.FETCH_YOUTUBE) {
+            completionService.completeMvOnly(claimed.ref, youtubeUrl, codec.write(CompleteOutput(analyzedLines = 0)))
+            logger.info("[workId={}] MV-only reanalysis completed", claimed.ref.workId)
+            return
+        }
+        val source = sourceOf(claimed)
         val analyzed = outputs.analyzed()
         val lines = translationService.assemble(
             source = source,
@@ -145,7 +157,7 @@ class SongAnalysisStageExecutor(
         completionService.completeWithAnalyzedContent(
             ref = claimed.ref,
             preparedLyric = outputs.read(SongAnalysisWorkStage.FETCH_LYRICS, FetchLyricsOutput::class.java),
-            youtubeUrl = outputs.read(SongAnalysisWorkStage.FETCH_YOUTUBE, FetchYoutubeOutput::class.java).youtubeUrl,
+            youtubeUrl = youtubeUrl,
             analyzedLines = lines,
             output = codec.write(CompleteOutput(analyzedLines = lines.size)),
         )

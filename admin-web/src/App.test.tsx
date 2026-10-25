@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { beforeEach, describe, expect, test, vi } from "vitest"
@@ -15,6 +15,7 @@ import {
   reelsSongCandidate,
   reelsSongDetail,
   failedSongAnalysisWorkDetail,
+  rerunSongAnalysisWorkDetail,
   songAnalysisWorkDetail,
   songAnalysisWorkSummary,
   songDetail,
@@ -58,6 +59,8 @@ function mockFetch() {
     if (url.endsWith("/song-analysis-works/5/resume") && init?.method === "POST") {
       return json({ ...failedSongAnalysisWorkDetail, status: "PENDING", resumable: false, errorCode: null, errorMessage: null })
     }
+    if (url.endsWith("/song-analysis-works/5/stages/ANALYZE_LYRICS/rerun") && init?.method === "POST") return json(rerunSongAnalysisWorkDetail)
+    if (url.includes("/song-analysis-works/6")) return json(rerunSongAnalysisWorkDetail)
     if (url.endsWith("/song-analysis-works/5/stages/ANALYZE_LYRICS/output")) return json({ translation: { "0": { index: 0, koreanLyrics: "고양이" } } })
     if (url.includes("/song-analysis-works/5")) return json(failedSongAnalysisWorkDetail)
     if (url.includes("/song-analysis-works?")) return json(page([songAnalysisWorkSummary]))
@@ -376,6 +379,29 @@ describe("admin web", () => {
     )
     expect(await screen.findByText("PENDING")).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: /resume from/i })).not.toBeInTheDocument()
+  })
+
+  test("draws the stage graph and reruns a stage as a new work", async () => {
+    const user = userEvent.setup()
+    const fetchMock = mockFetch()
+    sessionStorage.setItem("kotonoha.admin.token", "admin-token")
+    renderApp("/song-analysis-works/5")
+
+    expect(await screen.findByRole("heading", { name: "Work #5" })).toBeInTheDocument()
+    expect(within(screen.getByTestId("stage-FETCH_YOUTUBE")).getByText("NOT RUN")).toBeInTheDocument()
+    const blocked = screen.getByRole("button", { name: "Rerun SELECT_SENSES" })
+    expect(blocked).toBeDisabled()
+    expect(blocked.parentElement).toHaveAttribute("title", "No ANALYZE_LYRICS output on this work")
+
+    await user.click(screen.getByRole("button", { name: "Rerun ANALYZE_LYRICS" }))
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/song-analysis-works/5/stages/ANALYZE_LYRICS/rerun"),
+        expect.objectContaining({ method: "POST" }),
+      ),
+    )
+    expect(await screen.findByRole("heading", { name: "Work #6" })).toBeInTheDocument()
+    expect(within(screen.getByTestId("stage-FETCH_LYRICS")).getByText("from #5")).toBeInTheDocument()
   })
 
   test("renders reels factory and enables render after line selection", async () => {

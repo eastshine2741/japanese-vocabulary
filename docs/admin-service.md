@@ -20,7 +20,7 @@ Architecture direction:
 - Active domain/integration modules provide Spring wiring through `AutoConfiguration.imports` and `com.japanese.autoconfigure.*` classes. AutoConfiguration component-scans the module-owned `com.japanese.vocabulary.<module>` package and registers JPA entities/repositories explicitly. Application bootstraps should not carry sibling module `@EntityScan` or repository scan knowledge, and broad root component scan should not be used as a backup wiring path.
 - Integration clients should use `RestClient` where behavior can stay equivalent. Applications avoid unused clients by depending only on the integration modules they need; the depended module's AutoConfiguration exposes its client beans.
 - Product/read-model cache belongs to the application module that owns the behavior. For this pass, song search cache belongs to `api` and artist-channel cache belongs to `worker`.
-- Admin mutations must call domain methods/services; raw field updates stay out of scope. Current mutations: song reanalysis creates or reuses a `song_analysis_work`, and resume reopens a failed work at its failed stage (`SongAnalysisWorkService.resume`); neither edits song/lyric fields directly. Song report approval is the one song/lyric edit path: it applies typed ops (`SongEditOp`) through `SongReportService.approve`, checks token offsets against the line text, regenerates `wordCandidates`, and records each before/after in `song_reports.review_changes` as its audit log.
+- Admin mutations must call domain methods/services; raw field updates stay out of scope. Current mutations: song reanalysis creates or reuses a `song_analysis_work`, resume reopens a failed work at its failed stage (`SongAnalysisWorkService.resume`), and stage rerun starts a new work from one stage of a finished work (`SongAnalysisWorkService.rerun`); neither edits song/lyric fields directly. Song report approval is the one song/lyric edit path: it applies typed ops (`SongEditOp`) through `SongReportService.approve`, checks token offsets against the line text, regenerates `wordCandidates`, and records each before/after in `song_reports.review_changes` as its audit log.
 
 ## Backend
 
@@ -53,6 +53,7 @@ Routes:
 - `GET /admin/api/song-analysis-works/{workId}` — 단계별 상태·시도 횟수·실패 원인(`stages`)과 `resumable` 포함
 - `GET /admin/api/song-analysis-works/{workId}/stages/{stage}/output` — 단계 산출물 JSON 원문
 - `POST /admin/api/song-analysis-works/{workId}/resume` — FAILED 작업을 실패한 단계부터 다시 돌린다 (활성 작업이 있거나 단계 원장 이전 작업이면 409)
+- `POST /admin/api/song-analysis-works/{workId}/stages/{stage}/rerun` — 그 단계와 거기 기대는 단계만 새 작업으로 다시 돌린다. 나머지 산출물은 이 작업에서 물려받는다 (막히는 이유는 상세의 `rerunBlockers`, 409)
 - `GET /admin/api/lyric-mv-syncs` — 가사 MV 싱크 결과(`status`·`verdict` 필터). 다시 계산한 행이 위로 온다
 - `GET /admin/api/lyric-mv-syncs/{id}` — 줄마다 원래 시각과 MV 시각. 화면은 MV 를 틀며 줄을 따라가 귀로 확인하는 용도다
 - `GET /admin/api/recommendations` / `POST` `{songId}` / `DELETE /{id}` / `PUT /order` `{ids}` — 홈 추천곡 전역 목록 편집 (`docs/recommended-songs.md`)

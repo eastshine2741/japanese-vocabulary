@@ -77,7 +77,7 @@ class AdminReadService(
         val work = songAnalysisWorkRepository.findById(id).orElseThrow {
             NoSuchElementException("Song analysis work not found")
         }
-        return work.toDetailResponse(songAnalysisWorkService.stages(id))
+        return work.toDetailResponse(songAnalysisWorkService.stages(id), songAnalysisWorkService.rerunBlockers(id))
     }
 
     /** 단계 산출물 원문(JSON). 다음 단계가 읽는 그대로라 디버깅 자료가 된다. */
@@ -159,7 +159,10 @@ fun SongAnalysisWorkEntity.toSummaryResponse(): AdminSongAnalysisWorkSummaryResp
         failedAt = failedAt,
     )
 
-fun SongAnalysisWorkEntity.toDetailResponse(stages: List<SongAnalysisWorkStageEntity>): AdminSongAnalysisWorkDetailResponse =
+fun SongAnalysisWorkEntity.toDetailResponse(
+    stages: List<SongAnalysisWorkStageEntity>,
+    rerunBlockers: Map<SongAnalysisWorkStage, String?>,
+): AdminSongAnalysisWorkDetailResponse =
     AdminSongAnalysisWorkDetailResponse(
         id = requireNotNull(id),
         rawTitle = rawTitle,
@@ -182,6 +185,9 @@ fun SongAnalysisWorkEntity.toDetailResponse(stages: List<SongAnalysisWorkStageEn
         startedAt = startedAt,
         stages = stages.map { it.toResponse() },
         resumable = status == SongAnalysisWorkStatus.FAILED && currentStage != null && stages.isNotEmpty(),
+        rerunFrom = rerunFrom?.name,
+        sourceWorkId = sourceWorkId,
+        rerunBlockers = rerunBlockers.mapKeys { it.key.name },
     )
 
 fun SongAnalysisWorkStageEntity.toResponse(): AdminSongAnalysisStageResponse =

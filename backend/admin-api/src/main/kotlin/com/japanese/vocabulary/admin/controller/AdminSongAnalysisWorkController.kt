@@ -45,4 +45,14 @@ class AdminSongAnalysisWorkController(
         songAnalysisWorkService.resume(workId)
         return adminReadService.getSongAnalysisWork(workId)
     }
+
+    /** 이 작업의 한 단계와 그 단계에 기대는 단계만 새 작업으로 다시 돌린다. 새 작업을 돌려준다. */
+    @PostMapping("/{workId}/stages/{stage}/rerun")
+    fun rerunSongAnalysisStage(
+        @PathVariable workId: Long,
+        @PathVariable stage: SongAnalysisWorkStage,
+    ): AdminSongAnalysisWorkDetailResponse {
+        val work = songAnalysisWorkService.rerun(workId, stage)
+        return adminReadService.getSongAnalysisWork(work.workId)
+    }
 }

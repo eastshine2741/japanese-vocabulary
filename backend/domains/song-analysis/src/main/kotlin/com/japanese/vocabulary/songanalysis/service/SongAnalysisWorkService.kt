@@ -189,7 +189,7 @@ class SongAnalysisWorkService(
         val (work, row) = lockCurrent(ref) ?: return false
         val now = Instant.now()
         row.complete(output, now)
-        val next = ref.stage.next
+        val next = ref.stage.nextIn(work.rerunScope)
         if (next == null) {
             work.markCompleted(now)
         } else {
@@ -244,6 +244,77 @@ class SongAnalysisWorkService(
         row.status = SongAnalysisStageStatus.PENDING
         eventPublisher.publishEvent(SongAnalysisWorkQueuedEvent(workId, stage))
         return work.toDto()
+    }
+
+    /**
+     * 끝난 작업의 한 단계와 그 단계에 기대는 단계만 다시 돌리는 새 관리자 작업을 만든다. 나머지 단계 산출물은
+     * 원본 작업에서 COMPLETED 행으로 복사해 둔다 — 새 작업이 곡의 유일한 활성 writer 가 되고, 단계들은 늘 그렇듯
+     * 자기 원장만 읽는다. 원본 작업은 건드리지 않는다.
+     */
+    @Transactional
+    fun rerun(sourceWorkId: Long, stage: SongAnalysisWorkStage): SongAnalysisWorkDto {
+        val source = getEntityForUpdate(sourceWorkId)
+        val rows = stageRepository.findByWorkIdOrderByIdAsc(sourceWorkId)
+        val active = activeWorkFor(source, lockGap = true)
+        if (rerunBlocker(source, rows, stage, active != null) != null) {
+            throw BusinessException(
+                if (active != null) ErrorCode.SONG_ANALYSIS_WORK_ALREADY_EXISTS else ErrorCode.SONG_ANALYSIS_WORK_NOT_RERUNNABLE,
+            )
+        }
+
+        val work = songAnalysisWorkRepository.saveAndFlush(
+            SongAnalysisWorkEntity(
+                rawTitle = source.rawTitle,
+                rawArtist = source.rawArtist,
+                durationSeconds = source.durationSeconds,
+                artworkUrl = source.artworkUrl,
+                songId = source.songId,
+                triggerSource = SongAnalysisTriggerSource.ADMIN,
+                rerunFrom = stage,
+                sourceWorkId = sourceWorkId,
+                currentStage = stage,
+            ),
+        )
+        val now = Instant.now()
+        val scope = stage.rerunScope()
+        rows.filter { it.status == SongAnalysisStageStatus.COMPLETED && it.stage !in scope && it.stage != SongAnalysisWorkStage.CREATE_SONG_AND_LYRIC }
+            .forEach { stageRepository.save(SongAnalysisWorkStageEntity(workId = work.id!!, stage = it.stage).apply { complete(it.output, now) }) }
+        eventPublisher.publishEvent(SongAnalysisWorkQueuedEvent(work.id!!, stage))
+        return work.toDto()
+    }
+
+    /** 단계마다 [rerun] 할 수 없는 이유. null 이면 할 수 있다. */
+    @Transactional(readOnly = true)
+    fun rerunBlockers(workId: Long): Map<SongAnalysisWorkStage, String?> {
+        val work = getEntity(workId)
+        val rows = stageRepository.findByWorkIdOrderByIdAsc(workId)
+        val otherActive = activeWorkFor(work, lockGap = false) != null
+        return SongAnalysisWorkStage.entries
+            .filter { it != SongAnalysisWorkStage.CREATE_SONG_AND_LYRIC }
+            .associateWith { rerunBlocker(work, rows, it, otherActive) }
+    }
+
+    private fun rerunBlocker(
+        work: SongAnalysisWorkEntity,
+        rows: List<SongAnalysisWorkStageEntity>,
+        stage: SongAnalysisWorkStage,
+        otherActive: Boolean,
+    ): String? {
+        if (stage == SongAnalysisWorkStage.CREATE_SONG_AND_LYRIC) return "Legacy stage"
+        if (work.status == SongAnalysisWorkStatus.PENDING || work.status == SongAnalysisWorkStatus.RUNNING) return "Work is still running"
+        // 범위 밖 결과를 곡의 지금 상태로 남기려면 바꿀 곡이 있어야 한다.
+        if (work.songId == null) return "Work has no song"
+        if (otherActive) return "Another analysis is running for this song"
+        val completed = rows.filter { it.status == SongAnalysisStageStatus.COMPLETED }.map { it.stage }.toSet()
+        val missing = stage.inheritedInputs() - completed
+        return missing.minByOrNull { it.ordinal }?.let { "No $it output on this work" }
+    }
+
+    /** 같은 곡의 활성 작업. [lockGap] 이면 유저 요청과 같은 갭 락을 잡아 동시 생성을 막는다. */
+    private fun activeWorkFor(work: SongAnalysisWorkEntity, lockGap: Boolean): SongAnalysisWorkEntity? {
+        val activeStatuses = listOf(SongAnalysisWorkStatus.PENDING, SongAnalysisWorkStatus.RUNNING)
+        return work.songId?.let { songAnalysisWorkRepository.findBySongIdAndStatusInOrderByCreatedAtAsc(it, activeStatuses).firstOrNull() }
+            ?: if (lockGap) songAnalysisWorkRepository.findActiveByRawSongForUpdate(work.rawTitle, work.rawArtist).firstOrNull() else null
     }
 
     @Transactional(readOnly = true)
