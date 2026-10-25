@@ -659,6 +659,17 @@ it('sorts song decks by due count for the deck strip and auto-loads the top one'
   expect(stack.nextDueSource?.songId).toBe(10);
 });
 
+it('shows the first card without waiting for header stats or recommendations', async () => {
+  vi.mocked(deckApi.getDecks).mockResolvedValue({ songDecks: [deck(1, 10, 'A', 3)], nextCursor: null });
+  vi.mocked(flashcardApi.getDueCards).mockResolvedValue({ cards: [card(1)], totalCount: 1, nextDueAt: null });
+  vi.mocked(flashcardApi.getStats).mockReturnValue(new Promise(() => {}));
+  vi.mocked(studyStatsApi.getHome).mockReturnValue(new Promise(() => {}));
+  vi.mocked(songApi.getRecommendations).mockRejectedValue(new Error('offline'));
+  await mountHome();
+  expect(stack.status).toBe('ready');
+  expect(stack.currentCard?.id).toBe(1);
+});
+
 it('auto-selects the first recommendation deterministically for a brand-new user with no song decks', async () => {
   const rec2: RecommendedSongItem = { id: 2, songId: 99, title: 'Second', artist: 'B', artworkUrl: null };
   vi.mocked(songApi.getRecommendations).mockResolvedValue([recommendation, rec2]);
