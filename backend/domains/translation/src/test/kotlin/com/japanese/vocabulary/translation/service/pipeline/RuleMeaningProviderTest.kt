@@ -189,6 +189,24 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `rewrites kounimo into adverb and particles`() {
+        // もうどうしてどうにもこうにもならないの — the model emits こうにも as surface and headword.
+        val rewritten = provider.rewrite(
+            listOf(
+                PipelineToken(17, "どうにも", "どうにも", 6, 10),
+                PipelineToken(17, "こうにも", "こうにも", 10, 14),
+                PipelineToken(17, "なら", "なる", 14, 16),
+            ),
+        )
+
+        assertThat(rewritten.map { it.surface }).containsExactly("どうにも", "こう", "に", "も", "なら")
+        assertThat(rewritten.map { it.headword }).containsExactly("どうにも", "こう", "に", "も", "なる")
+        assertThat(rewritten.map { it.charStart to it.charEnd })
+            .containsExactly(6 to 10, 10 to 12, 12 to 13, 13 to 14, 14 to 16)
+        assertThat(provider.resolve(rewritten[3])!!.partOfSpeech).isEqualTo(PartOfSpeech.PARTICLE)
+    }
+
+    @Test
     fun `rewrites locative made phrases into location and particle`() {
         val rewritten = provider.rewrite(
             listOf(

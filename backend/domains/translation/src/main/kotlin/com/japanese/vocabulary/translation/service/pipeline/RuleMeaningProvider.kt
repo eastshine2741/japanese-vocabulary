@@ -107,6 +107,36 @@ class RuleMeaningProvider {
                     ),
                 ),
             ),
+            // Same blind spot as こんなにも: どうにもこうにも arrives with こうにも as surface and headword.
+            TokenRewriteRule(
+                surfaces = listOf("こうにも"),
+                replacements = listOf(
+                    TokenReplacement(
+                        "こう",
+                        "こう",
+                        sourceIndex = 0,
+                        startOffset = 0,
+                        endOffset = 2,
+                        contextGloss = "this way, like this",
+                    ),
+                    TokenReplacement(
+                        "に",
+                        "に",
+                        sourceIndex = 0,
+                        startOffset = 2,
+                        endOffset = 3,
+                        contextGloss = "in, to",
+                    ),
+                    TokenReplacement(
+                        "も",
+                        "も",
+                        sourceIndex = 0,
+                        startOffset = 3,
+                        endOffset = 4,
+                        contextGloss = "also, too",
+                    ),
+                ),
+            ),
             TokenRewriteRule(
                 surfaces = listOf("ここまで"),
                 replacements = listOf(
