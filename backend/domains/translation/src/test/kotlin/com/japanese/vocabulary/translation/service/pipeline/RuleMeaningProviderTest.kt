@@ -131,6 +131,18 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves nanteiu behind a kanji nante-iu headword`() {
+        // 言え なんていう? シニカル ワード — segmentation writes the headword as 何て言う, which jisho
+        // has no entry for.
+        val resolved = provider.resolve(PipelineToken(20, "なんていう", "何て言う", 3, 8))!!
+
+        assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.EXPRESSION)
+        assertThat(resolved.surface).isEqualTo("なんていう")
+        assertThat(resolved.reading).isEqualTo("ナンテイウ")
+        assertThat(resolved.koreanText).isNotBlank()
+    }
+
+    @Test
     fun `does not rule-resolve ambiguous grammar-like words`() {
         assertThat(provider.resolve(token("ない"))).isNull()
         assertThat(provider.resolve(token("から"))).isNull()

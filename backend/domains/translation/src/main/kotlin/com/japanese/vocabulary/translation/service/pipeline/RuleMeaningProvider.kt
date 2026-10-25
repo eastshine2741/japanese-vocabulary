@@ -206,7 +206,15 @@ class RuleMeaningProvider {
             // Colloquial contraction of いやだ. Segmentation writes the headword as 嫌だ, which jisho
             // has no entry for. Keyed on the surface only: いやだ shares that headword but not the reading.
             "やだ" to RuleResolvedToken("やだ", "嫌だ", "ヤダ", "イヤダ", PartOfSpeech.NA_ADJECTIVE, "싫다, 싫어"),
+            // Segmentation writes the headword as 何て言う, which jisho has no entry for; the gloss
+            // covers both the adnominal (무슨) and the literal (뭐라고 하는) reading.
+            "なんていう" to nanteIu("なんていう"),
+            "なんて言う" to nanteIu("なんて言う"),
+            "何て言う" to nanteIu("何て言う"),
         )
+
+        fun nanteIu(surface: String) =
+            RuleResolvedToken(surface, "何て言う", "ナンテイウ", "ナンテイウ", PartOfSpeech.EXPRESSION, "무슨, 뭐라고 하는")
 
         val particles = mapOf(
             "は" to particle("は", "~은/는"),
