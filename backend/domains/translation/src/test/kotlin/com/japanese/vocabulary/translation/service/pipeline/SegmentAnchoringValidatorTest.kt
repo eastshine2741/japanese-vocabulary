@@ -382,15 +382,43 @@ class SegmentAnchoringValidatorTest {
     }
 
     @Test
-    fun `parenthesized kana that does not spell the word's reading is still uncovered`() {
-        // Only a restated reading is swallowed; other kana is a skipped word, and kanji in
-        // parentheses is never an annotation.
-        val mismatch = validator.anchor(
-            mapOf(0 to "暗闇(クロ)"),
-            listOf(SegLineDto(0, listOf(word("暗闇", "暗闇", "クラヤミ", "クラヤミ")))),
+    fun `parenthesized kana after an all-kanji word is a sung reading even when the model kept another`() {
+        val result = validator.anchor(
+            mapOf(20 to "ねぇ 私の世界(ほし)が知りたがっているわ さあ"),
+            listOf(
+                SegLineDto(
+                    20,
+                    listOf(
+                        word("ねぇ", "ねぇ", "ネェ", "ネェ"),
+                        word(" ", " ", "", ""),
+                        word("私", "私", "ワタシ", "ワタシ"),
+                        word("の", "の", "ノ", "ノ"),
+                        word("世界", "世界", "セカイ", "セカイ"),
+                        word("が", "が", "ガ", "ガ"),
+                        word("知り", "知る", "シリ", "シル"),
+                        word("たがって", "たがる", "タガッテ", "タガル"),
+                        word("いる", "いる", "イル", "イル"),
+                        word("わ", "わ", "ワ", "ワ"),
+                        word(" ", " ", "", ""),
+                        word("さあ", "さあ", "サア", "サア"),
+                    ),
+                ),
+            ),
         )
-        assertThat(mismatch.incompleteByIndex[0]?.text).isEqualTo("クロ")
 
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.incompleteByIndex).isEmpty()
+
+        val kanaWord = validator.anchor(
+            mapOf(0 to "晴れ(ほし)"),
+            listOf(SegLineDto(0, listOf(word("晴れ", "晴れ", "ハレ", "ハレ")))),
+        )
+        assertThat(kanaWord.incompleteByIndex[0]?.text).isEqualTo("ほし")
+    }
+
+    @Test
+    fun `parenthesized kana that does not spell the word's reading is still uncovered`() {
+        // Kana not attached to a word is a skipped word, and kanji in parentheses is never an annotation.
         val standalone = validator.anchor(
             mapOf(0 to "(こたえ) 猫"),
             listOf(SegLineDto(0, listOf(word("猫", "猫", "ネコ", "ネコ")))),

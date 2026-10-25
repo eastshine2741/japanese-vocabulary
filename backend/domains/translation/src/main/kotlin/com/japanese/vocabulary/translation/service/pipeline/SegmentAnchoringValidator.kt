@@ -67,7 +67,8 @@ class SegmentAnchoringValidator {
      * missing word; it is [absorbed][absorbTrailingKana] into the token it follows.
      *
      * A reading in parentheses right after a word (`解答(こたえ)`, `暗闇(クロ)`) is **covered by that
-     * word**; it must match the token's reading, so the ad-lib `晴れ舞台（イェイ）` stays reported.
+     * word**; unless the word is all kanji it must match the token's reading, so the ad-lib
+     * `晴れ舞台（イェイ）` stays reported.
      */
     private fun anchorLine(index: Int, rawText: String, line: SegLineDto): AnchoredLine {
         val covered = BooleanArray(rawText.length)
@@ -87,7 +88,7 @@ class SegmentAnchoringValidator {
             val usedReading = readingOf(index, word, word.usedReading, "usedReading")
             val end = start + surface.length
             for (i in start until end) covered[i] = true
-            val annotationEnd = readingAnnotationEnd(rawText, end, usedReading)
+            val annotationEnd = readingAnnotationEnd(rawText, end, surface, usedReading)
             for (i in end until annotationEnd) covered[i] = true
             cursor = end
             previousSurface = word.surface
@@ -191,8 +192,11 @@ class SegmentAnchoringValidator {
      *
      * The kana may spell only the start of [usedReading] when okurigana follows the span
      * (`愁(かな)しみ` read `カナシミ`); that okurigana is covered with the span.
+     *
+     * After an all-kanji [surface] any kana span is ruby, even one spelling another reading: lyrics
+     * give kanji a sung reading of their own (`世界(ほし)`), and the model keeps the dictionary one.
      */
-    private fun readingAnnotationEnd(rawText: String, from: Int, usedReading: String): Int {
+    private fun readingAnnotationEnd(rawText: String, from: Int, surface: String, usedReading: String): Int {
         if (from >= rawText.length) return from
         val close = when (rawText[from]) {
             '(' -> ')'
@@ -204,7 +208,10 @@ class SegmentAnchoringValidator {
         val inside = rawText.substring(from + 1, closeAt)
         if (!JapaneseText.isKanaOnly(inside)) return from
         val annotated = JapaneseText.toKatakana(inside)
-        if (!usedReading.startsWith(annotated)) return from
+        if (!usedReading.startsWith(annotated)) {
+            val allKanji = surface.all { Character.UnicodeScript.of(it.code) == Character.UnicodeScript.HAN }
+            return if (allKanji) closeAt + 1 else from
+        }
         val rest = usedReading.substring(annotated.length)
         val afterSpan = closeAt + 1
         val okurigana = rawText.substring(afterSpan, (afterSpan + rest.length).coerceAtMost(rawText.length))
