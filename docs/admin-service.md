@@ -56,7 +56,6 @@ Routes:
 - `POST /admin/api/song-analysis-works/{workId}/stages/{stage}/rerun` — 그 단계와 거기 기대는 단계만 새 작업으로 다시 돌린다. 나머지 산출물은 이 작업에서 물려받는다 (막히는 이유는 상세의 `rerunBlockers`, 409)
 - `GET /admin/api/lyric-mv-syncs` — 가사 MV 싱크 결과(`status`·`verdict` 필터). 다시 계산한 행이 위로 온다
 - `GET /admin/api/lyric-mv-syncs/{id}` — 줄마다 원래 시각과 MV 시각. 화면은 MV 를 틀며 줄을 따라가 귀로 확인하는 용도다
-- `GET /admin/api/artists?query=` / `GET /{id}` / `POST /{id}/youtube-channels` `{channel, channelTitle}` / `DELETE /{id}/youtube-channels/{channelId}` — 아티스트 공식 YouTube 채널. 채널 id 나 `/channel/UC…` URL 만 받는다: @handle 을 id 로 바꾸려면 YouTube API 가 필요한데 admin-api 는 음악 연동 모듈에 기대지 않는다
 - `GET /admin/api/recommendations` / `POST` `{songId}` / `DELETE /{id}` / `PUT /order` `{ids}` — 홈 추천곡 전역 목록 편집 (`docs/recommended-songs.md`)
 - `GET /admin/api/feature-flags` / `PUT /{key}` `{startAt, endAt, description}` / `DELETE /{key}` — 시각 구간 기능 플래그 (`docs/architecture/feature-flag.md`)
 - `GET /admin/api/users` — 유저마다 `wordCount`, `songDeckCount`, `customDeckCount`, `lastWordSavedAt`, `lastReviewedAt` 포함
