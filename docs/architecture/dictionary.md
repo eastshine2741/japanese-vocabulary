@@ -31,8 +31,9 @@
 
 ## 라이선스
 
-- JMdict(CC BY-SA 4.0): 앱의 별도 화면(정보 화면 등)에 출처를 표기해야 하고, 최신판을 유지하라고 요구한다. 정기적으로 다시 빌드한다.
-- FineWeb-2(ODC-BY), 위키백과(CC BY-SA), tanos JLPT(CC BY)도 출처를 표기한다.
+- 출처는 앱 오픈소스 라이선스 화면(`app-rn/src/data/ossList.ts` 의 `EXTERNAL_SERVICES`)에 싣는다. 데이터 출처를 바꾸면 여기도 고친다.
+- JMdict(CC BY-SA 4.0): EDRDG 가 정한 고지 문장을 그대로 실어야 하고, 최신판을 유지하라고 요구한다. 정기적으로 다시 빌드한다.
+- FineWeb-2(ODC-BY), 위키백과(CC BY-SA), tanos JLPT(CC BY)도 같은 화면에 표기한다.
 - JEV(日本語教育語彙表)와 BCCWJ 빈도표는 연구·교육용 한정이라 쓰지 않는다.
 
 ## 갱신
