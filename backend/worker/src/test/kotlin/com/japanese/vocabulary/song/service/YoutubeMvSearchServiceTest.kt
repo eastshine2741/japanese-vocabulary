@@ -479,6 +479,101 @@ class YoutubeMvSearchServiceTest {
     }
 
     @Test
+    fun `search rejects fan subs, dance practices, game plays, trailers and karaoke that play other audio`() {
+        every { artistChannelCache.get(ARTIST) } returns null
+        stubSearch(
+            searchItem("subbed-id", "【中文翻譯】$ARTIST - $TITLE（再見，莫頓）", "安安日本語"),
+            searchItem("thai-sub-id", "[Thai sub] $TITLE / $ARTIST", "タケル : $ARTIST"),
+            searchItem("practice-id", "$ARTIST '$TITLE' Dance Practice"),
+            searchItem("game-id", "【D4DJ/グルミク】$TITLE / $ARTIST [PFC(MAX-6)]", "からむちょ"),
+            searchItem("chart-id", "【Sonolusプロセカ創作譜面】$TITLE ／ $ARTIST（MASTER Lv.29）", "さとちゃ"),
+            searchItem("offvocal-id", "$ARTIST- $TITLE　Offvocal", "左脳ふぁんえむ"),
+            searchItem("key-id", "$TITLE -2Key (原曲歌手:$ARTIST)", "歌っちゃ王 - Topic"),
+            searchItem("trailer-id", "$ARTIST - $TITLE (Album Trailer)"),
+            searchItem("clip-id", "【$ARTIST】${TITLE}を歌ったキッカケ【切り抜き】", "${ARTIST}センス"),
+            searchItem("drum-id", "【ドラムのみ】$TITLE／$ARTIST", "Youichi Watanabe"),
+            searchItem("reaction-id", "Musician Reacts to $ARTIST - '$TITLE' M/V", "Velo City"),
+            searchItem("mashup-id", "『$TITLE』×『KING』"),
+        )
+        stubDurations(
+            "subbed-id" to "PT4M", "thai-sub-id" to "PT4M", "practice-id" to "PT4M", "game-id" to "PT2M30S",
+            "chart-id" to "PT2M15S", "offvocal-id" to "PT4M", "key-id" to "PT4M", "trailer-id" to "PT4M",
+            "clip-id" to "PT2M30S", "drum-id" to "PT4M", "reaction-id" to "PT5M", "mashup-id" to "PT2M30S",
+        )
+
+        assertThat(service.searchMvUrl(TITLE, ARTIST, TRACK_SECONDS)).isNull()
+    }
+
+    @Test
+    fun `a Japanese version song rejects the Korean MV and dance practice for the Japanese MV`() {
+        every { artistChannelCache.get("ATEEZ") } returns null
+        stubSearch(
+            searchItem("korean-id", "ATEEZ(에이티즈) - ‘야간비행 (Turbulence)’ Official MV", "KQ ENTERTAINMENT"),
+            searchItem("practice-id", "ATEEZ 'Turbulence' Dance Practice", "ATEEZ"),
+            searchItem("japanese-id", "ATEEZ(에이티즈) - '야간비행 (Turbulence) (Japanese Ver.)' Official MV", "KQ ENTERTAINMENT"),
+        )
+        stubDurations("korean-id" to "PT3M34S", "practice-id" to "PT3M30S", "japanese-id" to "PT3M30S")
+
+        val result = service.search("야간비행 (Turbulence) [Japanese Ver.]", "ATEEZ", 201)
+
+        assertThat(result.url).isEqualTo("https://www.youtube.com/watch?v=japanese-id")
+        assertThat(result.candidates.single { it.videoId == "korean-id" }.rejection).isEqualTo("version-mismatch")
+    }
+
+    @Test
+    fun `a plain song title rejects its English version MV`() {
+        every { artistChannelCache.get("YOASOBI") } returns null
+        stubSearch(
+            searchItem("english-id", "YOASOBI / UNDEAD (English Version) Official Music Video", "YOASOBI"),
+            searchItem("mv-id", "YOASOBI「UNDEAD」Official Music Video", "YOASOBI"),
+        )
+        stubDurations("english-id" to "PT3M6S", "mv-id" to "PT3M5S")
+
+        assertThat(service.searchMvUrl("UNDEAD", "YOASOBI", 182))
+            .isEqualTo("https://www.youtube.com/watch?v=mv-id")
+    }
+
+    @Test
+    fun `a movie edit song rejects the full-length audio`() {
+        every { artistChannelCache.get("RADWIMPS") } returns null
+        stubSearch(searchItem("full-id", "RADWIMPS - グランドエスケープ [Audio]", "RADWIMPS"))
+        stubDurations("full-id" to "PT5M38S")
+
+        assertThat(service.searchMvUrl("グランドエスケープ (feat. 三浦透子) [Movie edit]", "RADWIMPS", 188)).isNull()
+    }
+
+    @Test
+    fun `a festival clip on a stranger's channel is a live take, not a reupload`() {
+        every { artistChannelCache.get("藤井 風") } returns null
+        stubSearch(
+            searchItem("fes-id", "藤井風「死ぬのがいいわ」@Fuji Rock Fes2026, Fujii Kaze", "ミッキーチャンネル"),
+            searchItem("rock-id", "藤井風「死ぬのがいいわ」Fujii Kaze, Fuji rock 2026", "ミッキーチャンネル"),
+        )
+        stubDurations("fes-id" to "PT3M58S", "rock-id" to "PT3M58S")
+
+        assertThat(service.searchMvUrl("死ぬのがいいわ", "藤井 風", 199)).isNull()
+    }
+
+    @Test
+    fun `a short song title must stand alone in the upload title`() {
+        every { artistChannelCache.get("Guiano") } returns null
+        stubSearch(searchItem("other-song-id", "Guiano - 花火", "Guiano"))
+        stubDurations("other-song-id" to "PT4M3S")
+
+        assertThat(service.searchMvUrl("花", "Guiano", 210)).isNull()
+    }
+
+    @Test
+    fun `a short song title with punctuation still matches its upload`() {
+        every { artistChannelCache.get(NIIGO) } returns null
+        stubSearch(searchItem("mv-id", "D/N/A / 25時、ナイトコードで。 × 鏡音リン", PUBLISHER_CHANNEL))
+        stubDurations("mv-id" to "PT3M30S")
+
+        assertThat(service.searchMvUrl("D/N/A (feat. 宵崎奏 & 鏡音リン)", NIIGO, 210))
+            .isEqualTo("https://www.youtube.com/watch?v=mv-id")
+    }
+
+    @Test
     fun `a one-character artist still matches its own channel`() {
         every { artistChannelCache.get("嵐") } returns null
         stubSearch(searchItem("mv-id", TITLE, "嵐 ARASHI"))
