@@ -20,6 +20,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 
 /**
@@ -218,6 +219,18 @@ class YoutubeMvSearchServiceTest {
     }
 
     @Test
+    fun `search keeps an utaite's own cover upload`() {
+        every { artistChannelCache.get("まふまふ") } returns null
+        stubSearch(
+            searchItem("own-id", "$TITLE 歌ってみた【まふまふ】", "まふまふちゃんねる"),
+            searchItem("other-id", "$TITLE 歌ってみた", "歌い手"),
+        )
+        stubDurations("own-id" to "PT4M", "other-id" to "PT4M")
+
+        assertThat(service.searchMvUrl(TITLE, "まふまふ", TRACK_SECONDS)).isEqualTo("https://www.youtube.com/watch?v=own-id")
+    }
+
+    @Test
     fun `search rejects a same-titled song by another artist`() {
         // The official marker alone must not let another artist's same-titled MV win or be cached.
         every { artistChannelCache.get("Vaundy") } returns null
@@ -253,13 +266,127 @@ class YoutubeMvSearchServiceTest {
     }
 
     @Test
-    fun `search accepts a reupload on a stranger's channel when nothing official is found`() {
+    fun `a reupload on a stranger's channel is never taken, even when nothing else is found`() {
         every { artistChannelCache.get(ARTIST) } returns null
         stubSearch(searchItem("reupload-id", "$ARTIST - $TITLE", "音楽音楽"))
         stubDurations("reupload-id" to "PT3M58S")
 
-        assertThat(service.searchMvUrl(TITLE, ARTIST, TRACK_SECONDS))
-            .isEqualTo("https://www.youtube.com/watch?v=reupload-id")
+        assertThat(service.searchMvUrl(TITLE, ARTIST, TRACK_SECONDS)).isNull()
+    }
+
+    @Test
+    fun `the current MV is kept when it would pass as the only candidate`() {
+        stubVideo("mv-id", "$TITLE Official MV", channelTitle = ARTIST, duration = "PT4M")
+
+        assertThat(service.acceptsAsOnlyCandidate("mv-id", TITLE, ARTIST, TRACK_SECONDS)).isTrue()
+    }
+
+    @Test
+    fun `the current MV is dropped when it is a stranger's reupload, a reaction, or gone`() {
+        stubVideo("reupload-id", "$ARTIST - $TITLE", channelTitle = "音楽音楽", duration = "PT4M")
+        stubVideo("reaction-id", "$TITLE Official MV reaction", channelTitle = ARTIST, duration = "PT4M")
+        every { youtubeClient.getVideo("gone-id") } returns null
+
+        assertThat(service.acceptsAsOnlyCandidate("reupload-id", TITLE, ARTIST, TRACK_SECONDS)).isFalse()
+        assertThat(service.acceptsAsOnlyCandidate("reaction-id", TITLE, ARTIST, TRACK_SECONDS)).isFalse()
+        assertThat(service.acceptsAsOnlyCandidate("gone-id", TITLE, ARTIST, TRACK_SECONDS)).isFalse()
+    }
+
+    @Test
+    fun `an artist's own channel under a romanized name counts as official`() {
+        stubVideo("inaba-id", "稲葉曇『ラグトレイン』Vo. 歌愛ユキ", channelTitle = "inabakumori", duration = "PT3M")
+        stubVideo("yukopi-id", "カニを求めて", channelTitle = "Yukopi", duration = "PT3M")
+        stubVideo("hiiragi-id", "雑魚 / 柊マグネタイト", channelTitle = "Hiiragi Magnetite", duration = "PT3M")
+        stubVideo("cosmo-id", "ヤミナベ!!!! - cosMo＠暴走P feat.初音ミク", channelTitle = "cosMo@bousouP Official Channel", duration = "PT3M")
+
+        assertThat(service.acceptsAsOnlyCandidate("inaba-id", "ラグトレイン", "稲葉曇", 180)).isTrue()
+        assertThat(service.acceptsAsOnlyCandidate("yukopi-id", "カニを求めて", "ゆこぴ", 180)).isTrue()
+        assertThat(service.acceptsAsOnlyCandidate("hiiragi-id", "雑魚", "柊マグネタイト", 180)).isTrue()
+        assertThat(service.acceptsAsOnlyCandidate("cosmo-id", "ヤミナベ!!!!", "cosMo@暴走P", 180)).isTrue()
+    }
+
+    @Test
+    fun `a fan channel carrying the romanized name plus other words is not the artist's own`() {
+        stubVideo(
+            "fan-id", "米津玄師「メランコリーキッチン」- Kenshi Yonezu （Melancholy Kitchen） - （Türkçe Çeviri + 日本語 + Romaji）",
+            channelTitle = "Kenshi Yonezu fanTR", duration = "PT4M",
+        )
+        stubVideo("remake-id", "強風オールバック / ゆこぴ（1982年）", channelTitle = "The Night Jukebox", duration = "PT3M")
+
+        assertThat(service.acceptsAsOnlyCandidate("fan-id", "メランコリーキッチン", "米津玄師", 240)).isFalse()
+        assertThat(service.acceptsAsOnlyCandidate("remake-id", "強風オールバック", "ゆこぴ", 180)).isFalse()
+    }
+
+    @Test
+    fun `an upload on a channel mapped to the artist is the MV even when neither title nor channel names the artist`() {
+        every { artistChannelCache.get("Liella!") } returns null
+        stubSearch(searchItem("ll-id", "Sing！Shine！Smile！", "ラブライブ!スーパースター!!", channelId = "UCLLSUPERSTAR0000000000"))
+        stubDurations("ll-id" to "PT4M")
+        every { youtubeClient.getChannel(any()) } returns null
+
+        assertThat(service.searchMvUrl("Sing!Shine!Smile!", "Liella!", 240)).isNull()
+        assertThat(service.searchMvUrl("Sing!Shine!Smile!", "Liella!", 240, officialChannelIds = setOf("UCLLSUPERSTAR0000000000")))
+            .isEqualTo("https://www.youtube.com/watch?v=ll-id")
+    }
+
+    @Test
+    fun `the cached uploads path knows the mapped channel from the playlist owner`() {
+        every { artistChannelCache.get("Liella!") } returns
+            ArtistChannelCacheEntry("Liella!", "UCLLSUPERSTAR0000000000", "UULLSUPERSTAR0000000000", "ラブライブ!スーパースター!!")
+        every { youtubeClient.listPlaylistItems(any(), any(), any()) } returns YoutubePlaylistItemsResponse(
+            nextPageToken = null,
+            items = listOf(
+                YoutubePlaylistItemDto(
+                    snippet = YoutubePlaylistItemSnippetDto(
+                        title = "POP TALKING",
+                        channelTitle = "ラブライブ!スーパースター!!",
+                        resourceId = YoutubeResourceIdDto(videoId = "pop-id"),
+                        channelId = "UCLLSUPERSTAR0000000000",
+                    ),
+                ),
+            ),
+        )
+        stubDurations("pop-id" to "PT4M")
+
+        assertThat(service.searchMvUrl("POP TALKING", "Liella!", 240, officialChannelIds = setOf("UCLLSUPERSTAR0000000000")))
+            .isEqualTo("https://www.youtube.com/watch?v=pop-id")
+    }
+
+    @Test
+    fun `a current MV on a mapped channel is kept`() {
+        every { youtubeClient.getVideo("ll-id") } returns YoutubeVideoItemDto(
+            id = "ll-id",
+            contentDetails = YoutubeContentDetailsDto(duration = "PT4M"),
+            snippet = searchItem("ll-id", "Starlight Prologue", "ラブライブ!スーパースター!!", channelId = "UCLLSUPERSTAR0000000000").snippet,
+        )
+
+        assertThat(service.acceptsAsOnlyCandidate("ll-id", "Starlight Prologue", "Liella!", 240)).isFalse()
+        assertThat(service.acceptsAsOnlyCandidate("ll-id", "Starlight Prologue", "Liella!", 240, setOf("UCLLSUPERSTAR0000000000"))).isTrue()
+    }
+
+    @Test
+    fun `a label channel's upload naming the artist is official`() {
+        stubVideo("smtown-id", "Red Velvet レッドベルベット 'WILDSIDE' MV", channelTitle = "SMTOWN", duration = "PT3M30S")
+
+        assertThat(service.acceptsAsOnlyCandidate("smtown-id", "WILDSIDE", "Red Velvet", 210)).isTrue()
+    }
+
+    @Test
+    fun `the current MV is dropped when the app cannot play it`() {
+        stubVideo(
+            "age-id", "$TITLE Official MV", channelTitle = ARTIST, duration = "PT4M",
+            contentRating = YoutubeContentRatingDto(ytRating = "ytAgeRestricted"),
+        )
+
+        assertThat(service.acceptsAsOnlyCandidate("age-id", TITLE, ARTIST, TRACK_SECONDS)).isFalse()
+    }
+
+    @Test
+    fun `a YouTube error while judging the current MV propagates instead of dropping it`() {
+        every { youtubeClient.getVideo("mv-id") } throws RuntimeException("503 Service Unavailable")
+
+        assertThatThrownBy { service.acceptsAsOnlyCandidate("mv-id", TITLE, ARTIST, TRACK_SECONDS) }
+            .isInstanceOf(RuntimeException::class.java)
     }
 
     @Test
@@ -664,6 +791,20 @@ class YoutubeMvSearchServiceTest {
                 contentDetails = YoutubeContentDetailsDto(duration = duration),
             )
         }
+    }
+
+    private fun stubVideo(
+        videoId: String,
+        title: String,
+        channelTitle: String,
+        duration: String,
+        contentRating: YoutubeContentRatingDto? = null,
+    ) {
+        every { youtubeClient.getVideo(videoId) } returns YoutubeVideoItemDto(
+            id = videoId,
+            contentDetails = YoutubeContentDetailsDto(duration = duration, contentRating = contentRating),
+            snippet = searchItem(videoId, title, channelTitle).snippet,
+        )
     }
 
     private fun searchItem(

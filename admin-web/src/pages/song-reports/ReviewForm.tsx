@@ -31,6 +31,7 @@ const defaultOpByType: Record<string, OpKind> = {
   MV_WRONG_SONG: "SET_YOUTUBE_URL",
   MV_OTHER_VERSION: "SET_YOUTUBE_URL",
   MV_LENGTH_MISMATCH: "SET_YOUTUBE_URL",
+  MV_MISSING: "SET_YOUTUBE_URL",
 }
 
 let nextKey = 1

@@ -46,6 +46,7 @@ class SongAnalysisWorkListenerTest {
         completionService = mockk(),
         translationService = translationService,
         lyricRepository = lyricRepository,
+        songRepository = mockk(),
         codec = SongAnalysisStageCodec(ObjectMapper().registerKotlinModule()),
         mvSearchDefectReporter = mockk(),
     )

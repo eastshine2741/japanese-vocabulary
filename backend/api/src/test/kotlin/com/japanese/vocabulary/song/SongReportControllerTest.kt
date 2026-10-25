@@ -44,7 +44,7 @@ class SongReportControllerTest : ApiBaseIntegrationTest() {
             header("Authorization", bearer(me))
         }.andExpect {
             status { isOk() }
-            jsonPath("$.length()") { value(8) }
+            jsonPath("$.length()") { value(9) }
             jsonPath("$[0].type") { value("LYRIC_TEXT") }
             jsonPath("$[0].group") { value("LYRIC_LINE") }
             jsonPath("$[0].targetKind") { value("LINE") }
@@ -53,6 +53,7 @@ class SongReportControllerTest : ApiBaseIntegrationTest() {
             jsonPath("$[6].type") { value("MV_OTHER_VERSION") }
             jsonPath("$[6].suggestionRequired") { value(false) }
             jsonPath("$[7].type") { value("MV_LENGTH_MISMATCH") }
+            jsonPath("$[8].type") { value("MV_MISSING") }
         }
     }
 

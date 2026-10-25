@@ -37,6 +37,8 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
+    // Kanji readings for matching an artist's own channel under a romanized name (稲葉曇 → inabakumori).
+    implementation("com.atilika.kuromoji:kuromoji-ipadic:0.9.0")
 
     // Sentry
     implementation("io.sentry:sentry-spring-boot-starter-jakarta:7.18.0")

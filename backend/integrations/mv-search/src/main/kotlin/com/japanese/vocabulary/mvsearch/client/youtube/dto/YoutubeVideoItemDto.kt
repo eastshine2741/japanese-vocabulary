@@ -4,4 +4,5 @@ data class YoutubeVideoItemDto(
     val id: String,
     val contentDetails: YoutubeContentDetailsDto,
     val status: YoutubeVideoStatusDto? = null,
+    val snippet: YoutubeSnippetDto? = null,
 )

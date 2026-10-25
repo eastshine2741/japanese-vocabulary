@@ -29,6 +29,15 @@ class SongAnalysisStageCodecTest {
     private val codec = SongAnalysisStageCodec(ObjectMapper().registerKotlinModule())
 
     @Test
+    fun `an MV search output written before clearCurrentMv existed reads as keep the current MV`() {
+        val old = codec.read("""{"youtubeUrl":null}""", FetchYoutubeOutput::class.java)
+
+        assertThat(old).isEqualTo(FetchYoutubeOutput(null, clearCurrentMv = false))
+        assertThat(codec.read(codec.write(FetchYoutubeOutput(null, clearCurrentMv = true)), FetchYoutubeOutput::class.java).clearCurrentMv)
+            .isTrue()
+    }
+
+    @Test
     fun `analyze output round-trips, token keys included`() {
         // surface 에 콜론이 있어도 키가 깨지지 않아야 한다.
         val token = PipelineToken(

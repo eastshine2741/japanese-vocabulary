@@ -96,11 +96,13 @@ function SongReportSheet({
     [line?.tokens],
   );
 
+  const videoId = useMemo(() => extractYoutubeVideoId(youtubeUrl), [youtubeUrl]);
+
   // 분석 전 줄에는 고를 토큰이 없다. 서버가 어차피 되돌려 보낼 유형은 내놓지 않는다.
   const groupTypes = useMemo(() => {
-    const all = selectSongReportTypes(types, target.group);
+    const all = selectSongReportTypes(types, target.group, videoId != null);
     return tokenChoices.length > 0 ? all : all.filter(option => option.targetKind !== 'LINE_TOKEN');
-  }, [target.group, tokenChoices.length, types]);
+  }, [target.group, tokenChoices.length, types, videoId]);
 
   const selectedTypeDto = useMemo(
     () => groupTypes.find(option => option.type === selectedType) ?? null,
@@ -116,8 +118,6 @@ function SongReportSheet({
   // 유형을 고르는 동안은 원문·번역을 두고, 고른 뒤에야 그 유형이 다루는 것으로 바꾼다 — 고르는 중에 목록이 밀리지 않게.
   const lineFocus = songReportLineFocus(detailType?.type);
   const canSubmit = !submitting && canSubmitSongReport(detailType, selectedToken, suggestion);
-
-  const videoId = useMemo(() => extractYoutubeVideoId(youtubeUrl), [youtubeUrl]);
 
   // 쓴 글은 유형을 바꿔도 남기고, 고른 단어만 다른 유형으로 넘어갈 때 비운다.
   const handleSelectType = useCallback((type: string) => {

@@ -31,6 +31,7 @@ class SongAnalysisPreparationService(
     private val lrcParser: LrcParser,
     private val songRepository: SongRepository,
     private val youtubeMvSearchService: YoutubeMvSearchService,
+    private val artistYoutubeChannelService: ArtistYoutubeChannelService,
     private val lyricRepository: LyricRepository,
     /**
      * The whole YouTube search is retried as one unit, only for [TransientHttpErrors], and never past
@@ -76,8 +77,15 @@ class SongAnalysisPreparationService(
     }
 
     /** A null url means YouTube answered and no candidate passed; an error that survives retry propagates. */
-    suspend fun searchYoutube(title: String, artist: String, durationSeconds: Int?): MvSearchResult =
-        withProviderRetry("YouTube") { youtubeMvSearchService.search(title, artist, durationSeconds) }
+    suspend fun searchYoutube(title: String, artist: String, durationSeconds: Int?, songId: Long? = null): MvSearchResult {
+        val official = artistYoutubeChannelService.officialChannelIds(songId, artist)
+        return withProviderRetry("YouTube") { youtubeMvSearchService.search(title, artist, durationSeconds, official) }
+    }
+
+    suspend fun acceptsCurrentMv(videoId: String, title: String, artist: String, durationSeconds: Int?, songId: Long?): Boolean {
+        val official = artistYoutubeChannelService.officialChannelIds(songId, artist)
+        return withProviderRetry("YouTube") { youtubeMvSearchService.acceptsAsOnlyCandidate(videoId, title, artist, durationSeconds, official) }
+    }
 
     fun saveSongAndLyric(
         title: String,
