@@ -125,6 +125,17 @@ WHERE screen = 'SongDetail'
 
 - 줄을 풀러 SongReview 에 있는 동안 백그라운드로 가도 아래 깔린 줄 공부가 한 건 남긴다. `review_exit` 처럼 열림마다 마지막 건을 본다.
 
+## 알림 탭 이벤트
+
+Android 연속 학습 알림만 커스텀 레이아웃이라 OS·레이아웃별 탭률을 비교하려고 남긴다. GA4 자동 `notification_open` 은 앱이 직접 그린 알림(Android data-only) 탭을 못 세서 대신 쓸 수 없다.
+
+| 이벤트 | 시점 | 파라미터 |
+|---|---|---|
+| `notification_tap` | 푸시 알림을 눌러 앱에 들어옴 | `type`(payload `data.type`), `style`(`custom` 네이티브 레이아웃 / `plain` 앱이 띄운 일반 알림 / `system` OS 가 띄운 알림, iOS 는 전부 이것) |
+
+- 분모(발송)는 GA 에 없다. prod `notification_logs` 를 `user_id` 로 붙이고, 연속 학습 슬롯은 발송 시각(20시·23시 KST)으로 가른다.
+- iOS 는 같은 탭이 FCM·expo-notifications 양쪽으로 들어올 수 있어 앱이 같은 `type` 3초 안 중복을 한 건으로 친다.
+
 ## 해석 주의
 
 - **스토어 자동 테스트 기기는 빼고 센다.** Play 에 빌드(rc 포함, 내부 테스트 트랙)를 올릴 때마다 사전 출시 보고서 로봇이 새 설치로 찍히고 로그인 화면을 수십 번 오가, 설치·로그인 이탈이 두 배로 부풀었다.

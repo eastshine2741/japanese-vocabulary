@@ -19,6 +19,7 @@ import { findSongCard } from '../components/rewardCards/cardKinds';
 import { useAuthStore } from '../stores/authStore';
 import { useRewardCardStore } from '../stores/rewardCardStore';
 import { preferenceStorage } from '../utils/preferenceStorage';
+import { trackNotificationTap, type NotificationTapStyle } from './analytics';
 import {
   addStreakPressListener,
   consumeInitialStreakPress,
@@ -142,6 +143,22 @@ export async function unregisterCurrentToken(): Promise<void> {
   }
 }
 
+// iOS 원격 알림 탭은 FCM 과 expo-notifications 양쪽 리스너로 들어올 수 있어 같은 탭을 두 번 세지 않는다.
+const TAP_DEDUPE_MS = 3000;
+let lastTap: { type: string; at: number } | null = null;
+
+function logTap(type: string, style: NotificationTapStyle): void {
+  const now = Date.now();
+  if (lastTap && lastTap.type === type && now - lastTap.at < TAP_DEDUPE_MS) return;
+  lastTap = { type, at: now };
+  trackNotificationTap(type, style);
+}
+
+function handleTap(data: RemoteMessage['data'], style: NotificationTapStyle): void {
+  if (typeof data?.type === 'string') logTap(data.type, style);
+  handleData(data);
+}
+
 function handleData(data: RemoteMessage['data']): void {
   if (!data) return;
   // 연속 학습 알림 — 탭하면 홈 첫 카드.
@@ -187,7 +204,7 @@ function handleData(data: RemoteMessage['data']): void {
 }
 
 function handleRemoteMessage(remoteMessage: RemoteMessage | null): void {
-  handleData(remoteMessage?.data);
+  if (remoteMessage) handleTap(remoteMessage.data, 'system');
 }
 
 // 카운트다운 숫자(네이티브 레이아웃)와 같은 빨강.
@@ -294,15 +311,14 @@ export function registerNotificationHandlers(): void {
   }
 
   // 카운트다운 알림은 expo-notifications 밖에서 그려서 탭도 따로 받는다.
-  addStreakPressListener(handleData);
+  addStreakPressListener((data) => handleTap(data, 'custom'));
   const initialStreakPress = consumeInitialStreakPress();
-  if (initialStreakPress) handleData(initialStreakPress);
+  if (initialStreakPress) handleTap(initialStreakPress, 'custom');
 
   // Tap handler for locally displayed notifications, including cold-start taps.
   Notifications.addNotificationResponseReceivedListener((response) => {
-    const data = response.notification.request.content.data as
-      | RemoteMessage['data']
-      | undefined;
-    handleData(data);
+    const { content, trigger } = response.notification.request;
+    const data = content.data as RemoteMessage['data'] | undefined;
+    handleTap(data, trigger && 'type' in trigger && trigger.type === 'push' ? 'system' : 'plain');
   });
 }
