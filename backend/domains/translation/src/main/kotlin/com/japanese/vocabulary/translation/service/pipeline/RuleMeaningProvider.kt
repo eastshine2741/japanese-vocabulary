@@ -206,6 +206,14 @@ class RuleMeaningProvider {
             // Colloquial contraction of いやだ. Segmentation writes the headword as 嫌だ, which jisho
             // has no entry for. Keyed on the surface only: いやだ shares that headword but not the reading.
             "やだ" to RuleResolvedToken("やだ", "嫌だ", "ヤダ", "イヤダ", PartOfSpeech.NA_ADJECTIVE, "싫다, 싫어"),
+            // Everyday kana adverbs that jisho files under rare kanji headwords (何時でも, 若しも, 疾っくに),
+            // so the kana headword the model emits reaches no dictionary entry.
+            "いつでも" to RuleResolvedToken("いつでも", "いつでも", "イツデモ", "イツデモ", PartOfSpeech.ADVERB, "언제든지"),
+            "いつまでも" to RuleResolvedToken("いつまでも", "いつまでも", "イツマデモ", "イツマデモ", PartOfSpeech.ADVERB, "언제까지나"),
+            "もしも" to RuleResolvedToken("もしも", "もしも", "モシモ", "モシモ", PartOfSpeech.ADVERB, "만약"),
+            "とっくに" to RuleResolvedToken("とっくに", "とっくに", "トックニ", "トックニ", PartOfSpeech.ADVERB, "진작에, 벌써"),
+            // Imperative of おいでになる (お出で); the kana surface has no headword of its own in jisho.
+            "おいで" to RuleResolvedToken("おいで", "おいで", "オイデ", "オイデ", PartOfSpeech.EXPRESSION, "이리 와"),
         )
 
         val particles = mapOf(

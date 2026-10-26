@@ -131,6 +131,27 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves everyday kana adverbs that miss the dictionary`() {
+        // 願いがもしも叶うなら / いつでも一緒におしゃべりして / あの子といつまでもずっと /
+        // もうとっくに死んでる / もっと落ちておいでよ — each kana headword was reported as a dictionary miss.
+        val cases = listOf(
+            PipelineToken(37, "もしも", "もしも", 3, 6) to "만약",
+            PipelineToken(10, "いつでも", "いつでも", 0, 4) to "언제든지",
+            PipelineToken(38, "いつまでも", "いつまでも", 4, 9) to "언제까지나",
+            PipelineToken(22, "とっくに", "とっくに", 2, 6) to "진작에, 벌써",
+            PipelineToken(47, "おいで", "おいで", 5, 8) to "이리 와",
+        )
+
+        cases.forEach { (token, korean) ->
+            val resolved = provider.resolve(token)
+            assertThat(resolved).describedAs(token.surface).isNotNull
+            assertThat(resolved!!.baseForm).isEqualTo(token.surface)
+            assertThat(resolved.reading).isEqualTo(JapaneseText.toKatakana(token.surface))
+            assertThat(resolved.koreanText).isEqualTo(korean)
+        }
+    }
+
+    @Test
     fun `does not rule-resolve ambiguous grammar-like words`() {
         assertThat(provider.resolve(token("ない"))).isNull()
         assertThat(provider.resolve(token("から"))).isNull()
