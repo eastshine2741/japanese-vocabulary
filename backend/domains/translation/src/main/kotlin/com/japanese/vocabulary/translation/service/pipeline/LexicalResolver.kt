@@ -768,7 +768,7 @@ class LexicalResolver(
     }
 
     /**
-     * Safety net for a verb the lyric follows with the motion auxiliary ていく / てくる (飛んでいく).
+     * Safety net for a verb the lyric follows with the auxiliary ていく / てくる / ている (飛んでいく, 泣いている).
      *
      * The auxiliary is dropped and the te-form conjugated back. んで / って are ambiguous (飛ぶ, 読む,
      * 死ぬ), so every candidate is asked and the first with a verb sense wins.
@@ -801,10 +801,14 @@ class LexicalResolver(
         val readings = stripTeAuxMotion(JapaneseText.toHiragana(token.baseFormReading))
             ?.let(::teFormToDictionaryForms)
             ?.map(JapaneseText::toKatakana)
-        return teFormToDictionaryForms(teForm).mapIndexed { i, base -> base to readings?.getOrNull(i) }
+        val probes = teFormToDictionaryForms(teForm).mapIndexed { i, base -> base to readings?.getOrNull(i) }
+        // 照らされている: the te-form restores the passive 照らされる, which jisho does not index either.
+        return probes + probes.mapNotNull { (base, reading) ->
+            undoPassive(base, PASSIVE_ENDINGS)?.let { it to reading?.let { r -> undoPassive(r, PASSIVE_READING_ENDINGS) } }
+        }
     }
 
-    /** `飛んでいく` → `飛んで`. Null unless what precedes いく / くる ends in て / で. */
+    /** `飛んでいく` → `飛んで`, `泣いてる` → `泣いて`. Null unless what precedes the auxiliary ends in て / で. */
     private fun stripTeAuxMotion(text: String): String? {
         val suffix = TE_AUX_MOTION_SUFFIXES.firstOrNull { text.endsWith(it) } ?: return null
         return text.dropLast(suffix.length).takeIf { it.length >= 2 && (it.endsWith("て") || it.endsWith("で")) }
@@ -1004,7 +1008,8 @@ class LexicalResolver(
         /** Longest first among overlapping spellings, so きれない is never cut as a shorter suffix. */
         val COMPLETION_SUFFIXES = listOf("きれない", "きれる", "きれず", "きれぬ", "きる")
 
-        val TE_AUX_MOTION_SUFFIXES = listOf("いく", "行く", "くる", "来る")
+        /** Progressive いる / contracted る after the motion auxiliaries, so 来る is never cut as る. */
+        val TE_AUX_MOTION_SUFFIXES = listOf("いく", "行く", "くる", "来る", "いる", "る")
 
         /** Te-form ending → the dictionary-form endings it can come from. */
         val TE_FORM_ENDINGS = listOf(

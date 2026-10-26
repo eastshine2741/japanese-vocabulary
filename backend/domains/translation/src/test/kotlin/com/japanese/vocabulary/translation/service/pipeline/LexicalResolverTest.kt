@@ -839,6 +839,32 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a te-form verb followed by progressive iru is looked up as the bare verb`(): Unit = runBlocking {
+        // おもちゃを無くした子供が泣いている
+        stub("泣く" to found(godanVerb("泣く", "ナク", "to cry")))
+        val tokens = listOf(token("泣いている", "泣いている", "ナイテイル", lineIndex = 9))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("泣く")
+        assertThat(resolved.options.map { it.english }).containsExactly("to cry")
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
+    fun `a passive te-form followed by progressive iru is looked up as the active verb`(): Unit = runBlocking {
+        // あのスポットライトに照らされている
+        stub("照らす" to found(godanVerb("照らす", "テラス", "to shine on")))
+        val tokens = listOf(token("照らされている", "照らされている", "テラサレテイル", lineIndex = 11))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("照らす")
+        assertThat(resolved.options.map { it.english }).containsExactly("to shine on")
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `a negative verb handed back as the headword is rescued as its dictionary form`(): Unit = runBlocking {
         // The negative いらない was given as the headword for いらん; jisho indexes only 要る.
         stub(
