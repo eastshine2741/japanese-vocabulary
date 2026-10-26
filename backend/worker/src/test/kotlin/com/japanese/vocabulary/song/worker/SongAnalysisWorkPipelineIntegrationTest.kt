@@ -547,6 +547,28 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
     }
 
     @Test
+    fun `rerunning lyric analysis with the kept translation redoes segmentation but not the line translation`(): Unit = runBlocking {
+        stubLyricsFound()
+        stubYoutubeFound()
+        stubLyricAnalysis()
+        val song = persistSongWithOldMv()
+        persistActiveLyric(song.id!!, "古い歌詞")
+        val first = persistAdminWork(song.id!!, status = SongAnalysisWorkStatus.PENDING)
+        drive(first.id!!)
+
+        val rerun = workService.rerun(first.id!!, SongAnalysisWorkStage.ANALYZE_LYRICS, keepTranslation = true)
+        drive(rerun.workId)
+        entityManager.flush()
+        entityManager.clear()
+
+        val rerunWork = workRepository.findById(rerun.workId).orElseThrow()
+        assertThat(rerunWork.status).isEqualTo(SongAnalysisWorkStatus.COMPLETED)
+        assertThat(lyricRepository.findById(rerunWork.lyricId!!).orElseThrow().analyzedContent!![0].koreanLyrics).isEqualTo("복숭아빛 열쇠")
+        coVerify(exactly = 1) { geminiClient.translateLyrics(any(), any()) }
+        coVerify(exactly = 2) { geminiClient.segmentAndLemmatize(any(), any(), any()) }
+    }
+
+    @Test
     fun `a stage cannot be rerun without the earlier outputs it reads or while the song has an active work`(): Unit = runBlocking {
         stubLyricsFound()
         stubYoutubeFound()

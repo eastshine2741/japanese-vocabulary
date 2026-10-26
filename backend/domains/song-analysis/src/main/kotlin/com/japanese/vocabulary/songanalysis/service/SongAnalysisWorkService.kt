@@ -25,6 +25,8 @@ import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.data.domain.Pageable
 import java.time.Instant
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
 
 @Service
 class SongAnalysisWorkService(
@@ -32,6 +34,7 @@ class SongAnalysisWorkService(
     private val stageRepository: SongAnalysisWorkStageRepository,
     private val eventPublisher: ApplicationEventPublisher,
 ) {
+    private val objectMapper = ObjectMapper()
 
     @Transactional
     fun createOrReuse(
@@ -250,9 +253,12 @@ class SongAnalysisWorkService(
      * 끝난 작업의 한 단계와 그 단계에 기대는 단계만 다시 돌리는 새 관리자 작업을 만든다. 나머지 단계 산출물은
      * 원본 작업에서 COMPLETED 행으로 복사해 둔다 — 새 작업이 곡의 유일한 활성 writer 가 되고, 단계들은 늘 그렇듯
      * 자기 원장만 읽는다. 원본 작업은 건드리지 않는다.
+     *
+     * [keepTranslation] 은 ANALYZE_LYRICS 부터 다시 돌릴 때 원본의 줄 번역 갈래를 새 작업의 진행 중 산출물로
+     * 넣어 둔다. 분절·사전만 고친 뒤 다시 돌릴 때, 가장 비싼 호출인 줄 번역을 되풀이하지 않으려는 것이다.
      */
     @Transactional
-    fun rerun(sourceWorkId: Long, stage: SongAnalysisWorkStage): SongAnalysisWorkDto {
+    fun rerun(sourceWorkId: Long, stage: SongAnalysisWorkStage, keepTranslation: Boolean = false): SongAnalysisWorkDto {
         val source = getEntityForUpdate(sourceWorkId)
         val rows = stageRepository.findByWorkIdOrderByIdAsc(sourceWorkId)
         val active = activeWorkFor(source, lockGap = true)
@@ -260,6 +266,12 @@ class SongAnalysisWorkService(
             throw BusinessException(
                 if (active != null) ErrorCode.SONG_ANALYSIS_WORK_ALREADY_EXISTS else ErrorCode.SONG_ANALYSIS_WORK_NOT_RERUNNABLE,
             )
+        }
+        val keptTranslation = if (keepTranslation) {
+            if (stage != SongAnalysisWorkStage.ANALYZE_LYRICS) throw BusinessException(ErrorCode.SONG_ANALYSIS_WORK_NOT_RERUNNABLE)
+            translationBranchOf(rows) ?: throw BusinessException(ErrorCode.SONG_ANALYSIS_WORK_NOT_RERUNNABLE)
+        } else {
+            null
         }
 
         val work = songAnalysisWorkRepository.saveAndFlush(
@@ -279,8 +291,17 @@ class SongAnalysisWorkService(
         val scope = stage.rerunScope()
         rows.filter { it.status == SongAnalysisStageStatus.COMPLETED && it.stage !in scope && it.stage != SongAnalysisWorkStage.CREATE_SONG_AND_LYRIC }
             .forEach { stageRepository.save(SongAnalysisWorkStageEntity(workId = work.id!!, stage = it.stage).apply { complete(it.output, now) }) }
+        // PENDING 행의 산출물은 첫 claim 이 이어받는다 — 실패 후 재개와 같은 경로다.
+        keptTranslation?.let { stageRepository.save(SongAnalysisWorkStageEntity(workId = work.id!!, stage = stage).apply { output = it }) }
         eventPublisher.publishEvent(SongAnalysisWorkQueuedEvent(work.id!!, stage))
         return work.toDto()
+    }
+
+    /** ANALYZE_LYRICS 산출물에서 줄 번역 갈래만 남긴 JSON. 키 이름은 worker 의 `AnalyzeLyricsOutput` 과 같아야 한다. */
+    private fun translationBranchOf(rows: List<SongAnalysisWorkStageEntity>): String? {
+        val output = rows.firstOrNull { it.stage == SongAnalysisWorkStage.ANALYZE_LYRICS }?.output ?: return null
+        val translation = objectMapper.readTree(output).get("translation")?.takeUnless { it.isNull } ?: return null
+        return objectMapper.writeValueAsString(objectMapper.createObjectNode().set<JsonNode>("translation", translation))
     }
 
     /** 단계마다 [rerun] 할 수 없는 이유. null 이면 할 수 있다. */

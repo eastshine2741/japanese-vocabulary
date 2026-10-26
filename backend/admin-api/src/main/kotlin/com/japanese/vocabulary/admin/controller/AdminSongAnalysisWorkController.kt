@@ -51,8 +51,9 @@ class AdminSongAnalysisWorkController(
     fun rerunSongAnalysisStage(
         @PathVariable workId: Long,
         @PathVariable stage: SongAnalysisWorkStage,
+        @RequestParam(defaultValue = "false") keepTranslation: Boolean,
     ): AdminSongAnalysisWorkDetailResponse {
-        val work = songAnalysisWorkService.rerun(workId, stage)
+        val work = songAnalysisWorkService.rerun(workId, stage, keepTranslation)
         return adminReadService.getSongAnalysisWork(work.workId)
     }
 }
