@@ -253,6 +253,9 @@ class RuleMeaningProvider {
             // guesses the headword といったって, which jisho lacks; resolve() tries the surface first.
             "たって" to auxiliary("たって", "~해도, ~한들"),
             "ったって" to auxiliary("ったって", "~해도, ~한들"),
+            // なくちゃ is the colloquial contraction of なくては; jisho has neither. Keyed on both forms.
+            "なくては" to auxiliary("なくては", "~하지 않으면 (안 된다)"),
+            "なくちゃ" to auxiliary("なくては", "~하지 않으면 (안 된다)"),
         )
 
         // Every surface in the particle/auxiliary tables is kana, so its reading is the surface in katakana.
