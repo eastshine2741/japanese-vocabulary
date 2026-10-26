@@ -25,9 +25,16 @@ type AnalyticsEvent =
   | { name: 'review_continue'; params: ReviewContinueParams }
   | { name: 'line_study_exit'; params: LineStudyExitParams }
   | { name: 'card_share'; params: { kind: ShareCardKind; method: 'x' | 'instagram_story' | 'instagram_dm' | 'link' } }
-  | { name: 'share_link_open'; params: { kind: ShareCardKind } };
+  | { name: 'share_link_open'; params: { kind: ShareCardKind } }
+  | { name: 'notification_tap'; params: { type: string; style: NotificationTapStyle } };
 
 export type ShareCardKind = 'song' | 'artist';
+
+/**
+ * 탭한 알림을 누가 그렸나. custom: Android 연속 학습 네이티브 레이아웃, plain: 앱이 expo-notifications 로 띄운 일반 알림,
+ * system: OS 가 FCM/APNs 알림 블록으로 띄운 것(iOS 전부). 커스텀 레이아웃의 탭률 비교용.
+ */
+export type NotificationTapStyle = 'custom' | 'plain' | 'system';
 
 export type AnalyzeOutcome = 'success' | 'lyrics_not_found' | 'failed';
 
@@ -156,6 +163,10 @@ export function trackCardShare(kind: ShareCardKind, method: 'x' | 'instagram_sto
 
 export function trackShareLinkOpen(kind: ShareCardKind): void {
   track({ name: 'share_link_open', params: { kind } });
+}
+
+export function trackNotificationTap(type: string, style: NotificationTapStyle): void {
+  track({ name: 'notification_tap', params: { type, style } });
 }
 
 export type ScreenViewParams = Record<string, string | number>;
