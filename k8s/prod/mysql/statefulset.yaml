@@ -19,18 +19,22 @@ spec:
           envFrom:
             - secretRef:
                 name: mysql-secret
+          env:
+            # 기본값이면 glibc 가 스레드마다 arena 를 늘리고 해제한 메모리를 OS 에 돌려주지 않아 RSS 가 계단식으로 오른다.
+            - name: MALLOC_ARENA_MAX
+              value: "2"
           ports:
             - containerPort: 3306
           volumeMounts:
             - name: mysql-data
               mountPath: /var/lib/mysql
           resources:
-            # 노드 메모리가 바닥나면 request 보다 많이 쓰는 파드부터 죽는다. 평소 800Mi 를 써서 limit 까지 잡는다.
+            # 노드 메모리가 바닥나면 request 보다 많이 쓰는 파드부터 죽는다. RSS 가 며칠 만에 1Gi 에 닿아 limit 까지 잡는다.
             requests:
               cpu: 250m
-              memory: 1Gi
+              memory: 1280Mi
             limits:
-              memory: 1Gi
+              memory: 1280Mi
   volumeClaimTemplates:
     - metadata:
         name: mysql-data
