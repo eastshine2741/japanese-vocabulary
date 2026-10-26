@@ -326,7 +326,54 @@ class YoutubeMvSearchService(
 
     private fun titleMatches(videoTitle: String, targetTitle: String): Boolean {
         val normalizedVideoTitle = normalizeForMatch(videoTitle)
-        return targetTitleVariants(targetTitle).any { normalizedVideoTitle.contains(it) }
+        if (targetTitleVariants(targetTitle).any { normalizedVideoTitle.contains(it) }) return true
+        val spacedVideoTitle = Normalizer.normalize(videoTitle, Normalizer.Form.NFKC).lowercase()
+            .replace(HTML_ENTITY_RE, " ")
+            .replace(PUNCTUATION_RE, " ")
+        return romajiTitleVariants(targetTitle).any { it.containsMatchIn(spacedVideoTitle) }
+    }
+
+    /**
+     * Overseas uploads spell a kana-only title in Hepburn ("まつり" → "Matsuri"). Unlike the kana
+     * variants this one must stand as whole words, or a short "hana" would match "Hanabi".
+     */
+    private fun romajiTitleVariants(title: String): List<Regex> {
+        val withoutTrailingDescriptor = title.replace(TRAILING_DESCRIPTOR_RE, "")
+        return (listOf(withoutTrailingDescriptor) + withoutTrailingDescriptor.split(TITLE_SEPARATOR_RE))
+            .map { Normalizer.normalize(it, Normalizer.Form.NFKC).trim() }
+            .filter { it.length >= MIN_TITLE_PART_LENGTH && KANA_ONLY_RE.matches(it) }
+            .distinct()
+            .mapNotNull { part -> hepburnSyllables(part)?.takeIf { it.isNotEmpty() } }
+            .map { syllables ->
+                Regex("(?<![a-z])" + syllables.joinToString("""\s*""") { Regex.escape(it) } + "(?![a-z])")
+            }
+    }
+
+    /** Null when a character has no reading in [HEPBURN]; long-vowel marks are dropped as most uploads do. */
+    private fun hepburnSyllables(kana: String): List<String>? {
+        val hiragana = kana.map { if (it in 'ァ'..'ヶ') it - KATAKANA_TO_HIRAGANA_OFFSET else it }
+            .filter { it != 'ー' && !it.isWhitespace() }
+            .joinToString("")
+        val syllables = mutableListOf<String>()
+        var geminate = false
+        var i = 0
+        while (i < hiragana.length) {
+            if (hiragana[i] == 'っ') {
+                geminate = true
+                i += 1
+                continue
+            }
+            val digraph = if (i + 1 < hiragana.length) HEPBURN[hiragana.substring(i, i + 2)] else null
+            val romaji = digraph ?: HEPBURN[hiragana.substring(i, i + 1)] ?: return null
+            i += if (digraph != null) 2 else 1
+            syllables += when {
+                !geminate -> romaji
+                romaji.startsWith("ch") -> "t$romaji"
+                else -> romaji.first() + romaji
+            }
+            geminate = false
+        }
+        return syllables
     }
 
     /**
@@ -457,5 +504,37 @@ class YoutubeMvSearchService(
         private val HTML_ENTITY_RE = Regex("""&(?:amp|quot|#39|apos);""", RegexOption.IGNORE_CASE)
         private val PUNCTUATION_RE = Regex("""[\p{P}\p{S}]""")
         private val WHITESPACE_RE = Regex("""\s+""")
+        private val KANA_ONLY_RE = Regex("""[ぁ-ゖァ-ヶー\s]+""")
+        private const val KATAKANA_TO_HIRAGANA_OFFSET = 0x60
+        private val PALATAL_STEMS = setOf("sh", "ch", "j")
+        private val HEPBURN: Map<String, String> = buildMap {
+            val rows = listOf(
+                "あいうえお" to listOf("a", "i", "u", "e", "o"),
+                "かきくけこ" to listOf("ka", "ki", "ku", "ke", "ko"),
+                "がぎぐげご" to listOf("ga", "gi", "gu", "ge", "go"),
+                "さしすせそ" to listOf("sa", "shi", "su", "se", "so"),
+                "ざじずぜぞ" to listOf("za", "ji", "zu", "ze", "zo"),
+                "たちつてと" to listOf("ta", "chi", "tsu", "te", "to"),
+                "だぢづでど" to listOf("da", "ji", "zu", "de", "do"),
+                "なにぬねの" to listOf("na", "ni", "nu", "ne", "no"),
+                "はひふへほ" to listOf("ha", "hi", "fu", "he", "ho"),
+                "ばびぶべぼ" to listOf("ba", "bi", "bu", "be", "bo"),
+                "ぱぴぷぺぽ" to listOf("pa", "pi", "pu", "pe", "po"),
+                "まみむめも" to listOf("ma", "mi", "mu", "me", "mo"),
+                "やゆよ" to listOf("ya", "yu", "yo"),
+                "らりるれろ" to listOf("ra", "ri", "ru", "re", "ro"),
+                "わをん" to listOf("wa", "o", "n"),
+                "ぁぃぅぇぉゃゅょゔ" to listOf("a", "i", "u", "e", "o", "ya", "yu", "yo", "vu"),
+            )
+            rows.forEach { (kana, romaji) -> kana.forEachIndexed { i, c -> put(c.toString(), romaji[i]) } }
+            val yoon = listOf("ゃ" to "a", "ゅ" to "u", "ょ" to "o")
+            "きぎしじちぢにひびぴみり".forEach { c ->
+                val stem = getValue(c.toString()).dropLast(1)
+                yoon.forEach { (small, vowel) ->
+                    // し/じ/ち already end in a palatal: "sha", "ja", "cha" rather than "shya".
+                    put("$c$small", if (stem in PALATAL_STEMS) "$stem$vowel" else "${stem}y$vowel")
+                }
+            }
+        }
     }
 }

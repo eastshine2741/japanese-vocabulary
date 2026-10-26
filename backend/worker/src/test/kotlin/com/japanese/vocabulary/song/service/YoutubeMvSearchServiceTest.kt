@@ -499,6 +499,52 @@ class YoutubeMvSearchServiceTest {
     }
 
     @Test
+    fun `a kana-only title matches its romanized upload titles`() {
+        val artist = "藤井 風"
+        val title = "まつり (Fujii Kaze Stadium Live \"Feelin' Good\")"
+        every { artistChannelCache.get(artist) } returns null
+        stubSearch(
+            searchItem("fpl8ubntjl4", "藤井風「まつり」Fujii Kaze, Fuji rock 2026", "ミッキーチャンネル💨🍃"),
+            searchItem("2whxqI3hFbQ", "후지이 카제 - 마츠리 교차편집 | Matsuri まつり live stage mix | 한글 자막", "엔딩"),
+            searchItem("NXAtnDGDTiM", "Fujii Kaze - Matsuri (まつり) (Lyrics) (Vietsub)", "Other Guy"),
+            searchItem("QRSZU7d0EZs", "060224 Fujii Kaze 藤井風 - Matsuri まつり @ The Apollo Theatre", "VERAYA"),
+            searchItem("8-k9hc7npoo", "まつり (Matsuri) - 藤井風(Fujii kaze)[LOVE ALL SERVE ALL]［中文翻譯 | 中日歌詞 | lyrics video] &quot;人生所有事情都是宇宙給予我們", "Magic Fox"),
+            searchItem("O3X159c9WIg", "‘Fujii Kaze (藤井 風) - Matsuri (まつり) Official Video’ reaction mashup", "minä rakastan sinua"),
+            searchItem("NwOvu-j_WjY", "Fujii Kaze -  Matsuri (Official Video)", "Fujii Kaze"),
+            searchItem("fDg3PTQ1tzM", "Fujii Kaze - &quot;Matsuri&quot; Live at Panasonic Stadium Suita", "Fujii Kaze"),
+            searchItem("ECA-nGD50bY", "후지이카제 - &quot;Matsuri&quot; 축제 (Nissan Stadium Live &quot;Feelin&#39; Good&quot; 2024) 라이브 Live 한글자막", "뿌지카제"),
+            searchItem("pHyVeHHLYIo", "Kaze dances to &quot;Matsuri&quot; no matter what", "Fujii Kaze"),
+            searchItem("lpWs-Tn3G94", "Fujii Kaze - Matsuri【Lyrics/Romaji/Terjemahan】", "Astadala"),
+            searchItem("odQwmaBrQfc", "Matsuri (Fujii Kaze Stadium Live &quot;Feelin&#39; Good&quot;)", "Fujii Kaze - Topic"),
+            searchItem("rGyQHyDMZZI", "Fujii Kaze: Tiny Desk Concerts JAPAN", "NPR Music"),
+            searchItem("l1WXOtTv0HY", "[J-POP] 축제(祭り) - 후지이 카제(Fujii Kaze) 가사/해석", "yooni.verse_윤이버스"),
+            searchItem("wsPE5jzoGxI", "Fujii Kaze - &quot;Matsuri&quot; Behind The Scenes", "Fujii Kaze"),
+        )
+        stubDurations(
+            "fpl8ubntjl4" to "PT3M58S",
+            "2whxqI3hFbQ" to "PT4M33S",
+            "NXAtnDGDTiM" to "PT3M53S",
+            "QRSZU7d0EZs" to "PT6M39S",
+            "8-k9hc7npoo" to "PT3M49S",
+            "O3X159c9WIg" to "PT4M18S",
+            "NwOvu-j_WjY" to "PT4M41S",
+            "odQwmaBrQfc" to "PT11M14S",
+        )
+
+        assertThat(service.searchMvUrl(title, artist, 674))
+            .isEqualTo("https://www.youtube.com/watch?v=odQwmaBrQfc")
+    }
+
+    @Test
+    fun `a romanized kana title must stand as a whole word`() {
+        every { artistChannelCache.get(ARTIST) } returns null
+        stubSearch(searchItem("other-id", "$ARTIST - Hanabi (Official Video)"))
+        stubDurations("other-id" to "PT4M")
+
+        assertThat(service.searchMvUrl("はな", ARTIST, TRACK_SECONDS)).isNull()
+    }
+
+    @Test
     fun `a miss reports every candidate and why it was dropped`() {
         every { artistChannelCache.get(ARTIST) } returns null
         stubSearch(
