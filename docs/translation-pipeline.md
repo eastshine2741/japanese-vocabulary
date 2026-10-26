@@ -16,13 +16,14 @@ rationales should live beside the code or in focused tests.
    lyric line in order. Invalid lines retry; incomplete-but-anchored lines can be
    kept with warnings.
 4. `GluedParticleSplitter`: splits model-glued particles only when dictionary and
-   reading checks agree.
+   reading checks agree. `CompoundVerbMerger` then joins a verb stem and verb the
+   model split (`握り` + `返せ`) when the dictionary has the compound as a verb.
 5. `ApplyRuleMeaningsStage`: resolves deterministic grammar tokens through
    `RuleMeaningProvider`.
 6. `ResolveLexicalSensesStage`: uses `LexicalResolver` and dictionary entries to find
    candidate dictionary senses.
 7. `SelectSensesStage`: Jev (TypeSafe) chooses sense IDs when code cannot decide,
-   one request per line. A word with one candidate sense is settled in code;
+   one request per distinct line (a repeated chorus line is asked once). A word with one candidate sense is settled in code;
    `SenseCandidateNarrowing` drops impossible candidates first; an answer under
    confidence 0.25 becomes "no sense". No Gemini fallback.
 8. `TranslateSensesStage`: Gemini translates each selected dictionary sense to one
@@ -54,7 +55,8 @@ segment -> anchor/retry -> rules -> dictionary entry-select
 - Japanese token surfaces must appear in the original line in order. Whitespace,
   punctuation, latin text, and digits should not be emitted as word tokens —
   but kana or kanji between or after them still are (`140と30字の` → と / 字 / の).
-- Identical raw lyric lines are segmented once and copied to each occurrence.
+- Identical raw lyric lines are segmented once and sense-selected once, and copied to
+  each occurrence.
 - Tokens without `koreanText` are not surfaced as word candidates.
 
 ## Guardrails
@@ -101,6 +103,12 @@ Allowed:
 
 Do not add ambiguous lexical words such as `ない` or `から`; they must flow through
 the dictionary and sense selection.
+
+Particles with several functions (`で`, `と`, `の`, `って`, `じゃ`) pick one Korean
+meaning per token from the token before them (`ないで`, a voiced te-stem `読ん`) and
+the segment stage's `contextGloss`. This does not break the one-meaning rule:
+particles and auxiliaries are never word candidates, so different meanings of `で`
+across songs never merge into one word.
 
 ## Pronunciation
 

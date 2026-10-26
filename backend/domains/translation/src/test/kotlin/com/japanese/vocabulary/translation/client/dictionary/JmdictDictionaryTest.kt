@@ -75,6 +75,12 @@ class JmdictDictionaryTest {
     }
 
     @Test
+    fun `an entry with no corpus frequency is marked unseen`() {
+        assertThat(dictionary.lookup("メッセージ").entries.single().seenInCorpus).isFalse()
+        assertThat(dictionary.lookup("前").entries).allSatisfy { assertThat(it.seenInCorpus).isTrue() }
+    }
+
+    @Test
     fun `an unknown word is a genuine not-found`() {
         val result = dictionary.lookup("ゑゐ")
 

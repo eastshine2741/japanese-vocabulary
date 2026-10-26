@@ -80,6 +80,53 @@ class GluedParticleSplitterTest {
     }
 
     @Test
+    fun `a particle glued into the headword as well is split off`(): Unit = runBlocking {
+        // 誰も彼もが頭を抱え生きている: 彼も came back with headword 彼も too, so the headword offers no anchor.
+        stubMissing("彼も")
+
+        val tokens = split(token(surface = "彼も", headword = "彼も", used = "カレモ", base = "カレモ", start = 2))
+
+        assertThat(tokens.map { it.surface }).containsExactly("彼", "も")
+        assertThat(tokens.map { it.headword }).containsExactly("彼", "も")
+        assertThat(tokens.map { it.usedReading }).containsExactly("カレ", "モ")
+        assertThat(tokens.first().baseFormReading).isEqualTo("カレ")
+        assertThat(tokens.map { it.charStart to it.charEnd }).containsExactly(2 to 3, 3 to 4)
+    }
+
+    @Test
+    fun `a word that is its own headword and ends in a particle is kept when the dictionary knows it`(): Unit =
+        runBlocking {
+            stubEntry("いつも")
+
+            val tokens = split(token(surface = "いつも", headword = "いつも", used = "イツモ", base = "イツモ", start = 0))
+
+            assertThat(tokens.map { it.surface }).containsExactly("いつも")
+        }
+
+    @Test
+    fun `a leading particle glued into the headword too is split off before a kanji word`(): Unit = runBlocking {
+        // あぁ、いつか人生最後の日、: の日 came back as both surface and headword.
+        stubMissing("の日")
+
+        val tokens = split(token(surface = "の日", headword = "の日", used = "ノヒ", base = "ノヒ", start = 10))
+
+        assertThat(tokens.map { it.surface }).containsExactly("の", "日")
+        assertThat(tokens.map { it.headword }).containsExactly("の", "日")
+        assertThat(tokens.map { it.usedReading }).containsExactly("ノ", "ヒ")
+        assertThat(tokens.map { it.charStart to it.charEnd }).containsExactly(10 to 11, 11 to 12)
+        assertThat(tokens.last().baseFormReading).isEqualTo("ヒ")
+    }
+
+    @Test
+    fun `a kana word the model gave as its own headword is not split`(): Unit = runBlocking {
+        // のんびり opens with の but is not glued; only a kanji after the particle marks a word boundary.
+        val tokens = split(token(surface = "のんびり", headword = "のんびり", used = "ノンビリ", base = "ノンビリ", start = 0))
+
+        assertThat(tokens.map { it.surface }).containsExactly("のんびり")
+        coVerify(exactly = 0) { dictionaryService.lookupAll(any()) }
+    }
+
+    @Test
     fun `a glued form the dictionary knows is left whole`(): Unit = runBlocking {
         // いつも is a word. Splitting it into いつ + も would break a real entry into two fragments.
         stubEntry("いつも")

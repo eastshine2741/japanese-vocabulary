@@ -382,15 +382,123 @@ class SegmentAnchoringValidatorTest {
     }
 
     @Test
-    fun `parenthesized kana that does not spell the word's reading is still uncovered`() {
-        // Only a restated reading is swallowed; other kana is a skipped word, and kanji in
-        // parentheses is never an annotation.
-        val mismatch = validator.anchor(
-            mapOf(0 to "暗闇(クロ)"),
-            listOf(SegLineDto(0, listOf(word("暗闇", "暗闇", "クラヤミ", "クラヤミ")))),
+    fun `furigana pasted right after a kanji without parentheses is covered by that word`() {
+        val result = validator.anchor(
+            mapOf(
+                12 to "叫んで 藻掻もがいて 瞼まぶたを腫らしても",
+                30 to "躊躇(ためら)わないで darlin'",
+                32 to "壊してくれって願って踠もがいたって",
+                6 to "もう如何どうしようも無くなって叫ぶんだ",
+            ),
+            listOf(
+                SegLineDto(
+                    12,
+                    listOf(
+                        word("叫ん", "叫ぶ", "サケン", "サケブ"),
+                        word("で", "て", "デ", "テ"),
+                        word("藻掻", "藻掻く", "モガ", "モガク"),
+                        word("いて", "て", "イテ", "テ"),
+                        word("瞼", "瞼", "マブタ", "マブタ"),
+                        word("を", "を", "ヲ", "ヲ"),
+                        word("腫らし", "腫らす", "ハラシ", "ハラス"),
+                        word("て", "て", "テ", "テ"),
+                        word("も", "も", "モ", "モ"),
+                    ),
+                ),
+                SegLineDto(
+                    30,
+                    listOf(
+                        word("躊躇", "躊躇う", "タメラ", "タメラウ"),
+                        word("わ", "躊躇う", "ワ", "ワ"),
+                        word("ない", "ない", "ナイ", "ナイ"),
+                        word("で", "で", "デ", "デ"),
+                    ),
+                ),
+                SegLineDto(
+                    32,
+                    listOf(
+                        word("壊し", "壊す", "コワシ", "コワス"),
+                        word("て", "て", "テ", "テ"),
+                        word("くれっ", "くれる", "クレッ", "クレル"),
+                        word("て", "て", "テ", "テ"),
+                        word("願っ", "願う", "ネガッ", "ネガウ"),
+                        word("て", "て", "テ", "テ"),
+                        word("踠", "踠く", "モガ", "モガク"),
+                        word("いたって", "たって", "イタッテ", "タッテ"),
+                    ),
+                ),
+                SegLineDto(
+                    6,
+                    listOf(
+                        word("もう", "もう", "モウ", "モウ"),
+                        word("如何", "如何", "ドウ", "ドウ"),
+                        word("しよう", "する", "シヨウ", "スル"),
+                        word("も", "も", "モ", "モ"),
+                        word("無く", "無い", "ナク", "ナイ"),
+                        word("なっ", "なる", "ナッ", "ナル"),
+                        word("て", "て", "テ", "テ"),
+                        word("叫ぶ", "叫ぶ", "サケブ", "サケブ"),
+                        word("ん", "の", "ン", "ノ"),
+                        word("だ", "だ", "ダ", "ダ"),
+                    ),
+                ),
+            ),
         )
-        assertThat(mismatch.incompleteByIndex[0]?.text).isEqualTo("クロ")
 
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.incompleteByIndex).isEmpty()
+        assertThat(result.anchoredByIndex.getValue(12).first { it.surface == "藻掻" }.let { it.charStart to it.charEnd })
+            .isEqualTo(4 to 6)
+    }
+
+    @Test
+    fun `bare kana after a kanji that does not spell its reading is still uncovered`() {
+        val result = validator.anchor(
+            mapOf(0 to "藻掻あがいて"),
+            listOf(SegLineDto(0, listOf(word("藻掻", "藻掻く", "モガ", "モガク"), word("いて", "て", "イテ", "テ")))),
+        )
+
+        assertThat(result.incompleteByIndex[0]?.text).isEqualTo("あが")
+    }
+
+    @Test
+    fun `parenthesized kana after an all-kanji word is a sung reading even when the model kept another`() {
+        val result = validator.anchor(
+            mapOf(20 to "ねぇ 私の世界(ほし)が知りたがっているわ さあ"),
+            listOf(
+                SegLineDto(
+                    20,
+                    listOf(
+                        word("ねぇ", "ねぇ", "ネェ", "ネェ"),
+                        word(" ", " ", "", ""),
+                        word("私", "私", "ワタシ", "ワタシ"),
+                        word("の", "の", "ノ", "ノ"),
+                        word("世界", "世界", "セカイ", "セカイ"),
+                        word("が", "が", "ガ", "ガ"),
+                        word("知り", "知る", "シリ", "シル"),
+                        word("たがって", "たがる", "タガッテ", "タガル"),
+                        word("いる", "いる", "イル", "イル"),
+                        word("わ", "わ", "ワ", "ワ"),
+                        word(" ", " ", "", ""),
+                        word("さあ", "さあ", "サア", "サア"),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.incompleteByIndex).isEmpty()
+
+        val kanaWord = validator.anchor(
+            mapOf(0 to "晴れ(ほし)"),
+            listOf(SegLineDto(0, listOf(word("晴れ", "晴れ", "ハレ", "ハレ")))),
+        )
+        assertThat(kanaWord.incompleteByIndex[0]?.text).isEqualTo("ほし")
+    }
+
+    @Test
+    fun `parenthesized kana that does not spell the word's reading is still uncovered`() {
+        // Kana not attached to a word is a skipped word, and kanji in parentheses is never an annotation.
         val standalone = validator.anchor(
             mapOf(0 to "(こたえ) 猫"),
             listOf(SegLineDto(0, listOf(word("猫", "猫", "ネコ", "ネコ")))),
@@ -448,6 +556,53 @@ class SegmentAnchoringValidatorTest {
         )
         assertThat(tokens.last().headword).isEqualTo("見失う")
         assertThat(tokens.last().usedReading).isEqualTo("ミウシナウ")
+    }
+
+    @Test
+    fun `an echo of a phrase spanning several anchored words is copied from those words`() {
+        val result = validator.anchor(
+            mapOf(
+                0 to "震える体が 動かなくても 構わないから (構わないから)",
+                1 to "同じ道のりが 奏でた それは泣き声の歌 (泣き声の歌)",
+            ),
+            listOf(
+                SegLineDto(
+                    0,
+                    listOf(
+                        word("震える", "震える", "フルエル", "フルエル"),
+                        word("体", "体", "カラダ", "カラダ"),
+                        word("が", "が", "ガ", "ガ"),
+                        word("動か", "動く", "ウゴカ", "ウゴク"),
+                        word("なくても", "ない", "ナクテモ", "ナイ"),
+                        word("構わ", "構う", "カマワ", "カマウ"),
+                        word("ない", "ない", "ナイ", "ナイ"),
+                        word("から", "から", "カラ", "カラ"),
+                    ),
+                ),
+                SegLineDto(
+                    1,
+                    listOf(
+                        word("同じ", "同じ", "オナジ", "オナジ"),
+                        word("道のり", "道のり", "ミチノリ", "ミチノリ"),
+                        word("が", "が", "ガ", "ガ"),
+                        word("奏でた", "奏でる", "カナデタ", "カナデル"),
+                        word("それ", "それ", "ソレ", "ソレ"),
+                        word("は", "は", "ハ", "ハ"),
+                        word("泣き声", "泣き声", "ナキゴエ", "ナキゴエ"),
+                        word("の", "の", "ノ", "ノ"),
+                        word("歌", "歌", "ウタ", "ウタ"),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.incompleteByIndex).isEmpty()
+        assertThat(result.anchoredByIndex.getValue(0).takeLast(3).map { Triple(it.surface, it.charStart, it.charEnd) })
+            .containsExactly(Triple("構わ", 21, 23), Triple("ない", 23, 25), Triple("から", 25, 27))
+        assertThat(result.anchoredByIndex.getValue(1).takeLast(3).map { Triple(it.surface, it.charStart, it.charEnd) })
+            .containsExactly(Triple("泣き声", 21, 24), Triple("の", 24, 25), Triple("歌", 25, 26))
+        assertThat(result.anchoredByIndex.getValue(0).last().headword).isEqualTo("から")
     }
 
     @Test

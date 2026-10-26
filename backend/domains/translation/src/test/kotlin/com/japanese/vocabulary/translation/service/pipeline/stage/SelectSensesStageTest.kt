@@ -19,6 +19,7 @@ import com.japanese.vocabulary.translation.model.TranslationPipelineSource
 import com.japanese.vocabulary.translation.model.WordPreparationResult
 import com.japanese.vocabulary.translation.service.pipeline.AnalysisDefectReporter
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -79,6 +80,38 @@ class SelectSensesStageTest {
 
         assertThat(questions.captured.getValue(first.key.tokenId).instructions).contains("し【て】なって")
         assertThat(questions.captured.getValue(second.key.tokenId).instructions).contains("してなっ【て】")
+    }
+
+    @Test
+    fun `asks a repeated chorus line once and gives every repeat the same sense`(): Unit = runBlocking {
+        val line = "夢を見た"
+        val first = PipelineToken(1, "夢", "夢", 0, 1, contextGloss = "dream")
+        val repeat = first.copy(lineIndex = 9)
+        val options = options(40, 41)
+        coEvery { jevClient.choose(any(), any(), any(), any()) } returns mapOf(first.key.tokenId to JevAnswer("41", 0.9))
+        val tokens = listOf(first to options, repeat to options)
+
+        val selected = stage.execute(
+            SenseSelectionStageInput(
+                source = TranslationPipelineSource.from(
+                    listOf(1, 9).map { LyricLineData(index = it, startTimeMs = null, text = line) },
+                    GeminiCallContext(songId = 130L, lyricId = 1L),
+                ),
+                translationMap = emptyMap(),
+                wordPreparation = WordPreparationResult(
+                    segLines = emptyList(),
+                    tokensByIndex = mapOf(1 to listOf(first), 9 to listOf(repeat)),
+                    ruleResolvedByKey = emptyMap(),
+                    lexical = LexicalResolution(
+                        byTokenKey = tokens.associate { (t, o) -> t.key to LexicalResolvedToken(t, t.headword, o) },
+                        optionsById = options.associateBy { it.senseId },
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(selected).containsExactlyInAnyOrderEntriesOf(mapOf(first.key to 41, repeat.key to 41))
+        coVerify(exactly = 1) { jevClient.choose(any(), any(), any(), any()) }
     }
 
     @Test

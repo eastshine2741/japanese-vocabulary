@@ -841,11 +841,12 @@ class KoreanLyricTranslationServiceTest : WorkerBaseIntegrationTest() {
 
     @Test
     fun `rejected fallback does not reach sense-select`(): Unit = runBlocking {
-        val lyric = seedLyric(listOf("こうも"))
+        // Not ending in a particle: GluedParticleSplitter would split こうも into こう + も.
+        val lyric = seedLyric(listOf("ふむ"))
 
-        coEvery { geminiClient.translateLyrics(any(), any()) } returns listOf(TranslationResultDto(0, "이렇게도"))
+        coEvery { geminiClient.translateLyrics(any(), any()) } returns listOf(TranslationResultDto(0, "흠"))
         coEvery { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(
-            SegLineDto(0, listOf(segWord("こうも", "こうも"))),
+            SegLineDto(0, listOf(segWord("ふむ", "ふむ"))),
         )
         coEvery { dictionaryService.lookupAll(any()) } answers {
             firstArg<List<String>>().associateWith { rejectedFallbackEntry(it, english = "item") }

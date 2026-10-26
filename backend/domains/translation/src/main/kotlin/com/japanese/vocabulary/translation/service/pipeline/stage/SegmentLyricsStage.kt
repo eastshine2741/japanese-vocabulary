@@ -10,6 +10,7 @@ import com.japanese.vocabulary.translation.model.TranslationPipelineSource
 import com.japanese.vocabulary.translation.model.UncoveredRun
 import com.japanese.vocabulary.translation.service.pipeline.AnalysisDefectReporter
 import com.japanese.vocabulary.translation.service.pipeline.ChunkedGeminiCall
+import com.japanese.vocabulary.translation.service.pipeline.CompoundVerbMerger
 import com.japanese.vocabulary.translation.service.pipeline.GluedParticleSplitter
 import com.japanese.vocabulary.translation.service.pipeline.JapaneseText
 import com.japanese.vocabulary.translation.service.pipeline.LexicalResolver
@@ -24,6 +25,7 @@ class SegmentLyricsStage(
     private val geminiClient: GeminiClient,
     private val segmentAnchoringValidator: SegmentAnchoringValidator,
     private val gluedParticleSplitter: GluedParticleSplitter,
+    private val compoundVerbMerger: CompoundVerbMerger,
     private val ruleMeaningProvider: RuleMeaningProvider,
     private val lexicalResolver: LexicalResolver,
     private val defectReporter: AnalysisDefectReporter,
@@ -62,7 +64,7 @@ class SegmentLyricsStage(
         repeat(MAX_SEGMENTATION_ATTEMPTS) { attempt ->
             val segmented = segment(input, pendingByIndex, anchorFailures + defectFeedback, attempt)
             val anchored = segmentAnchoringValidator.anchor(pendingByIndex, segmented)
-            val splitByIndex = gluedParticleSplitter.split(anchored.anchoredByIndex)
+            val splitByIndex = compoundVerbMerger.merge(gluedParticleSplitter.split(anchored.anchoredByIndex))
             val missesByIndex = headwordMisses(splitByIndex)
             val segLineByIndex = segmented.associateBy { it.index }
 
