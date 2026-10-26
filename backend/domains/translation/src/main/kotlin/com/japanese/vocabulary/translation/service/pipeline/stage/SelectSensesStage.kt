@@ -46,8 +46,20 @@ class SelectSensesStage(
             .mapValues { (_, tokens) -> tokens.filterNot { it.key in settledSenseByKey } }
             .filterValues { it.isNotEmpty() }
 
-        val selectedSenseByKey = selectableTokensByIndex.flatMap { (index, tokens) ->
-            selectLine(index, tokens, input)
+        // A repeated chorus line is asked once: separate requests gave the same word different senses
+        // from one repeat to the next.
+        val repeatsByLine = selectableTokensByIndex.entries.groupBy { (index, tokens) ->
+            // Options too: a repeat whose word resolved to another entry (前 マエ vs ゼン) has different senseIds.
+            input.source.rawByIndex[index].orEmpty() to tokens.map { token ->
+                Triple(token.charStart, token.surface, lexical.byTokenKey.getValue(token.key).options.map { it.senseId })
+            }
+        }
+        val selectedSenseByKey = repeatsByLine.values.flatMap { repeats ->
+            val (index, tokens) = repeats.first()
+            val chosen = selectLine(index, tokens, input).toMap()
+            repeats.flatMap { (_, copies) ->
+                copies.mapIndexed { i, copy -> copy.key to chosen.getValue(tokens[i].key) }
+            }
         }.toMap()
         return settledSenseByKey + selectedSenseByKey
     }
@@ -98,8 +110,12 @@ class SelectSensesStage(
         val criteria = offered.take(MAX_SENSE_OPTIONS).associate { it.senseId.toString() to label(it) } +
             (NO_SENSE.toString() to "None of the other options matches how this word is used in the line")
         return JevChoiceQuestion(
+            // The tie-break: given a translation to lean on, the model still reached for figurative or rare senses
+            // (開く as "to bloom", 前 as "front" in a time phrase).
             instructions = "Which dictionary sense matches how 「${token.surface}」 (headword $headword) " +
-                "is used at the 【marked】 position in this Japanese lyric line: $marked$gloss",
+                "is used at the 【marked】 position in this Japanese lyric line: $marked$gloss " +
+                "Pick the sense the line's korean_translation expresses. If several fit, pick the plainer, " +
+                "more literal one listed first.",
             criteria = criteria,
         )
     }

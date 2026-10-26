@@ -67,7 +67,9 @@ class SegmentAnchoringValidator {
      * missing word; it is [absorbed][absorbTrailingKana] into the token it follows.
      *
      * A reading in parentheses right after a word (`解答(こたえ)`, `暗闇(クロ)`) is **covered by that
-     * word**; it must match the token's reading, so the ad-lib `晴れ舞台（イェイ）` stays reported.
+     * word**; unless the word is all kanji it must match the token's reading, so the ad-lib
+     * `晴れ舞台（イェイ）` stays reported.
+     * The same holds for furigana pasted without parentheses (`藻掻もがいて`).
      */
     private fun anchorLine(index: Int, rawText: String, line: SegLineDto): AnchoredLine {
         val covered = BooleanArray(rawText.length)
@@ -87,7 +89,8 @@ class SegmentAnchoringValidator {
             val usedReading = readingOf(index, word, word.usedReading, "usedReading")
             val end = start + surface.length
             for (i in start until end) covered[i] = true
-            val annotationEnd = readingAnnotationEnd(rawText, end, usedReading)
+            val annotationEnd = readingAnnotationEnd(rawText, end, surface, usedReading)
+                .takeIf { it > end } ?: bareRubyEnd(rawText, surface, end, usedReading)
             for (i in end until annotationEnd) covered[i] = true
             cursor = end
             previousSurface = word.surface
@@ -108,26 +111,43 @@ class SegmentAnchoringValidator {
         var from = 0
         while (true) {
             val (offset, text) = uncoveredJapaneseRun(rawText, covered, from) ?: break
-            val filled = echoOf(tokens, offset, text) ?: knownParticleToken(index, offset, text)
+            val filled = echoOf(tokens, offset, text) ?: knownParticleToken(index, offset, text)?.let(::listOf)
             if (filled == null) {
                 uncovered = UncoveredRun(lineIndex = index, offset = offset, text = text)
                 break
             }
             tokens += filled
-            for (i in offset until filled.charEnd) covered[i] = true
-            from = filled.charEnd
+            val filledEnd = filled.last().charEnd
+            for (i in offset until filledEnd) covered[i] = true
+            from = filledEnd
         }
         return AnchoredLine(tokens = tokens.sortedBy { it.charStart }, uncovered = uncovered)
     }
 
     /**
-     * A copy of the token whose surface is exactly [text], placed at [offset], or null when no token
-     * on the line spells it. Lyrics echo a word (`君を探し見失う (見失う, Ah-ah-ah-ah)`) and the model
-     * emits it once; the echo is the same word sung the same way, so it reuses that token.
+     * Copies of the adjacent tokens whose surfaces spell exactly [text], shifted to [offset], or null
+     * when no run of tokens on the line spells it. Lyrics echo a word or phrase
+     * (`君を探し見失う (見失う, Ah-ah-ah-ah)`, `構わないから (構わないから)`) and the model emits it once;
+     * the echo is the same words sung the same way, so it reuses those tokens.
      */
-    private fun echoOf(tokens: List<PipelineToken>, offset: Int, text: String): PipelineToken? =
-        tokens.firstOrNull { it.surface == text }
-            ?.copy(charStart = offset, charEnd = offset + text.length)
+    private fun echoOf(tokens: List<PipelineToken>, offset: Int, text: String): List<PipelineToken>? {
+        val ordered = tokens.sortedBy { it.charStart }
+        for (first in ordered.indices) {
+            var spelled = ""
+            var last = first
+            while (last < ordered.size && text.startsWith(spelled + ordered[last].surface)) {
+                if (last > first && ordered[last].charStart != ordered[last - 1].charEnd) break
+                spelled += ordered[last].surface
+                if (spelled == text) {
+                    val shift = offset - ordered[first].charStart
+                    return ordered.subList(first, last + 1)
+                        .map { it.copy(charStart = it.charStart + shift, charEnd = it.charEnd + shift) }
+                }
+                last++
+            }
+        }
+        return null
+    }
 
     /** One anchored line: its tokens, and why it is incomplete if Japanese text carries no token. */
     private data class AnchoredLine(val tokens: List<PipelineToken>, val uncovered: UncoveredRun?)
@@ -191,8 +211,11 @@ class SegmentAnchoringValidator {
      *
      * The kana may spell only the start of [usedReading] when okurigana follows the span
      * (`愁(かな)しみ` read `カナシミ`); that okurigana is covered with the span.
+     *
+     * After an all-kanji [surface] any kana span is ruby, even one spelling another reading: lyrics
+     * give kanji a sung reading of their own (`世界(ほし)`), and the model keeps the dictionary one.
      */
-    private fun readingAnnotationEnd(rawText: String, from: Int, usedReading: String): Int {
+    private fun readingAnnotationEnd(rawText: String, from: Int, surface: String, usedReading: String): Int {
         if (from >= rawText.length) return from
         val close = when (rawText[from]) {
             '(' -> ')'
@@ -204,13 +227,29 @@ class SegmentAnchoringValidator {
         val inside = rawText.substring(from + 1, closeAt)
         if (!JapaneseText.isKanaOnly(inside)) return from
         val annotated = JapaneseText.toKatakana(inside)
-        if (!usedReading.startsWith(annotated)) return from
+        if (!usedReading.startsWith(annotated)) {
+            val allKanji = surface.all { Character.UnicodeScript.of(it.code) == Character.UnicodeScript.HAN }
+            return if (allKanji) closeAt + 1 else from
+        }
         val rest = usedReading.substring(annotated.length)
         val afterSpan = closeAt + 1
         val okurigana = rawText.substring(afterSpan, (afterSpan + rest.length).coerceAtMost(rawText.length))
         val spellsRest = rest.isNotEmpty() && JapaneseText.isKanaOnly(okurigana) &&
             JapaneseText.toKatakana(okurigana) == rest
         return if (spellsRest) afterSpan + rest.length else afterSpan
+    }
+
+    /**
+     * End (exclusive) of furigana pasted without parentheses right after a kanji [surface]
+     * (`藻掻もがいて`, `如何どうしよう`), or [from] when the kana there does not spell [usedReading].
+     */
+    private fun bareRubyEnd(rawText: String, surface: String, from: Int, usedReading: String): Int {
+        if (JapaneseText.isKanaOnly(surface) || usedReading.isEmpty()) return from
+        val end = from + usedReading.length
+        if (end > rawText.length) return from
+        val kana = rawText.substring(from, end)
+        val spellsReading = JapaneseText.isKanaOnly(kana) && JapaneseText.toKatakana(kana) == usedReading
+        return if (spellsReading) end else from
     }
 
     /**

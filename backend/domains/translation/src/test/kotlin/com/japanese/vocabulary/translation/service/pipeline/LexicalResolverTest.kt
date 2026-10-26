@@ -1046,6 +1046,322 @@ class LexicalResolverTest {
         assertThat(resolution.optionsById.values.map { it.reading }).containsExactlyInAnyOrder("マエ", "ゼン")
     }
 
+    @Test
+    fun `a te-form verb followed by progressive iru or its contraction is looked up as the bare verb`(): Unit = runBlocking {
+        stub(
+            "書く" to found(godanVerb("書く", "カク", "to write")),
+            "わかる" to found(godanVerb("分かる", "ワカル", "to understand")),
+            "見る" to found(posEntry("見る", "ミル", "to see", "Ichidan verb", "Transitive verb")),
+        )
+        val tokens = listOf(
+            token("書いてる", "書いている", "カイテイル", lineIndex = 1),
+            token("わかってる", "わかってる", "ワカッテル", lineIndex = 2),
+            token("みちゃって", "見てしまう", "ミテシマウ", lineIndex = 3),
+        )
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values
+
+        assertThat(resolved.map { it.baseForm }).containsExactly("書く", "わかる", "見る")
+        assertThat(resolved.map { it.options.single().provenance }).containsOnly(DictionaryLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
+    fun `a passive te-form followed by progressive iru is looked up as the active verb`(): Unit = runBlocking {
+        stub("照らす" to found(godanVerb("照らす", "テラス", "to shine on")))
+        val tokens = listOf(token("照らされている", "照らされている", "テラサレテイル"))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("照らす")
+        assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
+    fun `kuru and iru themselves are never cut as a te-form auxiliary`(): Unit = runBlocking {
+        // Nothing but the cut-down stems answers, so any rescue here would have cut the verb itself.
+        stub("く" to found(godanVerb("来", "ク", "wrong")), "い" to found(godanVerb("居", "イ", "wrong")))
+
+        val resolved = resolver.resolve(
+            listOf(token("くる", "くる", "クル", lineIndex = 1), token("いる", "いる", "イル", lineIndex = 2)),
+        ).byTokenKey.values
+
+        assertThat(resolved.flatMap { it.options }).isEmpty()
+    }
+
+    @Test
+    fun `a causative handed back as the headword is rescued as the verb underneath`(): Unit = runBlocking {
+        stub(
+            "振り向く" to found(godanVerb("振り向く", "フリムク", "to turn around")),
+            "うずく" to found(godanVerb("疼く", "ウズク", "to throb")),
+            "咲く" to found(godanVerb("咲く", "サク", "to bloom")),
+            "食べる" to found(posEntry("食べる", "タベル", "to eat", "Ichidan verb", "Transitive verb")),
+        )
+        val tokens = listOf(
+            token("振り向かせ", "振り向かせる", "フリムカセル", lineIndex = 1),
+            token("うずかせ", "うずかせる", "ウズカセル", lineIndex = 2),
+            token("咲かせ", "咲かす", "サカス", lineIndex = 3),
+            token("食べさせ", "食べさせる", "タベサセル", lineIndex = 4),
+        )
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values
+
+        assertThat(resolved.map { it.baseForm }).containsExactly("振り向く", "うずく", "咲く", "食べる")
+        assertThat(resolved.map { it.options.single().provenance }).containsOnly(DictionaryLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
+    fun `a causative probe that lands on a non-verb is not accepted`(): Unit = runBlocking {
+        stub("灯く" to found(entry(headword = "灯く", reading = "トク", english = "noun homograph")))
+
+        val resolved = resolver.resolve(listOf(token("灯かせる", "灯かせる", "トカセル"))).byTokenKey.values.single()
+
+        assertThat(resolved.options).isEmpty()
+    }
+
+    @Test
+    fun `a verb's desiderative is restored to the dictionary form`(): Unit = runBlocking {
+        stub(
+            "やる" to found(godanVerb("遣る", "ヤル", "to do")),
+            "知る" to found(godanVerb("知る", "シル", "to know")),
+        )
+        val tokens = listOf(
+            token("やりたい", "やりたい", "ヤリタイ", lineIndex = 1),
+            token("知りたがる", "知りたがる", "シリタガル", lineIndex = 2),
+        )
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values
+
+        assertThat(resolved.map { it.baseForm }).containsExactly("やる", "知る")
+        assertThat(resolved.map { it.options.single().english }).containsExactly("to do", "to know")
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
+    fun `an ichidan desiderative is not taken for the archaic verb its stem also spells`(): Unit = runBlocking {
+        // 生きたい probes the godan guess 生く first; the dictionary has it only as an archaic yodan verb.
+        stub(
+            "生く" to found(posEntry("生く", "イク", "to live (archaic)", "Yodan verb with 'ku' ending (archaic)")),
+            "生きる" to found(posEntry("生きる", "イキル", "to live", "Ichidan verb", "Intransitive verb")),
+        )
+
+        val resolved = resolver.resolve(listOf(token("生きたくない", "生きたくない", "イキタクナイ"))).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("生きる")
+        assertThat(resolved.options.map { it.english }).containsExactly("to live")
+    }
+
+    @Test
+    fun `an ichidan volitional handed back as the headword is looked up as the ru verb`(): Unit = runBlocking {
+        stub(
+            "化ける" to found(
+                posEntry("化ける", "フケル", "to age", "Ichidan verb"),
+                posEntry("化ける", "バケル", "to take the form of", "Ichidan verb"),
+            ),
+        )
+        val tokens = listOf(token("化けよう", "化けよう", "バケヨウ"))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("化ける")
+        assertThat(resolved.options.map { it.english }).containsExactly("to take the form of")
+        assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
+    fun `a na-adjective handed back in its attributive form is looked up as the stem`(): Unit = runBlocking {
+        stub(
+            "嫌" to found(posEntry("嫌", "イヤ", "disliking", "Na-adjective (keiyodoshi)")),
+            "新た" to found(posEntry("新た", "アラタ", "new", "Na-adjective (keiyodoshi)")),
+        )
+        val tokens = listOf(
+            token("やな", "嫌な", "イヤナ", lineIndex = 1),
+            token("新たな", "新たな", "アラタナ", lineIndex = 2),
+        )
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values
+
+        assertThat(resolved.map { it.baseForm }).containsExactly("嫌", "新た")
+        assertThat(resolved.map { it.options.single().provenance }).containsOnly(DictionaryLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
+    fun `a prohibitive na or a plain noun stem is not taken for a na-adjective`(): Unit = runBlocking {
+        stub(
+            "行く" to found(godanVerb("行く", "イク", "to go")),
+            "や" to found(entry(headword = "矢", reading = "ヤ", english = "arrow")),
+        )
+
+        val resolved = resolver.resolve(
+            listOf(token("行くな", "行くな", "イクナ", lineIndex = 1), token("やな", "やな", "ヤナ", lineIndex = 2)),
+        ).byTokenKey.values
+
+        assertThat(resolved.flatMap { it.options }).isEmpty()
+    }
+
+    @Test
+    fun `an interjection cut short with a trailing small tsu is queried again without it`(): Unit = runBlocking {
+        stub(
+            "えい" to found(
+                entry(headword = "英", reading = "エイ", english = "Britain"),
+                posEntry(null, "エイ", "hyah!", "Interjection"),
+            ),
+        )
+        val tokens = listOf(token("えいっ", "えいっ", "エイッ"))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("えい")
+        assertThat(resolved.options.map { it.english }).containsExactly("hyah!")
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
+    fun `a trailing small tsu probe with only non-interjection homophones stays unresolved`(): Unit = runBlocking {
+        stub("えい" to found(entry(headword = "英", reading = "エイ", english = "Britain")))
+
+        val resolved = resolver.resolve(listOf(token("えいっ", "えいっ", "エイッ"))).byTokenKey.values.single()
+
+        assertThat(resolved.options).isEmpty()
+    }
+
+    @Test
+    fun `a headword written with Kangxi radical characters is looked up in its ordinary kanji`(): Unit = runBlocking {
+        stub(
+            "手放す" to found(godanVerb("手放す", "テバナス", "to let go of")),
+            "食う" to found(godanVerb("食う", "クウ", "to eat")),
+        )
+        // The first goes on through the desiderative rescue after the fold.
+        val tokens = listOf(
+            token("⼿放したくない", "⼿放したくない", "テバナシタクナイ", lineIndex = 1),
+            token("⾷って", "⾷う", "クウ", lineIndex = 2),
+        )
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values
+
+        assertThat(resolved.map { it.baseForm }).containsExactly("手放す", "食う")
+        assertThat(resolved.map { it.options.single().provenance }).containsOnly(DictionaryLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
+    fun `verbs written with the variant kanji 堕 and 搔 are looked up as 落 and 掻`(): Unit = runBlocking {
+        stub(
+            "産み落とす" to found(godanVerb("産み落とす", "ウミオトス", "to give birth to")),
+            "掻く" to found(godanVerb("掻く", "カク", "to scratch")),
+        )
+        val tokens = listOf(
+            token("産み堕として", "産み堕とす", "ウミオトス", lineIndex = 1),
+            token("搔き", "搔く", "カク", lineIndex = 2),
+        )
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values
+
+        assertThat(resolved.map { it.baseForm }).containsExactly("産み落とす", "掻く")
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
+    fun `a kanji numeral glued to its counter is looked up as the counter`(): Unit = runBlocking {
+        stub(
+            "年" to found(
+                posEntry("年", "トセ", "counter for years", "Counter"),
+                posEntry("年", "トシ", "year", "Noun"),
+                posEntry("年", "ネン", "year", "Noun"),
+            ),
+            "回目" to found(posEntry("回目", "カイメ", "nth time", "Suffix")),
+        )
+        val tokens = listOf(
+            token("二年", "二年", "ニネン", lineIndex = 1),
+            token("何回目", "何回目", "ナンカイメ", lineIndex = 2),
+        )
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values
+
+        assertThat(resolved.map { it.baseForm }).containsExactly("年", "回目")
+        assertThat(resolved.map { it.options.single().reading }).containsExactly("ネン", "カイメ")
+        assertThat(resolved.map { it.options.single().provenance }).containsOnly(DictionaryLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
+    fun `a numeral followed by kana is not cut as a counter`(): Unit = runBlocking {
+        stub("も" to found(posEntry(null, "モ", "too", "Noun")))
+
+        val resolved = resolver.resolve(listOf(token("何も", "何も", "ナニモ"))).byTokenKey.values.single()
+
+        assertThat(resolved.options).isEmpty()
+    }
+
+    @Test
+    fun `a kana negative that only matched a kanji homophone is read as the negative verb`(): Unit = runBlocking {
+        // いない's only entry is 以内 (within), reached through its reading; the lyric means "is not there".
+        stub(
+            "いない" to found(entry(headword = "以内", reading = "イナイ", english = "within")),
+            "いる" to found(posEntry("居る", "イル", "to be", "Ichidan verb", "Intransitive verb")),
+        )
+
+        val resolved = resolver.resolve(listOf(token("いない", "いない", "イナイ"))).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("いる")
+        assertThat(resolved.options.map { it.english }).containsExactly("to be")
+    }
+
+    @Test
+    fun `a kana adjective in nai keeps its kanji entry when no verb underlies it`(): Unit = runBlocking {
+        stub(
+            "すくない" to found(posEntry("少ない", "スクナイ", "few", "I-adjective (keiyoushi)")),
+            "すくる" to found(entry(headword = "掬る", reading = "スクル", english = "noun homograph")),
+        )
+
+        val resolved = resolver.resolve(listOf(token("すくない", "すくない", "スクナイ"))).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("すくない")
+        assertThat(resolved.options.map { it.english }).containsExactly("few")
+    }
+
+    @Test
+    fun `a kana adjective in nai is not read as a negative even when a verb matches its stem`(): Unit = runBlocking {
+        // はかない is 儚い; はく (吐く "to vomit") must not take over.
+        stub(
+            "はかない" to found(posEntry("儚い", "ハカナイ", "fleeting", "I-adjective (keiyoushi)")),
+            "はく" to found(posEntry("吐く", "ハク", "to vomit", "Godan verb with 'ku' ending")),
+        )
+
+        val resolved = resolver.resolve(listOf(token("はかない", "はかない", "ハカナイ"))).byTokenKey.values.single()
+
+        assertThat(resolved.options.map { it.english }).containsExactly("fleeting")
+    }
+
+    @Test
+    fun `an archaic kana word keeps its only kanji entry even if the corpus never saw it`(): Unit = runBlocking {
+        stub("たまゆら" to found(entry(headword = "玉響", reading = "タマユラ", english = "a moment").copy(seenInCorpus = false)))
+
+        val resolved = resolver.resolve(listOf(token("たまゆら", "たまゆら", "タマユラ"))).byTokenKey.values.single()
+
+        assertThat(resolved.options.map { it.english }).containsExactly("a moment")
+    }
+
+    @Test
+    fun `a kana headword does not adopt a kanji entry the corpus never saw`(): Unit = runBlocking {
+        // うちに is うち + に glued; its only match, 打ち荷 (jettisoned cargo), never appears in running text.
+        stub("うちに" to found(entry(headword = "打ち荷", reading = "ウチニ", english = "jettisoned cargo").copy(seenInCorpus = false)))
+
+        val resolved = resolver.resolve(listOf(token("うちに", "うちに", "ウチニ"))).byTokenKey.values.single()
+
+        assertThat(resolved.options).isEmpty()
+    }
+
+    private fun posEntry(headword: String?, reading: String, english: String, vararg pos: String) = DictionaryEntryDto(
+        headword = headword,
+        reading = reading,
+        senses = listOf(DictionarySenseDto(pos = pos.toList(), english = english, englishDefinitions = listOf(english))),
+    )
+
     private fun stub(vararg entries: Pair<String, DictionaryLookupDto>) {
         val byWord = entries.toMap()
         coEvery { dictionaryService.lookupAll(any()) } answers {

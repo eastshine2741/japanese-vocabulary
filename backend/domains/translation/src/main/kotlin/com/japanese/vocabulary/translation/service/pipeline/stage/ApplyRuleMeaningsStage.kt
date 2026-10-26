@@ -12,9 +12,11 @@ class ApplyRuleMeaningsStage(
 
     override suspend fun execute(input: SegmentationStageResult): RuleResolutionStageResult {
         val tokensByIndex = input.tokensByIndex.mapValues { (_, tokens) -> ruleMeaningProvider.rewrite(tokens) }
-        val ruleResolvedByKey = tokensByIndex.values.flatten()
-            .mapNotNull { token -> ruleMeaningProvider.resolve(token)?.let { token.key to it } }
-            .toMap()
+        val ruleResolvedByKey = tokensByIndex.values.flatMap { tokens ->
+            tokens.mapIndexedNotNull { i, token ->
+                ruleMeaningProvider.resolve(token, tokens.getOrNull(i - 1))?.let { token.key to it }
+            }
+        }.toMap()
 
         return RuleResolutionStageResult(
             segLines = input.segLines,

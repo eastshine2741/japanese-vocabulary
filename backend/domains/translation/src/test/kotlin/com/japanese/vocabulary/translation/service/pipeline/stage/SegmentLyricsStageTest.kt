@@ -9,6 +9,7 @@ import com.japanese.vocabulary.translation.model.AnalysisDefect
 import com.japanese.vocabulary.translation.model.PipelineToken
 import com.japanese.vocabulary.translation.model.TranslationPipelineSource
 import com.japanese.vocabulary.translation.service.pipeline.AnalysisDefectReporter
+import com.japanese.vocabulary.translation.service.pipeline.CompoundVerbMerger
 import com.japanese.vocabulary.translation.service.pipeline.GluedParticleSplitter
 import com.japanese.vocabulary.translation.service.pipeline.LexicalResolver
 import com.japanese.vocabulary.translation.service.pipeline.RuleMeaningProvider
@@ -30,12 +31,14 @@ import org.junit.jupiter.api.Test
 class SegmentLyricsStageTest {
     private val geminiClient = mockk<GeminiClient>()
     private val gluedParticleSplitter = mockk<GluedParticleSplitter>()
+    private val compoundVerbMerger = mockk<CompoundVerbMerger>()
     private val lexicalResolver = mockk<LexicalResolver>()
     private val defectReporter = mockk<AnalysisDefectReporter>(relaxed = true)
     private val stage = SegmentLyricsStage(
         geminiClient = geminiClient,
         segmentAnchoringValidator = SegmentAnchoringValidator(),
         gluedParticleSplitter = gluedParticleSplitter,
+        compoundVerbMerger = compoundVerbMerger,
         ruleMeaningProvider = RuleMeaningProvider(),
         lexicalResolver = lexicalResolver,
         defectReporter = defectReporter,
@@ -56,6 +59,7 @@ class SegmentLyricsStageTest {
         )
         coEvery { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(segmented)
         coEvery { gluedParticleSplitter.split(any()) } answers { firstArg() }
+        coEvery { compoundVerbMerger.merge(any()) } answers { firstArg() }
         coEvery { lexicalResolver.unresolvedTokens(any()) } answers {
             firstArg<List<PipelineToken>>()
                 .filter { it.headword == "I want you" }

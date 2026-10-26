@@ -12,6 +12,7 @@
 
 - **POS 문자열은 고정 라벨이다** (`build_dictionary.py` 의 `POS_LABELS`). `DictionaryPartOfSpeechMapper` 와 `LexicalResolver` 가 `"suru verb"`, `"godan verb"` 같은 문자열로 판정한다. JMdict 원문 설명(`noun or participle which takes the aux. verb suru`)을 그대로 넣으면 する 동사 해석이 조용히 깨진다.
 - **검색 전용 표기(`sK`/`sk`)는 넣지 않는다.** 넣으면 다른 엔트리와 표기가 겹쳐 후보 엔트리가 늘고 `AMBIGUOUS_HEADWORD` 가 잦아진다.
+- **`zipf` NULL 은 "코퍼스에 한 번도 안 나온 엔트리"라는 뜻으로 조회에도 쓴다.** 조사로 끝나는 가나 headword(조사가 붙은 것일 공산이 크다)가 읽기로만 닿은 한자 엔트리 중 NULL 인 것(うちに → 打ち荷)은 `LexicalResolver` 가 버린다. 빌드에서 NULL 의 의미를 바꾸면(예: 값이 없으면 0 으로 채움) 이 필터가 깨진다.
 - **읽기는 가타카나로 저장한다.** 조회 쪽 `JapaneseText.toKatakana` 와 같은 변환(히라가나 U+3041–3096 에 0x60)이라야 읽기 일치가 맞는다.
 
 ## 알려진 한계

@@ -10,4 +10,6 @@ data class DictionaryEntryDto(
     val reading: String? = null,
     val jlpt: List<String> = emptyList(),
     val senses: List<DictionarySenseDto> = emptyList(),
+    /** False when the frequency corpus never saw any spelling of the entry (`entries.zipf` is NULL). */
+    val seenInCorpus: Boolean = true,
 )

@@ -70,6 +70,93 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `de after nai is the negative request, not the location particle`() {
+        // 取り残さないでよ
+        val nai = PipelineToken(11, "ない", "ない", 4, 6)
+        val de = PipelineToken(11, "で", "で", 6, 7, contextGloss = "and")
+
+        assertThat(provider.resolve(de, nai)!!.koreanText).isEqualTo("~하지 말고")
+    }
+
+    @Test
+    fun `de after a voiced godan te stem is the connective`() {
+        // 盗んででも: the model glossed this で "by means of"; the stem says te-form.
+        val stem = PipelineToken(51, "盗ん", "盗む", 0, 2)
+        val de = PipelineToken(51, "で", "で", 2, 3, contextGloss = "by means of")
+
+        assertThat(provider.resolve(de, stem)!!.koreanText).isEqualTo("~하고")
+    }
+
+    @Test
+    fun `de takes its meaning from the context gloss after a noun`() {
+        val wing = PipelineToken(14, "羽", "羽", 0, 1)
+
+        assertThat(provider.resolve(PipelineToken(14, "で", "で", 1, 2, contextGloss = "with, by"), wing)!!.koreanText)
+            .isEqualTo("~로")
+        assertThat(provider.resolve(PipelineToken(14, "で", "で", 1, 2, contextGloss = "at, in"), wing)!!.koreanText)
+            .isEqualTo("~에서")
+        assertThat(provider.resolve(PipelineToken(14, "で", "で", 1, 2), wing)!!.koreanText).isEqualTo("~에서")
+        assertThat(provider.resolve(PipelineToken(14, "で", "で", 1, 2, contextGloss = "at, in, with"), wing)!!.koreanText)
+            .isEqualTo("~에서")
+    }
+
+    @Test
+    fun `to and no take their non-default function from the context gloss`() {
+        assertThat(provider.resolve(token("と").copy(contextGloss = "quotative particle"))!!.koreanText)
+            .isEqualTo("~라고")
+        assertThat(provider.resolve(token("と").copy(contextGloss = "when"))!!.koreanText).isEqualTo("~하면")
+        assertThat(provider.resolve(token("と").copy(contextGloss = "with"))!!.koreanText).isEqualTo("~와/과")
+        assertThat(provider.resolve(token("の").copy(contextGloss = "nominalizer"))!!.koreanText).isEqualTo("~것")
+        assertThat(provider.resolve(token("の").copy(contextGloss = "possessive particle"))!!.koreanText)
+            .isEqualTo("~의")
+    }
+
+    @Test
+    fun `n tte and ja resolve only under their grammatical headwords`() {
+        val n = provider.resolve(PipelineToken(4, "ん", "の", 3, 4))!!
+        assertThat(n.koreanText).isEqualTo("~거야")
+        assertThat(n.reading).isEqualTo("ン")
+        // 僕ん家
+        assertThat(provider.resolve(PipelineToken(4, "ん", "の", 1, 2, contextGloss = "possessive"))!!.koreanText)
+            .isEqualTo("~의")
+        assertThat(provider.resolve(PipelineToken(4, "って", "って", 3, 5))!!.koreanText).isEqualTo("~라고")
+        assertThat(provider.resolve(PipelineToken(4, "じゃ", "では", 3, 4))!!.koreanText).isEqualTo("~이/가")
+        assertThat(provider.resolve(PipelineToken(4, "じゃ", "では", 0, 1, contextGloss = "if so"))!!.koreanText)
+            .isEqualTo("그럼")
+
+        // 知らん: negative ぬ. 死んじゃ: contracted てしまう is the auxiliary entry, not じゃ.
+        assertThat(provider.resolve(PipelineToken(4, "ん", "ぬ", 2, 3))).isNull()
+        assertThat(provider.resolve(PipelineToken(4, "じゃ", "てしまう", 2, 3))!!.koreanText).isEqualTo("~해 버리다")
+    }
+
+    @Test
+    fun `resolves colloquial and literary spellings the dictionary lacks, one meaning each`() {
+        val cases = listOf(
+            PipelineToken(0, "あゝ", "あゝ", 0, 2) to "아아",
+            PipelineToken(0, "もんだ", "ものだ", 0, 3) to "~하는 법이다",
+            PipelineToken(0, "なんていう", "何て言う", 0, 5) to "무슨",
+            PipelineToken(0, "やんなっちゃう", "やになる", 0, 7) to "싫어지다",
+            PipelineToken(0, "している", "している", 0, 4) to "~하고 있다",
+        )
+        cases.forEach { (token, meaning) ->
+            val resolved = provider.resolve(token)!!
+            assertThat(resolved.koreanText).isEqualTo(meaning)
+            assertThat(resolved.koreanText).doesNotContain(",")
+        }
+    }
+
+    @Test
+    fun `rewrites kounimo and yanamono into the pieces the dictionary and rules know`() {
+        val kounimo = provider.rewrite(listOf(PipelineToken(3, "こうにも", "こうにも", 4, 8)))
+        assertThat(kounimo.map { it.surface }).containsExactly("こう", "に", "も")
+        assertThat(kounimo.map { it.charStart }).containsExactly(4, 6, 7)
+
+        val yanamono = provider.rewrite(listOf(PipelineToken(3, "やなもの", "嫌な物", 0, 4)))
+        assertThat(yanamono.map { it.surface }).containsExactly("やな", "もの")
+        assertThat(provider.resolve(yanamono.first())!!.koreanText).isEqualTo("싫은")
+    }
+
+    @Test
     fun `resolves glued dakede as a single particle`() {
         // 嫌になんだよ お前を見ただけで — segmentation emits だけで as surface and headword, so
         // GluedParticleSplitter has nothing to split and the dictionary has no entry for the glued form.

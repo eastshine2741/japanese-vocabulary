@@ -45,7 +45,13 @@ class JmdictDictionary(
                 forms[seq].orEmpty().mapNotNull { (headword, reading) ->
                     val kanaReading = reading.takeIf(JapaneseText::isKanaOnly)
                     if (headword == null && kanaReading == null) return@mapNotNull null
-                    DictionaryEntryDto(headword = headword, reading = kanaReading, jlpt = entry.jlpt, senses = entry.senses)
+                    DictionaryEntryDto(
+                        headword = headword,
+                        reading = kanaReading,
+                        jlpt = entry.jlpt,
+                        senses = entry.senses,
+                        seenInCorpus = entry.seenInCorpus,
+                    )
                 }
             },
             provenance = DictionaryLookupProvenance.EXACT,
@@ -67,7 +73,7 @@ class JmdictDictionary(
         }
 
     private fun entriesOf(seqs: List<Long>): Map<Long, Entry> =
-        connection.prepareStatement("SELECT seq, senses, jlpt FROM entries WHERE seq IN (${placeholders(seqs)})").use { st ->
+        connection.prepareStatement("SELECT seq, senses, jlpt, zipf FROM entries WHERE seq IN (${placeholders(seqs)})").use { st ->
             seqs.forEachIndexed { i, seq -> st.setLong(i + 1, seq) }
             st.executeQuery().use { rs ->
                 generateSequence {
@@ -75,6 +81,7 @@ class JmdictDictionary(
                     rs.getLong(1) to Entry(
                         senses = objectMapper.readValue(rs.getString(2), Array<DictionarySenseDto>::class.java).toList(),
                         jlpt = objectMapper.readValue(rs.getString(3), Array<String>::class.java).toList(),
+                        seenInCorpus = rs.getObject(4) != null,
                     )
                 }.toMap()
             }
@@ -93,5 +100,5 @@ class JmdictDictionary(
 
     private fun placeholders(seqs: List<Long>) = seqs.joinToString(",") { "?" }
 
-    private data class Entry(val senses: List<DictionarySenseDto>, val jlpt: List<String>)
+    private data class Entry(val senses: List<DictionarySenseDto>, val jlpt: List<String>, val seenInCorpus: Boolean)
 }

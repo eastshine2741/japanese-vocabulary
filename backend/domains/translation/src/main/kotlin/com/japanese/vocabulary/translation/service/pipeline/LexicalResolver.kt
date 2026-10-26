@@ -13,6 +13,7 @@ import com.japanese.vocabulary.translation.model.PipelineTokenKey
 import com.japanese.vocabulary.translation.service.DictionaryService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import java.text.Normalizer
 
 /**
  * Narrows a dictionary lookup to the dictionary entry the token actually means.
@@ -28,17 +29,21 @@ class LexicalResolver(
 ) {
     private val logger = LoggerFactory.getLogger(LexicalResolver::class.java)
 
-    suspend fun resolve(tokens: List<PipelineToken>): LexicalResolution {
-        if (tokens.isEmpty()) return LexicalResolution(emptyMap(), emptyMap())
+    suspend fun resolve(lyricTokens: List<PipelineToken>): LexicalResolution {
+        if (lyricTokens.isEmpty()) return LexicalResolution(emptyMap(), emptyMap())
 
+        val tokens = lyricTokens.map(::withStandardKanji)
         val firstPass = dictionaryService.lookupAll(tokens.map { it.headword }.distinct())
         // Narrow once per token and reuse; grading twice would emit every log line twice.
         val narrowed = tokens.associate { it.key to narrow(it, firstPass[it.headword], it.headword) }
         val potentialVerbProbes = tokens
             .filter { narrowed[it.key]?.let(::isPotentialVerbEntry) == true }
             .mapNotNull(::potentialFormProbe)
+        val homophoneProbes = tokens
+            .filter { token -> narrowed[token.key]?.let { isKanaHomophoneOnly(token, it) } == true }
+            .mapNotNull { negativeVerbProbe(it.headword) }
         val probeLookups = dictionaryService.lookupAll(
-            (probeKeys(tokens.filter { narrowed[it.key] == null }) + potentialVerbProbes).distinct(),
+            (probeKeys(tokens.filter { narrowed[it.key] == null }) + potentialVerbProbes + homophoneProbes).distinct(),
         )
 
         val byToken = linkedMapOf<PipelineTokenKey, LexicalResolvedToken>()
@@ -50,10 +55,15 @@ class LexicalResolver(
 
         for (token in tokens) {
             val resolved = narrowed[token.key]?.let { exact ->
-                if (isPotentialVerbEntry(exact)) resolvePotentialForm(token, probeLookups) ?: exact else exact
+                when {
+                    isPotentialVerbEntry(exact) -> resolvePotentialForm(token, probeLookups) ?: exact
+                    isKanaHomophoneOnly(token, exact) -> resolveNegativeVerb(token, probeLookups) ?: exact
+                    else -> exact
+                }
             }
                 ?: resolveIAdjective(token, probeLookups)
                 ?: resolveSuruDesiderative(token, probeLookups)
+                ?: resolveDesiderative(token, probeLookups)
                 ?: resolveHiraganaQuery(token, probeLookups)
                 ?: resolveSmallVowelElongation(token, probeLookups)
                 ?: resolveIntensifierPrefix(token, probeLookups)
@@ -67,11 +77,16 @@ class LexicalResolver(
                 ?: resolvePassive(token, probeLookups)
                 ?: resolveAppearanceSou(token, probeLookups)
                 ?: resolveCompletionSuffix(token, probeLookups)
-                ?: resolveTeAuxMotion(token, probeLookups)
+                ?: resolveTeAuxiliary(token, probeLookups)
+                ?: resolveCausative(token, probeLookups)
+                ?: resolveIchidanVolitional(token, probeLookups)
                 ?: resolveNegativeVerb(token, probeLookups)
                 ?: resolvePotentialForm(token, probeLookups)
                 ?: resolveGodanRenyokei(token, probeLookups)
                 ?: resolvePotentialNegative(token, probeLookups)
+                ?: resolveNaAdjectiveAttributive(token, probeLookups)
+                ?: resolveCutShortInterjection(token, probeLookups)
+                ?: resolveNumeralCounter(token, probeLookups)
 
             if (resolved == null) {
                 byToken[token.key] = LexicalResolvedToken(token, token.headword, emptyList())
@@ -123,9 +138,10 @@ class LexicalResolver(
      *
      * Lookups are local and cheap, so [resolve] repeats them. Grading is silent here to avoid duplicate logs.
      */
-    suspend fun unresolvedTokens(tokens: List<PipelineToken>): List<Unresolved> {
-        if (tokens.isEmpty()) return emptyList()
+    suspend fun unresolvedTokens(lyricTokens: List<PipelineToken>): List<Unresolved> {
+        if (lyricTokens.isEmpty()) return emptyList()
 
+        val tokens = lyricTokens.map(::withStandardKanji)
         val firstPass = dictionaryService.lookupAll(tokens.map { it.headword }.distinct())
         val missed = tokens.filter { narrow(it, firstPass[it.headword], it.headword, logGrading = false) == null }
         if (missed.isEmpty()) return emptyList()
@@ -135,6 +151,7 @@ class LexicalResolver(
             .filter {
                 resolveIAdjective(it, probeLookups, logRescue = false) == null &&
                     resolveSuruDesiderative(it, probeLookups, logRescue = false) == null &&
+                    resolveDesiderative(it, probeLookups, logRescue = false) == null &&
                     resolveHiraganaQuery(it, probeLookups, logRescue = false) == null &&
                     resolveSmallVowelElongation(it, probeLookups, logRescue = false) == null &&
                     resolveIntensifierPrefix(it, probeLookups, logRescue = false) == null &&
@@ -148,11 +165,16 @@ class LexicalResolver(
                     resolvePassive(it, probeLookups, logRescue = false) == null &&
                     resolveAppearanceSou(it, probeLookups, logRescue = false) == null &&
                     resolveCompletionSuffix(it, probeLookups, logRescue = false) == null &&
-                    resolveTeAuxMotion(it, probeLookups, logRescue = false) == null &&
+                    resolveTeAuxiliary(it, probeLookups, logRescue = false) == null &&
+                    resolveCausative(it, probeLookups, logRescue = false) == null &&
+                    resolveIchidanVolitional(it, probeLookups, logRescue = false) == null &&
                     resolveNegativeVerb(it, probeLookups, logRescue = false) == null &&
                     resolvePotentialForm(it, probeLookups, logRescue = false) == null &&
                     resolveGodanRenyokei(it, probeLookups, logRescue = false) == null &&
-                    resolvePotentialNegative(it, probeLookups, logRescue = false) == null
+                    resolvePotentialNegative(it, probeLookups, logRescue = false) == null &&
+                    resolveNaAdjectiveAttributive(it, probeLookups, logRescue = false) == null &&
+                    resolveCutShortInterjection(it, probeLookups, logRescue = false) == null &&
+                    resolveNumeralCounter(it, probeLookups, logRescue = false) == null
             }
             .map { token ->
                 val lookups = listOfNotNull(firstPass[token.headword]) +
@@ -186,10 +208,16 @@ class LexicalResolver(
             potentialFormProbe(token),
             godanRenyokeiProbe(token),
             potentialNegativeProbe(token),
+            ichidanVolitionalProbe(token),
+            naAdjectiveAttributiveProbe(token),
+            cutShortInterjectionProbe(token),
+            numeralCounterProbe(token),
         ) + suruDesiderativeProbes(token) +
+            desiderativeProbes(token).map { it.baseForm } +
             appearanceSouProbes(token).map { it.baseForm } +
             completionSuffixProbes(token).map { it.first } +
-            teAuxMotionProbe(token).map { it.first }
+            teAuxiliaryProbes(token).map { it.first } +
+            causativeProbes(token).map { it.baseForm }
 
     /**
      * Grades how well [lookup] pins down the entry [token] means, using the `(headword, reading)` pair.
@@ -212,7 +240,11 @@ class LexicalResolver(
 
         val baseFormAsKana = JapaneseText.toKatakana(baseForm)
         // The reading clause lets a kana headword match at all (かける vs kanji-spelled entries).
+        // A kana headword ending in a particle is likely glued (うちに); a kanji word the corpus never saw, reached only
+        // by that reading (打ち荷), is not what the lyric meant. たまゆら (玉響) ends in no particle and keeps its entry.
+        val gluedKana = JapaneseText.isKanaOnly(token.headword) && token.headword.last() in GLUED_PARTICLE_ENDINGS
         val headwordMatches = lookup.entries.filter { it.headword == baseForm || it.reading == baseFormAsKana }
+            .filterNot { gluedKana && it.headword != null && it.headword != baseForm && !it.seenInCorpus }
         val reading = (expectedReading ?: token.baseFormReading).takeIf { it.isNotBlank() }
 
         val exact = reading?.let { r -> headwordMatches.filter { it.reading == r } } ?: emptyList()
@@ -763,24 +795,25 @@ class LexicalResolver(
     }
 
     /**
-     * Safety net for a verb the lyric follows with the motion auxiliary ていく / てくる (飛んでいく).
+     * Safety net for a verb the lyric follows with a te-form auxiliary: motion ていく / てくる (飛んでいく),
+     * progressive ている and its contraction てる (書いている, わかってる), completion てしまう.
      *
      * The auxiliary is dropped and the te-form conjugated back. んで / って are ambiguous (飛ぶ, 読む,
      * 死ぬ), so every candidate is asked and the first with a verb sense wins.
      */
-    private fun resolveTeAuxMotion(
+    private fun resolveTeAuxiliary(
         token: PipelineToken,
         lookups: Map<String, DictionaryLookupDto>,
         logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
-        for ((base, reading) in teAuxMotionProbe(token)) {
+        for ((base, reading) in teAuxiliaryProbes(token)) {
             val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: continue
             val verbEntries = accepted.entries.mapNotNull { entry ->
                 val verbSenses = entry.senses.filter { DictionaryPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
                 if (verbSenses.isEmpty()) null else entry.copy(senses = verbSenses)
             }
             if (verbEntries.isEmpty()) continue
-            if (logRescue) logger.info("Stripped motion auxiliary from '{}' to '{}'", token.headword, base)
+            if (logRescue) logger.info("Stripped te-form auxiliary from '{}' to '{}'", token.headword, base)
             return AcceptedLexicalEntry(base, verbEntries, accepted.provenance)
         }
         return null
@@ -788,22 +821,123 @@ class LexicalResolver(
 
     /**
      * `飛んでいく` / `トンデイク` → (`飛む`, `トム`), (`飛ぶ`, `トブ`), (`飛ぬ`, `トヌ`): every dictionary form
-     * the te-form could come from, paired with its reading. Empty unless the headword is a te-form
-     * followed by いく / くる.
+     * the te-form could come from, paired with its reading, then the same forms with a passive undone
+     * (照らされている → 照らされる → 照らす). Empty unless the headword is a te-form followed by an auxiliary.
      */
-    private fun teAuxMotionProbe(token: PipelineToken): List<Pair<String, String?>> {
-        val teForm = stripTeAuxMotion(token.headword) ?: return emptyList()
-        val readings = stripTeAuxMotion(JapaneseText.toHiragana(token.baseFormReading))
+    private fun teAuxiliaryProbes(token: PipelineToken): List<Pair<String, String?>> {
+        val teForm = stripTeAuxiliary(token.headword) ?: return emptyList()
+        val readings = stripTeAuxiliary(JapaneseText.toHiragana(token.baseFormReading))
             ?.let(::teFormToDictionaryForms)
             ?.map(JapaneseText::toKatakana)
-        return teFormToDictionaryForms(teForm).mapIndexed { i, base -> base to readings?.getOrNull(i) }
+        val forms = teFormToDictionaryForms(teForm).mapIndexed { i, base -> base to readings?.getOrNull(i) }
+        val activeForms = forms.mapNotNull { (base, reading) ->
+            undoPassive(base, PASSIVE_ENDINGS)?.let { it to reading?.let { r -> undoPassive(r, PASSIVE_READING_ENDINGS) } }
+        }
+        return forms + activeForms
     }
 
-    /** `飛んでいく` → `飛んで`. Null unless what precedes いく / くる ends in て / で. */
-    private fun stripTeAuxMotion(text: String): String? {
-        val suffix = TE_AUX_MOTION_SUFFIXES.firstOrNull { text.endsWith(it) } ?: return null
-        return text.dropLast(suffix.length).takeIf { it.length >= 2 && (it.endsWith("て") || it.endsWith("で")) }
+    /**
+     * `飛んでいく` → `飛んで`, `わかってる` → `わかって`. Null unless what precedes the auxiliary ends in て / で,
+     * so 来る and いる themselves are never cut.
+     */
+    private fun stripTeAuxiliary(text: String): String? = TE_AUX_SUFFIXES.firstNotNullOfOrNull { suffix ->
+        text.takeIf { it.endsWith(suffix) }?.dropLast(suffix.length)
+            ?.takeIf { it.length >= 2 && (it.endsWith("て") || it.endsWith("で")) }
     }
+
+    /**
+     * Safety net for a causative handed back as the headword — 振り向かせる, short 咲かす — instead of the
+     * verb underneath. させる is a godan す-verb's (話させる) or any ichidan verb's (食べさせる), so both are asked.
+     */
+    private fun resolveCausative(
+        token: PipelineToken,
+        lookups: Map<String, DictionaryLookupDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? = resolveConjugation(token, causativeProbes(token), lookups, logRescue, "causative")
+
+    /** `振り向かせる` → `振り向く`; `食べさせる` → `食べす`, `食べる`. Readings are inflected alike. */
+    private fun causativeProbes(token: PipelineToken): List<ConjugationProbe> {
+        val readingKana = JapaneseText.toHiragana(token.baseFormReading)
+        return CAUSATIVE_ENDINGS
+            .filter { (ending) -> token.headword.length > ending.length && token.headword.endsWith(ending) }
+            .map { (ending, base, verbClass) ->
+                val reading = readingKana.takeIf { it.endsWith(ending) }
+                    ?.let { JapaneseText.toKatakana(it.dropLast(ending.length) + base) }
+                ConjugationProbe(token.headword.dropLast(ending.length) + base, reading, verbClass)
+            }
+    }
+
+    /**
+     * Safety net for a verb's desiderative handed back as the headword — やりたい, 知りたがる, 生きたくない.
+     * Tried after [resolveSuruDesiderative], which owns the stem + する reading of したい.
+     *
+     * An い-row stem is godan (やり → やる) or ichidan (生き → 生きる), so both are asked, each keeping only
+     * the senses of its own class: 生く is an archaic yodan verb, not 生きる.
+     */
+    private fun resolveDesiderative(
+        token: PipelineToken,
+        lookups: Map<String, DictionaryLookupDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? = resolveConjugation(token, desiderativeProbes(token), lookups, logRescue, "desiderative")
+
+    /** `やりたい` → `やる`, `やりる`; `見たい` → `見る`. Empty when only a lone kana precedes the suffix. */
+    private fun desiderativeProbes(token: PipelineToken): List<ConjugationProbe> {
+        val suffix = DESIDERATIVE_SUFFIXES.firstOrNull { token.headword.endsWith(it) } ?: return emptyList()
+        val stem = token.headword.dropLast(suffix.length)
+            .takeUnless { it.isEmpty() || (it.length == 1 && JapaneseText.isKanaOnly(it)) } ?: return emptyList()
+        val readingStem = JapaneseText.toHiragana(token.baseFormReading)
+            .takeIf { it.endsWith(suffix) }?.dropLast(suffix.length)?.takeIf { it.isNotEmpty() }
+
+        val ichidan = ConjugationProbe(stem + "る", readingStem?.let { JapaneseText.toKatakana(it + "る") }, ICHIDAN)
+        val godanEnding = GODAN_I_TO_U[stem.last()] ?: return listOf(ichidan)
+        val godanReading = readingStem?.let { r ->
+            GODAN_I_TO_U[r.last()]?.let { JapaneseText.toKatakana(r.dropLast(1) + it) }
+        }
+        return listOf(ConjugationProbe(stem.dropLast(1) + godanEnding, godanReading, GODAN), ichidan)
+    }
+
+    /** Safety net for an ichidan verb's volitional handed back as the headword — 化けよう for 化ける. */
+    private fun resolveIchidanVolitional(
+        token: PipelineToken,
+        lookups: Map<String, DictionaryLookupDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = ichidanVolitionalProbe(token) ?: return null
+        val reading = token.baseFormReading.takeIf { it.endsWith("ヨウ") }?.dropLast(2)?.plus("ル")
+        return resolveConjugation(token, listOf(ConjugationProbe(base, reading, ICHIDAN)), lookups, logRescue, "volitional")
+    }
+
+    /** `化けよう` → `化ける`. Null unless something precedes よう. */
+    private fun ichidanVolitionalProbe(token: PipelineToken): String? =
+        token.headword.takeIf { it.length > 2 && it.endsWith("よう") }?.dropLast(2)?.plus("る")
+
+    /** The first probe the dictionary answers with senses of the conjugation class that probe guessed. */
+    private fun resolveConjugation(
+        token: PipelineToken,
+        probes: List<ConjugationProbe>,
+        lookups: Map<String, DictionaryLookupDto>,
+        logRescue: Boolean,
+        form: String,
+    ): AcceptedLexicalEntry? {
+        for (probe in probes) {
+            val accepted = narrow(token, lookups[probe.baseForm], probe.baseForm, probe.reading, logRescue) ?: continue
+            val classEntries = accepted.entries.mapNotNull { entry ->
+                val senses = entry.senses.filter { sense -> sense.pos.any { probe.verbClass in it.lowercase() } }
+                if (senses.isEmpty()) null else entry.copy(senses = senses)
+            }
+            if (classEntries.isEmpty()) continue
+            if (logRescue) logger.info("Normalized {} '{}' to '{}'", form, token.headword, probe.baseForm)
+            return AcceptedLexicalEntry(probe.baseForm, classEntries, accepted.provenance)
+        }
+        return null
+    }
+
+    /** [verbClass] is the lowercase dictionary POS label the restored form must carry, e.g. "godan verb". */
+    private data class ConjugationProbe(
+        val baseForm: String,
+        val reading: String?,
+        val verbClass: String,
+    )
 
     /**
      * Safety net for when the segmentation LLM hands back a verb's negative — いらない for いらん —
@@ -956,7 +1090,116 @@ class LexicalResolver(
         return stem.dropLast(1) + u
     }
 
+    /**
+     * Safety net for a na-adjective handed back in its attributive form — 嫌な, 新たな — instead of the stem.
+     *
+     * Only a word that is a na-adjective somewhere takes な, so a plain noun homophone of the stem (矢 for
+     * やな) is not adopted. The entry's noun and na-adjective senses are kept.
+     */
+    private fun resolveNaAdjectiveAttributive(
+        token: PipelineToken,
+        lookups: Map<String, DictionaryLookupDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = naAdjectiveAttributiveProbe(token) ?: return null
+        val reading = token.baseFormReading.takeIf { it.endsWith("ナ") }?.dropLast(1)
+        val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: return null
+        val naAdjectiveEntries = accepted.entries
+            .filter { entry -> entry.senses.any { DictionaryPartOfSpeechMapper.map(it.pos) == PartOfSpeech.NA_ADJECTIVE } }
+            .mapNotNull { entry ->
+                val senses = entry.senses.filter {
+                    DictionaryPartOfSpeechMapper.map(it.pos) in setOf(PartOfSpeech.NOUN, PartOfSpeech.NA_ADJECTIVE)
+                }
+                if (senses.isEmpty()) null else entry.copy(senses = senses)
+            }
+        if (naAdjectiveEntries.isEmpty()) return null
+        if (logRescue) logger.info("Normalized na-adjective attributive '{}' to '{}'", token.headword, base)
+        return AcceptedLexicalEntry(base, naAdjectiveEntries, accepted.provenance)
+    }
+
+    /** `嫌な` → `嫌`. Null unless something precedes な. */
+    private fun naAdjectiveAttributiveProbe(token: PipelineToken): String? =
+        token.headword.takeIf { it.length >= 2 && it.endsWith("な") }?.dropLast(1)
+
+    /** Safety net for an interjection the lyric cuts short with a trailing っ (えいっ); only interjection senses are kept. */
+    private fun resolveCutShortInterjection(
+        token: PipelineToken,
+        lookups: Map<String, DictionaryLookupDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = cutShortInterjectionProbe(token) ?: return null
+        val reading = token.baseFormReading.takeIf { it.length >= 2 && it.endsWith("ッ") }?.dropLast(1)
+        val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: return null
+        val interjectionEntries = accepted.entries.mapNotNull { entry ->
+            val senses = entry.senses.filter { DictionaryPartOfSpeechMapper.map(it.pos) == PartOfSpeech.INTERJECTION }
+            if (senses.isEmpty()) null else entry.copy(senses = senses)
+        }
+        if (interjectionEntries.isEmpty()) return null
+        if (logRescue) logger.info("Stripped trailing small tsu from '{}' to '{}'", token.headword, base)
+        return AcceptedLexicalEntry(base, interjectionEntries, accepted.provenance)
+    }
+
+    /** `えいっ` → `えい`. Null unless something precedes a trailing っ / ッ. */
+    private fun cutShortInterjectionProbe(token: PipelineToken): String? =
+        token.headword.takeIf { it.length >= 2 && (it.endsWith("っ") || it.endsWith("ッ")) }?.dropLast(1)
+
+    /**
+     * Safety net for a kanji numeral glued to its counter — 二年, 何回目 — which the dictionary has no entry for.
+     *
+     * The numeral is dropped and the counter looked up. Its reading is the entry reading that ends the token's
+     * (ニネン ends in ネン, not トシ). Only noun and counter senses are kept.
+     */
+    private fun resolveNumeralCounter(
+        token: PipelineToken,
+        lookups: Map<String, DictionaryLookupDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = numeralCounterProbe(token) ?: return null
+        val lookup = lookups[base]
+        val reading = lookup?.entries?.mapNotNull { it.reading }
+            ?.filter { it.length < token.baseFormReading.length && token.baseFormReading.endsWith(it) }
+            ?.maxByOrNull { it.length }
+        val accepted = narrow(token, lookup, base, reading, logRescue) ?: return null
+        val counterEntries = accepted.entries.mapNotNull { entry ->
+            val senses = entry.senses.filter {
+                DictionaryPartOfSpeechMapper.map(it.pos) in setOf(PartOfSpeech.NOUN, PartOfSpeech.SUFFIX)
+            }
+            if (senses.isEmpty()) null else entry.copy(senses = senses)
+        }
+        if (counterEntries.isEmpty()) return null
+        if (logRescue) logger.info("Looked up numeral compound '{}' as counter '{}'", token.headword, base)
+        return AcceptedLexicalEntry(base, counterEntries, accepted.provenance)
+    }
+
+    /** `二年` → `年`, `何回目` → `回目`. Null unless kanji numerals are followed by something that is not kana. */
+    private fun numeralCounterProbe(token: PipelineToken): String? {
+        val counter = token.headword.dropWhile { it in NUMERAL_KANJI }
+        if (counter.isEmpty() || counter.length == token.headword.length) return null
+        return counter.takeUnless { JapaneseText.isKanaOnly(it.take(1)) }
+    }
+
+    /**
+     * True for a kana headword ending in ない that matched only kanji-spelled entries through their reading:
+     * いない reaches 以内, while the lyric almost always means the negative of いる. Only noun matches count:
+     * はかない, あぶない, つまらない are adjectives the dictionary spells in kanji, not negatives of はく, あぶる, 詰まる.
+     */
+    private fun isKanaHomophoneOnly(token: PipelineToken, accepted: AcceptedLexicalEntry): Boolean =
+        JapaneseText.isKanaOnly(token.headword) && token.headword.endsWith("ない") &&
+            accepted.entries.all { it.headword != null && it.headword != token.headword } &&
+            accepted.entries.flatMap { it.senses }.all { DictionaryPartOfSpeechMapper.map(it.pos) == PartOfSpeech.NOUN }
+
+    /** `⼿放す` → `手放す`. Kangxi radical code points look like kanji, but no dictionary spelling uses them. */
+    private fun withStandardKanji(token: PipelineToken): PipelineToken {
+        if (token.headword.none { it in KANGXI_RADICALS }) return token
+        val folded = token.headword.map {
+            if (it in KANGXI_RADICALS) Normalizer.normalize(it.toString(), Normalizer.Form.NFKC) else it.toString()
+        }.joinToString("")
+        return token.copy(headword = folded)
+    }
+
     private companion object {
+        val GLUED_PARTICLE_ENDINGS = setOf('に', 'で', 'を', 'が', 'は', 'も', 'と', 'の', 'へ')
+
         val INTENSIFIER_PREFIXES = listOf("ぶち", "ぶっ")
 
         /** Hiragana grouped by vowel, and the kana a following ー is spelled as. */
@@ -969,7 +1212,7 @@ class LexicalResolver(
         )
 
         /** Variant kanji the dictionary does not index → the standard spelling it does. Add pairs as misses appear. */
-        val KANJI_VARIANTS = mapOf('閧' to '鬨', '赦' to '許')
+        val KANJI_VARIANTS = mapOf('閧' to '鬨', '赦' to '許', '堕' to '落', '搔' to '掻')
 
         /** Longest first, so したくない is not read as したい with a stem ending in く. */
         val SURU_DESIDERATIVE_SUFFIXES = listOf("したくない", "したい")
@@ -999,7 +1242,28 @@ class LexicalResolver(
         /** Longest first among overlapping spellings, so きれない is never cut as a shorter suffix. */
         val COMPLETION_SUFFIXES = listOf("きれない", "きれる", "きれず", "きれぬ", "きる")
 
-        val TE_AUX_MOTION_SUFFIXES = listOf("いく", "行く", "くる", "来る")
+        /** Every suffix is tried, so いる is cut before the bare る of the contraction てる. */
+        val TE_AUX_SUFFIXES = listOf("いく", "行く", "くる", "来る", "いる", "居る", "しまう", "る")
+
+        const val GODAN = "godan verb"
+        const val ICHIDAN = "ichidan verb"
+
+        /** Causative ending → restored dictionary-form ending and the conjugation class that restores it. */
+        val CAUSATIVE_ENDINGS = listOf(
+            Triple("かせる", "く", GODAN), Triple("がせる", "ぐ", GODAN), Triple("させる", "す", GODAN),
+            Triple("させる", "る", ICHIDAN), Triple("たせる", "つ", GODAN), Triple("なせる", "ぬ", GODAN),
+            Triple("ばせる", "ぶ", GODAN), Triple("ませる", "む", GODAN), Triple("らせる", "る", GODAN),
+            Triple("わせる", "う", GODAN),
+            Triple("かす", "く", GODAN), Triple("がす", "ぐ", GODAN), Triple("たす", "つ", GODAN),
+            Triple("ばす", "ぶ", GODAN), Triple("ます", "む", GODAN), Triple("らす", "る", GODAN),
+            Triple("わす", "う", GODAN),
+        )
+
+        val DESIDERATIVE_SUFFIXES = listOf("たくない", "たがる", "たい")
+
+        const val NUMERAL_KANJI = "〇零一二三四五六七八九十百千万億兆何数幾"
+
+        val KANGXI_RADICALS = '⺀'..'⿟'
 
         /** Te-form ending → the dictionary-form endings it can come from. */
         val TE_FORM_ENDINGS = listOf(
