@@ -62,6 +62,17 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves nakucha as the colloquial contraction of nakutewa`() {
+        // 唯一無二じゃなくちゃイヤイヤ — segmentation writes the headword なくては, which jisho lacks.
+        val resolved = provider.resolve(PipelineToken(3, "なくちゃ", "なくては", 6, 10))!!
+
+        assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.AUXILIARY_VERB)
+        assertThat(resolved.baseForm).isEqualTo("なくては")
+        assertThat(resolved.baseFormReading).isEqualTo("ナクテハ")
+        assertThat(resolved.koreanText).contains("않으면")
+    }
+
+    @Test
     fun `resolves particles`() {
         val resolved = provider.resolve(token("も"))!!
 
