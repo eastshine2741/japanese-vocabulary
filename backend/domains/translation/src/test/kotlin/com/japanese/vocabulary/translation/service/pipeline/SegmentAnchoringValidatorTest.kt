@@ -33,6 +33,31 @@ class SegmentAnchoringValidatorTest {
     }
 
     @Test
+    fun `anchors a word the model spelled in ordinary kanji where the line has Kangxi radical characters`() {
+        val result = validator.anchor(
+            mapOf(0 to "\u2F7C\u2F08が君に\u2F94いました"),
+            listOf(
+                SegLineDto(
+                    0,
+                    listOf(
+                        word("老人", "老人", "ロウジン", "ロウジン"),
+                        word("が", "が", "ガ", "ガ"),
+                        word("君", "君", "キミ", "キミ"),
+                        word("に", "に", "ニ", "ニ"),
+                        word("言い", "言う", "イイ", "イウ"),
+                        word("ました", "ます", "マシタ", "マス"),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.incompleteByIndex).isEmpty()
+        assertThat(result.anchoredByIndex[0]!!.first().let { Triple(it.surface, it.charStart, it.charEnd) })
+            .isEqualTo(Triple("\u2F7C\u2F08", 0, 2))
+    }
+
+    @Test
     fun `trims digits glued to a counter so the headword is the counter alone`() {
         // `80億` as one word went to the dictionary as `80億`, which has no entry.
         val result = validator.anchor(

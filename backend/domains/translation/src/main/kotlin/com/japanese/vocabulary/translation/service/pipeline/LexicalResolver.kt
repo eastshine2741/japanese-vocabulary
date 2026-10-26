@@ -13,7 +13,6 @@ import com.japanese.vocabulary.translation.model.PipelineTokenKey
 import com.japanese.vocabulary.translation.service.DictionaryService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
-import java.text.Normalizer
 
 /**
  * Narrows a dictionary lookup to the dictionary entry the token actually means.
@@ -1188,14 +1187,8 @@ class LexicalResolver(
             accepted.entries.all { it.headword != null && it.headword != token.headword } &&
             accepted.entries.flatMap { it.senses }.all { DictionaryPartOfSpeechMapper.map(it.pos) == PartOfSpeech.NOUN }
 
-    /** `⼿放す` → `手放す`. Kangxi radical code points look like kanji, but no dictionary spelling uses them. */
-    private fun withStandardKanji(token: PipelineToken): PipelineToken {
-        if (token.headword.none { it in KANGXI_RADICALS }) return token
-        val folded = token.headword.map {
-            if (it in KANGXI_RADICALS) Normalizer.normalize(it.toString(), Normalizer.Form.NFKC) else it.toString()
-        }.joinToString("")
-        return token.copy(headword = folded)
-    }
+    private fun withStandardKanji(token: PipelineToken): PipelineToken =
+        token.copy(headword = JapaneseText.withStandardKanji(token.headword))
 
     private companion object {
         val GLUED_PARTICLE_ENDINGS = setOf('に', 'で', 'を', 'が', 'は', 'も', 'と', 'の', 'へ')
@@ -1263,7 +1256,6 @@ class LexicalResolver(
 
         const val NUMERAL_KANJI = "〇零一二三四五六七八九十百千万億兆何数幾"
 
-        val KANGXI_RADICALS = '⺀'..'⿟'
 
         /** Te-form ending → the dictionary-form endings it can come from. */
         val TE_FORM_ENDINGS = listOf(

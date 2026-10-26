@@ -73,19 +73,22 @@ class SegmentAnchoringValidator {
      */
     private fun anchorLine(index: Int, rawText: String, line: SegLineDto): AnchoredLine {
         val covered = BooleanArray(rawText.length)
+        val searchText = JapaneseText.withStandardKanji(rawText)
         var cursor = 0
         var previousSurface: String? = null
         val anchored = line.words.mapNotNull { word ->
             if (!JapaneseText.containsJapanese(word.surface)) return@mapNotNull null
             // Digits glued to a counter (`80億`) stay in the raw text; only the Japanese part is a word.
             // The model's reading still spells the number until the dictionary reading replaces it.
-            val surface = JapaneseText.trimDigits(word.surface)
-            val start = rawText.indexOf(surface, cursor)
+            val trimmed = JapaneseText.trimDigits(word.surface)
+            val start = searchText.indexOf(JapaneseText.withStandardKanji(trimmed), cursor)
             if (start < 0) {
                 throw SegmentationValidationException(
                     notInOrderMessage(index, word.surface, rawText, cursor, previousSurface),
                 )
             }
+            // The token keeps the line's own characters: offsets and later surface checks read the raw line.
+            val surface = rawText.substring(start, start + trimmed.length)
             val usedReading = readingOf(index, word, word.usedReading, "usedReading")
             val end = start + surface.length
             for (i in start until end) covered[i] = true
