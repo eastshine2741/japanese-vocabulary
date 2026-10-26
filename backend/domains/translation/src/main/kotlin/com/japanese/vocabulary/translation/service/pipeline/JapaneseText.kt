@@ -1,11 +1,15 @@
 package com.japanese.vocabulary.translation.service.pipeline
 
+import java.text.Normalizer
+
 /**
  * The single kana-normalization entry point for the pipeline. Readings arrive in mixed scripts (LLM,
  * dictionary, [RuleMeaningProvider]) but the app's `readingConverter.convertReading` assumes **katakana**;
  * a hiragana reading silently breaks its display modes. Every reading normalizes through [toKatakana].
  */
 object JapaneseText {
+    private val KANGXI_RADICALS = '⺀'..'⿟'
+
 
     private const val HIRAGANA_START = 'ぁ' // U+3041
     private const val HIRAGANA_END = 'ゖ' // U+3096
@@ -95,6 +99,17 @@ object JapaneseText {
      * only the counter is a word, and the dictionary has no entry for the pair.
      */
     fun trimDigits(text: String): String = text.trim { it.isAsciiOrFullWidthDigit() }
+
+    /**
+     * `⼿放す` → `手放す`. Kangxi radical code points look like kanji, but no dictionary spelling uses them
+     * and the model may answer with either. Each folds to one char, so offsets into the text survive.
+     */
+    fun withStandardKanji(text: String): String {
+        if (text.none { it in KANGXI_RADICALS }) return text
+        return text.map { c ->
+            if (c !in KANGXI_RADICALS) c else Normalizer.normalize(c.toString(), Normalizer.Form.NFKC).singleOrNull() ?: c
+        }.joinToString("")
+    }
 
     private fun Char.isAsciiOrFullWidthDigit(): Boolean = this in '0'..'9' || this in '０'..'９'
 
