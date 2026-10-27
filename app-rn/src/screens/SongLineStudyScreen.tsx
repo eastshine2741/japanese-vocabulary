@@ -193,8 +193,15 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
     if (pending != null) playClip(pending);
   }, [playClip]);
 
+  const progress = useSharedValue(0);
+  const durationRef = useRef(0);
+  const handleDurationChange = useCallback((seconds: number) => {
+    durationRef.current = seconds;
+  }, []);
+
   // 잠긴 줄은 끝에서 멈추고, 열린 줄은 멈추지 않고 다음 줄이 시작되는 시각에 화면만 넘긴다.
   const handleTimeChange = useCallback((seconds: number) => {
+    if (durationRef.current > 0) progress.value = Math.min(1, seconds / durationRef.current);
     const lines = studyLinesRef.current;
     const pos = positionRef.current;
     if (!followingRef.current || lines == null || pos == null) return;
@@ -226,7 +233,7 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
       positionRef.current = pos + 1;
       setPosition(pos + 1);
     }
-  }, []);
+  }, [progress]);
 
   // 풀러 갔던 줄이 열려서 돌아오면 같은 구간을 다시 들려준다 — 이번엔 뜻이 붙은 채로.
   const solvingLineRef = useRef<number | null>(null);
@@ -422,11 +429,6 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
 
   const columnStyle = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }] }));
 
-  const progress = useSharedValue(0);
-  const total = studyLines?.length ?? 0;
-  useEffect(() => {
-    progress.value = withTiming(total > 0 ? openedCount / total : 0, { duration: 500, easing: Easing.out(Easing.cubic) });
-  }, [openedCount, progress, total]);
   const progressStyle = useAnimatedStyle(() => ({ transform: [{ scaleX: progress.value }] }));
   const countLabel = studyLines != null ? `${openedCount}/${studyLines.length}줄` : null;
 
@@ -456,6 +458,7 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
             startSeconds={(entryClip.clipStartMs ?? 0) / 1000}
             onStateChange={handleStateChange}
             onTimeChange={handleTimeChange}
+            onDurationChange={handleDurationChange}
           />}
           {/* iframe 이 띄우는 채널 아바타·제목 위에 뒤로 버튼이 묻히지 않게, YouTube 앱처럼 판 대신 영상 윗단만 누른다. */}
           <LinearGradient
@@ -485,7 +488,7 @@ export default function SongLineStudyScreen({ navigation, route }: Props) {
           {countLabel != null && <Text style={styles.count}>{countLabel}</Text>}
         </View>
       )}
-      {/* 제목·줄 수 줄을 따로 두면 가사 자리가 줄어서, 진행은 MV 아래 경계선 하나로만 보인다. */}
+      {/* 제목·줄 수 줄을 따로 두면 가사 자리가 줄어서, MV 재생 위치는 MV 아래 경계선 하나로만 보인다. */}
       <View style={styles.progressTrack}>
         <Animated.View style={[styles.progressFill, progressStyle]} />
       </View>
