@@ -1,3 +1,4 @@
+import type { CardWordParams } from '../../services/analytics';
 import { FlashcardDTO, FlashcardMemory } from '../../types/flashcard';
 import { SongWordTierKey } from '../../types/song';
 import { WordSense } from '../../types/word';
@@ -66,8 +67,17 @@ export function isUnsavedCard(card: FlashcardDTO): boolean {
 }
 
 /** 안 담은 단어는 서버가 wordId 를 주지 않아 세션용 음수 id 로 채워져 있다. */
-export function savedWordId(card: FlashcardDTO): number | undefined {
+function savedWordId(card: FlashcardDTO): number | undefined {
   return card.wordId > 0 ? card.wordId : undefined;
+}
+
+/** wordId 는 안 담은 단어를 rating 으로 담으며 받은 실제 id 를 넘길 때 쓴다. */
+export function cardWordParams(card: StudyCard, wordId = savedWordId(card)): CardWordParams {
+  return {
+    ...(wordId != null && { word_id: wordId }),
+    japanese: card.japanese,
+    ...(card.source.songId != null && { card_song_id: card.source.songId }),
+  };
 }
 
 /** 크롬이 그리는 세션 진행 정보. 공용 스택은 이 값만 노출하고 크롬은 그리지 않는다. */

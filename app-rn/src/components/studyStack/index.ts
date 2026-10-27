@@ -29,7 +29,7 @@ export {
   sourceFromRecent,
   sourceFromRecommendation,
 } from './studySource';
-export { savedWordId } from './types';
+export { useReviewExitLog } from './useReviewExitLog';
 export type {
   StudyCard,
   StudySessionProgress,
