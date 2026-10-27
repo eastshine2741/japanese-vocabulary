@@ -798,6 +798,312 @@
         "w": 16,
         "h": 8
       }
+    },
+    {
+      "type": "timeseries",
+      "title": "학습 시간 (학습자 1인)",
+      "datasource": {
+        "type": "grafana-bigquery-datasource",
+        "uid": "bigquery"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-bigquery-datasource",
+            "uid": "bigquery"
+          },
+          "editorMode": "code",
+          "rawQuery": true,
+          "format": 0,
+          "rawSql": "WITH ev AS (\n  SELECT\n    user_pseudo_id,\n    user_id,\n    event_name,\n    event_date,\n    event_timestamp,\n    (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'mode') AS mode,\n    device.mobile_model_name AS model,\n    device.mobile_brand_name AS brand,\n    app_info.install_source AS install_source\n  FROM `japanese-vocabulary-490916.analytics_539684755.events_*`\n  WHERE (_TABLE_SUFFIX BETWEEN FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul')) AND FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))\n      OR _TABLE_SUFFIX BETWEEN CONCAT('intraday_', FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul'))) AND CONCAT('intraday_', FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))))\n    AND _TABLE_SUFFIX NOT IN (\n      SELECT CONCAT('intraday_', SUBSTR(table_id, 8))\n      FROM `japanese-vocabulary-490916.analytics_539684755.__TABLES__`\n      WHERE table_id BETWEEN CONCAT('events_', FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul'))) AND CONCAT('events_', FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))))\n    AND event_date BETWEEN FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul')) AND FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))\n    AND app_info.id = 'dev.eastshine.kotonoha'\n),\n-- 운영자·스토어 테스트 기기는 설치 단위로 뺀다 (docs/analytics.md 해석 주의)\nexcluded AS (\n  SELECT DISTINCT user_pseudo_id\n  FROM ev\n  WHERE user_id IN ('1', '32')\n    OR model = 'IN2025'\n    OR (install_source = 'manual_install' AND brand IS NULL)\n),\n-- 홈 카드 학습엔 체류 이벤트가 없어 카드 이벤트 간격을 더한다. 2분 넘게 비면 쉰 것으로 본다\nstudy AS (\n  SELECT\n    user_pseudo_id,\n    event_date,\n    mode,\n    (event_timestamp - LAG(event_timestamp) OVER (PARTITION BY user_pseudo_id ORDER BY event_timestamp)) / 1e6 AS gap\n  FROM ev\n  WHERE event_name IN ('card_reveal', 'card_rate')\n    AND user_pseudo_id NOT IN (SELECT user_pseudo_id FROM excluded)\n),\nuser_day AS (\n  SELECT\n    event_date,\n    user_pseudo_id,\n    SUM(IF(gap <= 120, gap, 0)) AS sec,\n    SUM(IF(gap <= 120 AND mode = 'home', gap, 0)) AS home_sec,\n    SUM(IF(gap <= 120 AND mode = 'source', gap, 0)) AS source_sec\n  FROM study\n  GROUP BY event_date, user_pseudo_id\n)\nSELECT\n  TIMESTAMP(PARSE_DATE('%Y%m%d', event_date), 'Asia/Seoul') AS time,\n  APPROX_QUANTILES(sec, 2)[OFFSET(1)] AS median_sec,\n  AVG(sec) AS avg_sec,\n  SUM(home_sec) AS home_sec,\n  SUM(source_sec) AS source_sec\nFROM user_day\nGROUP BY time\nORDER BY time"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "median_sec"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "중앙값"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "avg_sec"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "평균"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "time",
+                "median_sec",
+                "avg_sec"
+              ]
+            }
+          }
+        }
+      ],
+      "timeFrom": "30d",
+      "hideTimeOverride": false,
+      "id": 10,
+      "gridPos": {
+        "x": 0,
+        "y": 29,
+        "w": 12,
+        "h": 9
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "학습 시간 합계",
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Dashboard --"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "datasource",
+            "uid": "-- Dashboard --"
+          },
+          "panelId": 10
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 80,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "home_sec"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "홈"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "source_sec"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "곡"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "time",
+                "home_sec",
+                "source_sec"
+              ]
+            }
+          }
+        }
+      ],
+      "timeFrom": "30d",
+      "hideTimeOverride": false,
+      "id": 11,
+      "gridPos": {
+        "x": 12,
+        "y": 29,
+        "w": 12,
+        "h": 9
+      }
+    },
+    {
+      "type": "barchart",
+      "title": "하루 학습 시간 분포",
+      "datasource": {
+        "type": "grafana-bigquery-datasource",
+        "uid": "bigquery"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-bigquery-datasource",
+            "uid": "bigquery"
+          },
+          "editorMode": "code",
+          "rawQuery": true,
+          "format": 1,
+          "rawSql": "WITH ev AS (\n  SELECT\n    user_pseudo_id,\n    user_id,\n    event_name,\n    event_date,\n    event_timestamp,\n    (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'mode') AS mode,\n    device.mobile_model_name AS model,\n    device.mobile_brand_name AS brand,\n    app_info.install_source AS install_source\n  FROM `japanese-vocabulary-490916.analytics_539684755.events_*`\n  WHERE (_TABLE_SUFFIX BETWEEN FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul')) AND FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))\n      OR _TABLE_SUFFIX BETWEEN CONCAT('intraday_', FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul'))) AND CONCAT('intraday_', FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))))\n    AND _TABLE_SUFFIX NOT IN (\n      SELECT CONCAT('intraday_', SUBSTR(table_id, 8))\n      FROM `japanese-vocabulary-490916.analytics_539684755.__TABLES__`\n      WHERE table_id BETWEEN CONCAT('events_', FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul'))) AND CONCAT('events_', FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))))\n    AND event_date BETWEEN FORMAT_DATE('%Y%m%d', DATE($__timeFrom(), 'Asia/Seoul')) AND FORMAT_DATE('%Y%m%d', DATE($__timeTo(), 'Asia/Seoul'))\n    AND app_info.id = 'dev.eastshine.kotonoha'\n),\n-- 운영자·스토어 테스트 기기는 설치 단위로 뺀다 (docs/analytics.md 해석 주의)\nexcluded AS (\n  SELECT DISTINCT user_pseudo_id\n  FROM ev\n  WHERE user_id IN ('1', '32')\n    OR model = 'IN2025'\n    OR (install_source = 'manual_install' AND brand IS NULL)\n),\n-- 홈 카드 학습엔 체류 이벤트가 없어 카드 이벤트 간격을 더한다. 2분 넘게 비면 쉰 것으로 본다\nstudy AS (\n  SELECT\n    user_pseudo_id,\n    event_date,\n    mode,\n    (event_timestamp - LAG(event_timestamp) OVER (PARTITION BY user_pseudo_id ORDER BY event_timestamp)) / 1e6 AS gap\n  FROM ev\n  WHERE event_name IN ('card_reveal', 'card_rate')\n    AND user_pseudo_id NOT IN (SELECT user_pseudo_id FROM excluded)\n),\nuser_day AS (\n  SELECT\n    event_date,\n    user_pseudo_id,\n    SUM(IF(gap <= 120, gap, 0)) AS sec,\n    SUM(IF(gap <= 120 AND mode = 'home', gap, 0)) AS home_sec,\n    SUM(IF(gap <= 120 AND mode = 'source', gap, 0)) AS source_sec\n  FROM study\n  GROUP BY event_date, user_pseudo_id\n)\nSELECT bucket, COUNT(*) AS user_days\nFROM (\n  SELECT\n    CASE\n      WHEN sec < 60 THEN '1분 미만'\n      WHEN sec < 180 THEN '1–3분'\n      WHEN sec < 300 THEN '3–5분'\n      WHEN sec < 600 THEN '5–10분'\n      WHEN sec < 1200 THEN '10–20분'\n      ELSE '20분 이상'\n    END AS bucket,\n    CASE\n      WHEN sec < 60 THEN 1\n      WHEN sec < 180 THEN 2\n      WHEN sec < 300 THEN 3\n      WHEN sec < 600 THEN 4\n      WHEN sec < 1200 THEN 5\n      ELSE 6\n    END AS ord\n  FROM user_day\n)\nGROUP BY bucket, ord\nORDER BY ord"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "min": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 1
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "user_days"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "학습자×일"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "xField": "bucket",
+        "orientation": "vertical",
+        "showValue": "always",
+        "barWidth": 0.7,
+        "groupWidth": 0.7,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [],
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "bucket",
+                "user_days"
+              ]
+            }
+          }
+        }
+      ],
+      "timeFrom": "30d",
+      "hideTimeOverride": false,
+      "id": 12,
+      "gridPos": {
+        "x": 0,
+        "y": 38,
+        "w": 24,
+        "h": 8
+      }
     }
   ]
 }
