@@ -29,6 +29,7 @@ export {
   sourceFromRecent,
   sourceFromRecommendation,
 } from './studySource';
+export { savedWordId } from './types';
 export type {
   StudyCard,
   StudySessionProgress,
