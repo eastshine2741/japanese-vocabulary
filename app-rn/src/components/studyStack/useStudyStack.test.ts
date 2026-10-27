@@ -6,7 +6,7 @@ import { flashcardApi } from '../../api/flashcardApi';
 import { songApi } from '../../api/songApi';
 import { studyStatsApi } from '../../api/studyStatsApi';
 import { wordApi } from '../../api/wordApi';
-import { trackReviewComplete } from '../../services/analytics';
+import { trackCardRate, trackCardReveal, trackReviewComplete } from '../../services/analytics';
 import { RATING_HOLD_MS, useStudyStack, StudyStackState } from './useStudyStack';
 import { StudySource } from './types';
 import { FlashcardDTO, FlashcardMemory } from '../../types/flashcard';
@@ -167,6 +167,18 @@ it('reviews cards already in the song deck as plain flashcards', async () => {
   await rate(2);
   expect(flashcardApi.review).toHaveBeenCalledWith(6, { rating: 2 });
   expect(songApi.reviewSongWord).toHaveBeenCalledTimes(1);
+});
+
+it('logs the word id on card events, taking the saved word id once an unsaved word is rated', async () => {
+  vi.mocked(songApi.getStudyCards).mockResolvedValue(studyCards([unsaved('歌'), sessionCard(card(6), true)], 7));
+  vi.mocked(songApi.reviewSongWord).mockResolvedValue(songReview('SHORT_TERM', 7));
+  await mount(previewSource);
+  await rate(3);
+  expect(vi.mocked(trackCardReveal).mock.calls[0][0]).not.toHaveProperty('word_id');
+  expect(vi.mocked(trackCardRate).mock.calls[0][0]).toMatchObject({ word_id: 100 });
+  await rate(2);
+  expect(vi.mocked(trackCardReveal).mock.calls[1][0]).toMatchObject({ word_id: 6 });
+  expect(vi.mocked(trackCardRate).mock.calls[1][0]).toMatchObject({ word_id: 6 });
 });
 
 it('continues with the song deck due queue the first rating created once the session runs out', async () => {

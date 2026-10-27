@@ -5,6 +5,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   StackReviewOverlay,
   STACK_REVIEW_CHROME_HEIGHT,
+  savedWordId,
   StudyStack,
   useEditWordFromStack,
   useStudyStack,
@@ -28,8 +29,17 @@ export default function SongReviewScreen({ navigation, route }: Props) {
   // 몇 장째에서, 뒷면을 본 채로 나갔는지 남긴다 — 언마운트 시점 값이 필요해 ref 로 따라간다.
   // 앱을 끄면 언마운트가 오지 않으니 백그라운드로 갈 때도 남긴다(how=background). 돌아와 이어서
   // 하면 같은 열림에 여러 건이 생기므로 분석은 열림마다 마지막 건을 본다.
-  const exitStateRef = useRef({ reviewed: 0, revealed: false, completed: false, status });
-  exitStateRef.current = { reviewed: session.reviewedCount, revealed: stack.revealed, completed: isComplete, status };
+  const exitStateRef = useRef<{ word_id?: number; reviewed: number; revealed: boolean; completed: boolean; status: typeof status }>(
+    { reviewed: 0, revealed: false, completed: false, status },
+  );
+  const exitWordId = !isComplete && stack.currentCard ? savedWordId(stack.currentCard) : undefined;
+  exitStateRef.current = {
+    ...(exitWordId != null && { word_id: exitWordId }),
+    reviewed: session.reviewedCount,
+    revealed: stack.revealed,
+    completed: isComplete,
+    status,
+  };
   useEffect(() => {
     const openedAt = Date.now();
     const { songId, deckId } = source;

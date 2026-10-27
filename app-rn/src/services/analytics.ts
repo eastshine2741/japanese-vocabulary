@@ -47,6 +47,8 @@ export type StudyEntryTrigger = 'cta' | 'tier' | 'word' | 'streak' | 'schedule' 
 /** position: 이번 세션에서 이 카드 앞에 평가를 마친 카드 수 (첫 카드면 0). */
 export interface StudyCardParams {
   mode: 'home' | 'source';
+  /** 아직 담지 않은 단어는 word 가 없어 빠진다 */
+  word_id?: number;
   position: number;
   is_preview: boolean;
 }
@@ -56,6 +58,8 @@ export interface ReviewExitParams {
   /** 전체 단어장 복습이면 없다 */
   song_id?: number;
   deck_id?: number;
+  /** 떠날 때 보던 카드의 단어. 완주했거나 카드가 없거나 아직 담지 않은 단어면 없다 */
+  word_id?: number;
   /** leave: 화면을 떠남, background: 앱이 백그라운드로 감(앱 종료 포함) */
   how: 'leave' | 'background';
   reviewed: number;

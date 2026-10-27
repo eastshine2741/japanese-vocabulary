@@ -20,6 +20,7 @@ import {
   accumulateMemoryDiff,
   EMPTY_MEMORY_DIFF,
   isUnsavedCard,
+  savedWordId,
   StudyCard,
   StudyMemoryDiff,
   StudySessionProgress,
@@ -49,6 +50,8 @@ function toStudyCards(cards: SongStudyCardDto[], source: StudySource): StudyCard
 interface CardReviewResult {
   /** 리뷰된 실제 flashcard id. 안 담은 단어였다면 방금 생긴 카드다. */
   id: number;
+  /** 안 담은 단어였다면 담으면서 받은 실제 word id 다. */
+  wordId: number;
   memory: FlashcardMemory;
   rewardCards?: RewardCardRevealDto[];
   /** 안 담은 단어를 담으면서 곡 단어장이 생겼을 수 있다. */
@@ -58,7 +61,7 @@ interface CardReviewResult {
 async function reviewCard(card: StudyCard, rating: number): Promise<CardReviewResult> {
   if (!card.saveOnReview) {
     const result = await flashcardApi.review(card.id, { rating });
-    return { ...result, deckId: null };
+    return { ...result, wordId: card.wordId, deckId: null };
   }
   if (card.source.songId == null) throw new Error('곡 정보를 확인하지 못했어요');
   return songApi.reviewSongWord(card.source.songId, card.japanese, rating);
@@ -655,7 +658,13 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
   const reveal = useCallback(() => {
     if (!revealed && currentCardRef.current) {
       hapticReveal();
-      trackCardReveal({ mode, position: reviewedCountRef.current, is_preview: !!currentCardRef.current.saveOnReview });
+      const wordId = savedWordId(currentCardRef.current);
+      trackCardReveal({
+        mode,
+        ...(wordId != null && { word_id: wordId }),
+        position: reviewedCountRef.current,
+        is_preview: !!currentCardRef.current.saveOnReview,
+      });
     }
     setRevealed(true);
     Animated.timing(revealProgress, {
@@ -690,7 +699,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     try {
       const [, reviewResult] = await Promise.all([animationPromise, reviewPromise]);
       if (version !== requestVersion.current) return;
-      trackCardRate({ mode, position, is_preview: !!reviewedCard.saveOnReview }, rating);
+      trackCardRate({ mode, word_id: reviewResult.wordId, position, is_preview: !!reviewedCard.saveOnReview }, rating);
       useStudyStatsStore.getState().invalidate();
       useStreakStore.getState().recordRating();
       useRewardCardStore.getState().receiveReveals(reviewResult.rewardCards);
