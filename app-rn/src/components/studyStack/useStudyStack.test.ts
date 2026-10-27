@@ -169,13 +169,14 @@ it('reviews cards already in the song deck as plain flashcards', async () => {
   expect(songApi.reviewSongWord).toHaveBeenCalledTimes(1);
 });
 
-it('logs the word id on card events, taking the saved word id once an unsaved word is rated', async () => {
+it('logs the card word on card events, taking the saved word id once an unsaved word is rated', async () => {
   vi.mocked(songApi.getStudyCards).mockResolvedValue(studyCards([unsaved('歌'), sessionCard(card(6), true)], 7));
   vi.mocked(songApi.reviewSongWord).mockResolvedValue(songReview('SHORT_TERM', 7));
   await mount(previewSource);
   await rate(3);
+  expect(vi.mocked(trackCardReveal).mock.calls[0][0]).toMatchObject({ japanese: '歌', card_song_id: 3 });
   expect(vi.mocked(trackCardReveal).mock.calls[0][0]).not.toHaveProperty('word_id');
-  expect(vi.mocked(trackCardRate).mock.calls[0][0]).toMatchObject({ word_id: 100 });
+  expect(vi.mocked(trackCardRate).mock.calls[0][0]).toMatchObject({ word_id: 100, japanese: '歌', card_song_id: 3 });
   await rate(2);
   expect(vi.mocked(trackCardReveal).mock.calls[1][0]).toMatchObject({ word_id: 6 });
   expect(vi.mocked(trackCardRate).mock.calls[1][0]).toMatchObject({ word_id: 6 });

@@ -44,24 +44,36 @@ export type AnalyzeOutcome = 'success' | 'lyrics_not_found' | 'failed';
  */
 export type StudyEntryTrigger = 'cta' | 'tier' | 'word' | 'streak' | 'schedule' | 'reward_card' | 'line';
 
-/** position: 이번 세션에서 이 카드 앞에 평가를 마친 카드 수 (첫 카드면 0). */
-export interface StudyCardParams {
-  mode: 'home' | 'source';
+/**
+ * 카드의 단어. word_id 는 유저마다 달라 유저를 넘어 단어를 모으려면 japanese·card_song_id 로 본다.
+ * card_song_id 는 카드가 속한 곡, 전체 단어장 카드면 없다.
+ */
+export interface CardWordParams {
   /** 아직 담지 않은 단어는 word 가 없어 빠진다 */
   word_id?: number;
+  japanese: string;
+  card_song_id?: number;
+}
+
+/** position: 이번 세션에서 이 카드 앞에 평가를 마친 카드 수 (첫 카드면 0). */
+export interface StudyCardParams extends CardWordParams {
+  mode: 'home' | 'source';
   position: number;
   is_preview: boolean;
 }
 
-/** 곡 진입 복습 화면을 떠날 때의 상태. 몇 장째에서, 뒷면을 본 채로 나갔는지 본다. */
-export interface ReviewExitParams {
-  /** 전체 단어장 복습이면 없다 */
+/**
+ * 복습 화면을 떠날 때의 상태. 몇 장째에서, 어떤 카드를 뒷면까지 본 채로 나갔는지 본다.
+ * 단어 파라미터는 떠날 때 보던 카드다. 완주했거나 카드가 없으면 없다.
+ */
+export interface ReviewExitParams extends Partial<CardWordParams> {
+  mode: 'home' | 'source';
+  /** 화면을 연 곡. 홈이거나 전체 단어장 복습이면 없다 */
   song_id?: number;
   deck_id?: number;
-  /** 떠날 때 보던 카드의 단어. 완주했거나 카드가 없거나 아직 담지 않은 단어면 없다 */
-  word_id?: number;
-  /** leave: 화면을 떠남, background: 앱이 백그라운드로 감(앱 종료 포함) */
+  /** leave: 화면을 떠남(홈은 다른 화면·탭으로 감), background: 앱이 백그라운드로 감(앱 종료 포함) */
   how: 'leave' | 'background';
+  /** 이번 열림(홈은 이번 포커스)에서 평가한 장 수 */
   reviewed: number;
   revealed: boolean;
   completed: boolean;

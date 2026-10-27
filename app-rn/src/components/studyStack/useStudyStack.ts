@@ -19,8 +19,8 @@ import { sourceFromDeck, sourceFromRecent, sourceFromRecommendation } from './st
 import {
   accumulateMemoryDiff,
   EMPTY_MEMORY_DIFF,
+  cardWordParams,
   isUnsavedCard,
-  savedWordId,
   StudyCard,
   StudyMemoryDiff,
   StudySessionProgress,
@@ -658,10 +658,9 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
   const reveal = useCallback(() => {
     if (!revealed && currentCardRef.current) {
       hapticReveal();
-      const wordId = savedWordId(currentCardRef.current);
       trackCardReveal({
         mode,
-        ...(wordId != null && { word_id: wordId }),
+        ...cardWordParams(currentCardRef.current),
         position: reviewedCountRef.current,
         is_preview: !!currentCardRef.current.saveOnReview,
       });
@@ -699,7 +698,12 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     try {
       const [, reviewResult] = await Promise.all([animationPromise, reviewPromise]);
       if (version !== requestVersion.current) return;
-      trackCardRate({ mode, word_id: reviewResult.wordId, position, is_preview: !!reviewedCard.saveOnReview }, rating);
+      trackCardRate({
+        mode,
+        ...cardWordParams(reviewedCard, reviewResult.wordId),
+        position,
+        is_preview: !!reviewedCard.saveOnReview,
+      }, rating);
       useStudyStatsStore.getState().invalidate();
       useStreakStore.getState().recordRating();
       useRewardCardStore.getState().receiveReveals(reviewResult.rewardCards);

@@ -22,6 +22,7 @@ import {
   StudyStack,
   type StudySource,
   useEditWordFromStack,
+  useReviewExitLog,
   useStudyStack,
 } from '../../components/studyStack';
 import { useHomeChromeStore } from '../../stores/homeChromeStore';
@@ -56,6 +57,8 @@ export default function HomeTab() {
   const { deckStripItems, dueTodayCount, isComplete, reload, removeDeck, selectSource, session, status } = stack;
   const visibleSongId = stack.visibleSource?.songId ?? null;
   const selectedSongId = stack.selectedSource?.songId ?? null;
+  // 홈은 탭에 계속 떠 있어 포커스를 잃을 때를 이탈로 본다. 곡 상세로 들어간 것도 leave 로 남는다.
+  useReviewExitLog(stack, { mode: 'home', active: focused });
 
   const immersed = useHomeChromeStore(s => s.isDark);
   const setDark = useHomeChromeStore(s => s.setDark);
