@@ -6,6 +6,7 @@ import com.japanese.vocabulary.translation.model.PipelineToken
 import com.japanese.vocabulary.translation.model.SegmentAnchoringResult
 import com.japanese.vocabulary.translation.model.UncoveredRun
 import org.springframework.stereotype.Component
+import java.text.Normalizer
 
 class SegmentationValidationException(message: String) : RuntimeException(message)
 
@@ -176,7 +177,8 @@ class SegmentAnchoringValidator {
         return token.copy(
             surface = token.surface + rawText.substring(token.charEnd, end),
             charEnd = end,
-            usedReading = token.usedReading + JapaneseText.toKatakana(tail),
+            // NFKC turns half-width `ｯ` into `ッ` so the reading stays full-width kana.
+            usedReading = token.usedReading + JapaneseText.toKatakana(Normalizer.normalize(tail, Normalizer.Form.NFKC)),
         )
     }
 
@@ -203,9 +205,12 @@ class SegmentAnchoringValidator {
 
     /**
      * Kana that only stretch or cut off the sound in front of them and never open a word of their own.
-     * `っ` belongs here for the emphatic stop that closes `夢中っ`.
+     * `っ` belongs here for the emphatic stop that closes `夢中っ`; half-width forms close `キモｯ` the same way.
      */
-    private val TRAILING_KANA = setOf('ぁ', 'ぃ', 'ぅ', 'ぇ', 'ぉ', 'ァ', 'ィ', 'ゥ', 'ェ', 'ォ', 'ー', 'っ', 'ッ')
+    private val TRAILING_KANA = setOf(
+        'ぁ', 'ぃ', 'ぅ', 'ぇ', 'ぉ', 'ァ', 'ィ', 'ゥ', 'ェ', 'ォ', 'ー', 'っ', 'ッ',
+        'ｧ', 'ｨ', 'ｩ', 'ｪ', 'ｫ', 'ｰ', 'ｯ',
+    )
 
     /**
      * End (exclusive) of a `(kana)` / `（kana）` span starting exactly at [from] that spells

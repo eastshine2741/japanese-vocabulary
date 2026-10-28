@@ -705,6 +705,30 @@ class SegmentAnchoringValidatorTest {
     }
 
     @Test
+    fun `absorbs a half-width trailing sokuon and keeps the reading full-width`() {
+        listOf("キモ" to "わっ キモｯ、、、", "グロ" to "わっ グロｯ、、、").forEach { (stem, line) ->
+            val result = validator.anchor(
+                mapOf(0 to line),
+                listOf(
+                    SegLineDto(
+                        0,
+                        listOf(
+                            word("わっ", "わっ", "ワッ", "ワッ"),
+                            word(stem, stem, stem, stem),
+                        ),
+                    ),
+                ),
+            )
+
+            assertThat(result.failuresByIndex).isEmpty()
+            assertThat(result.incompleteByIndex).isEmpty()
+            val last = result.anchoredByIndex[0]!!.last()
+            assertThat(Triple(last.surface, last.charStart, last.charEnd)).isEqualTo(Triple("${stem}ｯ", 3, 6))
+            assertThat(last.usedReading).isEqualTo("${stem}ッ")
+        }
+    }
+
+    @Test
     fun `absorbs an extra iteration mark the model left off a word that already repeats`() {
         // `悶々々` came back as `悶々`; the last `々` only stretches the repetition, so there is no word to segment.
         val result = validator.anchor(
