@@ -192,6 +192,16 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves contracted deku under the voiced deiku headword`() {
+        // どこまでも沈んでく、余裕も密度もないのにね。 — segmentation splits 沈ん / でく and writes the
+        // headword でいく, which the dictionary has no entry for.
+        val resolved = provider.resolve(PipelineToken(2, "でく", "でいく", 7, 9))!!
+
+        assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.AUXILIARY_VERB)
+        assertThat(resolved.koreanText).isEqualTo("~해 가다")
+    }
+
+    @Test
     fun `resolves colloquial concessive ttatte behind a mistaken toittatte headword`() {
         // 宙に舞ったったってその因果も — segmentation emits ったって with the headword といったって,
         // which the dictionary has no entry for, so the concessive suffix must be settled by rule.

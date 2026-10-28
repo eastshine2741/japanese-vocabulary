@@ -346,6 +346,8 @@ class RuleMeaningProvider {
             // the headword; the dictionary has no entry for either form.
             "ていく" to auxiliary("ていく", "~해 가다"),
             "していく" to auxiliary("していく", "~해 가다"),
+            // Voiced form after ん stems (沈ん + でく); segmentation normalises the contracted でく to this headword.
+            "でいく" to auxiliary("でいく", "~해 가다"),
             "している" to auxiliary("している", "~하고 있다"),
             // Same headword fallback: segmentation normalises といて/とく to ておく.
             "ておく" to auxiliary("ておく", "~해 두다"),
