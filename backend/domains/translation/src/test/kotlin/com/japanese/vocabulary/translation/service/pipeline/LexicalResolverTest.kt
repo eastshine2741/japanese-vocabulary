@@ -674,6 +674,43 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a noun with the play suffix kko is looked up without it`(): Unit = runBlocking {
+        // いい合いっこして はじめて目があった — 言い合いっこ has no entry, 言い合い does.
+        stub(
+            "言い合い" to found(
+                DictionaryEntryDto(
+                    headword = "言い合い",
+                    reading = "イイアイ",
+                    senses = listOf(
+                        DictionarySenseDto(pos = listOf("Noun"), english = "quarrel, argument"),
+                        DictionarySenseDto(pos = listOf("Godan verb with 'u' ending"), english = "to quarrel"),
+                    ),
+                ),
+            ),
+        )
+        val tokens = listOf(token("いい合いっこ", "言い合いっこ", "イイアイッコ", lineIndex = 21))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("言い合い")
+        assertThat(resolved.token.surface).isEqualTo("いい合いっこ")
+        assertThat(resolved.options.map { it.english }).containsExactly("quarrel, argument")
+        assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
+    fun `a kko word whose remainder the dictionary lacks stays unresolved`(): Unit = runBlocking {
+        stub()
+        val tokens = listOf(token("ぴよっこ", "ぴよっこ", "ピヨッコ"))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.options).isEmpty()
+        assertThat(resolver.unresolvedTokens(tokens).map { it.token.headword }).containsExactly("ぴよっこ")
+    }
+
+    @Test
     fun `a suru-verb passive handed back as the headword is rescued as stem plus suru`(): Unit = runBlocking {
         // 毒される has no dictionary entry; the reading ドクサレル is inflected back to ドクスル with the base form.
         stub(

@@ -86,6 +86,7 @@ class LexicalResolver(
                 ?: resolveNaAdjectiveAttributive(token, probeLookups)
                 ?: resolveCutShortInterjection(token, probeLookups)
                 ?: resolveNumeralCounter(token, probeLookups)
+                ?: resolveKkoSuffix(token, probeLookups)
 
             if (resolved == null) {
                 byToken[token.key] = LexicalResolvedToken(token, token.headword, emptyList())
@@ -173,7 +174,8 @@ class LexicalResolver(
                     resolvePotentialNegative(it, probeLookups, logRescue = false) == null &&
                     resolveNaAdjectiveAttributive(it, probeLookups, logRescue = false) == null &&
                     resolveCutShortInterjection(it, probeLookups, logRescue = false) == null &&
-                    resolveNumeralCounter(it, probeLookups, logRescue = false) == null
+                    resolveNumeralCounter(it, probeLookups, logRescue = false) == null &&
+                    resolveKkoSuffix(it, probeLookups, logRescue = false) == null
             }
             .map { token ->
                 val lookups = listOfNotNull(firstPass[token.headword]) +
@@ -211,6 +213,7 @@ class LexicalResolver(
             naAdjectiveAttributiveProbe(token),
             cutShortInterjectionProbe(token),
             numeralCounterProbe(token),
+            kkoSuffixProbe(token),
         ) + suruDesiderativeProbes(token) +
             desiderativeProbes(token).map { it.baseForm } +
             appearanceSouProbes(token).map { it.baseForm } +
@@ -608,6 +611,31 @@ class LexicalResolver(
         val prefix = HONORIFIC_PREFIX_READINGS.firstOrNull { token.baseFormReading.startsWith(it) } ?: return null
         return token.baseFormReading.removePrefix(prefix).takeIf { it.isNotEmpty() }
     }
+
+    /**
+     * Safety net for a noun coined with the play suffix っこ (言い合いっこ, "a game of arguing"), which the
+     * dictionary indexes only for set words like 根っこ. The base noun carries the meaning; only noun senses are kept.
+     */
+    private fun resolveKkoSuffix(
+        token: PipelineToken,
+        lookups: Map<String, DictionaryLookupDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = kkoSuffixProbe(token) ?: return null
+        val reading = token.baseFormReading.removeSuffix("ッコ").takeIf { it != token.baseFormReading }
+        val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: return null
+        val nounEntries = accepted.entries.mapNotNull { entry ->
+            val nounSenses = entry.senses.filter { DictionaryPartOfSpeechMapper.map(it.pos) == PartOfSpeech.NOUN }
+            if (nounSenses.isEmpty()) null else entry.copy(senses = nounSenses)
+        }
+        if (nounEntries.isEmpty()) return null
+        if (logRescue) logger.info("Stripped suffix っこ from '{}' to '{}'", token.headword, base)
+        return AcceptedLexicalEntry(base, nounEntries, accepted.provenance)
+    }
+
+    /** `言い合いっこ` → `言い合い`. Null unless something precedes the っこ. */
+    private fun kkoSuffixProbe(token: PipelineToken): String? =
+        token.headword.takeIf { it.endsWith("っこ") }?.dropLast(2)?.takeIf { it.isNotEmpty() }
 
     /**
      * Safety net for a noun the lyric spells with its verb's continuative okurigana — 光り for 光.
