@@ -1101,7 +1101,7 @@ class LexicalResolver(
         logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
         val base = naAdjectiveAttributiveProbe(token) ?: return null
-        val reading = token.baseFormReading.takeIf { it.endsWith("ナ") }?.dropLast(1)
+        val reading = token.baseFormReading.takeIf { it.endsWith("ナ") || it.endsWith("ダ") }?.dropLast(1)
         val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: return null
         val naAdjectiveEntries = accepted.entries
             .filter { entry -> entry.senses.any { DictionaryPartOfSpeechMapper.map(it.pos) == PartOfSpeech.NA_ADJECTIVE } }
@@ -1116,9 +1116,9 @@ class LexicalResolver(
         return AcceptedLexicalEntry(base, naAdjectiveEntries, accepted.provenance)
     }
 
-    /** `嫌な` → `嫌`. Null unless something precedes な. */
+    /** `嫌な` → `嫌`; the dictionary form `幼気だ` → `幼気` too. Null unless something precedes な/だ. */
     private fun naAdjectiveAttributiveProbe(token: PipelineToken): String? =
-        token.headword.takeIf { it.length >= 2 && it.endsWith("な") }?.dropLast(1)
+        token.headword.takeIf { it.length >= 2 && (it.endsWith("な") || it.endsWith("だ")) }?.dropLast(1)
 
     /** Safety net for an interjection the lyric cuts short with a trailing っ (えいっ); only interjection senses are kept. */
     private fun resolveCutShortInterjection(
