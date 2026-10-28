@@ -1190,6 +1190,19 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a na-adjective handed back in its da dictionary form is looked up as the stem`(): Unit = runBlocking {
+        // 幼気な手のひら、同じになれなくても。
+        stub("幼気" to found(posEntry("幼気", "イタイケ", "innocent", "Na-adjective (keiyodoshi)")))
+        val tokens = listOf(token("幼気な", "幼気だ", "イタイケダ"))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("幼気")
+        assertThat(resolved.options.single().provenance).isEqualTo(DictionaryLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `a prohibitive na or a plain noun stem is not taken for a na-adjective`(): Unit = runBlocking {
         stub(
             "行く" to found(godanVerb("行く", "イク", "to go")),
