@@ -544,6 +544,19 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `the interjection misspelled 鳴呼 is looked up as 嗚呼`(): Unit = runBlocking {
+        // 「鳴呼 其処が未来だ きっと其処が私の未来なんだ」: lyrics write 鳴 for 嗚, and the dictionary indexes only 嗚呼.
+        stub("嗚呼" to found(entry(headword = "嗚呼", reading = "アア", english = "ah!")))
+        val tokens = listOf(token("鳴呼", "鳴呼", "アア", lineIndex = 22))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("嗚呼")
+        assertThat(resolved.options.map { it.english }).containsExactly("ah!")
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `a lookup the dictionary could not read is reported as a provider error, not a miss`(): Unit = runBlocking {
         // A read failure must be distinguishable from a missing entry: one is retried against the dictionary,
         // the other against the model.
