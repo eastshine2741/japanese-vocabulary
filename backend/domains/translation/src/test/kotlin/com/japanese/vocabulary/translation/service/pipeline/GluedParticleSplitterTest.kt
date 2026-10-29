@@ -104,6 +104,28 @@ class GluedParticleSplitterTest {
         }
 
     @Test
+    fun `a trailing no glued into the headword is split off`(): Unit = runBlocking {
+        // いつの日か 窮屈なこの部屋を抜け出して: いつの came back as both surface and headword.
+        stubMissing("いつの")
+
+        val tokens = split(token(surface = "いつの", headword = "いつの", used = "イツノ", base = "イツノ", start = 0))
+
+        assertThat(tokens.map { it.surface }).containsExactly("いつ", "の")
+        assertThat(tokens.map { it.headword }).containsExactly("いつ", "の")
+        assertThat(tokens.map { it.usedReading }).containsExactly("イツ", "ノ")
+        assertThat(tokens.map { it.charStart to it.charEnd }).containsExactly(0 to 2, 2 to 3)
+    }
+
+    @Test
+    fun `a word ending in no that the dictionary knows is kept`(): Unit = runBlocking {
+        stubEntry("この")
+
+        val tokens = split(token(surface = "この", headword = "この", used = "コノ", base = "コノ", start = 8))
+
+        assertThat(tokens.map { it.surface }).containsExactly("この")
+    }
+
+    @Test
     fun `a leading particle glued into the headword too is split off before a kanji word`(): Unit = runBlocking {
         // あぁ、いつか人生最後の日、: の日 came back as both surface and headword.
         stubMissing("の日")
