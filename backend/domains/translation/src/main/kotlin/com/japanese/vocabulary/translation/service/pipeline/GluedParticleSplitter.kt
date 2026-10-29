@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component
  *
  * A split only fires when surface and headword contradict each other: the surface is the headword
  * plus one particle character (`何を` / `何`), or opens with a particle the headword does not
- * (`がある` / `ある`), or the particle went into the headword too (`彼も` / `彼も`, `の日` / `の日`), where only the
+ * (`がある` / `ある`), or the particle went into the headword too (`彼も` / `彼も`, `いつの` / `いつの`, `の日` / `の日`), where only the
  * dictionary miss argues for the split.
  *
  * Wrongly splitting destroys a real dictionary entry, while leaving a glued token only mis-renders
@@ -177,7 +177,7 @@ class GluedParticleSplitter(
          * Particles that can be glued to the end of the word before them. Each must be in
          * [RuleMeaningProvider]'s particle table so the split-off token never reaches the dictionary.
          */
-        val TRAILING_PARTICLES = setOf('は', 'を', 'が', 'も')
+        val TRAILING_PARTICLES = setOf('は', 'を', 'が', 'も', 'の')
 
         /** Particles that can be glued to the front. Same table requirement as [TRAILING_PARTICLES]. */
         val LEADING_PARTICLES = setOf('が', 'を', 'の', 'も')
