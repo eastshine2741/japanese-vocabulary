@@ -456,9 +456,10 @@ class LexicalResolver(
         return accepted
     }
 
-    /** `閧` → `鬨`. Null when the headword has no variant kanji listed in [KANJI_VARIANTS]. */
+    /** `閧` → `鬨`. Null when the headword has no variant kanji listed in [KANJI_VARIANTS] or [HEADWORD_VARIANTS]. */
     private fun kanjiVariantProbe(token: PipelineToken): String? {
-        val variant = token.headword.map { KANJI_VARIANTS[it] ?: it }.joinToString("")
+        val variant = HEADWORD_VARIANTS[token.headword]
+            ?: token.headword.map { KANJI_VARIANTS[it] ?: it }.joinToString("")
         return variant.takeIf { it != token.headword }
     }
 
@@ -1206,6 +1207,9 @@ class LexicalResolver(
 
         /** Variant kanji the dictionary does not index → the standard spelling it does. Add pairs as misses appear. */
         val KANJI_VARIANTS = mapOf('閧' to '鬨', '赦' to '許', '堕' to '落', '搔' to '掻')
+
+        /** Whole-headword spellings: 沸 is a variant only in 沸る (たぎる); 沸く must stay as written. */
+        val HEADWORD_VARIANTS = mapOf("沸る" to "滾る")
 
         /** Longest first, so したくない is not read as したい with a stem ending in く. */
         val SURU_DESIDERATIVE_SUFFIXES = listOf("したくない", "したい")

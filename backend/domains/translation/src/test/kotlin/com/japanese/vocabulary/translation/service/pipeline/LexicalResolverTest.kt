@@ -1266,6 +1266,18 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `tagiru written 沸る is looked up as 滾る`(): Unit = runBlocking {
+        // 火山が沸るように
+        stub("滾る" to found(godanVerb("滾る", "タギル", "to boil; to seethe")))
+        val tokens = listOf(token("沸る", "沸る", "タギル", lineIndex = 27))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values
+
+        assertThat(resolved.map { it.baseForm }).containsExactly("滾る")
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `a kanji numeral glued to its counter is looked up as the counter`(): Unit = runBlocking {
         stub(
             "年" to found(
