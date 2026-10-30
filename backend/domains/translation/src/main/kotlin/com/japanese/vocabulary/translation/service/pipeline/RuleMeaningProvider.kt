@@ -294,6 +294,8 @@ class RuleMeaningProvider {
             // Segmentation writes the headword as 何て言う, which the dictionary has no entry for.
             "なんていう" to RuleResolvedToken("なんていう", "何て言う", "ナンテイウ", "ナンテイウ", PartOfSpeech.EXPRESSION, "무슨"),
             "何て言う" to RuleResolvedToken("何て言う", "何て言う", "ナンテイウ", "ナンテイウ", PartOfSpeech.EXPRESSION, "무슨"),
+            // Segmentation glues ため+に; the dictionary has only the rare-kanji headword 為, which kana never reaches.
+            "ために" to RuleResolvedToken("ために", "ために", "タメニ", "タメニ", PartOfSpeech.EXPRESSION, "~하기 위해"),
         )
 
         val particles = mapOf(
