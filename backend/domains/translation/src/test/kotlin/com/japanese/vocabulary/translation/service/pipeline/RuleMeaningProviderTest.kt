@@ -244,6 +244,18 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves glued tame ni as purpose expression`() {
+        // 誰かに望まれた色を探し見つけるために歩いてきた — ために comes back as one token, and the
+        // dictionary has it only under 為.
+        val resolved = provider.resolve(PipelineToken(12, "ために", "ために", 15, 18))
+
+        assertThat(resolved).isNotNull
+        assertThat(resolved!!.partOfSpeech).isEqualTo(PartOfSpeech.EXPRESSION)
+        assertThat(resolved.reading).isEqualTo("タメニ")
+        assertThat(resolved.koreanText).isEqualTo("~하기 위해")
+    }
+
+    @Test
     fun `rewrites doumo koumo pair into deterministic smaller tokens`() {
         val rewritten = provider.rewrite(
             listOf(
