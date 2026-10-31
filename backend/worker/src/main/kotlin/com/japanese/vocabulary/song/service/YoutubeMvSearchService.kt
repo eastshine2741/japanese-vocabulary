@@ -349,15 +349,39 @@ class YoutubeMvSearchService(
      * The artist's own channel under a romanized name (稲葉曇 → "inabakumori", ゆこぴ → "Yukopi"). Every word of the
      * channel name other than an "official"/"channel" word must be the name itself, so "Kenshi Yonezu fanTR" fails.
      * An all-Latin artist is left to [channelMatchesArtistOrMember]; there is nothing to romanize.
+     * A channel listing aliases ("iai / IRUMA") passes when one whole segment is the name.
      */
-    private fun romanizedOwnChannel(artist: String, channelTitle: String): Boolean {
+    private fun romanizedOwnChannel(artist: String, channelTitle: String): Boolean =
+        (listOf(channelTitle) + channelTitle.split(CHANNEL_ALIAS_SEPARATOR_RE))
+            .any { romanizedOwnChannelName(artist, it) }
+
+    private fun romanizedOwnChannelName(artist: String, channelTitle: String): Boolean {
         val words = spacedForMatch(channelTitle).split(' ').filter { it.isNotBlank() && it !in OFFICIAL_CHANNEL_WORDS }
         if (words.isEmpty() || words.any { word -> !word.all { it in 'a'..'z' || it in '0'..'9' } }) return false
-        val channel = RomanizedName.latinSkeleton(words.joinToString(""))
-        if (channel.length < MIN_ROMANIZED_SKELETON) return false
+        val latin = words.joinToString("")
+        val channel = RomanizedName.latinSkeleton(latin)
+        if (channel.length < MIN_SPELLED_ROMANIZED_SKELETON) return false
+        // Two consonants match too many names by chance unless the vowels are spelled out too (イルマ ↔ "IRUMA").
         return artistNames(artist)
             .filter { name -> name.any { it.code > 0x7F } }
-            .any { RomanizedName.skeleton(it) == channel }
+            .any { name ->
+                RomanizedName.skeleton(name) == channel &&
+                    (channel.length >= MIN_ROMANIZED_SKELETON || kanaVowels(name) == latin.filter { it in "aeiou" })
+            }
+    }
+
+    /** Vowels of an all-kana name in Hepburn order, or null when it is not all kana. */
+    private fun kanaVowels(name: String): String? {
+        val vowels = StringBuilder()
+        for (ch in name) {
+            val katakana = if (ch in 'ぁ'..'ゖ') ch + ('ァ' - 'ぁ') else ch
+            when {
+                katakana in "ッンー" -> Unit
+                katakana in "ャュョ" -> vowels.setLength(maxOf(vowels.length - 1, 0)).also { vowels.append(KANA_VOWEL[katakana]) }
+                else -> vowels.append(KANA_VOWEL[katakana] ?: return null)
+            }
+        }
+        return vowels.toString()
     }
 
     private fun maybeCacheArtistChannel(artist: String, candidate: MvCandidate) {
@@ -580,13 +604,22 @@ class YoutubeMvSearchService(
         private val OFFICIAL_CHANNEL_WORDS = setOf("official", "channel", "ch", "music", "youtube", "staff", "公式", "チャンネル", "ちゃんねる")
         // Two consonants match too many names by chance.
         private const val MIN_ROMANIZED_SKELETON = 3
+        private const val MIN_SPELLED_ROMANIZED_SKELETON = 2
+        private val CHANNEL_ALIAS_SEPARATOR_RE = Regex("[/|／｜]")
+        private val KANA_VOWEL: Map<Char, Char> = mapOf(
+            'a' to "アカガサザタダナハバパマヤャラワァ",
+            'i' to "イキギシジチヂニヒビピミリィ",
+            'u' to "ウクグスズツヅヌフブプムユュルゥヴ",
+            'e' to "エケゲセゼテデネヘベペメレェ",
+            'o' to "オコゴソゾトドノホボポモヨョロォヲ",
+        ).flatMap { (vowel, kana) -> kana.map { it to vowel } }.toMap()
         // Not the song as recorded (other performer, arrangement, no vocals, partial). A cut-down
         // upload can pass the duration bounds, so the title must catch it.
         private val BAD_TITLE_RE = Regex(
             "弾いてみた|ピアノ|ギター|drum|アレンジ|off vocal|ニコカラ|字幕|歌詞|한글자막|中文字幕|ローマ字|lyrics|lyric video|the first take|game size|ゲームサイズ|アナザーボーカル|AMV|MAD|非公式|unofficial|エイプリルフール|april fool" +
                 "|カラオケ|karaoke|instrumental|short ver|ショートver|ショートバージョン|tv size|tvサイズ" +
                 "|offvocal|off-vocal|[+-]\\d+\\s*key|原曲歌手|ドラム|演奏してみた|叩いてみた|踊ってみた|dance practice|振付" +
-                "|trailer|teaser|予告|react|切り抜き|譜面|sonolus|d4dj|グルミク|mashup|』×『|」×「|sped up" +
+                "|trailer|teaser|予告|xfade|クロスフェード|crossfade|react|切り抜き|譜面|sonolus|d4dj|グルミク|mashup|』×『|」×「|sped up" +
                 "|中文|翻譯|翻訳|(?<![a-z])(?:thai|rus|eng|indo|viet|esp)\\s*sub|thaisub",
             RegexOption.IGNORE_CASE
         )
