@@ -789,6 +789,45 @@ class YoutubeMvSearchServiceTest {
     }
 
     @Test
+    fun `a romanized channel name listed beside another alias is the artist's own channel`() {
+        every { artistChannelCache.get(any()) } returns null
+        stubSearch(
+            searchItem("VWMCely7eXw", "【歌ってみた】jigoku/イルマ【聖ルナティア/ゆにれいど】#vtuber #shorts #cover", "聖ルナティア / Sei Lunathia"),
+            searchItem("d2RoDqXXLcM", "【イルマ】feat.初音ミク「jigoku」をちょっとだけ弾いてみました。#Shorts", "yuka .kokoromoyou"),
+            searchItem("uc36Tljl_X8", "jigoku / イルマ feat.初音ミク", "iai / IRUMA"),
+            searchItem("Wd1xOzelTEI", "jigoku / イルマ　歌ってみた　yukino", "yukino"),
+            searchItem("z6LDb0WN6As", "Iri / イルマ feat.初音ミク (Intro of jigoku)", "iai / IRUMA"),
+            searchItem("czFbioVnFPk", "イルマ 2nd Single 『 jigoku 』【XFADE】", "iai / IRUMA"),
+            searchItem("nx_xU7TkdvM", "jigoku / イルマ feat.初音ミク #ボカロ #オリジナル曲 #初音ミク", "iai / IRUMA"),
+            searchItem("4juQJU5MVWs", "jigoku / iai", "iai / IRUMA"),
+            searchItem("h0B2Yr9OztM", "jigoku edgerunner【AMV/ イルマ/ VOCALOID】", "ojosamasaigo"),
+            searchItem("yXLMLp2Z5zw", "【Ari Anjou】jigoku - イルマ IRUMA【cover】", "Ari Anjou"),
+            searchItem("li4LysxDEWE", "jigoku/イルマ【Covered by 紫雨。】", "紫雨。"),
+            searchItem("caoXgFhNiLc", "jigoku / イルマ 歪", "ゲてぅた🎭"),
+            searchItem("gZw4qb0ubeg", "jigoku / イルマ　歌ってみた yukino #歌ってみた #jigoku #イルマ　#歌い手", "yukino"),
+            searchItem("OhBEjco4OL8", "#魔入りました入間くん#最強ランキング#shorts", "ぱーりゅあ"),
+            searchItem("LP86xn5PczA", "イルマ 2nd Album『 urei 』【XFADE】", "iai / IRUMA"),
+        )
+        stubDurations(
+            "uc36Tljl_X8" to "PT2M47S", "Wd1xOzelTEI" to "PT2M48S", "z6LDb0WN6As" to "PT1M25S",
+            "czFbioVnFPk" to "PT1M50S", "nx_xU7TkdvM" to "PT33S", "4juQJU5MVWs" to "PT48S",
+            "h0B2Yr9OztM" to "PT1M23S", "yXLMLp2Z5zw" to "PT2M50S", "li4LysxDEWE" to "PT2M49S",
+            "caoXgFhNiLc" to "PT2M49S", "gZw4qb0ubeg" to "PT17S",
+        )
+        every { youtubeClient.getChannel(any()) } returns null
+
+        assertThat(service.searchMvUrl("jigoku (feat. 初音ミク)", "イルマ", 167))
+            .isEqualTo("https://www.youtube.com/watch?v=uc36Tljl_X8")
+    }
+
+    @Test
+    fun `a channel segment carrying the romanized name plus other words is not the artist's own`() {
+        stubVideo("fan-id", "jigoku / イルマ feat.初音ミク", channelTitle = "iai / IRUMA fanTR", duration = "PT2M47S")
+
+        assertThat(service.acceptsAsOnlyCandidate("fan-id", "jigoku (feat. 初音ミク)", "イルマ", 167)).isFalse()
+    }
+
+    @Test
     fun `a kana artist's romanized channel upload wins over covers of a katakana title`() {
         every { artistChannelCache.get("ゆこぴ") } returns null
         stubSearch(
