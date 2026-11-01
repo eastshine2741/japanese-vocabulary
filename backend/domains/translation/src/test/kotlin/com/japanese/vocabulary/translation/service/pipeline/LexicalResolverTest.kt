@@ -544,6 +544,19 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `an okurigana-omitted verb is looked up in its standard spelling`(): Unit = runBlocking {
+        // 自然の掟に逆うなんて: 逆う (sung さかう) is 逆らう with ら dropped; the dictionary indexes only 逆らう.
+        stub("逆らう" to found(entry(headword = "逆らう", reading = "サカラウ", english = "to go against")))
+        val tokens = listOf(token("逆う", "逆う", "サカウ", lineIndex = 38))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("逆らう")
+        assertThat(resolved.options.map { it.english }).containsExactly("to go against")
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `a lookup the dictionary could not read is reported as a provider error, not a miss`(): Unit = runBlocking {
         // A read failure must be distinguishable from a missing entry: one is retried against the dictionary,
         // the other against the model.

@@ -69,6 +69,7 @@ class LexicalResolver(
                 ?: resolveSuruVerb(token, probeLookups)
                 ?: resolveLongVowelSpelling(token, probeLookups)
                 ?: resolveKanjiVariant(token, probeLookups)
+                ?: resolveOkuriganaOmission(token, probeLookups)
                 ?: resolveReadingQuery(token, probeLookups)
                 ?: resolveHonorificPrefix(token, probeLookups)
                 ?: resolveContinuativeNoun(token, probeLookups)
@@ -157,6 +158,7 @@ class LexicalResolver(
                     resolveSuruVerb(it, probeLookups, logRescue = false) == null &&
                     resolveLongVowelSpelling(it, probeLookups, logRescue = false) == null &&
                     resolveKanjiVariant(it, probeLookups, logRescue = false) == null &&
+                    resolveOkuriganaOmission(it, probeLookups, logRescue = false) == null &&
                     resolveReadingQuery(it, probeLookups, logRescue = false) == null &&
                     resolveHonorificPrefix(it, probeLookups, logRescue = false) == null &&
                     resolveContinuativeNoun(it, probeLookups, logRescue = false) == null &&
@@ -198,6 +200,7 @@ class LexicalResolver(
             suruVerbProbe(token),
             longVowelProbe(token),
             kanjiVariantProbe(token),
+            OKURIGANA_OMISSIONS[token.headword],
             readingProbe(token),
             honorificPrefixProbe(token),
             continuativeNounProbe(token),
@@ -460,6 +463,23 @@ class LexicalResolver(
     private fun kanjiVariantProbe(token: PipelineToken): String? {
         val variant = token.headword.map { KANJI_VARIANTS[it] ?: it }.joinToString("")
         return variant.takeIf { it != token.headword }
+    }
+
+    /**
+     * Safety net for a verb the lyric writes with its okurigana cut short (逆う for 逆らう).
+     *
+     * The dictionary indexes only the standard spelling, and the sung reading (さかう) is no word either. Only
+     * pairs listed in [OKURIGANA_OMISSIONS] are tried; inserting kana by rule would invent other verbs.
+     */
+    private fun resolveOkuriganaOmission(
+        token: PipelineToken,
+        lookups: Map<String, DictionaryLookupDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = OKURIGANA_OMISSIONS[token.headword] ?: return null
+        val accepted = narrow(token, lookups[base], base, logGrading = logRescue) ?: return null
+        if (logRescue) logger.info("Looked up okurigana-omitted headword '{}' as '{}'", token.headword, base)
+        return accepted
     }
 
     /** `交差する` → `交差`. Null unless the headword is something followed by する. */
@@ -1206,6 +1226,9 @@ class LexicalResolver(
 
         /** Variant kanji the dictionary does not index → the standard spelling it does. Add pairs as misses appear. */
         val KANJI_VARIANTS = mapOf('閧' to '鬨', '赦' to '許', '堕' to '落', '搔' to '掻')
+
+        /** Okurigana-omitted headword → the spelling the dictionary indexes. Add pairs as misses appear. */
+        val OKURIGANA_OMISSIONS = mapOf("逆う" to "逆らう")
 
         /** Longest first, so したくない is not read as したい with a stem ending in く. */
         val SURU_DESIDERATIVE_SUFFIXES = listOf("したくない", "したい")
