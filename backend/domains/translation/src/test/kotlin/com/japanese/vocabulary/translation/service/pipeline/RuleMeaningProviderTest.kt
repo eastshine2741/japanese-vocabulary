@@ -168,6 +168,18 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves glued ninante and ndakedo`() {
+        // 別に君のままでいいのになんて
+        val ninante = provider.resolve(PipelineToken(28, "になんて", "になんて", 10, 14))!!
+        // こんな時思い出す事じゃないとは思うんだけど
+        val ndakedo = provider.resolve(PipelineToken(15, "んだけど", "んだけど", 17, 21))!!
+
+        assertThat(ninante.koreanText).isEqualTo("~에 따위")
+        assertThat(ndakedo.koreanText).isEqualTo("~인데")
+        assertThat(ndakedo.baseFormReading).isEqualTo("ンダケド")
+    }
+
+    @Test
     fun `resolves conditional tara and its voiced dara form`() {
         // 声聞かせて その手掴んだら離さないから — segmentation emits だら on its own, and the dictionary has no
         // entry for the た+ら suffix, so it has to be settled by rule like た and だ are.
