@@ -157,6 +157,19 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `rewrites glued nokana into explanatory no and kana`() {
+        // 望んでるのかな? — のかな arrives as one surface, and neither the dictionary nor the rules know the glued form.
+        val line = "望んでるのかな?"
+        val start = line.indexOf("のかな")
+        val rewritten = provider.rewrite(listOf(PipelineToken(11, "のかな", "のかな", start, start + 3)))
+
+        assertThat(rewritten.map { it.surface }).containsExactly("の", "かな")
+        assertThat(rewritten.map { it.charStart to it.charEnd }).containsExactly(4 to 5, 5 to 7)
+        assertThat(rewritten.map { line.substring(it.charStart, it.charEnd) }).containsExactly("の", "かな")
+        assertThat(rewritten.map { provider.resolve(it)!!.koreanText }).containsExactly("~거야", "~일까")
+    }
+
+    @Test
     fun `resolves glued dakede as a single particle`() {
         // 嫌になんだよ お前を見ただけで — segmentation emits だけで as surface and headword, so
         // GluedParticleSplitter has nothing to split and the dictionary has no entry for the glued form.

@@ -111,6 +111,14 @@ class RuleMeaningProvider {
                     TokenReplacement("も", "も", sourceIndex = 0, startOffset = 3, endOffset = 4, contextGloss = "also, too"),
                 ),
             ),
+            // Sentence-final の + かな: the glued form is in neither the dictionary nor the tables.
+            TokenRewriteRule(
+                surfaces = listOf("のかな"),
+                replacements = listOf(
+                    TokenReplacement("の", "の", sourceIndex = 0, startOffset = 0, endOffset = 1, contextGloss = "explanatory sentence ending"),
+                    TokenReplacement("かな", "かな", sourceIndex = 0, startOffset = 1, endOffset = 3, contextGloss = "I wonder"),
+                ),
+            ),
             // やな (いやな) + もの: segmentation glues them into the headword 嫌な物, which the dictionary lacks.
             TokenRewriteRule(
                 surfaces = listOf("やなもの"),
@@ -309,6 +317,7 @@ class RuleMeaningProvider {
             "で" to particle("で", "~에서"),
             "や" to particle("や", "~이나"),
             "か" to particle("か", "~인가"),
+            "かな" to particle("かな", "~일까"),
             "ね" to particle("ね", "~네"),
             "よ" to particle("よ", "~야"),
             // だけ + で. The model emits だけで as both surface and headword, so GluedParticleSplitter
