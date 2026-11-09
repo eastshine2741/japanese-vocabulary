@@ -347,5 +347,17 @@ class RuleMeaningProviderTest {
         assertThat(rewritten.first().contextGloss).contains("here")
     }
 
+    @Test
+    fun `resolves everyday kana adverbs the dictionary files under rare kanji headwords`() {
+        // 涙腺など とうに切っといてよ / ついでに口 横に裂いといてよ
+        val tou = provider.resolve(PipelineToken(4, "とうに", "とうに", 5, 8))!!
+        val tsuide = provider.resolve(PipelineToken(0, "ついでに", "ついでに", 0, 4))!!
+
+        assertThat(tou.partOfSpeech).isEqualTo(PartOfSpeech.ADVERB)
+        assertThat(tou.koreanText).isEqualTo("진작에")
+        assertThat(tsuide.partOfSpeech).isEqualTo(PartOfSpeech.ADVERB)
+        assertThat(tsuide.koreanText).isEqualTo("~하는 김에")
+    }
+
     private fun token(surface: String) = PipelineToken(0, surface, surface, 0, surface.length)
 }

@@ -294,6 +294,9 @@ class RuleMeaningProvider {
             // Segmentation writes the headword as 何て言う, which the dictionary has no entry for.
             "なんていう" to RuleResolvedToken("なんていう", "何て言う", "ナンテイウ", "ナンテイウ", PartOfSpeech.EXPRESSION, "무슨"),
             "何て言う" to RuleResolvedToken("何て言う", "何て言う", "ナンテイウ", "ナンテイウ", PartOfSpeech.EXPRESSION, "무슨"),
+            // Everyday kana adverbs the dictionary files only under rare kanji headwords (疾うに, 序でに).
+            "とうに" to RuleResolvedToken("とうに", "とうに", "トウニ", "トウニ", PartOfSpeech.ADVERB, "진작에"),
+            "ついでに" to RuleResolvedToken("ついでに", "ついでに", "ツイデニ", "ツイデニ", PartOfSpeech.ADVERB, "~하는 김에"),
         )
 
         val particles = mapOf(
