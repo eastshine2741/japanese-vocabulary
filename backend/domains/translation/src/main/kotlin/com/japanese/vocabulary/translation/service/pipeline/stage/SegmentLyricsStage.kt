@@ -71,7 +71,8 @@ class SegmentLyricsStage(
             splitByIndex.forEach { (index, tokens) ->
                 val defects = LineDefects(
                     unresolvedHeadwords = missesByIndex[index].orEmpty(),
-                    uncovered = anchored.incompleteByIndex[index],
+                    uncovered = anchored.incompleteByIndex[index]
+                        .takeUnless { CREDIT_LINE.containsMatchIn(input.rawByIndex[index].orEmpty()) },
                 )
                 val accepted = acceptedDefects[index]
                 // Keep the attempt with fewer defects; a resample is not automatically better.
@@ -298,6 +299,9 @@ class SegmentLyricsStage(
         const val SEGMENT_TEMPERATURE_STEP = 0.3
 
         const val SEGMENT_MAX_TEMPERATURE = 0.9
+        // A credit line (`作詩 : 藤原基央`) is not lyric; the name after the label is no word to cover.
+        // Anchored to the line start so a lyric merely containing `歌` is still checked.
+        private val CREDIT_LINE = Regex("""^\s*(作詞|作詩|作曲|編曲|歌)\s*[:：]""")
         private const val FAILURE_DETAIL_LIMIT = 3
         private const val UNRESOLVED_DETAIL_LIMIT = 10
         private const val INDEX_FIELD = "index"

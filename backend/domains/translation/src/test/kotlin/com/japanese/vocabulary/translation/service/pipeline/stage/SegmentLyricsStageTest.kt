@@ -6,6 +6,7 @@ import com.japanese.vocabulary.translation.client.gemini.GeminiClient
 import com.japanese.vocabulary.translation.client.gemini.dto.SegLineDto
 import com.japanese.vocabulary.translation.client.gemini.dto.SegWordDto
 import com.japanese.vocabulary.translation.model.AnalysisDefect
+import com.japanese.vocabulary.translation.model.AnalysisDefectCause
 import com.japanese.vocabulary.translation.model.PipelineToken
 import com.japanese.vocabulary.translation.model.TranslationPipelineSource
 import com.japanese.vocabulary.translation.service.pipeline.AnalysisDefectReporter
@@ -75,6 +76,27 @@ class SegmentLyricsStageTest {
         assertThat(reported.captured).isEmpty()
         // No defect means no resampled retry either: one segmentation call for the song.
         coVerify(exactly = 1) { geminiClient.segmentAndLemmatize(any(), any(), any()) }
+    }
+
+    @Test
+    fun `a credit line is not reported as uncovered while a lyric line still is`(): Unit = runBlocking {
+        val credits = listOf(0 to "作詩 : 藤原基央", 1 to "作曲 : 藤原基央")
+        val lyric = 2 to "晴れ舞台（イェイ）"
+        coEvery { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(
+            SegLineDto(0, listOf(SegWordDto("作詩", "作詩", "サクシ", "サクシ", "lyrics"))),
+            SegLineDto(1, listOf(SegWordDto("作曲", "作曲", "サッキョク", "サッキョク", "composition"))),
+            SegLineDto(2, listOf(SegWordDto("晴れ舞台", "晴れ舞台", "ハレブタイ", "ハレブタイ", "big stage"))),
+        )
+        coEvery { gluedParticleSplitter.split(any()) } answers { firstArg() }
+        coEvery { compoundVerbMerger.merge(any()) } answers { firstArg() }
+        coEvery { lexicalResolver.unresolvedTokens(any()) } returns emptyList()
+
+        stage.execute(source(*(credits + lyric).toTypedArray()))
+
+        val reported = slot<Iterable<AnalysisDefect>>()
+        verify { defectReporter.reportAll(capture(reported)) }
+        assertThat(reported.captured.map { it.cause to it.line })
+            .containsExactly(AnalysisDefectCause.UNCOVERED to "晴れ舞台（イェイ）")
     }
 
     private fun source(vararg lines: Pair<Int, String>): TranslationPipelineSource = TranslationPipelineSource.from(
