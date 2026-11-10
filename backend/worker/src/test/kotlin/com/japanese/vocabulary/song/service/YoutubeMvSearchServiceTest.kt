@@ -820,6 +820,50 @@ class YoutubeMvSearchServiceTest {
     }
 
     @Test
+    fun `a katakana artist's romanized VEVO channel is the artist's own channel`() {
+        stubPretenderCandidates("ペンタトニックス")
+
+        assertThat(service.searchMvUrl("Pretender", "ペンタトニックス", 175))
+            .isEqualTo("https://www.youtube.com/watch?v=cu7TacgGIi0")
+    }
+
+    @Test
+    fun `another artist's VEVO upload of the same title is not taken`() {
+        stubPretenderCandidates("Official髭男dism")
+
+        assertThat(service.searchMvUrl("Pretender", "Official髭男dism", 175))
+            .isEqualTo("https://www.youtube.com/watch?v=TQ8WlA2GXbk")
+    }
+
+    private fun stubPretenderCandidates(artist: String) {
+        every { artistChannelCache.get(artist) } returns null
+        stubSearch(
+            searchItem("cu7TacgGIi0", "Pentatonix - Pretender (Official Audio)", "PentatonixVEVO"),
+            searchItem("AxXHImcSRqM", "ペンタトニックス-Pretenderカバー", "たくたくちゃんちゃん"),
+            searchItem("NZbgwjtuvKY", "PENTATONIX - PRETENDER live - Japan TV MUSICFAIT", "Gabriel Azevedo"),
+            searchItem("18SiW9u6K4o", "洋楽　英訳 Pentatonix - Pretender", "UJ 世界はラブソングでできている"),
+            searchItem("TQ8WlA2GXbk", "Official髭男dism - Pretender［Official Video］", "Official髭男dism"),
+            searchItem("J5SKGxyYQXg", "PENTATONIX LIVE in 愛知 pretender", "RIKI"),
+            searchItem("-OcuicUXH5U", "Pretender - Pentatonix (Full Sheet Music with Lyrics)", "PTXSheetMusic"),
+            searchItem("qFqF8AMo-Xs", "Official髭男dism - Pentatonix - &quot;Pretender&quot; (3D MusicVideo)", "おもいでレモネード"),
+            searchItem("h8rZAMiRTTo", "Official髭男dism - Pretender [Official Live Video]", "Official髭男dism"),
+            searchItem("ywxgsKO2SAo", "Pentatonix 191116 Japan Fan Event：Pretender", "Sanesaki m"),
+            searchItem("TdpKLupFqX8", "Pretender／Official髭男dism  - A cappella Cover by sinfonia", "sinfonia"),
+            searchItem("3MteSlpxCpo", "Pentatonix - Daft Punk (Official Video)", "PentatonixVEVO"),
+            searchItem("2nQn7zj9sQg", "[OFFICIAL VIDEO] Butter x Dynamite - Pentatonix", "Pentatonix"),
+            searchItem("Y95B-dZ32uQ", "Pentatonix - Perfume Medley", "PentatonixVEVO"),
+            searchItem("pnv1DJqtgr0", "ガンホー　パズドラCM　「ペンタトニックス」篇　pentatonix", "kawa yama"),
+        )
+        stubDurations(
+            "cu7TacgGIi0" to "PT2M57S", "AxXHImcSRqM" to "PT2M54S", "NZbgwjtuvKY" to "PT2M10S",
+            "18SiW9u6K4o" to "PT3M2S", "TQ8WlA2GXbk" to "PT5M36S", "J5SKGxyYQXg" to "PT2M55S",
+            "-OcuicUXH5U" to "PT3M6S", "qFqF8AMo-Xs" to "PT2M58S", "h8rZAMiRTTo" to "PT5M45S",
+            "ywxgsKO2SAo" to "PT3M35S", "TdpKLupFqX8" to "PT2M2S",
+        )
+        every { youtubeClient.getChannel(any()) } returns null
+    }
+
+    @Test
     fun `search splits a catalog title whose separator directly follows an exclamation mark`() {
         val artist = "米津玄師"
         val channel = "Kenshi Yonezu  米津玄師"
