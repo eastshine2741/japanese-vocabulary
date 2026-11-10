@@ -168,6 +168,15 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves glued dakeno as a single particle`() {
+        // 見て見ぬフリしてるだけの作りもんさ — segmentation emits だけの as surface and headword.
+        val resolved = provider.resolve(PipelineToken(4, "だけの", "だけの", 9, 12))!!
+
+        assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.PARTICLE)
+        assertThat(resolved.koreanText).isEqualTo("~뿐인")
+    }
+
+    @Test
     fun `resolves conditional tara and its voiced dara form`() {
         // 声聞かせて その手掴んだら離さないから — segmentation emits だら on its own, and the dictionary has no
         // entry for the た+ら suffix, so it has to be settled by rule like た and だ are.

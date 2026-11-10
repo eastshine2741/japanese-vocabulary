@@ -311,9 +311,10 @@ class RuleMeaningProvider {
             "か" to particle("か", "~인가"),
             "ね" to particle("ね", "~네"),
             "よ" to particle("よ", "~야"),
-            // だけ + で. The model emits だけで as both surface and headword, so GluedParticleSplitter
+            // だけ + で/の. The model emits the glued form as both surface and headword, so GluedParticleSplitter
             // sees no mismatch and the dictionary has no entry for the combined form.
             "だけで" to particle("だけで", "~만으로"),
+            "だけの" to particle("だけの", "~뿐인"),
             // Connective て; SegmentAnchoringValidator fills it in when the model leaves it off the verb.
             "て" to particle("て", "~하고"),
         )
