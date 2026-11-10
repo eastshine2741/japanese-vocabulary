@@ -62,6 +62,16 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves dakeredo as a concessive conjunction`() {
+        // 不器用だけれど — segmentation emits だけれど as one token, and the dictionary has no entry for it.
+        val resolved = provider.resolve(PipelineToken(40, "だけれど", "だけれど", 3, 7))!!
+
+        assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.CONJUNCTION)
+        assertThat(resolved.baseForm).isEqualTo("だけれど")
+        assertThat(resolved.koreanText).isEqualTo("~이지만")
+    }
+
+    @Test
     fun `resolves particles`() {
         val resolved = provider.resolve(token("も"))!!
 
