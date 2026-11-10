@@ -294,6 +294,8 @@ class RuleMeaningProvider {
             // Segmentation writes the headword as 何て言う, which the dictionary has no entry for.
             "なんていう" to RuleResolvedToken("なんていう", "何て言う", "ナンテイウ", "ナンテイウ", PartOfSpeech.EXPRESSION, "무슨"),
             "何て言う" to RuleResolvedToken("何て言う", "何て言う", "ナンテイウ", "ナンテイウ", PartOfSpeech.EXPRESSION, "무슨"),
+            // Long colloquial form of だけど; the dictionary has no headword for it.
+            "だけれど" to RuleResolvedToken("だけれど", "だけれど", "ダケレド", "ダケレド", PartOfSpeech.CONJUNCTION, "~이지만"),
         )
 
         val particles = mapOf(
