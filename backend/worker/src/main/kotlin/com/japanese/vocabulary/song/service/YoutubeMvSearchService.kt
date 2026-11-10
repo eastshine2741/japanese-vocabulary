@@ -351,9 +351,12 @@ class YoutubeMvSearchService(
      * An all-Latin artist is left to [channelMatchesArtistOrMember]; there is nothing to romanize.
      */
     private fun romanizedOwnChannel(artist: String, channelTitle: String): Boolean {
-        val words = spacedForMatch(channelTitle).split(' ').filter { it.isNotBlank() && it !in OFFICIAL_CHANNEL_WORDS }
+        // A label-run channel glues "VEVO" onto the name ("PentatonixVEVO").
+        val words = spacedForMatch(channelTitle).split(' ').map { it.removeSuffix(VEVO_SUFFIX) }
+            .filter { it.isNotBlank() && it !in OFFICIAL_CHANNEL_WORDS }
         if (words.isEmpty() || words.any { word -> !word.all { it in 'a'..'z' || it in '0'..'9' } }) return false
-        val channel = RomanizedName.latinSkeleton(words.joinToString(""))
+        // Katakana spells x as クス (ペンタトニックス ↔ pentatonix).
+        val channel = RomanizedName.latinSkeleton(words.joinToString("").replace("x", "ks"))
         if (channel.length < MIN_ROMANIZED_SKELETON) return false
         return artistNames(artist)
             .filter { name -> name.any { it.code > 0x7F } }
@@ -578,6 +581,7 @@ class YoutubeMvSearchService(
         )
         private val OFFICIAL_CHANNEL_RE = Regex("(?<![a-z])official(?![a-z])|(?<!非)公式", RegexOption.IGNORE_CASE)
         private val OFFICIAL_CHANNEL_WORDS = setOf("official", "channel", "ch", "music", "youtube", "staff", "公式", "チャンネル", "ちゃんねる")
+        private const val VEVO_SUFFIX = "vevo"
         // Two consonants match too many names by chance.
         private const val MIN_ROMANIZED_SKELETON = 3
         // Not the song as recorded (other performer, arrangement, no vocals, partial). A cut-down
