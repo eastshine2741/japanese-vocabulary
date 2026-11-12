@@ -25,6 +25,16 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves kana tsukurikake that the dictionary has no headword for`() {
+        // つくり つくりかけの言葉だけ抱きしめている
+        val resolved = provider.resolve(PipelineToken(1, "つくりかけ", "つくりかけ", 4, 9))!!
+
+        assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.NOUN)
+        assertThat(resolved.baseForm).isEqualTo("作りかけ")
+        assertThat(resolved.koreanText).isEqualTo("만들다 만 것")
+    }
+
+    @Test
     fun `resolves teshimau headword behind a colloquial contracted surface`() {
         // 当然の報いにクラっちゃった — segmentation already normalises っちゃった to the headword
         // てしまう, so the rule must key on the headword and not require the surface to match.
