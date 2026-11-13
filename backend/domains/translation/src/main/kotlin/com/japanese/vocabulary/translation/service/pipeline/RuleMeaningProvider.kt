@@ -278,6 +278,8 @@ class RuleMeaningProvider {
             // Colloquial contraction of いやだ. Segmentation writes the headword as 嫌だ, which the dictionary
             // has no entry for. Keyed on the surface only: いやだ shares that headword but not the reading.
             "やだ" to RuleResolvedToken("やだ", "嫌だ", "ヤダ", "イヤダ", PartOfSpeech.NA_ADJECTIVE, "싫다"),
+            // Long-vowel spelling of やだよ; segmentation keeps it whole under the headword やだよ.
+            "やーよ" to RuleResolvedToken("やーよ", "嫌だ", "ヤーヨ", "イヤダ", PartOfSpeech.NA_ADJECTIVE, "싫어"),
             // Attributive of the same contraction (やなもの), split off by the rewrite above.
             "やな" to RuleResolvedToken("やな", "嫌だ", "ヤナ", "イヤダ", PartOfSpeech.NA_ADJECTIVE, "싫은"),
             // Colloquial やんなる; segmentation writes the headword やになる, which the dictionary lacks.
