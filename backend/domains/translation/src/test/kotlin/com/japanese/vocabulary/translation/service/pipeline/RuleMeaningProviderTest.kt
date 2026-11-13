@@ -218,6 +218,16 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves long-vowel yaayo spelling of yadayo`() {
+        // アンダー 与えるだけじゃやーよ — the headword やだよ has no dictionary entry.
+        val resolved = provider.resolve(PipelineToken(5, "やーよ", "やだよ", 12, 15))!!
+
+        assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.NA_ADJECTIVE)
+        assertThat(resolved.baseForm).isEqualTo("嫌だ")
+        assertThat(resolved.koreanText).contains("싫")
+    }
+
+    @Test
     fun `does not rule-resolve ambiguous grammar-like words`() {
         assertThat(provider.resolve(token("ない"))).isNull()
         assertThat(provider.resolve(token("から"))).isNull()
