@@ -157,6 +157,19 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `splits betsu no glued into one token into the noun and the particle`() {
+        // あぁ 君が別の人のことを好きになるって夢を見たんだ
+        val split = provider.rewrite(listOf(PipelineToken(30, "別の", "別の", 5, 7)))
+
+        assertThat(split.map { it.surface }).containsExactly("別", "の")
+        assertThat(split.map { it.headword }).containsExactly("別", "の")
+        assertThat(split.map { it.charStart }).containsExactly(5, 6)
+        assertThat(split.map { it.charEnd }).containsExactly(6, 7)
+        assertThat(split.map { it.usedReading }).containsExactly("ベツ", "ノ")
+        assertThat(split.map { it.baseFormReading }).containsExactly("ベツ", "ノ")
+    }
+
+    @Test
     fun `resolves glued dakede as a single particle`() {
         // 嫌になんだよ お前を見ただけで — segmentation emits だけで as surface and headword, so
         // GluedParticleSplitter has nothing to split and the dictionary has no entry for the glued form.
