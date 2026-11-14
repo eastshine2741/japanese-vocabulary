@@ -233,6 +233,16 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves kana nanimokamo the dictionary only has under its kanji headword`() {
+        // そうなにもかもに迷子がおり
+        val resolved = provider.resolve(PipelineToken(2, "なにもかも", "なにもかも", 2, 7))!!
+
+        assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.ADVERB)
+        assertThat(resolved.reading).isEqualTo("ナニモカモ")
+        assertThat(resolved.koreanText).isEqualTo("모든 것")
+    }
+
+    @Test
     fun `resolves colloquial mettara from yatara mettara`() {
         // なんでもかんでもやたらめったら性癖フェティシズム — めったら is a colloquial stretch of 滅多
         // with no dictionary headword, so it was reported as a dictionary miss.
