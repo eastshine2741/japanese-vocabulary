@@ -111,6 +111,14 @@ class RuleMeaningProvider {
                     TokenReplacement("も", "も", sourceIndex = 0, startOffset = 3, endOffset = 4, contextGloss = "also, too"),
                 ),
             ),
+            // 別 + の arrives as one surface and headword; the dictionary has 別 but not 別の.
+            TokenRewriteRule(
+                surfaces = listOf("別の"),
+                replacements = listOf(
+                    TokenReplacement("別", "別", sourceIndex = 0, startOffset = 0, endOffset = 1, contextGloss = "different, another", reading = "ベツ"),
+                    TokenReplacement("の", "の", sourceIndex = 0, startOffset = 1, endOffset = 2, contextGloss = "of"),
+                ),
+            ),
             // やな (いやな) + もの: segmentation glues them into the headword 嫌な物, which the dictionary lacks.
             TokenRewriteRule(
                 surfaces = listOf("やなもの"),
@@ -402,8 +410,8 @@ class RuleMeaningProvider {
                         headword = replacement.headword,
                         charStart = source.charStart + replacement.startOffset,
                         charEnd = source.charStart + replacement.endOffset,
-                        usedReading = JapaneseText.toKatakana(replacement.surface),
-                        baseFormReading = JapaneseText.toKatakana(replacement.headword),
+                        usedReading = replacement.reading ?: JapaneseText.toKatakana(replacement.surface),
+                        baseFormReading = replacement.reading ?: JapaneseText.toKatakana(replacement.headword),
                         contextGloss = replacement.contextGloss,
                     )
                 }
@@ -412,7 +420,7 @@ class RuleMeaningProvider {
         /**
          * A rewrite discards the LLM's readings, so the replacement's are transliterated from [surface]
          * and [headword]. That only works while **every replacement is a kana surface whose reading is
-         * itself** (どう, も, ここ); a kanji replacement must carry explicit readings.
+         * itself** (どう, も, ここ); a kanji replacement must carry its katakana [reading].
          */
         data class TokenReplacement(
             val surface: String,
@@ -425,6 +433,8 @@ class RuleMeaningProvider {
              * token reaches sense-select with an empty hint (`ここ` gets five homophones from the dictionary).
              */
             val contextGloss: String = "",
+            /** Used for both surface and headword reading; only for uninflected kanji replacements. */
+            val reading: String? = null,
         )
     }
 }
