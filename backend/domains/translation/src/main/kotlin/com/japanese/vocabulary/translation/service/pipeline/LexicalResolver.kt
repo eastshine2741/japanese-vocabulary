@@ -79,6 +79,7 @@ class LexicalResolver(
                 ?: resolveTeAuxiliary(token, probeLookups)
                 ?: resolveCausative(token, probeLookups)
                 ?: resolveIchidanVolitional(token, probeLookups)
+                ?: resolveConditionalBa(token, probeLookups)
                 ?: resolveNegativeVerb(token, probeLookups)
                 ?: resolvePotentialForm(token, probeLookups)
                 ?: resolveGodanRenyokei(token, probeLookups)
@@ -167,6 +168,7 @@ class LexicalResolver(
                     resolveTeAuxiliary(it, probeLookups, logRescue = false) == null &&
                     resolveCausative(it, probeLookups, logRescue = false) == null &&
                     resolveIchidanVolitional(it, probeLookups, logRescue = false) == null &&
+                    resolveConditionalBa(it, probeLookups, logRescue = false) == null &&
                     resolveNegativeVerb(it, probeLookups, logRescue = false) == null &&
                     resolvePotentialForm(it, probeLookups, logRescue = false) == null &&
                     resolveGodanRenyokei(it, probeLookups, logRescue = false) == null &&
@@ -216,7 +218,8 @@ class LexicalResolver(
             appearanceSouProbes(token).map { it.baseForm } +
             completionSuffixProbes(token).map { it.first } +
             teAuxiliaryProbes(token).map { it.first } +
-            causativeProbes(token).map { it.baseForm }
+            causativeProbes(token).map { it.baseForm } +
+            conditionalBaProbes(token).map { it.baseForm }
 
     /**
      * Grades how well [lookup] pins down the entry [token] means, using the `(headword, reading)` pair.
@@ -904,6 +907,28 @@ class LexicalResolver(
         val base = ichidanVolitionalProbe(token) ?: return null
         val reading = token.baseFormReading.takeIf { it.endsWith("ヨウ") }?.dropLast(2)?.plus("ル")
         return resolveConjugation(token, listOf(ConjugationProbe(base, reading, ICHIDAN)), lookups, logRescue, "volitional")
+    }
+
+    /** Safety net for a verb's conditional handed back as the headword — 気づけば for 気づく, 食べれば for 食べる. */
+    private fun resolveConditionalBa(
+        token: PipelineToken,
+        lookups: Map<String, DictionaryLookupDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? = resolveConjugation(token, conditionalBaProbes(token), lookups, logRescue, "conditional")
+
+    /** `気づけば` → `気づく`; `食べれば` → `食べる` (godan れば → る is asked first, then ichidan). */
+    private fun conditionalBaProbes(token: PipelineToken): List<ConjugationProbe> {
+        val headword = token.headword
+        if (headword.length < 3 || !headword.endsWith("ば")) return emptyList()
+        val uRow = POTENTIAL_TO_DICTIONARY[headword[headword.length - 2]] ?: return emptyList()
+        val reading = token.baseFormReading.takeIf { it.length >= 3 && it.endsWith("バ") }
+        val godanReading = reading
+            ?.let { POTENTIAL_TO_DICTIONARY[JapaneseText.toHiragana(it[it.length - 2].toString()).single()] }
+            ?.let { reading.dropLast(2) + JapaneseText.toKatakana(it.toString()) }
+        val godan = ConjugationProbe(headword.dropLast(2) + uRow, godanReading, GODAN)
+        if (!headword.endsWith("れば")) return listOf(godan)
+        val ichidanReading = reading?.takeIf { it.endsWith("レバ") }?.dropLast(2)?.plus("ル")
+        return listOf(godan, ConjugationProbe(headword.dropLast(2) + "る", ichidanReading, ICHIDAN))
     }
 
     /** `化けよう` → `化ける`. Null unless something precedes よう. */

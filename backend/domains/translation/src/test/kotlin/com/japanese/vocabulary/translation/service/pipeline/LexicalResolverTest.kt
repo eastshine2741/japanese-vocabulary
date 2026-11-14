@@ -1172,6 +1172,26 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a conditional ba form handed back as the headword is looked up as the dictionary form`(): Unit = runBlocking {
+        // 気づけば遠くまで歩いてきた
+        stub(
+            "気づく" to found(godanVerb("気づく", "キズク", "to notice")),
+            "食べる" to found(posEntry("食べる", "タベル", "to eat", "Ichidan verb")),
+        )
+        val tokens = listOf(
+            token("気づけば", "気づけば", "キズケバ", lineIndex = 1),
+            token("食べれば", "食べれば", "タベレバ", lineIndex = 2),
+        )
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values
+
+        assertThat(resolved.map { it.baseForm }).containsExactly("気づく", "食べる")
+        assertThat(resolved.map { it.options.single().english }).containsExactly("to notice", "to eat")
+        assertThat(resolved.map { it.options.single().provenance }).containsOnly(DictionaryLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `a na-adjective handed back in its attributive form is looked up as the stem`(): Unit = runBlocking {
         stub(
             "嫌" to found(posEntry("嫌", "イヤ", "disliking", "Na-adjective (keiyodoshi)")),
